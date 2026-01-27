@@ -1,0 +1,32 @@
+name: build-vault-release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "vault_template/**"
+      - "tools/**"
+      - "VERSION"
+      - ".github/workflows/release.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build release
+        run: python3 tools/build_release.py
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: continuity-vault-dist
+          path: dist/
