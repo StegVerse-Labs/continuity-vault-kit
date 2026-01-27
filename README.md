@@ -17,3 +17,9 @@ A portable, open-format, decades-durable personal knowledge vault template + too
 1. Build a distributable package:
    ```bash
    python3 tools/build_release.py
+
+## Initialize vault to chosen dir
+1. python3 tools/init_vault.py /path/to/target
+
+## Verify release bundle
+1. python3 tools/verify_release.py dist/ContinuityVault_v0.1.0.zip
