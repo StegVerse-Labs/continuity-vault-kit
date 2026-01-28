@@ -2,6 +2,12 @@
 
 A portable, open-format, decades-durable personal knowledge vault template + tooling.
 
+## Format Status
+
+Current Format Version: 0.1.0  
+
+This version defines the baseline folder structure and preservation policy for the KnowledgeVault system.
+
 ## What you get
 - A ready-to-use folder template at `vault_template/KnowledgeVault/`
 - Index scaffolding for humans + AI
