@@ -1,20 +1,21 @@
 {
   "vault_name": "KnowledgeVault",
-  "vault_version": "0.1.0",
-  "created_utc": null,
-  "format": "open-filesystem",
-  "recommended_formats": ["md", "txt", "pdf", "csv", "json", "jpg", "png", "mp3", "wav"],
-  "naming_standard": "YYYY-MM-DD Topic – Description.ext",
-  "indexes": [
+  "format_version": "0.1.0",
+  "required_folders": [
+    "00_Inbox",
+    "01_Notes",
+    "02_Research",
+    "03_Records",
+    "04_Media",
+    "05_Projects",
+    "06_Archive",
+    "_Index",
+    "_Meta",
+    "_Policy"
+  ],
+  "index_files": [
     "_Index/Master_Index.md",
     "_Index/Timeline_Index.md",
-    "_Index/Topics_Index.md",
-    "_Index/People_Index.md"
-  ],
-  "policy_docs": [
-    "_Policy/Naming_Standard.md",
-    "_Policy/Intake_Workflow.md",
-    "_Policy/Retention_and_Preservation.md",
-    "_Policy/AI_Access_Policy.md"
+    "_Index/Topics_Index.md"
   ]
 }
