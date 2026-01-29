@@ -1,5 +1,7 @@
 # Intake Workflow (iPhone-first)
 
+If creating a new note or record summary, duplicate a starter file from `_Templates/` to maintain consistent structure.
+
 ## Daily capture
 - Put everything into `00_Inbox/`
 
