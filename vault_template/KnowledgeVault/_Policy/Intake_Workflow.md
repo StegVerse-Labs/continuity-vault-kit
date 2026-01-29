@@ -2,6 +2,8 @@
 
 If creating a new note or record summary, duplicate a starter file from `_Templates/` to maintain consistent structure.
 
+When editing Markdown files on iOS, open them from a text editor app rather than previewing them directly in Files.
+
 ## Daily capture
 - Put everything into `00_Inbox/`
 
