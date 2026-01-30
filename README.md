@@ -9,7 +9,7 @@ KnowledgeVault is a personal continuity system designed to:
 - Stay AI-compatible while remaining human-readable
 - Support structured retrieval in the future
 
-⚠️ ## 🚀 Start Here
+## 🚀 Start Here
 
 This repository is a **starter framework**.
 
@@ -17,7 +17,7 @@ This repository is a **starter framework**.
 
 It contains structure, templates, and policies only.
 
-No personal data should be stored here.
+⚠️ No personal data should be stored within thie repository.
 
 ## Format Status
 
