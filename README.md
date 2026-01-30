@@ -72,9 +72,14 @@ This version defines the baseline folder structure and preservation policy for t
 ### 1️⃣ Build a distributable package
 ```bash
 python3 tools/build_release.py
+```
 
 ## 2️⃣ Initialize vault to chosen dir
+```
 1. python3 tools/init_vault.py /path/to/target
+```
 
 ## 3️⃣ Verify release bundle
+```
 1. python3 tools/verify_release.py dist/ContinuityVault_v0.1.0.zip
+```
