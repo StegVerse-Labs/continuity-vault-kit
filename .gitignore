@@ -1,3 +1,8 @@
+# Prevent personal vault content
+*_Private*
+*_Personal*
+/User_Content/
+/Exports/
 dist/
 .DS_Store
 __pycache__/
