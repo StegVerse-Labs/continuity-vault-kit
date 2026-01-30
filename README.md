@@ -2,7 +2,11 @@
 
 A portable, open-format, decades-durable personal knowledge vault template + tooling.
 
-⚠️ This repository is a **KnowledgeVault framework starter kit**.
+⚠️ ## 🚀 Start Here
+
+This repository is a **starter framework**.
+
+👉 See **GETTING_STARTED.md** for instructions on creating and using your own private KnowledgeVault.
 
 It contains structure, templates, and policies only.
 
