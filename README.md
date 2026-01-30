@@ -21,9 +21,20 @@ It contains structure, templates, and policies only.
 
 ## Need Help Setting Up Your KnowledgeVault?
 
-We offer guided setup, migration assistance, and AI-integration help.
+If you'd like assistance with:
 
-Contact: (your future StegVerse contact or form link)
+- Initial KnowledgeVault setup
+- Migrating existing notes or documents
+- Structuring a long-term archival system
+- Safe AI integration with your vault
+
+Please open a GitHub Issue in this repository and describe:
+
+1. What you're trying to accomplish  
+2. What tools or platforms you're currently using  
+3. Any constraints (device-only, privacy level, storage limits, etc.)
+
+We’ll respond with guidance, templates, or next steps.
 
 ## Format Status
 
