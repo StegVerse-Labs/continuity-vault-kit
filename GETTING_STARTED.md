@@ -1,30 +1,57 @@
 # Getting Started with KnowledgeVault
 
-This repository is a starter framework for building your own long-term personal knowledge vault.
+Welcome to the **KnowledgeVault Framework** — a portable, open-format system for long-term personal knowledge preservation.
+
+⚠️ This GitHub repository contains **structure and templates only**.  
+It is **NOT** where you store personal data.
+
+---
 
 ## Step 1 — Create Your Personal Vault
 
-Do NOT store personal data in this GitHub repository.
+1. Download this repository as a ZIP  
+2. Extract it into a private location such as:
+   - iCloud Drive / KnowledgeVault
+   - External drive
+   - Encrypted storage
 
-Instead:
+This extracted folder becomes **your working KnowledgeVault**.
 
-1. Download this repository as a ZIP
-2. Extract it into:
-   iCloud Drive / knowledgevault
-3. That folder becomes your **private working vault**
+---
 
-## Step 2 — Start Using It
+## Step 2 — Start Adding Content
 
-Begin adding content to:
+Use these folders:
 
-- 01_Notes
-- 02_Research
-- 03_Records
-- 05_Projects
+- `01_Notes` — daily notes, ideas, thinking
+- `02_Research` — reference material & deep dives
+- `03_Records` — official documents (medical, legal, financial)
+- `04_Media` — photos, audio, video
+- `05_Projects` — active work
+- `06_Archive` — completed or inactive material
 
-Follow the templates and naming rules in `_Policy/`.
+Follow naming rules in `_Policy/Naming_Standard.md`.
 
-## Step 3 — AI Usage
+---
 
-You can share specific folders with AI tools as needed.
-Always avoid sharing sensitive data unless required.
+## Step 3 — Using AI Safely
+
+You may share selected folders with AI tools for help organizing or analyzing content.
+
+Always keep:
+- identity documents
+- financial records
+- sensitive personal information
+
+in private storage unless absolutely required.
+
+---
+
+## Step 4 — Versioning the Framework
+
+This repository may update over time with improvements to:
+- folder structure
+- templates
+- preservation policies
+
+You can merge those updates into your personal vault when desired.
