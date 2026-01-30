@@ -2,6 +2,12 @@
 
 A portable, open-format, decades-durable personal knowledge vault template + tooling.
 
+⚠️ This repository is a **KnowledgeVault framework starter kit**.
+
+It contains structure, templates, and policies only.
+
+No personal data should be stored here.
+
 ## Format Status
 
 Current Format Version: 0.1.0  
