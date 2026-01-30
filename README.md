@@ -19,6 +19,12 @@ It contains structure, templates, and policies only.
 
 ⚠️ No personal data should be stored within thie repository.
 
+## Need Help Setting Up Your KnowledgeVault?
+
+We offer guided setup, migration assistance, and AI-integration help.
+
+Contact: (your future StegVerse contact or form link)
+
 ## Format Status
 
 Current Format Version: 0.1.0  
