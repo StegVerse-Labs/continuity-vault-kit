@@ -2,6 +2,13 @@
 
 A portable, open-format, decades-durable personal knowledge vault template + tooling.
 
+KnowledgeVault is a personal continuity system designed to:
+
+- Preserve knowledge across decades
+- Avoid lock-in to any single app or platform
+- Stay AI-compatible while remaining human-readable
+- Support structured retrieval in the future
+
 ⚠️ ## 🚀 Start Here
 
 This repository is a **starter framework**.
