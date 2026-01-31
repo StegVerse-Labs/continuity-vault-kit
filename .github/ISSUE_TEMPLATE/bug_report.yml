@@ -1,0 +1,63 @@
+name: Bug Report
+description: Report a bug in the kit structure, docs, or tooling.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug.
+
+        ⚠️ **Privacy note:** Do not include secrets, tokens, or sensitive personal details.
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly.
+      placeholder: “When I run tools/build_release.py, it fails with …”
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: “I expected a zip to be created under dist/…”
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Run …
+        3. Observe …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Docs / Markdown
+        - Vault template structure
+        - Release tooling (build_release.py)
+        - Init tooling (init_vault.py)
+        - Verify tooling (verify_release.py)
+        - GitHub Actions / workflow
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output (redacted)
+      description: Paste error output here (remove sensitive paths/tokens).
+      render: shell
+    validations:
+      required: false
