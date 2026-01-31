@@ -1,0 +1,173 @@
+name: One-Button Release (bump + tag + assets)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g., 0.1.1) — tag becomes v0.1.1"
+        required: true
+      changelog_note:
+        description: "Short changelog note (optional)"
+        required: false
+        default: "Docs + usability improvements."
+      release_title:
+        description: "Release title (optional)"
+        required: false
+        default: "KnowledgeVault Format"
+      prerelease:
+        description: "Mark as prerelease? true/false"
+        required: true
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (full history for tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set variables
+        id: vars
+        shell: bash
+        run: |
+          set -e
+          VER="${{ inputs.version }}"
+          TAG="v${VER}"
+
+          echo "ver=${VER}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Configure git identity
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update VERSION
+        shell: bash
+        run: |
+          echo "${{ steps.vars.outputs.ver }}" > VERSION
+          echo "VERSION now:"
+          cat VERSION
+
+      - name: Update CHANGELOG (optional)
+        shell: bash
+        run: |
+          set -e
+          NOTE="${{ inputs.changelog_note }}"
+          VER="${{ steps.vars.outputs.ver }}"
+          DATE="$(date -u +%Y-%m-%d)"
+
+          if [ -z "$NOTE" ]; then
+            echo "No changelog note provided — skipping CHANGELOG update."
+            exit 0
+          fi
+
+          if [ ! -f CHANGELOG.md ]; then
+            echo "# Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Prepend a simple entry to top of file (after first heading if present)
+          TMP="$(mktemp)"
+          if head -n 1 CHANGELOG.md | grep -qi "^#"; then
+            head -n 1 CHANGELOG.md > "$TMP"
+            echo "" >> "$TMP"
+            echo "## ${VER} — ${DATE}" >> "$TMP"
+            echo "- ${NOTE}" >> "$TMP"
+            echo "" >> "$TMP"
+            tail -n +2 CHANGELOG.md >> "$TMP"
+          else
+            echo "## ${VER} — ${DATE}" >> "$TMP"
+            echo "- ${NOTE}" >> "$TMP"
+            echo "" >> "$TMP"
+            cat CHANGELOG.md >> "$TMP"
+          fi
+
+          mv "$TMP" CHANGELOG.md
+          echo "Updated CHANGELOG.md:"
+          head -n 40 CHANGELOG.md
+
+      - name: Commit changes (if any)
+        shell: bash
+        run: |
+          set -e
+          git add VERSION CHANGELOG.md || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "release: bump version to ${{ steps.vars.outputs.ver }}"
+            git push origin HEAD:main
+          fi
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -e
+          TAG="${{ steps.vars.outputs.tag }}"
+
+          # If tag exists, do not fail — just continue
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists — skipping tag creation."
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build release artifacts (dist/)
+        shell: bash
+        run: |
+          python3 -V
+          python3 tools/build_release.py
+          ls -la dist || true
+
+      - name: Locate assets
+        id: assets
+        shell: bash
+        run: |
+          set -e
+
+          ZIP="$(ls -1 dist/*.zip 2>/dev/null | head -n 1 || true)"
+          SHA="$(ls -1 dist/*.sha256 2>/dev/null | head -n 1 || true)"
+
+          # Accept common manifest naming patterns:
+          MANIFEST="$(ls -1 dist/*manifest*.json dist/*manifest*.txt dist/manifest.* 2>/dev/null | head -n 1 || true)"
+
+          if [ -z "$ZIP" ] || [ -z "$SHA" ]; then
+            echo "ERROR: dist/ missing required assets (.zip and .sha256)."
+            echo "Found ZIP='$ZIP' SHA='$SHA'"
+            exit 1
+          fi
+
+          echo "zip=$ZIP" >> $GITHUB_OUTPUT
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "manifest=$MANIFEST" >> $GITHUB_OUTPUT
+
+          echo "Found ZIP: $ZIP"
+          echo "Found SHA: $SHA"
+          echo "Found MANIFEST: ${MANIFEST:-<none>}"
+
+      - name: Create/Update GitHub Release + upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: ${{ inputs.release_title }} ${{ steps.vars.outputs.tag }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.assets.outputs.zip }}
+            ${{ steps.assets.outputs.sha }}
+            ${{ steps.assets.outputs.manifest }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
