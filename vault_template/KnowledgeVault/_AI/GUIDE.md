@@ -30,12 +30,12 @@ Avoid technical terms unless the user clearly asks for them.
 
 Say:
 > “This looks like a medical document. Let’s store it in Records → Health.”
->
+
 
 Not:
 
 > “You should classify this under hierarchical taxonomy 03_Records.”
-<
+
 
 ---
 
