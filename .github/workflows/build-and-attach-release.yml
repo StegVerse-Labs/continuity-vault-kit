@@ -1,0 +1,34 @@
+name: Build and Attach Release Assets
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build release bundle
+        run: python3 tools/build_release.py
+
+      - name: Generate SHA256 checksum
+        run: sha256sum dist/*.zip > dist/KnowledgeVault_SHA256.txt
+
+      - name: Upload ZIP to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            dist/KnowledgeVault_SHA256.txt
+            dist/*.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
