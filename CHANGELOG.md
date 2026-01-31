@@ -5,6 +5,27 @@ All notable changes to the Continuity Vault Kit format will be documented in thi
 The format is based on [Semantic Versioning](https://semver.org/).
 
 ---
+## [0.1.1] – 2026-01-31
+
+### Added
+- iOS setup guide (`docs/IOS_SETUP.md`) for Obsidian, Pretext, and Working Copy workflows
+- GitHub Issue templates for:
+  - Setup Help
+  - Bug Reports
+  - Feature Requests
+- Public repository privacy boundary documentation (`SAFETY.md`)
+- README guidance for mobile-first KnowledgeVault users
+
+### Improved
+- Clearer separation between **public starter kit** and **private personal vaults**
+- Better onboarding path for new users cloning the repository
+- More explicit iPhone/iPad usage recommendations
+
+### Notes
+This release does **not** change the vault format structure.  
+It improves usability, onboarding, and safety documentation only.
+
+---
 
 ## [0.1.0] – 2026-01-27
 ### Added
