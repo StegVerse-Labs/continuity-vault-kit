@@ -1,0 +1,49 @@
+name: Feature Request
+description: Suggest an improvement or new feature for the kit.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests welcome.
+
+        ✅ The best requests describe:
+        - the problem
+        - the desired behavior
+        - why it matters long-term
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / need
+      placeholder: “It’s hard to deduplicate ChatGPT exports vs Apple Notes copies…”
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      placeholder: “Add a tool that hashes normalized conversation text and generates a duplicates report…”
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: “I tried X, Y… but it didn’t work because…”
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Nice to have
+        - Important
+        - High impact / urgent
+    validations:
+      required: true
