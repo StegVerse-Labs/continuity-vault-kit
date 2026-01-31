@@ -1,0 +1,75 @@
+name: KnowledgeVault Setup Help
+description: Help setting up a private vault, iPhone workflows, or migrating notes.
+title: "[Setup Help]: "
+labels: ["help wanted", "setup"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for using the KnowledgeVault starter kit.
+
+        ⚠️ **Privacy note:** Do not post passwords, tokens, private medical/legal info, or sensitive personal identifiers here.
+        If your issue requires sensitive detail, describe it at a high level and redact specifics.
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device / Environment
+      options:
+        - iPhone / iOS
+        - iPad / iPadOS
+        - Mac
+        - Windows
+        - Linux
+        - Mixed
+    validations:
+      required: true
+
+  - type: dropdown
+    id: storage
+    attributes:
+      label: Where will your private vault live?
+      options:
+        - Local-only (Files app)
+        - iCloud Drive
+        - Private GitHub repo
+        - Another cloud provider
+        - Not sure yet
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to accomplish?
+      description: Example: "Move Apple Notes into a private vault and keep it organized long-term."
+      placeholder: Describe your goal in 2-5 sentences.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: What content are you migrating?
+      description: Apple Notes, ChatGPT exports, PDFs, photos, email PDFs, etc.
+      placeholder: List what you’re bringing in and rough size (small/medium/large).
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Privacy level, boundaries, offline requirement, storage limits, “iPhone-only”, etc.
+      placeholder: Example: “iPhone-only, must work offline, no paid apps if possible.”
+    validations:
+      required: false
+
+  - type: textarea
+    id: current_state
+    attributes:
+      label: Current State (optional)
+      description: Where are you stuck? What did you try?
+      placeholder: Steps you already attempted + what happened.
+    validations:
+      required: false
