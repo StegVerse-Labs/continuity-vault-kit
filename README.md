@@ -67,6 +67,17 @@ This version defines the baseline folder structure and preservation policy for t
 
 ---
 
+## iPhone / iPad users
+
+For the best experience on iOS:
+- Use **Obsidian** for navigation (links work great)
+- Use **Pretext** for editing (links may not behave as navigation)
+- Use **Working Copy** for Git operations
+
+See: `docs/IOS_SETUP.md`
+
+---
+
 ## ⚡ Quick Start (Local)
 
 ### 1️⃣ Build a distributable package
