@@ -1,0 +1,98 @@
+name: Build & Attach Release Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g., v0.1.1)"
+        required: true
+        default: "v0.1.1"
+      title:
+        description: "Release title"
+        required: true
+        default: "KnowledgeVault Format"
+      prerelease:
+        description: "Mark as prerelease? true/false"
+        required: true
+        default: "false"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set tag variables
+        id: vars
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+            TITLE="${{ inputs.title }}"
+            PRERELEASE="${{ inputs.prerelease }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            TITLE="KnowledgeVault Format ${TAG}"
+            PRERELEASE="false"
+          fi
+
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "title=${TITLE}" >> $GITHUB_OUTPUT
+          echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build release artifacts
+        shell: bash
+        run: |
+          python3 -V
+          python3 tools/build_release.py
+          ls -la dist || true
+
+      - name: Locate assets
+        id: assets
+        shell: bash
+        run: |
+          set -e
+
+          ZIP="$(ls -1 dist/*.zip | head -n 1)"
+          SHA="$(ls -1 dist/*.sha256 | head -n 1)"
+          MANIFEST="$(ls -1 dist/*manifest*.json dist/*manifest*.txt 2>/dev/null | head -n 1 || true)"
+
+          if [ -z "$ZIP" ] || [ -z "$SHA" ]; then
+            echo "dist/ is missing required assets (.zip and .sha256)."
+            exit 1
+          fi
+
+          echo "zip=$ZIP" >> $GITHUB_OUTPUT
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "manifest=$MANIFEST" >> $GITHUB_OUTPUT
+
+          echo "Found ZIP: $ZIP"
+          echo "Found SHA: $SHA"
+          echo "Found MANIFEST: ${MANIFEST:-<none>}"
+
+      - name: Create or update GitHub Release + upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: ${{ steps.vars.outputs.title }}
+          prerelease: ${{ steps.vars.outputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.assets.outputs.zip }}
+            ${{ steps.assets.outputs.sha }}
+            ${{ steps.assets.outputs.manifest }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
