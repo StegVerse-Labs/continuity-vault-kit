@@ -9,6 +9,14 @@ It is **NOT** where you store personal data.
 
 ## Step 1 — Create Your Personal Vault
 
+## 📱 Using an iPhone or iPad?
+
+If you're managing your KnowledgeVault from the **Files app on iOS/iPadOS**, read this before updating your vault with a new release:
+
+👉 See **docs/IOS_VAULT_UPDATE_GUIDE.md**
+
+It explains how to safely update the vault structure **without overwriting your personal notes, records, or media**.
+
 1. Download this repository as a ZIP  
 2. Extract it into a private location such as:
    - iCloud Drive / KnowledgeVault
