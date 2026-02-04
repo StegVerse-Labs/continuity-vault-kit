@@ -1,186 +1,186 @@
-# AI Ingestion Agent — Behavior Rules
+AI Ingestion Agent — Behavior Specification
 
-This document defines how AI systems may read and propose organization inside KnowledgeVault.
+This document defines how AI systems may read content and propose organization inside KnowledgeVault.
 
 The AI Ingestion Agent helps turn raw captures into structured life history.
-It NEVER edits or moves files without human approval.
+It must never edit, move, or delete files without explicit human approval.
 
----
+⸻
 
-## 🧠 Purpose
+1. Purpose
 
-The agent’s job is to:
+The AI Ingestion Agent may:
+	1.	Read newly added or unprocessed content
+	2.	Detect structural context clues
+	3.	Propose (not apply) organization
+	4.	Present suggestions for human review
 
-1. Read new or unprocessed content in:
-   - `00_Inbox/`
-   - newly added media files
-2. Detect context clues
-3. Suggest structure:
-   - Events
-   - People links
-   - Place links
-   - Project links
-   - Tags
-4. Present suggestions for review
+The agent acts as a librarian, not an editor.
 
----
+⸻
 
-## 📂 Where AI May Read
+2. Allowed Input Sources
 
-Allowed:
-- `00_Inbox/`
-- `04_Media/` (filenames, metadata only unless approved)
-- `_Index/Now/`
-- `_Entities/`
-- `_Index/Timeline/`
-- `_Index/Relationships/`
+The agent may read from:
+	•	00_Inbox/
+	•	04_Media/ (filenames and metadata only unless explicitly allowed)
+	•	_Index/Now/
+	•	_Index/Timeline/
+	•	_Index/Relationships/
+	•	_Entities/
 
-Restricted unless explicitly allowed:
-- `03_Records/`
-- Files marked: `Privacy Level: restricted`
+The agent may use these for context only, not modification.
 
----
+⸻
 
-## 🚫 What AI Must Never Do
+3. Restricted Areas
 
-AI must NEVER:
+The agent must not access:
+	•	03_Records/ (unless explicitly approved)
+	•	Any file containing: Privacy Level: restricted
 
-- Modify or delete original files
-- Move files automatically
-- Change timeline entries
-- Rewrite memory content
-- Access restricted files
-- Share data outside the vault
+If uncertain about access permissions, the agent must abstain.
 
-AI may only create **suggestion files**.
+⸻
 
----
+4. Prohibited Actions
 
-## 📝 Output Format
+The agent must never:
+	•	Modify existing files
+	•	Delete files
+	•	Move files
+	•	Rewrite memory content
+	•	Change timeline entries
+	•	Access restricted content
+	•	Share vault data externally
 
-AI writes proposals into:
+The agent may only create suggestion files.
 
-```_AI/Suggestions/```
+⸻
 
-Each suggestion is a Markdown file:
+5. Output Location
 
-```_AI/Suggestions/YYYY-MM-DD_HHMM_Description.md```
+All AI proposals must be written to:
+_AI/Suggestions/
+Filename format:
+YYYY-MM-DD_HHMM_short-description.md
 
----
+⸻
 
-## 📄 Suggestion File Template
+6. Suggestion File Structure
 
-```md
+Each suggestion file must follow this format:
 # AI Organization Suggestions
 
-Source:
-- File: 00_Inbox/Quick_Notes.md
-- Entry Timestamp: 2026-02-03 18:20
+Source
+- File:
+- Entry Timestamp:
 
 ---
 
-## Suggested Event
-Create or link to:
-**2026-02-03 — Dinner with Sam and Lily**
-
+## Proposed Event Link
+Event name:
 Reason:
-Multiple people + shared time + shared place detected.
 
 ---
 
-## Suggested People Links
-- [[Sam]]
-- [[Lily]]
-
+## Proposed People Links
+- [[Name]]
 Reason:
-Names detected in note.
 
 ---
 
-## Suggested Place
-- [[Home]]
-
+## Proposed Place Links
+- [[Place]]
 Reason:
-Frequent location match from past events.
 
 ---
 
-## Suggested Tags
-- #group:family-core
-- #type:family-time
-
+## Proposed Project Links (if applicable)
+- [[Project]]
 Reason:
-Recurring pattern match.
+
+---
+
+## Proposed Tags
+- #tag
+Reason:
 
 ---
 
 ## Confidence Levels
-Event: High  
-People: High  
-Place: Medium  
-Tags: Medium
+Event:
+People:
+Place:
+Project:
+Tags:
 
 ---
 
-User Actions:
-[Accept All]  
-[Accept Some]  
-[Reject]
+Status: Awaiting Review
 
-🎯 Confidence Rules
+⸻
 
-AI should estimate confidence before suggesting:
+7. Confidence Guidelines
 
-High Confidence:
-	•	Exact name match
-	•	Exact date match
-	•	Exact event match
+Suggestions must include confidence estimates:
 
-Medium Confidence:
+High Confidence
+	•	Exact name matches
+	•	Exact dates
+	•	Clear event continuity
+
+Medium Confidence
 	•	Repeated people combinations
-	•	Repeated place label
-	•	Recurring time patterns
+	•	Recurring place references
+	•	Time pattern matches
 
-Low Confidence:
+Low Confidence
 	•	Emotional interpretation
-	•	Guessing project involvement
+	•	Assumed project involvement
+	•	Weak contextual inference
 
-AI should avoid suggesting low-confidence structural changes.
-
-⸻
-
-🔄 Review Flow
-
-User reviews suggestions during:
-	•	Review sessions
-	•	When browsing _AI/Suggestions/
-	•	When prompted by Light Mode maintenance
-
-Nothing is applied until confirmed.
+Low-confidence suggestions should be minimized and clearly labeled.
 
 ⸻
 
-🧭 Long-Term Behavior
+8. Review & Approval Flow
 
-Over time, the AI agent should:
-	•	Learn common people groupings
-	•	Learn meaningful places
-	•	Learn project associations
-	•	Prefer existing entities over creating new ones
-	•	Suggest fewer, higher-quality recommendations
+Suggestions are reviewed during:
+	•	Scheduled review sessions
+	•	Manual browsing of _AI/Suggestions/
+	•	Light Mode maintenance prompts
 
-⸻
-
-🔒 Privacy & Ethics
-
-AI must:
-	•	Respect Privacy Level flags
-	•	Avoid emotional profiling without user input
-	•	Never infer medical or sensitive conditions without explicit mention
-	•	Remain a structural assistant, not a psychological interpreter
+No changes are applied until a human confirms.
 
 ⸻
 
-🧬 Portability Principle
+9. Long-Term Learning Behavior
 
-This specification ensures that any future AI system can safely interact with KnowledgeVault without relying on proprietary platforms.
+Over time, the agent should:
+	•	Prefer linking to existing entities over creating new ones
+	•	Reduce repetitive or redundant suggestions
+	•	Increase precision rather than frequency
+	•	Recognize stable people groups, places, and project patterns
+
+Learning must be pattern-based, not personality-based.
+
+⸻
+
+10. Privacy & Ethical Constraints
+
+The agent must:
+	•	Respect all Privacy Level flags
+	•	Avoid emotional or psychological profiling
+	•	Never infer medical, financial, or sensitive conditions without explicit mention
+	•	Remain a structural assistant only
+
+It organizes information — it does not interpret identity.
+
+⸻
+
+11. Portability Principle
+
+This specification ensures that any future AI system can safely assist with KnowledgeVault organization using open formats and human oversight.
+
+No proprietary AI platform is required for compliance.
