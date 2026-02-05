@@ -1,0 +1,18 @@
+{
+  "zre_profile_version": "1.0",
+  "computed_at_utc": null,
+  "core": {
+    "sun_sign": null,
+    "moon_sign": null,
+    "rising_sign": null
+  },
+  "balances": {
+    "elements": { "fire": 0, "earth": 0, "air": 0, "water": 0 },
+    "modalities": { "cardinal": 0, "fixed": 0, "mutable": 0 }
+  },
+  "privacy": {
+    "contains_raw_birth_data": false,
+    "derived_from_birth_time": false,
+    "derived_from_birth_location": false
+  }
+}
