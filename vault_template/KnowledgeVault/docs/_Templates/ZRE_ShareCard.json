@@ -6,8 +6,17 @@
     "rising_sign": null
   },
   "balances": {
-    "elements": { "fire": 0, "earth": 0, "air": 0, "water": 0 },
-    "modalities": { "cardinal": 0, "fixed": 0, "mutable": 0 }
+    "elements": {
+      "fire": 0,
+      "earth": 0,
+      "air": 0,
+      "water": 0
+    },
+    "modalities": {
+      "cardinal": 0,
+      "fixed": 0,
+      "mutable": 0
+    }
   },
   "user_chosen_themes": []
 }
