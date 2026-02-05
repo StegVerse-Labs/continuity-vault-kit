@@ -1,26 +1,16 @@
-# 🧠 Getting Started with KnowledgeVault
+# Getting Started with KnowledgeVault
 
 Welcome to the **KnowledgeVault Framework** — a portable, open-format system for long-term personal knowledge preservation.
 
 ⚠️ **Important:**  
 This GitHub repository contains **structure, templates, and policies only**.  
-It is **NOT** where you store personal data.
+It is **not where you store personal data**.
 
-Your actual life records live in **your own private KnowledgeVault folder**.
-
----
-
-## 📱 Using an iPhone or iPad?
-
-If you are managing your vault using the **Files app on iOS or iPadOS**, read this before updating your vault structure:
-
-👉 See **docs/IOS_VAULT_UPDATE_GUIDE.md**
-
-This explains how to update your vault framework **without overwriting your personal notes, records, or media**.
+Your real life records live in **your own private KnowledgeVault folder**.
 
 ---
 
-## 📁 Step 1 — Create Your Personal Vault
+## Step 1 — Create Your Personal Vault
 
 1. Download this repository as a ZIP  
 2. Extract it into a private location such as:
@@ -28,21 +18,19 @@ This explains how to update your vault framework **without overwriting your pers
    - An external drive
    - Encrypted storage
 
-This extracted folder becomes **your working KnowledgeVault**.
+This folder becomes your **working KnowledgeVault**.
 
 ---
 
-## 🧱 Step 2 — Understand the Vault Structure
-
-Your vault is organized into clear life categories:
+## Step 2 — Understand the Vault Structure
 
 | Folder | Purpose |
 |--------|---------|
-| `00_Inbox` | Temporary holding area for notes, files, ideas |
-| `01_Notes` | Daily thoughts, experiences, personal reflections |
-| `02_Research` | Articles, topics you’re studying |
+| `00_Inbox` | Temporary holding area for notes and files |
+| `01_Notes` | Daily thoughts and personal experiences |
+| `02_Research` | Articles and topics you’re studying |
 | `03_Records` | Important documents and life records |
-| `04_Media` | Photos, videos, and audio memory logs |
+| `04_Media` | Photos, videos, and audio |
 | `05_Projects` | Things you are building or working on |
 | `_Index` | Navigation maps for you and AI |
 | `_Templates` | Ready-to-use note formats |
@@ -52,10 +40,9 @@ You don’t need to memorize this — just start adding things naturally.
 
 ---
 
-## ✍️ Step 3 — Create Your First Note
+## Step 3 — Create Your First Note
 
-1. Open `01_Notes`
-2. Create a new file named something like:
+Inside `01_Notes`, create a file like:
 
 ```
 2026-02-03 First KnowledgeVault Note.md
@@ -66,85 +53,60 @@ Write anything:
 - Something you learned  
 - A moment you want to remember  
 
-That’s it — you’ve started your continuity archive.
+That’s it — your continuity archive has begun.
 
 ---
 
-## 🧩 Step 4 — Use Templates (Optional but Helpful)
+## Step 4 — Use Templates (Optional)
 
-Open the `_Templates` folder.
+The `_Templates` folder contains structured formats for things like:
 
-You’ll find structured formats like:
-- Travel Log  
-- Emotional Snapshot  
-- Song Moment  
-- Media Highlight  
-- Life Event  
+- Travel logs  
+- Emotional snapshots  
+- Song moments  
+- Media highlights  
+- Life events  
 
-Copy a template into `01_Notes` and fill it out when you want more structure.
+Copy a template into `01_Notes` and fill it out when helpful.
 
 ---
 
-## 🤖 Step 5 — Using AI Safely
+## Step 5 — Using AI Carefully
 
-KnowledgeVault is designed to work well with AI assistants.
+KnowledgeVault is designed to work with AI assistants **without requiring them**.
 
 When sharing parts of your vault:
 
 1. Start with the `_Index` folder  
-2. Then share only the topic folders you want help with  
-3. Avoid sharing private records unless absolutely necessary  
+2. Share only the topic folders you want help with  
+3. Avoid sharing sensitive records unless necessary  
 
-AI can help summarize, organize, or connect patterns across your notes.
-
----
-
-## 💾 Step 6 — Protect Your Vault (Very Important)
-
-KnowledgeVault is designed to last decades.
-
-Use a backup system:
-
-- iCloud (automatic primary copy)
-- A second cloud copy monthly
-- An offline ZIP backup every few months
-
-This protects you from device loss, account issues, or service shutdowns.
+AI should assist organization — not replace your judgment.
 
 ---
 
-## 🔄 Step 7 — Updating the Framework
+## Step 6 — Protect Your Vault
 
-This repository may improve over time with updates to:
+KnowledgeVault is designed for decades of use.
 
-- Folder structure  
-- Templates  
-- Preservation policies  
+Use layered backups:
 
-You can merge updates into your personal vault when desired.  
-Your **personal content remains separate** from this framework repository.
+- A primary cloud sync  
+- A secondary cloud copy periodically  
+- An offline backup every few months  
 
----
-
-## 🧠 You’re Not Just Organizing Files — You’re Preserving Life
-
-KnowledgeVault helps you remember:
-
-- Where you were  
-- What you felt  
-- Who was there  
-- What mattered  
-
-Over time, it becomes a structured map of your life.
+This protects against device loss, account issues, or service shutdowns.
 
 ---
 
-## Need Help?
+## Step 7 — Updating the Framework
 
-Open a GitHub Issue in this repository and describe:
+This framework will evolve over time.
 
-- What device you use  
-- What you want to store  
-- Where you feel stuck  
+You may merge updates into your personal vault when useful.  
+Your personal content remains separate and safe.
 
-We’ll guide you step-by-step.
+---
+
+You are not just organizing files.  
+You are preserving memory, context, and continuity for the future.
