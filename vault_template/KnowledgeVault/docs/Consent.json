@@ -1,0 +1,11 @@
+{
+  "zre": {
+    "enabled": true,
+    "mode": "lite",
+    "frequency": "daily",
+    "allow_use_translated_profile": false,
+    "allow_use_user_themes": true,
+    "allow_write_reflections": true,
+    "last_run_utc": null
+  }
+}
