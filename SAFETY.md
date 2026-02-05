@@ -1,68 +1,72 @@
-# Safety & Privacy Boundary (Read Before Use)
+---
 
-This repository is a **public starter kit** for building a private KnowledgeVault.
+# ✅ UPDATED SAFETY.md
+
+```md
+# Safety & Privacy Boundary
+
+This repository is a **public framework** for building a private KnowledgeVault.
 
 It contains:
-- folder structure
-- templates
-- policies
-- tooling
+- Folder structure
+- Templates
+- Policies
+- Tooling
 
-It must **not** contain personal data.
+It must **never contain personal data**.
 
 ---
 
-## ✅ Allowed in this public repo
+## ✅ Allowed in This Public Repository
 
-- Markdown templates
 - Documentation
-- Policies and schemas
+- Markdown templates
+- Policy files
 - Tooling scripts
-- Example placeholder files (non-sensitive)
+- Non-sensitive example files
 
 ---
 
-## ❌ Not allowed in this public repo
+## ❌ Never Commit Personal or Sensitive Data
 
 Do not commit:
-- medical records
-- legal records
-- financial documents
-- IDs (driver’s license, SSN, passport, etc.)
-- private photos or receipts
-- exported emails containing personal info
-- tokens, secrets, API keys
-- private conversations that identify real people or contain sensitive details
+
+- Medical records
+- Legal records
+- Financial documents
+- Government IDs
+- Private photos
+- Exported emails or messages containing personal information
+- API keys, tokens, credentials
+- Private conversations involving real people
+
+This repository should remain safe to browse publicly.
 
 ---
 
-## Recommended setup
+## Recommended Setup
 
-### Option A (best): Private vault repo
-1. Keep this repo public as the kit.
-2. Create a separate **private** repo for your real vault.
-3. Copy the `vault_template/KnowledgeVault/` contents into your private vault.
+### Option A (Best): Private Vault Repository
 
-### Option B: Local-only vault folder
-1. Download the release zip
-2. Unzip into Files app
-3. Use Obsidian to navigate locally
+1. Keep this repository public as the framework  
+2. Create a separate **private repository** for your real vault  
+3. Copy the `vault_template/KnowledgeVault/` contents into your private vault  
 
----
+### Option B: Local-Only Vault
 
-## iOS note about link behavior
-
-Some iOS editors (notably Pretext) may not behave like “wiki navigation” apps.
-
-If links don’t open reliably:
-- use **Obsidian** or **GitHub web UI**
-- treat Pretext as an editor
+1. Download a release ZIP  
+2. Extract into a local or cloud-synced folder  
+3. Use your preferred editor or viewer to manage files  
 
 ---
 
-## If you accidentally committed sensitive data
+## If Sensitive Data Is Accidentally Committed
 
-1. Remove the files immediately
-2. Rotate any exposed credentials
-3. Rewrite history if necessary (GitHub docs: “Removing sensitive data from a repository”)
-4. Consider making the repo private (but remember forks may exist)
+1. Remove the files immediately  
+2. Rotate any exposed credentials  
+3. Follow GitHub’s guidance on removing sensitive data from history  
+4. Consider making the repo private (but note forks may already exist)
+
+---
+
+KnowledgeVault’s public repository should always remain a **clean, reusable starter kit** — not a storage location for real-life data.
