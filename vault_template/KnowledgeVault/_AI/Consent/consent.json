@@ -1,0 +1,10 @@
+{
+  "zre": {
+    "enabled": true,
+    "mode": "lite",
+    "allow_use_translated_profile": false,
+    "allow_use_recent_emotion_tags": false,
+    "frequency": "daily",
+    "last_prompt_utc": null
+  }
+}
