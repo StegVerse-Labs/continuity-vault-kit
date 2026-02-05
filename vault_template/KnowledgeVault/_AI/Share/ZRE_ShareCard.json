@@ -1,0 +1,9 @@
+{
+  "zre_sharecard_version": "1.0",
+  "core": { "sun_sign": "Libra", "moon_sign": "Taurus", "rising_sign": "Sagittarius" },
+  "balances": {
+    "elements": { "fire": 1, "earth": 2, "air": 3, "water": 0 },
+    "modalities": { "cardinal": 2, "fixed": 2, "mutable": 2 }
+  },
+  "user_chosen_themes": ["harmony", "growth", "boundaries"]
+}
