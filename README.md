@@ -1,44 +1,47 @@
-# Continuity Vault Kit
+# KnowledgeVault — Continuity Vault Kit
 
-A portable, open-format, decades-durable personal knowledge vault template + tooling.
+A portable, open-format, decades-durable framework for preserving personal knowledge and life records.
 
-KnowledgeVault is a personal continuity system designed to:
+KnowledgeVault is designed to help individuals:
 
-- Preserve knowledge across decades  
+- Preserve important information across decades  
 - Avoid lock-in to any single app or platform  
-- Stay AI-compatible while remaining human-readable  
-- Support structured retrieval in the future  
+- Keep data AI-compatible while remaining human-readable  
+- Maintain structure that future tools (and future-you) can understand  
+
+This is **not an app**.  
+It is a **framework and structure** for building your own long-term personal knowledge archive.
 
 ---
 
 ## 🚀 Start Here
 
-This repository is a **starter framework**.
+This repository is a **starter kit**.
 
-👉 See **GETTING_STARTED.md** for instructions on creating and using your own private KnowledgeVault.
+👉 See **GETTING_STARTED.md** to create and use your own **private KnowledgeVault**.
 
 It contains **structure, templates, and policies only**.
 
-⚠️ **No personal data should be stored in this repository.**
+⚠️ **No personal data should ever be stored in this repository.**
 
 ---
 
-## 🛟 Need Help Setting Up Your KnowledgeVault?
+## 🛟 Need Help Setting Up?
 
-If you'd like assistance with:
+If you'd like help with:
 
 - Initial KnowledgeVault setup  
 - Migrating existing notes or documents  
-- Structuring a long-term archival system  
+- Designing a long-term archival system  
 - Safe AI integration with your vault  
 
-Please **open a GitHub Issue** in this repository and describe:
+Please **open a GitHub Issue** and include:
 
 1. What you're trying to accomplish  
 2. What tools or platforms you're currently using  
 3. Any constraints (device-only, privacy level, storage limits, etc.)
 
-We’ll respond with guidance, templates, or next steps.
+This project evolves through real-world use and feedback.
 
 ---
 
@@ -46,7 +49,7 @@ We’ll respond with guidance, templates, or next steps.
 
 **Current Format Version:** 0.1.0  
 
-This version defines the baseline folder structure and preservation policy for the KnowledgeVault system.
+This version defines the baseline folder structure and preservation policies for the KnowledgeVault system. The structure will evolve carefully over time with backward compatibility in mind.
 
 ---
 
@@ -54,43 +57,33 @@ This version defines the baseline folder structure and preservation policy for t
 
 - A ready-to-use folder template at `vault_template/KnowledgeVault/`  
 - Index scaffolding for humans + AI  
-- A build tool that creates a distributable ZIP + SHA256 checksum + manifest  
+- Tooling to generate distributable, verifiable release packages  
 
 ---
 
 ## 🧠 Core Principles
 
 - Open formats (Markdown, PDF, CSV, JSON)  
-- Vendor neutral (works on any cloud or offline)  
+- Vendor neutral (works with any cloud or offline storage)  
 - Designed for redundancy (3-2-1 backup compatible)  
-- AI-friendly indexing and policy boundaries  
+- AI-friendly structure with clear privacy boundaries  
+- Calm, durable organization rather than constant reorganization  
 
 ---
 
-## iPhone / iPad users
-
-For the best experience on iOS:
-- Use **Obsidian** for navigation (links work great)
-- Use **Pretext** for editing (links may not behave as navigation)
-- Use **Working Copy** for Git operations
-
-See: `docs/IOS_SETUP.md`
-
----
-
-## ⚡ Quick Start (Local)
+## ⚡ Quick Start (Local Use)
 
 ### 1️⃣ Build a distributable package
 ```bash
 python3 tools/build_release.py
 ```
 
-## 2️⃣ Initialize vault to chosen dir
-```
-1. python3 tools/init_vault.py /path/to/target
+### 2️⃣ Initialize a vault in a chosen location
+```bash
+python3 tools/init_vault.py /path/to/target
 ```
 
-## 3️⃣ Verify release bundle
-```
-1. python3 tools/verify_release.py dist/ContinuityVault_v0.1.0.zip
+### 3️⃣ Verify a release bundle
+```bash
+python3 tools/verify_release.py dist/ContinuityVault_v0.1.0.zip
 ```
