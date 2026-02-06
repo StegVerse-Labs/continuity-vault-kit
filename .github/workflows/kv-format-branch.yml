@@ -1,0 +1,47 @@
+name: KV Format Branch (Auto-footer)
+
+on:
+  push:
+    branches:
+      - "format/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  auto_footer_format_branch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (format branch)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Auto-label footers (format branch only)
+        run: |
+          python3 tools/kv_layer_check.py --mode auto-label
+
+      - name: Commit changes (if any)
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes."
+            exit 0
+          fi
+
+          git config user.name "stegverse-bot"
+          git config user.email "stegverse-bot@users.noreply.github.com"
+
+          git add -A
+          git commit -m "chore(kv): auto-add layer footer"
+          git push
+
+      - name: Validate after auto-label
+        run: |
+          python3 tools/kv_layer_check.py --mode validate
