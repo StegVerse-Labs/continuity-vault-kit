@@ -1,9 +1,9 @@
 name: KV Guardrails (Layer + Footer)
 
 on:
+  pull_request:
   push:
     branches: [ "main" ]
-  pull_request:
 
 permissions:
   contents: read
@@ -20,10 +20,6 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run Layer Boundary Check
+      - name: KV Layer Boundary + Footer (validate)
         run: |
-          python3 tools/kv_layer_check.py
-
-      - name: Run Footer Check
-        run: |
-          python3 tools/kv_footer.py check
+          python3 tools/kv_layer_check.py --mode validate
