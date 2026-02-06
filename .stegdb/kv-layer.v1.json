@@ -1,0 +1,53 @@
+{
+  "layers": {
+    "FRAMEWORK": {
+      "paths": [
+        "README.md",
+        "GETTING_STARTED.md",
+        "PATCH_README.md",
+        "SAFETY.md",
+        "CHANGELOG.md",
+        "DO_NOT_STORE_HERE.md",
+        "VERSION",
+        ".gitignore"
+      ],
+      "globs": [
+        ".github/**",
+        "docs/**",
+        "tools/**",
+        ".stegdb/**"
+      ]
+    },
+    "RUNTIME_TEMPLATE": {
+      "globs": [
+        "vault_template/**"
+      ]
+    }
+  },
+  "defaults": {
+    "scope_framework": "Framework",
+    "scope_runtime": "Vault Template",
+    "safety_framework": "Public framework repo (no personal data).",
+    "safety_runtime": "Template content only (no personal data)."
+  },
+  "enforce": {
+    "hard_fail_markers": [
+      "🔒 Layer: Personal Vault | KV",
+      "KV Layer: PERSONAL",
+      "KV Layer: PERSONAL_VAULT",
+      "PERSONAL VAULT",
+      "Personal Vault"
+    ],
+    "binary_disallow": {
+      "enabled": false,
+      "max_binary_bytes_in_repo": 0
+    },
+    "markdown_footer": {
+      "footer_separator": "---",
+      "comment_footer_template": "<!-- StegDB: kv.layer.v1 | LAYER={LAYER} | SCOPE={SCOPE} -->",
+      "emoji_footer_template": [
+        "🔒 Layer: {SCOPE} | KV"
+      ]
+    }
+  }
+}
