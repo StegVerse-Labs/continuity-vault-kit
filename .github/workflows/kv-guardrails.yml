@@ -1,9 +1,10 @@
-name: KV Guardrails (Layer + Footer)
+name: KV Guardrails (Layer + Footer + Emoji)
 
 on:
   pull_request:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -11,6 +12,7 @@ permissions:
 jobs:
   kv-guardrails:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,6 +22,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: KV Layer Boundary + Footer (validate)
+      - name: KV layer boundary + footer validation
         run: |
           python3 tools/kv_layer_check.py --mode validate
+
+      - name: Emoji + glyph lint (docs hygiene)
+        run: |
+          python3 tools/emoji_lint.py
+
+      - name: Guidance if failing
+        if: failure()
+        run: |
+          echo ""
+          echo "❌ Guardrails failed."
+          echo "✅ Fix options:"
+          echo "  1) Create a branch named format/<something>"
+          echo "  2) Push it (or run the 'KV Format Branch (Auto-footer)' workflow)"
+          echo "  3) Open PR from format/<something> -> main"
+          echo ""
