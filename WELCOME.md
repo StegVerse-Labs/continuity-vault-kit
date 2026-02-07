@@ -2,11 +2,9 @@
 
 This is **your** space.
 
-KnowledgeVault is a simple, local framework for organizing information, memories, notes, and context in a way that stays useful over time — even as tools, platforms, and AI systems change.
+KnowledgeVault is a simple, local way to organize information, notes, memories, and context so they remain understandable over time — even as devices, platforms, and AI systems change.
 
-Nothing here phones home.  
-Nothing here watches you.  
-Nothing here requires permission.
+Nothing here depends on a specific app, operating system, or service.
 
 ---
 
@@ -14,57 +12,57 @@ Nothing here requires permission.
 
 KnowledgeVault helps you:
 
-- Keep information **on your own device**
-- Preserve context, intent, and meaning — not just files
-- Organize knowledge so it can be understood later (by you, or by future tools)
-- Stay portable if platforms, apps, or systems disappear
+- Keep information **under your control**
+- Preserve context and intent — not just files
+- Organize knowledge so it can be understood later
+- Stay portable if tools, platforms, or services disappear
 
-It works with plain files and folders.  
-You can read everything without special software.
+Everything here uses plain files and folders.
+You can read and edit them with tools you already have.
 
 ---
 
 ## What This Is Not
 
 - ❌ Not a product
+- ❌ Not a platform
 - ❌ Not a cloud service
-- ❌ Not a social network
 - ❌ Not surveillance
 - ❌ Not a requirement
 
-You can use as much or as little of this as you want.
+You decide how much or how little you use.
 
 ---
 
 ## How to Use It
 
-You don’t need to follow rules.
+There is no correct way to start.
 
-Start anywhere:
+You can:
 - Write notes
 - Store documents
-- Add memories
+- Add context
 - Track projects
-- Save context you don’t want to lose
+- Keep things you don’t want to lose
 
-If something feels useful, keep it.  
-If something doesn’t, delete it.
+If something helps, keep it.
+If it doesn’t, ignore or remove it.
 
-This system is designed to adapt to *you* — not the other way around.
+This system adapts to **you**, not the other way around.
 
 ---
 
 ## About AI
 
-KnowledgeVault assumes AI will continue to improve.
+KnowledgeVault assumes AI tools will continue to improve.
 
 That’s why this system:
-- keeps data **human-readable**
+- keeps information human-readable
 - avoids lock-in
 - makes context explicit
-- allows future tools to help *without owning your data*
+- allows future tools to assist *without owning your data*
 
-AI may assist you — but it should never replace your agency.
+AI may help you — but it should never replace your agency.
 
 ---
 
@@ -72,7 +70,7 @@ AI may assist you — but it should never replace your agency.
 
 KnowledgeVault is not meant to last forever.
 
-It exists so that **future systems can understand the past well enough to replace it**.
+It exists so future systems can understand the past well enough to replace it.
 
 If a better way emerges, you should be able to move on without losing yourself.
 
@@ -80,11 +78,10 @@ If a better way emerges, you should be able to move on without losing yourself.
 
 ## One Last Thing
 
-You are not being enrolled in anything.
-
+You are not signing up for anything.
 You are not agreeing to anything.
 
-You are simply keeping your own knowledge in a way that respects your time, your memory, and your future.
+You are simply keeping your own knowledge in a way that respects your time, memory, and future.
 
 Welcome.
 
