@@ -1,0 +1,59 @@
+name: Sync KnowledgeVault overlay from StegDB
+
+on:
+  workflow_dispatch:
+    inputs:
+      stegdb_ref:
+        description: "StegDB ref (tag/branch/SHA). Use a release tag or merge SHA when possible."
+        required: false
+        default: "main"
+  schedule:
+    - cron: "11 3 * * *" # daily 03:11 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout continuity-vault-kit
+        uses: actions/checkout@v4
+
+      - name: Checkout StegDB
+        uses: actions/checkout@v4
+        with:
+          repository: stegverse-labs/stegdb
+          ref: ${{ inputs.stegdb_ref }}
+          path: _stegdb
+
+      - name: Sync KnowledgeVaultOverlay canon into vault_template/KnowledgeVault/canon (fail loud)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="_stegdb/canonical/overlays/KnowledgeVaultOverlay/canon"
+          test -d "$SRC" || (echo "::error::Missing overlay folder: $SRC"; exit 3)
+
+          # Target location inside the kit (product-facing)
+          DST="vault_template/KnowledgeVault/canon"
+          mkdir -p "$DST"
+
+          rsync -a --delete "$SRC/" "$DST/"
+
+          test -n "$(ls -A "$DST")" || (echo "::error::Overlay sync produced empty $DST"; exit 4)
+
+          rm -rf _stegdb
+
+      - name: Commit overlay changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vault_template/KnowledgeVault/canon
+          git commit -m "chore: sync KnowledgeVaultOverlay canon from StegDB @ ${{ inputs.stegdb_ref }}"
+          git push
