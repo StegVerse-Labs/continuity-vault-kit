@@ -27,15 +27,14 @@ jobs:
           ref: ${{ inputs.stegdb_ref }}
           path: _stegdb
 
-      - name: Sync KnowledgeVaultOverlay canon into vault_template/KnowledgeVault/canon (fail loud)
+      - name: Sync KnowledgeVaultOverlay into _Canon (fail loud)
         shell: bash
         run: |
           set -euo pipefail
           SRC="_stegdb/canonical/overlays/KnowledgeVaultOverlay/canon"
           test -d "$SRC" || (echo "::error::Missing overlay folder: $SRC"; exit 3)
 
-          # Target location inside the kit (product-facing)
-          DST="vault_template/KnowledgeVault/canon"
+          DST="vault_template/KnowledgeVault/_Canon"
           mkdir -p "$DST"
 
           rsync -a --delete "$SRC/" "$DST/"
@@ -54,6 +53,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add vault_template/KnowledgeVault/canon
-          git commit -m "chore: sync KnowledgeVaultOverlay canon from StegDB @ ${{ inputs.stegdb_ref }}"
+          git add vault_template/KnowledgeVault/_Canon
+          git commit -m "chore: sync KnowledgeVaultOverlay from StegDB @ ${{ inputs.stegdb_ref }}"
           git push
