@@ -8,3 +8,9 @@ dist/
 __pycache__/
 *.pyc
 .env
+
+# --- Allow canonical overlay content ---
+!vault_template/
+!vault_template/KnowledgeVault/
+!vault_template/KnowledgeVault/_Canon/
+!vault_template/KnowledgeVault/_Canon/**
