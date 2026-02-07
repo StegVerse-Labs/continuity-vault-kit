@@ -87,3 +87,6 @@ You are not agreeing to anything.
 You are simply keeping your own knowledge in a way that respects your time, your memory, and your future.
 
 Welcome.
+
+Learn more about the ideas behind this system:
+https://github.com/StegVerse-Labs
