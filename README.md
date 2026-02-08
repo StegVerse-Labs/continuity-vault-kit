@@ -1,89 +1,43 @@
-# KnowledgeVault — Continuity Vault Kit
+# KnowledgeVault Kit (continuity-vault-kit)
 
-A portable, open-format, decades-durable framework for preserving personal knowledge and life records.
+KnowledgeVault is a **device-agnostic personal vault**: a folder structure + guidance you can copy onto any device to preserve notes, documents, and context over time.
 
-KnowledgeVault is designed to help individuals:
+No accounts. No services. No lock-in.
 
-- Preserve important information across decades  
-- Avoid lock-in to any single app or platform  
-- Keep data AI-compatible while remaining human-readable  
-- Maintain structure that future tools (and future-you) can understand  
+## Start here
 
-This is **not an app**.  
-It is a **framework and structure** for building your own long-term personal knowledge archive.
+➡️ **Read:** [`WELCOME.md`](./WELCOME.md)
 
----
+That file contains a 30-second start path for **iOS, Android, Windows, macOS, and Linux**.
 
-## 🚀 Start Here
+## What this is
 
-This repository is a **starter kit**.
+- A portable vault template you can copy anywhere
+- A way to preserve context, intent, and memory across devices and time
+- A starting point designed to be forked, adapted, or replaced
 
-👉 See **GETTING_STARTED.md** to create and use your own **private KnowledgeVault**.
+## What this is not
 
-It contains **structure, templates, and policies only**.
+- Not a product
+- Not a platform
+- Not surveillance
+- Not identity verification
+- Not permanent authority
 
-⚠️ **No personal data should ever be stored in this repository.**
+## What’s in this repo
 
----
+- `vault_template/` — the starter vault you copy to make your own
+- `WELCOME.md` — first-contact onboarding (start here)
+- `GETTING_STARTED.md` — deeper walkthrough and recommended structure
+- `SAFETY.md` — safety notes and threat-model guidance
+- `DO_NOT_STORE_HERE.md` — what not to keep in plain text
+- `STATUS.md` — current state + next steps
+- `CHANGELOG.md` + `VERSION` — change tracking
 
-## 🛟 Need Help Setting Up?
+## Relationship to StegVerse
 
-If you'd like help with:
+This kit is part of **StegVerse**: an open framework for expectations, identity, boundaries, continuity, and replaceability — not control or permanence.
 
-- Initial KnowledgeVault setup  
-- Migrating existing notes or documents  
-- Designing a long-term archival system  
-- Safe AI integration with your vault  
+## License
 
-Please **open a GitHub Issue** and include:
-
-1. What you're trying to accomplish  
-2. What tools or platforms you're currently using  
-3. Any constraints (device-only, privacy level, storage limits, etc.)
-
-This project evolves through real-world use and feedback.
-
----
-
-## 🧱 Format Status
-
-**Current Format Version:** 0.1.0  
-
-This version defines the baseline folder structure and preservation policies for the KnowledgeVault system. The structure will evolve carefully over time with backward compatibility in mind.
-
----
-
-## 📦 What You Get
-
-- A ready-to-use folder template at `vault_template/KnowledgeVault/`  
-- Index scaffolding for humans + AI  
-- Tooling to generate distributable, verifiable release packages  
-
----
-
-## 🧠 Core Principles
-
-- Open formats (Markdown, PDF, CSV, JSON)  
-- Vendor neutral (works with any cloud or offline storage)  
-- Designed for redundancy (3-2-1 backup compatible)  
-- AI-friendly structure with clear privacy boundaries  
-- Calm, durable organization rather than constant reorganization  
-
----
-
-## ⚡ Quick Start (Local Use)
-
-### 1️⃣ Build a distributable package
-```bash
-python3 tools/build_release.py
-```
-
-### 2️⃣ Initialize a vault in a chosen location
-```bash
-python3 tools/init_vault.py /path/to/target
-```
-
-### 3️⃣ Verify a release bundle
-```bash
-python3 tools/verify_release.py dist/ContinuityVault_v0.1.0.zip
-```
+See [`LICENSE`](./LICENSE).
