@@ -1,112 +1,69 @@
-# Getting Started with KnowledgeVault
+# Getting Started (Deeper Guide)
 
-Welcome to the **KnowledgeVault Framework** — a portable, open-format system for long-term personal knowledge preservation.
+This guide expands on `WELCOME.md` and suggests a simple way to use KnowledgeVault over time.
 
-⚠️ **Important:**  
-This GitHub repository contains **structure, templates, and policies only**.  
-It is **not where you store personal data**.
-
-Your real life records live in **your own private KnowledgeVault folder**.
+Start here first:
+- [`WELCOME.md`](./WELCOME.md)
 
 ---
 
-## Step 1 — Create Your Personal Vault
+## The baseline workflow
 
-1. Download this repository as a ZIP  
-2. Extract it into a private location such as:
-   - iCloud Drive / KnowledgeVault
-   - An external drive
-   - Encrypted storage
+### 1) Capture
+Add short notes fast. Don’t optimize.
 
-This folder becomes your **working KnowledgeVault**.
+### 2) Organize lightly
+Use folders only when you feel friction.
 
----
+### 3) Index for retrieval
+Indexes make the vault survivable. Create links.
 
-## Step 2 — Understand the Vault Structure
-
-| Folder | Purpose |
-|--------|---------|
-| `00_Inbox` | Temporary holding area for notes and files |
-| `01_Notes` | Daily thoughts and personal experiences |
-| `02_Research` | Articles and topics you’re studying |
-| `03_Records` | Important documents and life records |
-| `04_Media` | Photos, videos, and audio |
-| `05_Projects` | Things you are building or working on |
-| `_Index` | Navigation maps for you and AI |
-| `_Templates` | Ready-to-use note formats |
-| `_Policy` | Guidelines that keep the vault consistent |
-
-You don’t need to memorize this — just start adding things naturally.
+### 4) Preserve context
+When adding a note, include:
+- date
+- why it matters
+- what you believed at the time (intent)
 
 ---
 
-## Step 3 — Create Your First Note
+## Suggested vault structure (example)
 
-Inside `01_Notes`, create a file like:
+Your vault can be as simple as:
 
-```
-2026-02-03 First KnowledgeVault Note.md
-```
+- `INDEX.md`
+- `entries/`
+- `media/`
+- `docs/`
 
-Write anything:
-- What you did today  
-- Something you learned  
-- A moment you want to remember  
-
-That’s it — your continuity archive has begun.
+If your template already contains a structure, keep it. The goal is consistency, not perfection.
 
 ---
 
-## Step 4 — Use Templates (Optional)
+## What to write first
 
-The `_Templates` folder contains structured formats for things like:
-
-- Travel logs  
-- Emotional snapshots  
-- Song moments  
-- Media highlights  
-- Life events  
-
-Copy a template into `01_Notes` and fill it out when helpful.
+Add:
+- a “First Note” entry
+- a “Why this vault exists” entry
+- a “Rules I want my future self to remember” entry
 
 ---
 
-## Step 5 — Using AI Carefully
+## Portability rules (future-proofing)
 
-KnowledgeVault is designed to work with AI assistants **without requiring them**.
-
-When sharing parts of your vault:
-
-1. Start with the `_Index` folder  
-2. Share only the topic folders you want help with  
-3. Avoid sharing sensitive records unless necessary  
-
-AI should assist organization — not replace your judgment.
+- prefer open formats (`.md`, `.txt`, `.pdf`, `.png`, `.jpg`)
+- avoid app-locked formats as the only copy
+- keep filenames simple
+- keep an index at the top of the vault
 
 ---
 
-## Step 6 — Protect Your Vault
+## If you want to fork the system
 
-KnowledgeVault is designed for decades of use.
+That’s expected. Forking is a feature.
 
-Use layered backups:
+You can:
+- change folder names
+- add templates
+- remove what you don’t need
 
-- A primary cloud sync  
-- A secondary cloud copy periodically  
-- An offline backup every few months  
-
-This protects against device loss, account issues, or service shutdowns.
-
----
-
-## Step 7 — Updating the Framework
-
-This framework will evolve over time.
-
-You may merge updates into your personal vault when useful.  
-Your personal content remains separate and safe.
-
----
-
-You are not just organizing files.  
-You are preserving memory, context, and continuity for the future.
+The vault should serve you — not the other way around.
