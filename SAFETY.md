@@ -1,72 +1,45 @@
----
+# Safety Notes
 
-# ✅ UPDATED SAFETY.md
+KnowledgeVault is a **file and documentation template**.
+It is not encryption.
+It is not a security product.
 
-```md
-# Safety & Privacy Boundary
-
-This repository is a **public framework** for building a private KnowledgeVault.
-
-It contains:
-- Folder structure
-- Templates
-- Policies
-- Tooling
-
-It must **never contain personal data**.
+If you store sensitive information, you are responsible for how it is protected.
 
 ---
 
-## ✅ Allowed in This Public Repository
+## Minimum safety guidance
 
-- Documentation
-- Markdown templates
-- Policy files
-- Tooling scripts
-- Non-sensitive example files
+- Assume files stored in plain text can be read if someone gets access to your device or cloud storage.
+- Use device passcodes and full-disk encryption where available.
+- Use a secure backup strategy (at least 2 copies).
 
 ---
 
-## ❌ Never Commit Personal or Sensitive Data
+## What not to store in plain text
 
-Do not commit:
+See:
+- [`DO_NOT_STORE_HERE.md`](./DO_NOT_STORE_HERE.md)
 
-- Medical records
-- Legal records
-- Financial documents
-- Government IDs
-- Private photos
-- Exported emails or messages containing personal information
-- API keys, tokens, credentials
-- Private conversations involving real people
-
-This repository should remain safe to browse publicly.
+If you must store sensitive items, consider:
+- encrypted containers
+- password managers
+- separate secure vaults
 
 ---
 
-## Recommended Setup
+## Threat model (simple)
 
-### Option A (Best): Private Vault Repository
+Ask:
+- Who do I want to keep this from?
+- What happens if it leaks?
+- Where is it stored (device, cloud, shared family drive)?
 
-1. Keep this repository public as the framework  
-2. Create a separate **private repository** for your real vault  
-3. Copy the `vault_template/KnowledgeVault/` contents into your private vault  
-
-### Option B: Local-Only Vault
-
-1. Download a release ZIP  
-2. Extract into a local or cloud-synced folder  
-3. Use your preferred editor or viewer to manage files  
+Then choose protections accordingly.
 
 ---
 
-## If Sensitive Data Is Accidentally Committed
+## StegVerse philosophy note
 
-1. Remove the files immediately  
-2. Rotate any exposed credentials  
-3. Follow GitHub’s guidance on removing sensitive data from history  
-4. Consider making the repo private (but note forks may already exist)
-
----
-
-KnowledgeVault’s public repository should always remain a **clean, reusable starter kit** — not a storage location for real-life data.
+StegVerse favors **clarity and replaceability**.
+Safety should be improved over time, without locking users into one vendor or one app.
