@@ -2,6 +2,9 @@
 
 KnowledgeVault is a **device-agnostic personal vault**: a folder structure + guidance you can copy onto any device to preserve notes, documents, and context over time.
 
+This is not a productivity system.
+It is an attempt to formalize personal cognitive continuity in a replaceable, versioned, AI-compatible structure.
+
 No accounts. No services. No lock-in.
 
 ## Start here
