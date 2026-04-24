@@ -39,6 +39,23 @@ Then choose protections accordingly.
 
 ---
 
+## Data sharing safety
+
+If you later opt into the optional data-sharing ecosystem:
+
+- **You choose what to share** — not all vault content, only categories you explicitly select
+- **Metadata is separate from content** — you can share location or date patterns without sharing the actual note text
+- **Aggregation protects privacy** — your individual data is combined with others' matching data before any commercial use
+- **You can audit** — `_Policy/Data_Sharing_Policy.md` in your vault tracks what you have opted to share
+- **Withdrawal is immediate** — opt-out stops future sharing; already-aggregated data may remain in datasets per the policy
+- **No sensitive categories** — `03_Records/` (health, finance, legal) is excluded from sharing by default and cannot be overridden
+
+Before opting in, read:
+- [`docs/DATA_SHARING.md`](./docs/DATA_SHARING.md)
+- [`vault_template/KnowledgeVault/_Policy/Data_Sharing_Policy.md`](./vault_template/KnowledgeVault/_Policy/Data_Sharing_Policy.md)
+
+---
+
 ## StegVerse philosophy note
 
 StegVerse favors **clarity and replaceability**.

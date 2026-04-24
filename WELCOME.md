@@ -31,6 +31,7 @@ If you can open a text/markdown file and move folders, you can use KnowledgeVaul
 ### iPhone / iPad (iOS)
 - Use the **Files** app to unzip/copy folders.
 - Open `.md` files directly in Files, or with any notes/markdown app you prefer.
+- See [`docs/IOS_SETUP.md`](./docs/IOS_SETUP.md) for detailed iOS setup and Shortcuts automation.
 
 ### Android
 - Use the Files app (or a file manager) to unzip/copy folders.
@@ -46,6 +47,7 @@ If you can open a text/markdown file and move folders, you can use KnowledgeVaul
 - A portable structure for preserving context and intent
 - A template you can fork, edit, and carry across devices
 - A starting point that does not assume any specific app or platform
+- Designed so future AI tools can read and suggest — but never overwrite — your content
 
 ## What this is not
 - Not a product
@@ -53,6 +55,7 @@ If you can open a text/markdown file and move folders, you can use KnowledgeVaul
 - Not identity verification
 - Not surveillance
 - Not permanent authority
+- Not a way to make money — any future data-sharing revenue is strictly opt-in and secondary
 
 ---
 
@@ -63,6 +66,19 @@ Before storing sensitive info, read:
 - [`DO_NOT_STORE_HERE.md`](./DO_NOT_STORE_HERE.md)
 
 KnowledgeVault is **a structure**, not encryption.
+
+---
+
+## Optional: Data sharing and revenue
+
+Later, if you choose, you may opt into sharing anonymized data from your vault. If that data generates revenue (for example, through research, advertising, or content licensing), you may receive compensation. This is:
+
+- **Entirely optional** — default is off
+- **Transparent** — you choose exactly what categories and metadata to share
+- **Reversible** — you can withdraw at any time
+- **Not the purpose of the vault** — the vault exists for you first
+
+See [`docs/DATA_SHARING.md`](./docs/DATA_SHARING.md) for full details.
 
 ---
 
