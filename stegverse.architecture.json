@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0.0",
+  "repo_id": "continuity-vault-kit",
+  "repo_type": "vault",
+  "description": "KnowledgeVault Kit \u2014 portable personal vault template with StegVerse-compatible structure",
+  "inherits_from": "https://github.com/StegVerse-Labs/StegDB/blob/main/canonical/overlays/KnowledgeVaultOverlay",
+  "enforcement": "warn",
+  "expected_structure": {
+    "vault_template": {
+      "required": true,
+      "purpose": "Portable vault template that users copy to their devices",
+      "subdirs": {
+        "KnowledgeVault": {
+          "required": true,
+          "purpose": "Root of the vault template",
+          "subdirs": {
+            "00_Inbox": {
+              "required": true,
+              "purpose": "Quick captures and unprocessed notes"
+            },
+            "01_Notes": {
+              "required": true,
+              "purpose": "Daily notes, events, memories"
+            },
+            "02_Research": {
+              "required": true,
+              "purpose": "Reading, learning, investigations"
+            },
+            "03_Records": {
+              "required": true,
+              "purpose": "Health, finance, legal (sensitive)"
+            },
+            "04_Media": {
+              "required": true,
+              "purpose": "Photos, videos, audio"
+            },
+            "05_Projects": {
+              "required": true,
+              "purpose": "Active work, creative output"
+            },
+            "06_Archive": {
+              "required": true,
+              "purpose": "Completed or dormant material"
+            },
+            "_AI": {
+              "required": true,
+              "purpose": "AI-generated suggestions (never auto-applied)"
+            },
+            "_Entities": {
+              "required": true,
+              "purpose": "People, places, organizations, projects, self"
+            },
+            "_Index": {
+              "required": true,
+              "purpose": "Master indexes and cross-references"
+            },
+            "_LightMode": {
+              "required": true,
+              "purpose": "Minimal, distraction-free view files"
+            },
+            "_Meta": {
+              "required": true,
+              "purpose": "Vault metadata, places list, manifest"
+            },
+            "_Policy": {
+              "required": true,
+              "purpose": "User rules and choices"
+            },
+            "_System": {
+              "required": true,
+              "purpose": "Integrity checks, migration logs, guides"
+            },
+            "_Templates": {
+              "required": true,
+              "purpose": "Reusable note templates"
+            },
+            "_migration": {
+              "required": true,
+              "purpose": "Version-to-version migration helpers"
+            },
+            "docs": {
+              "required": true,
+              "purpose": "User documentation about this vault"
+            }
+          }
+        }
+      }
+    },
+    "docs": {
+      "required": true,
+      "purpose": "Framework documentation for vault users",
+      "subdirs": {}
+    },
+    "tools": {
+      "required": true,
+      "purpose": "Optional scripts for release, AI ingestion, verification",
+      "subdirs": {}
+    },
+    ".github": {
+      "required": true,
+      "purpose": "CI workflows for release, guardrails, sync",
+      "subdirs": {
+        "workflows": {
+          "required": true,
+          "purpose": "GitHub Actions workflows"
+        },
+        "ISSUE_TEMPLATE": {
+          "required": false,
+          "purpose": "Issue templates"
+        }
+      }
+    },
+    ".stegdb": {
+      "required": true,
+      "purpose": "StegDB layer boundary rules and configuration",
+      "subdirs": {}
+    }
+  },
+  "file_rules": {
+    "naming_conventions": {
+      "vault_notes": "YYYY-MM-DD \u2014 Description.md",
+      "entity_files": "Entity_Name.md",
+      "index_files": "Master_Index.md",
+      "policy_files": "Descriptive_Name.md"
+    },
+    "forbidden_patterns": [
+      "SSN",
+      "Social Security",
+      "Driver's License",
+      "Passport",
+      "BEGIN:VCARD",
+      "Privacy Level: restricted"
+    ],
+    "required_extensions": {
+      "docs": ".md",
+      "tools": ".py",
+      "workflows": ".yml"
+    }
+  },
+  "migration_rules": {
+    "review_needed_path": "review_needed/",
+    "legacy_path": "legacy/",
+    "auto_migrate": false,
+    "require_approval": true,
+    "syntax_issue_patterns": [
+      "non-standard arrow characters",
+      "missing frontmatter",
+      "broken internal links"
+    ]
+  },
+  "validation_hooks": {
+    "pre_commit": false,
+    "ci_pull_request": true,
+    "ci_push_main": true,
+    "scheduled_audit": "0 6 * * 1"
+  }
+}
