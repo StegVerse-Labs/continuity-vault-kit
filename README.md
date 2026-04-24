@@ -29,6 +29,26 @@ That file contains a 30-second start path for **iOS, Android, Windows, macOS, an
 
 ## What’s in this repo
 
+vault_template/KnowledgeVault/
+├── 00_Inbox/          → Quick captures, drafts, unprocessed notes
+├── 01_Notes/          → Daily notes, events, memories
+├── 02_Research/       → Reading, learning, investigations
+├── 03_Records/        → Health, finance, legal (sensitive — see SAFETY.md)
+├── 04_Media/          → Photos, videos, audio
+├── 05_Projects/       → Active work, creative output
+├── 06_Archive/        → Completed or dormant material
+├── _AI/               → AI-generated suggestions (never auto-applied)
+├── _Entities/         → People, places, organizations you reference
+├── _Index/            → Master indexes and cross-references
+├── _LightMode/        → Minimal, distraction-free view files
+├── _Meta/             → Vault metadata, places list, config
+├── _Policy/           → Your own rules for this vault
+├── _System/           → Integrity checks, migration logs
+├── _Templates/        → Reusable note templates
+├── _migration/        → Version-to-version migration helpers
+└── docs/              → Your own documentation about this vault
+
+
 - `vault_template/` — the starter vault you copy to make your own
 - `WELCOME.md` — first-contact onboarding (start here)
 - `GETTING_STARTED.md` — deeper walkthrough and recommended structure
