@@ -13,6 +13,7 @@ completed_recently:
   - Added docs/CONVERSATION_CONTINUITY.md to explain the original AI-session continuity use case
   - Added docs/TECHNICAL_REVIEW_PATH.md for systems thinkers inspecting the repo
   - Added docs/examples/Reload_Packet_Example.md as a minimal continuity example
+  - Added vault_template/KnowledgeVault/_Templates/README.md to clarify template usage and continuity links
   - Updated README.md to surface conversation continuity and technical review paths
   - Updated WELCOME.md to expose the conversation-continuity path without making it mandatory
   - Updated GETTING_STARTED.md with a reload-packet workflow
@@ -20,6 +21,5 @@ completed_recently:
   - Confirmed docs/AI_COMPATIBLE.md and docs/DATA_SHARING.md exist
 next_steps:
   - Clarify verification path in README (SHA256 + manifest) without making it feel required
-  - Review templates for ChatGPT / AI-session handoff compatibility
   - Keep first-contact docs practical; do not add Fin-Co, MVQL, or macro-governance material here
 last_reviewed_utc: 2026-06-18T00:00:00Z
