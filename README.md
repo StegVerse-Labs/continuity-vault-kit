@@ -13,6 +13,10 @@ No accounts. No services. No lock-in.
 
 That file contains a 30-second start path for **iOS, Android, Windows, macOS, and Linux**.
 
+If you are reviewing the deeper architecture, read [`docs/TECHNICAL_REVIEW_PATH.md`](./docs/TECHNICAL_REVIEW_PATH.md).
+
+If your immediate problem is preserving long-running AI chats, read [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md).
+
 ## What this is
 
 - A portable vault template you can copy anywhere
@@ -64,6 +68,8 @@ vault_template/KnowledgeVault/
 
 - `WELCOME.md` — first-contact onboarding (start here)
 - `GETTING_STARTED.md` — deeper walkthrough and recommended structure
+- `docs/CONVERSATION_CONTINUITY.md` — practical guide for preserving and reloading AI-human conversation state
+- `docs/TECHNICAL_REVIEW_PATH.md` — review path for systems thinkers inspecting the architecture
 - `SAFETY.md` — safety notes and threat-model guidance
 - `DO_NOT_STORE_HERE.md` — what not to keep in plain text
 - `STATUS.md` — current state + next steps
