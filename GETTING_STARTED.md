@@ -26,6 +26,23 @@ When adding a note, include:
 
 ---
 
+## Conversation continuity workflow
+
+If your primary use case is preserving long-running AI chats, start with a reload packet instead of a full vault overhaul.
+
+1. Summarize the current conversation state.
+2. Save the summary as a reload packet in the vault.
+3. Include the current objective, constraints, completed work, and next tasks.
+4. Paste the reload packet into the next AI session when continuity is needed.
+
+Read:
+
+- [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md)
+
+This is the fastest path from “I keep losing context” to “future sessions can continue.”
+
+---
+
 ## What "AI-compatible" means
 
 KnowledgeVault is designed so future AI tools can understand your vault without guessing:
@@ -62,6 +79,10 @@ Add:
 - a "Why this vault exists" entry
 - a "Rules I want my future self to remember" entry
 
+If you are using the vault for AI continuity, also add:
+
+- a "Current Project Reload Packet" entry
+
 See [`docs/Your First 5 KnowledgeVault Notes.md`](./docs/Your%20First%205%20KnowledgeVault%20Notes.md) for guided first entries.
 
 ---
@@ -94,6 +115,6 @@ Your vault is standalone by default. If you later choose, you can:
 
 - **Share data for revenue** — see [`docs/DATA_SHARING.md`](./docs/DATA_SHARING.md)
 - **Connect to StegVerse tools** — see [`docs/STEGVERSE_BRIDGE.md`](./docs/STEGVERSE_BRIDGE.md)
-- **Enable AI ingestion** — copy `tools/AI_Ingestion.py` into your vault's `tools/` folder
+- **Enable AI-compatible review workflows** using the documented guides in `docs/`
 
 None of these are required. They exist for users who want them.
