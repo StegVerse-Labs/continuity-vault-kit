@@ -2,6 +2,8 @@
 
 KnowledgeVault is a **device-agnostic personal vault**: a simple folder structure + guidance you can use to store notes, documents, and context over time.
 
+It is also designed for a specific long-running problem: preserving enough conversation state that your future self and future AI sessions can continue without starting over.
+
 You control the files.
 Nothing here phones home.
 You are not enrolling into anything.
@@ -19,10 +21,26 @@ Copy the template folder and rename it, for example:
 
 - `My-KnowledgeVault/`
 
-### Step 3 — Open the vault index and add your first entry
-Inside your vault folder, open the top-level index (usually `INDEX.md`) and add a first note.
+### Step 3 — Add one continuity note
+Inside your vault folder, add one short note that explains what you want your future self or future AI session to remember.
+
+Example:
+
+```text
+2026-06-18 — First Continuity Note.md
+```
 
 If you can open a text/markdown file and move folders, you can use KnowledgeVault.
+
+---
+
+## If you are here for AI conversation continuity
+
+Read:
+
+➡️ [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md)
+
+That guide explains how to create reload packets for long-running AI chats so new sessions can continue from a preserved working state.
 
 ---
 
@@ -31,7 +49,7 @@ If you can open a text/markdown file and move folders, you can use KnowledgeVaul
 ### iPhone / iPad (iOS)
 - Use the **Files** app to unzip/copy folders.
 - Open `.md` files directly in Files, or with any notes/markdown app you prefer.
-- See [`docs/IOS_SETUP.md`](./docs/IOS_SETUP.md) for detailed iOS setup and Shortcuts automation.
+- See [`docs/IOS_SETUP.md`](./docs/IOS_SETUP.md) for detailed iOS setup notes. Any automation is optional.
 
 ### Android
 - Use the Files app (or a file manager) to unzip/copy folders.
@@ -48,6 +66,7 @@ If you can open a text/markdown file and move folders, you can use KnowledgeVaul
 - A template you can fork, edit, and carry across devices
 - A starting point that does not assume any specific app or platform
 - Designed so future AI tools can read and suggest — but never overwrite — your content
+- A way to create reloadable continuity for long-running conversations and projects
 
 ## What this is not
 - Not a product
