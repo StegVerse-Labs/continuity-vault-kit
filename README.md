@@ -79,13 +79,15 @@ vault_template/KnowledgeVault/
 
 ## Verifying your download (optional)
 
+Verification is for users who want extra confidence that a release bundle was not corrupted after packaging. You do **not** need to verify anything to use the vault.
+
 Each release includes a `.sha256` checksum file and a `.manifest.json`. To verify a release bundle:
 
 ```bash
 python3 tools/verify_release.py dist/ContinuityVault_vX.Y.Z.zip
 ```
 
-This is optional. The vault works the same whether you verify or not.
+If you skip this step, the vault still works the same. Verification is an integrity check, not an onboarding requirement.
 
 ## Relationship to StegVerse
 
