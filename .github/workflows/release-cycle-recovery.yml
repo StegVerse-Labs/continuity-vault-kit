@@ -1,0 +1,102 @@
+name: Release cycle recovery
+
+on:
+  workflow_run:
+    workflows: ["Release cycle outcome"]
+    types: [completed]
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: release-cycle-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Determine bounded recovery action
+        id: recovery
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          evidence = Path('docs/release_evidence')
+          cycle_path = evidence / 'latest_cycle.json'
+          state_path = evidence / 'recovery_state.json'
+
+          if not cycle_path.exists():
+              raise SystemExit('latest_cycle.json is required for recovery decisions')
+
+          cycle = json.loads(cycle_path.read_text(encoding='utf-8'))
+          if state_path.exists():
+              state = json.loads(state_path.read_text(encoding='utf-8'))
+          else:
+              state = {
+                  'schema_version': '1.0',
+                  'last_source_workflow_run_id': '',
+                  'dispatch_count': 0,
+                  'last_action': 'NONE',
+                  'updated_utc': '',
+              }
+
+          source_run = str(cycle.get('source_workflow_run_id', ''))
+          incomplete = cycle.get('outcome') == 'INCOMPLETE'
+          release_required = cycle.get('release_required_after_run') is True
+          already_attempted = state.get('last_source_workflow_run_id') == source_run
+          dispatch = incomplete and release_required and source_run and not already_attempted
+
+          now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+          if dispatch:
+              state['last_source_workflow_run_id'] = source_run
+              state['dispatch_count'] = int(state.get('dispatch_count', 0)) + 1
+              state['last_action'] = 'DISPATCH_RELEASE_INTEGRITY'
+          elif incomplete and release_required and already_attempted:
+              state['last_action'] = 'SUPPRESSED_DUPLICATE_RECOVERY'
+          else:
+              state['last_action'] = 'NO_RECOVERY_REQUIRED'
+          state['updated_utc'] = now
+          state['source_outcome'] = cycle.get('outcome')
+          state['release_required'] = release_required
+
+          state_path.write_text(json.dumps(state, indent=2) + '\n', encoding='utf-8')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as handle:
+              handle.write(f"dispatch={'true' if dispatch else 'false'}\n")
+              handle.write(f"source_run={source_run}\n")
+              handle.write(f"action={state['last_action']}\n")
+          print(state['last_action'])
+          PY
+
+      - name: Commit recovery decision
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/release_evidence/recovery_state.json
+          if git diff --cached --quiet; then
+            echo "Recovery state unchanged"
+          else
+            git commit -m "evidence: preserve release recovery decision [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Dispatch release integrity once
+        if: steps.recovery.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-integrity.yml
