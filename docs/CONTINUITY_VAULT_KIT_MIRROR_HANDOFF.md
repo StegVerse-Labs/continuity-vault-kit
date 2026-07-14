@@ -2,7 +2,7 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active public technical-signal release; release validation, candidate preparation, remaining examples, and downstream propagation now have durable issue ownership.  
+**Status:** Active public technical-signal release; validation evidence, patch release publication, and issue routing are now repository-native and require no manual copying or state transition.  
 **Last updated:** 2026-07-14
 
 ---
@@ -15,145 +15,145 @@ This file is the repo-local continuation source of truth for `continuity-vault-k
 
 ## 2. Current framing
 
-KnowledgeVault Kit began as a way to preserve long-running AI-human conversation continuity when chat context, memory, and session windows lose information over time.
+KnowledgeVault Kit preserves reloadable human and AI context in a portable, inspectable folder structure.
 
-The approved positioning is:
+Approved positioning:
 
 > Standalone by default, StegVerse-compatible by design.
 
-Baseline use must remain copyable, understandable, and functional without an account, hosted service, SDK, database, or workflow dependency.
+Baseline use must remain functional without an account, hosted service, SDK, database, or workflow dependency.
 
 The repository currently provides:
 
-- a portable personal cognitive-continuity layer;
-- an AI-compatible vault structure;
-- entity, index, policy, migration, and suggestion boundaries;
-- reloadable AI-human, project, and device-migration handoff patterns;
-- optional packaging and integrity-verification tooling;
-- a gated and auditable release-candidate process.
+- personal cognitive-continuity structure;
+- AI-compatible indexes, metadata, policy, and suggestion boundaries;
+- reloadable conversation, project, device migration, health chronology, research, multi-session AI, and version-replacement patterns;
+- non-destructive migration guidance;
+- strict release package integrity tooling;
+- automated evidence preservation, issue routing, candidate verification, tagging, and release asset publication.
 
 ---
 
 ## 3. Completed build work
 
-- Added `docs/CONVERSATION_CONTINUITY.md`.
-- Added `docs/TECHNICAL_REVIEW_PATH.md`.
-- Added `docs/examples/Reload_Packet_Example.md`.
-- Added `docs/examples/Project_Continuation_Packet.md` with evidence, owner-decision, mutation, and completion boundaries.
-- Added `docs/examples/Device_Migration_Packet.md` with source authority, difference reconciliation, rollback, and owner acceptance.
-- Added `docs/EXAMPLES.md` as the stable examples index.
-- Added `docs/RELEASE_CANDIDATE_CHECKLIST.md` covering entry conditions, version classification, migration review, candidate verification, tagging, and downstream checks.
-- Added `vault_template/KnowledgeVault/_Templates/README.md`.
-- Added `vault_template/KnowledgeVault/_migration/README.md` with non-destructive migration and replacement rules.
-- Added `tools/test_release_tools.py` for end-to-end builder/verifier self-testing.
-- Added `.github/workflows/release-integrity.yml` to:
-  - run the release self-test;
-  - rebuild and verify the release bundle;
-  - validate manifest shape and inventory;
-  - upload ZIP, checksum, and manifest evidence for 30 days.
-- Hardened `tools/build_release.py`:
-  - validates required source files before build;
-  - emits non-zero status on failure;
-  - generates schema version, file count, and per-file size/SHA-256 records;
-  - produces ZIP, checksum, and manifest sidecars.
-- Hardened `tools/verify_release.py`:
-  - requires checksum and manifest sidecars;
-  - validates artifact name, version presence, root, and bundle hash;
-  - rejects duplicate and unsafe archive paths;
-  - validates required files;
-  - verifies every packaged file against the manifest inventory.
-- Updated `README.md`, `WELCOME.md`, `GETTING_STARTED.md`, `CHANGELOG.md`, `STATUS.md`, and examples discovery documentation.
+- Added the complete example set indexed by `docs/EXAMPLES.md`:
+  - `Reload_Packet_Example.md`;
+  - `Project_Continuation_Packet.md`;
+  - `Device_Migration_Packet.md`;
+  - `Health_Record_Chronology.md`;
+  - `Research_Evidence_Review.md`;
+  - `Multi_Session_AI_Collaboration.md`;
+  - `Version_Replacement_and_Migration.md`.
+- Added `docs/RELEASE_CANDIDATE_CHECKLIST.md`.
+- Added `docs/release_evidence/README.md` defining generated `latest.md` and `latest.json` receipts.
+- Added `vault_template/KnowledgeVault/_migration/README.md` with non-destructive replacement rules.
+- Added and hardened release tooling:
+  - `tools/build_release.py` validates required files and emits complete per-file manifest records;
+  - `tools/verify_release.py` requires sidecars and verifies artifact identity, safe paths, required files, file count, hashes, and sizes;
+  - `tools/test_release_tools.py` tests successful verification and expected missing-sidecar failure.
+- Updated `.github/workflows/release-integrity.yml` to:
+  - run the self-test and clean rebuild;
+  - validate the manifest;
+  - upload ZIP, checksum, and manifest evidence;
+  - generate and commit `docs/release_evidence/latest.md` and `latest.json`;
+  - comment on and close issue #7 after success;
+  - comment on issue #8 to open the release gate.
+- Added `.github/workflows/automated-release.yml` to:
+  - run after successful release integrity validation on `main`;
+  - require issue #8 to remain open;
+  - classify the current backward-compatible batch as a patch release;
+  - increment `VERSION`;
+  - finalize the changelog release entry;
+  - execute the complete candidate self-test, build, and verification;
+  - commit, tag, and push the verified candidate;
+  - publish the ZIP, checksum, and manifest as GitHub release assets;
+  - close issue #8 and activate issue #10.
+- Closed issue #9 after completing all planned tooling-independent examples.
 
 ---
 
 ## 4. Durable decisions
 
-1. **Integration intent:** The vault remains deliberately decoupled at baseline. StegVerse SDK, StegDB, TV/TVC, or other ecosystem components may later validate or index it, but none are required for normal use.
-2. **User funnel:** A user copies or downloads the kit, reads `WELCOME.md`, starts writing, and discovers optional continuity and StegVerse paths only when useful.
-3. **AI-compatible meaning:** Predictable folder names, indexes, metadata-ready structure, explicit policy boundaries, separated AI suggestions, and reloadable handoff patterns. It does not mean unrestricted AI access.
-4. **Checksums and manifests:** Release hashes are package-integrity mechanisms. They do not certify truth, safety, completeness, authority, or admissibility of user content.
-5. **Versioning and replacement:** `VERSION`, `CHANGELOG.md`, release manifests, `_migration/`, and `docs/RELEASE_CANDIDATE_CHECKLIST.md` are the lifecycle surface. A new kit must not silently overwrite an existing vault.
-6. **Migration authority:** A newer release is not automatically authoritative over an existing vault. Structural changes require a documented migration file and user-controlled adoption.
-7. **Example boundary:** Examples must distinguish completed work, proposals, authoritative evidence, unresolved decisions, and the next permitted action. They must not grant mutation authority by themselves.
-8. **Device migration:** The source vault remains authoritative until the destination is verified and explicitly accepted by the owner. A successful copy operation alone does not prove continuity.
-9. **Release sequencing:** `VERSION` must not change until release evidence is accepted under issue #7. Candidate preparation and tagging are owned by issue #8.
-10. **Ecosystem references:** Keep StegDB/SDK/TVC references light and optional. Do not foreground AaCT-E, GCAT/BCAT Engine, Publisher, Fin-Co, MVQL, or macro-governance material unless a concrete integration exists.
+1. **Baseline independence:** The vault remains usable without the wider StegVerse ecosystem.
+2. **AI-compatible meaning:** Predictable structure, indexes, metadata readiness, policy boundaries, separated AI suggestions, and reloadable handoffs; not unrestricted AI access.
+3. **Integrity scope:** Checksums and manifests verify package integrity only. They do not certify truth, safety, completeness, authority, or admissibility of user content.
+4. **Replacement authority:** A newer kit cannot silently replace an owner-accepted vault.
+5. **Migration authority:** Structural changes require explicit migration instructions and user-controlled adoption.
+6. **Example boundary:** Examples separate evidence, facts, interpretations, proposals, unresolved questions, authority, and next permitted actions.
+7. **Release classification:** The current batch is a patch because it adds backward-compatible documentation, examples, migration guidance, and packaging verification without requiring existing `0.1.x` vault reorganization.
+8. **Automation boundary:** Automation may preserve evidence and progress predefined release gates only after executable verification succeeds. It may not broaden package-integrity claims into content authority.
+9. **No manual release routing:** Successful workflows own evidence persistence, issue transitions, candidate version mutation, tagging, and asset publication.
+10. **Ecosystem references:** Keep optional integrations light and do not make them baseline dependencies.
 
 ---
 
-## 5. Active issues and ownership
+## 5. Issue state and ownership
 
-- **Issue #7 — Verify release-integrity workflow and preserve artifact evidence**
-  - Owns successful CI execution, self-test evidence, negative-test evidence, uploaded ZIP/checksum/manifest inspection, and run/artifact references.
-- **Issue #8 — Prepare next release candidate after integrity evidence is accepted**
-  - Gated on issue #7. Owns version classification, `VERSION`, changelog release entry, candidate verification, tagging, and final release references.
-- **Issue #9 — Add remaining continuity examples without runtime dependencies**
-  - Owns health chronology, research evidence review, multi-session AI collaboration, and version replacement examples.
-- **Issue #10 — Document downstream release propagation after next tag**
-  - Gated on issue #8. Owns update/no-update determinations for `StegVerse-Labs/Site`, `GCAT-BCAT-Engine/Publisher`, `admissibility-wiki`, and `stegguardian-wiki`.
-
----
-
-## 6. Current known gaps and blockers
-
-- The release-integrity workflow is committed, but a successful run and uploaded evidence artifact have not yet been observed through the connected status surface.
-- The generated ZIP, checksum, and expanded manifest have not yet been accepted as verified release evidence.
-- The next version and tag have not been selected.
-- Remaining examples are tracked in issue #9.
-- No one-click installer exists; manual copy/unzip remains the baseline.
-- Data-sharing revenue behavior is documented but not implemented.
-- Mass-adoption onboarding remains lighter than the advanced architecture.
-
-The current execution environment can mutate GitHub but cannot clone the repository because outbound DNS resolution for `github.com` is unavailable. Do not treat release tooling as runtime-verified until issue #7 is completed with a successful workflow run and retained artifact evidence.
-
-These are durable repository tasks, not reasons to retain a previous conversation.
+- **Issue #7 — Release-integrity evidence**
+  - Open until the updated integrity workflow succeeds.
+  - Workflow owns receipt generation, issue comment, and automatic closure.
+- **Issue #8 — Verified patch release**
+  - Open until the automated release workflow verifies, tags, and publishes the candidate.
+  - Workflow owns version mutation, changelog finalization, tagging, release assets, and automatic closure.
+- **Issue #9 — Remaining examples**
+  - **Closed as completed.**
+- **Issue #10 — Downstream propagation verification**
+  - Activated automatically after the verified release is published.
+  - Owns update/no-update determinations for `StegVerse-Labs/Site`, `GCAT-BCAT-Engine/Publisher`, `admissibility-wiki`, and `stegguardian-wiki`.
 
 ---
 
-## 7. Recommended continuation order
+## 6. Current blockers and observation requirements
 
-1. Complete issue #7 and record the workflow run, artifact name, and inspection evidence.
-2. Use `docs/RELEASE_CANDIDATE_CHECKLIST.md` to complete issue #8 without premature version mutation.
-3. Continue issue #9 in small, plain-Markdown examples that add no runtime dependency.
-4. After the verified tag, complete issue #10 and record downstream update decisions.
-5. Update onboarding only from observed confusion or serious review feedback.
+- Do not claim that the new evidence receipt, release tag, or release assets exist until the corresponding workflow results are observable.
+- The connected status surface may not expose push-triggered workflow runs immediately; durable repository receipts and issue transitions are the authoritative evidence once generated.
+- Issue #10 remains gated on the automatically published tag.
+- No one-click end-user installer exists; copy/unzip remains the intentional zero-dependency baseline.
+- Data-sharing revenue behavior remains documented but unimplemented.
+
+These are durable workflow or repository tasks, not reasons to retain a previous conversation.
 
 ---
 
-## 8. Ownership and permitted continuation scope
+## 7. Continuation order
 
-- **Current owner:** Issue #7 owns release execution evidence; issues #8–#10 own their gated successor work. Any authorized repository-maintenance session may continue after reading this handoff.
-- **Permitted scope:** Documentation, examples, release-integrity verification, migration clarity, tests, CI evidence, release preparation, and optional integration documentation that does not make baseline use dependent on the wider ecosystem.
-- **Prohibited drift:** Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
-- **Validation requirement:** Claims that manifests, checksums, migrations, workflows, releases, or integrations work must be verified against actual files and execution evidence before publication or tagging.
+1. Inspect `docs/release_evidence/latest.md` and `latest.json` when generated.
+2. Verify issue #7 closed automatically.
+3. Verify the automated patch tag and release assets exist and issue #8 closed automatically.
+4. Complete issue #10 downstream update/no-update determinations.
+5. Update first-contact onboarding only from observed user confusion or serious review feedback.
+
+No user action is required for steps 1–3.
+
+---
+
+## 8. Permitted continuation scope
+
+- Documentation, examples, migration clarity, tests, CI evidence, automated release progression, and optional integration documentation.
+- Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
+- Claims about workflows, manifests, checksums, releases, or integrations require durable execution evidence.
 
 ---
 
 ## 9. Current goal activation estimate
 
-- Public technical-signal release: active and usable.
-- AI continuity origin story: documented and linked.
-- Technical review path: documented and linked.
-- Examples discovery path: documented and linked.
-- Project continuation pattern: documented and linked.
-- Device migration pattern: documented and linked.
-- Migration behavior: explicitly documented.
-- Release-integrity implementation: hardened.
-- Repository-native validation workflow: implemented.
-- Release-candidate checklist: implemented.
-- Runtime and artifact evidence: pending under issue #7.
-- Candidate version and tag: gated under issue #8.
-- Remaining examples: owned by issue #9.
-- Downstream propagation verification: gated under issue #10.
+- Public standalone vault: active and usable.
+- Complete example set: implemented.
+- Migration behavior: documented.
+- Release tooling: hardened.
+- Durable evidence automation: implemented, execution observation pending.
+- Automated patch release: implemented, execution observation pending.
+- Manual release tasks: eliminated from validation through publication.
+- Downstream propagation: gated under issue #10.
 
 Recommended activation goal:
 
-> Complete issue #7, then produce and tag a verified release candidate under issue #8 whose workflow artifact, manifest, checksum, migration notes, and public claims all agree.
+> Observe the automatically generated evidence and verified patch release, then complete downstream propagation determinations without introducing baseline dependencies.
 
 ---
 
 ## 10. Archive note
 
-This handoff preserves repository decisions, completed changes, current blockers, remaining work, ownership, permitted continuation scope, validation requirements, and successor issue sequence.
+This handoff preserves all decisions, completed changes, automation behavior, issue ownership, remaining observation requirements, permitted continuation scope, and successor work.
 
 The complete thread is ready for archiving without any additional part of the thread needed to move forward.
