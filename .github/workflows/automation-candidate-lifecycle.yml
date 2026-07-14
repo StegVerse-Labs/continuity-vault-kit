@@ -1,0 +1,179 @@
+name: Automation candidate lifecycle
+
+on:
+  issues:
+    types: [opened, edited, reopened, closed, labeled, unlabeled]
+  schedule:
+    - cron: "41 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: automation-candidate-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: >-
+      github.event_name != 'issues' ||
+      contains(github.event.issue.labels.*.name, 'automation-candidate') ||
+      startsWith(github.event.issue.title, '[Automation candidate]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure lifecycle labels exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create candidate-supported --color 0E8A16 --description "Registry threshold currently supports this automation candidate" --force
+          gh label create candidate-insufficient-evidence --color D93F0B --description "Candidate does not currently meet the evidence threshold" --force
+          gh label create candidate-implemented --color 5319E7 --description "Candidate correction was implemented and verified" --force
+          gh label create candidate-superseded --color C2E0C6 --description "Duplicate or superseded automation candidate" --force
+
+      - name: Read registry and open candidates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence/onboarding-friction/candidates
+          gh issue list --state all --label automation-candidate --limit 1000 --json number,title,state,labels,url,createdAt,updatedAt > /tmp/candidate-issues.json
+          python3 - <<'PY'
+          import json
+          import re
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          registry_path = Path('evidence/onboarding-friction/latest.json')
+          registry = json.loads(registry_path.read_text(encoding='utf-8')) if registry_path.exists() else {
+              'threshold': 3,
+              'signature_counts': {},
+              'reports': [],
+          }
+          issues = json.loads(Path('/tmp/candidate-issues.json').read_text(encoding='utf-8'))
+          threshold = int(registry.get('threshold', 3))
+          counts = registry.get('signature_counts', {})
+          reports = registry.get('reports', [])
+          by_signature = {}
+          actions = []
+
+          for issue in sorted(issues, key=lambda item: item['number']):
+              match = re.match(r'^\[Automation candidate\]\s+(.+?)\s*$', issue['title'])
+              signature = match.group(1).strip() if match else ''
+              labels = {item['name'] for item in issue.get('labels', [])}
+              count = int(counts.get(signature, 0)) if signature else 0
+              supported = bool(signature) and count >= threshold
+              duplicate_of = None
+              if signature:
+                  if signature in by_signature:
+                      duplicate_of = by_signature[signature]
+                  else:
+                      by_signature[signature] = issue['number']
+
+              matching_reports = [
+                  {'issue_number': row['issue_number'], 'state': row['state'], 'url': row['url']}
+                  for row in reports if row.get('signature') == signature
+              ]
+              state = 'implemented' if 'candidate-implemented' in labels else (
+                  'superseded' if duplicate_of else ('supported' if supported else 'insufficient-evidence')
+              )
+              slug = re.sub(r'[^a-z0-9]+', '-', signature.lower()).strip('-') or f"issue-{issue['number']}"
+              payload = {
+                  'schema_version': '1.0',
+                  'candidate_issue': issue['number'],
+                  'candidate_url': issue['url'],
+                  'signature': signature,
+                  'threshold': threshold,
+                  'matching_report_count': count,
+                  'matching_reports': matching_reports,
+                  'state': state,
+                  'duplicate_of_issue': duplicate_of,
+                  'generated_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                  'scope': 'repository-native onboarding correction only; no authority over user vault content',
+              }
+              Path(f'evidence/onboarding-friction/candidates/{slug}.json').write_text(
+                  json.dumps(payload, indent=2) + '\n', encoding='utf-8'
+              )
+              lines = [
+                  f'# Automation Candidate: `{signature or "unparsed"}`', '',
+                  f'- **Issue:** #{issue["number"]}',
+                  f'- **State:** `{state}`',
+                  f'- **Matching reports:** `{count}`',
+                  f'- **Threshold:** `{threshold}`',
+                  f'- **Duplicate of:** `{duplicate_of if duplicate_of else "none"}`', '',
+                  '## Source reports', '',
+              ]
+              if matching_reports:
+                  lines.extend(f'- #{row["issue_number"]} — {row["state"]} — {row["url"]}' for row in matching_reports)
+              else:
+                  lines.append('- None recorded.')
+              lines += ['', 'A supported candidate authorizes investigation of the smallest repository-native correction only. It does not authorize mutation of user vaults.', '']
+              Path(f'evidence/onboarding-friction/candidates/{slug}.md').write_text('\n'.join(lines), encoding='utf-8')
+              actions.append({
+                  'issue': issue['number'],
+                  'signature': signature,
+                  'supported': supported,
+                  'duplicate_of': duplicate_of,
+                  'implemented': 'candidate-implemented' in labels,
+                  'state': issue['state'],
+              })
+
+          Path('/tmp/candidate-actions.json').write_text(json.dumps(actions), encoding='utf-8')
+          PY
+
+      - name: Apply deterministic lifecycle state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY' > /tmp/candidate-actions.tsv
+          import json
+          from pathlib import Path
+          for row in json.loads(Path('/tmp/candidate-actions.json').read_text(encoding='utf-8')):
+              print('\t'.join([
+                  str(row['issue']),
+                  row['signature'],
+                  'true' if row['supported'] else 'false',
+                  str(row['duplicate_of'] or ''),
+                  'true' if row['implemented'] else 'false',
+                  row['state'],
+              ]))
+          PY
+          while IFS=$'\t' read -r issue signature supported duplicate implemented state; do
+            [ -n "$issue" ] || continue
+            if [ -n "$duplicate" ]; then
+              gh issue edit "$issue" --add-label candidate-superseded --remove-label candidate-supported --remove-label candidate-insufficient-evidence 2>/dev/null || true
+              if [ "$state" = "OPEN" ]; then
+                gh issue comment "$issue" --body "Automatically marked as duplicate of automation candidate #${duplicate} for signature \`${signature}\`. The earlier issue remains the canonical candidate."
+                gh issue close "$issue" --reason not_planned
+              fi
+            elif [ "$implemented" = "true" ]; then
+              gh issue edit "$issue" --add-label candidate-implemented --remove-label candidate-supported --remove-label candidate-insufficient-evidence 2>/dev/null || true
+              if [ "$state" = "OPEN" ]; then
+                gh issue comment "$issue" --body "Implementation evidence label detected. Candidate lifecycle is complete; durable evidence is under \`evidence/onboarding-friction/candidates/\`."
+                gh issue close "$issue" --reason completed
+              fi
+            elif [ "$supported" = "true" ]; then
+              gh issue edit "$issue" --add-label candidate-supported --remove-label candidate-insufficient-evidence --remove-label candidate-superseded 2>/dev/null || true
+            else
+              gh issue edit "$issue" --add-label candidate-insufficient-evidence --remove-label candidate-supported --remove-label candidate-superseded 2>/dev/null || true
+            fi
+          done < /tmp/candidate-actions.tsv
+
+      - name: Commit candidate evidence packets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add evidence/onboarding-friction/candidates/
+          if git diff --cached --quiet; then
+            echo "Candidate evidence unchanged"
+          else
+            git commit -m "ci: reconcile automation candidate evidence [skip ci]"
+            git push
+          fi
