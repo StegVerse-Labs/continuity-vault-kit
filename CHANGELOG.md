@@ -8,6 +8,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [0.1.2] – 2026-07-14
+
 ### Added
 - `docs/EXAMPLES.md` as the stable index for small continuity patterns and reload-packet examples
 - `docs/examples/Project_Continuation_Packet.md` as a tooling-independent project handoff with explicit evidence and mutation boundaries
