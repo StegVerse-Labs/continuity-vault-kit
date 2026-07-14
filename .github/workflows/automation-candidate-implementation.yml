@@ -1,0 +1,71 @@
+name: Automation candidate implementation
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  actions: write
+  issues: write
+  pull-requests: read
+
+jobs:
+  complete:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Resolve referenced candidates
+        id: candidates
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          text = os.environ.get('PR_TITLE', '') + '\n' + os.environ.get('PR_BODY', '')
+          patterns = [
+              r'(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)',
+              r'(?i)\bautomation[- ]candidate\s+#(\d+)',
+          ]
+          numbers = sorted({int(value) for pattern in patterns for value in re.findall(pattern, text)})
+          Path('/tmp/candidate-numbers.txt').write_text('\n'.join(map(str, numbers)) + ('\n' if numbers else ''), encoding='utf-8')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as handle:
+              handle.write(f"count={len(numbers)}\n")
+          PY
+
+      - name: Mark supported candidates implemented
+        if: steps.candidates.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          while IFS= read -r issue; do
+            [ -n "$issue" ] || continue
+            labels=$(gh issue view "$issue" --json labels --jq '[.labels[].name] | join(",")' 2>/dev/null || true)
+            case ",$labels," in
+              *,automation-candidate,*) ;;
+              *) continue ;;
+            esac
+            case ",$labels," in
+              *,candidate-supported,*)
+                gh issue edit "$issue" --add-label candidate-implemented --remove-label candidate-supported 2>/dev/null || true
+                gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} completed this supported automation candidate. PR: ${PR_URL}. Merge commit: \`${MERGE_SHA}\`. Lifecycle reconciliation will preserve the implementation receipt and close the candidate automatically."
+                ;;
+              *)
+                gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} referenced this candidate, but the current registry does not mark it supported. No implementation authority was inferred; candidate lifecycle reconciliation will retain the evidence state."
+                ;;
+            esac
+          done < /tmp/candidate-numbers.txt
+
+      - name: Trigger candidate reconciliation
+        if: steps.candidates.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run automation-candidate-lifecycle.yml
