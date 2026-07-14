@@ -12,15 +12,17 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - `.github/ISSUE_TEMPLATE/onboarding-friction.yml` for structured, privacy-bounded first-use and setup reports
 - `.github/workflows/onboarding-friction-bootstrap.yml` to create required triage labels automatically
 - `.github/workflows/onboarding-friction.yml` to classify reports, provide path-specific guidance, maintain durable evidence, and create threshold-based automation candidates
+- `.github/workflows/onboarding-friction-maintenance.yml` for scheduled label repair, incomplete-report reminders, abandoned-report closure, and registry reconciliation
 - `evidence/onboarding-friction/` as the human-readable and machine-readable friction registry
 
 ### Improved
 - Repeated onboarding failures now become automation-candidate issues automatically after three reports share the same platform, setup-path, and failure-stage signature
-- Setup reports no longer require manual labeling, categorization, initial guidance, evidence aggregation, or escalation
+- Setup reports no longer require manual labeling, categorization, initial guidance, evidence aggregation, escalation, reminder follow-up, or stale-report cleanup
+- Incomplete reports receive an automated reminder after seven inactive days and close after thirty inactive days without being treated as product evidence
 - Onboarding evidence explicitly prohibits private vault content, credentials, recovery material, and unnecessary personal information
 
 ### Notes
-This automation observes repository issue reports only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary.
+This automation observes repository issue reports only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary. Automatically closed reports may be edited and reopened when privacy-safe reproduction details become available.
 
 ---
 
