@@ -2,8 +2,8 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with repository-native verification, publication, initialization, downstream determination, onboarding-friction triage, evidence-to-fix candidate lifecycle, and release-blocking automation-contract validation.  
-**Current version:** `0.1.2`  
+**Status:** Active standalone release with repository-native verification, publication, initialization, downstream determination, onboarding-friction lifecycle, and executable automation contracts.  
+**Current published version:** `0.1.2`  
 **Last updated:** 2026-07-14
 
 ---
@@ -12,37 +12,66 @@
 
 This file is the repo-local continuation source of truth. Read it before repository mutation.
 
----
-
-## 2. Approved framing
+Approved framing:
 
 > Standalone by default, StegVerse-compatible by design.
 
-KnowledgeVault preserves reloadable human and AI context in portable, inspectable files. Baseline use must remain functional without an account, hosted service, SDK, database, workflow dependency, or vault telemetry.
+Baseline use must remain functional without an account, hosted service, SDK, database, workflow dependency, or vault telemetry.
 
 Integrity tooling verifies package and copy behavior only. Automation-contract tooling verifies repository consistency only. Neither certifies the truth, safety, completeness, authority, or admissibility of user-authored content.
 
 ---
 
-## 3. Verified release state
+## 2. Verified release state
 
-- Published version: **`v0.1.2`**.
-- Release commit: **`5e38ca635ed420a3800ca53dd59f236175207edb`**.
-- Release workflow: `https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29313231917`.
+- Published release: `v0.1.2`.
+- Release commit: `5e38ca635ed420a3800ca53dd59f236175207edb`.
 - Published assets: ZIP, SHA-256 sidecar, and expanded manifest sidecar.
-- Release-integrity issue **#7:** closed as completed.
-- Release-candidate issue **#8:** closed as completed.
-- Example issue **#9:** closed as completed.
-- Downstream issue **#10:** closed as completed.
-
-Durable operational evidence is stored under `docs/release_evidence/`, `evidence/downstream-propagation/`, and `evidence/onboarding-friction/`.
+- Historical activation issues #7, #8, #9, and #10 are closed.
+- Those historical issue numbers are no longer release gates.
+- Durable release evidence is stored in `docs/release_evidence/`.
 
 ---
 
-## 4. Current implemented surface
+## 3. Reusable issue-free release cycle
+
+The release cycle is now reusable and does not require reopening or recreating historical issues.
+
+### Integrity gate
+
+`.github/workflows/release-integrity.yml`:
+
+- runs release tooling, initializer, and automation-contract tests;
+- performs a clean build and complete verification;
+- uploads release evidence;
+- writes `docs/release_evidence/latest.md` and `latest.json`;
+- records `release_required` by inspecting the `CHANGELOG.md` Unreleased section;
+- commits the durable receipt without issue comments or issue transitions.
+
+### Publication gate
+
+`.github/workflows/automated-release.yml`:
+
+- runs after successful release integrity on `main`;
+- skips when the Unreleased section is empty or contains only `_No unreleased changes._`;
+- increments the patch version when substantive unreleased changes exist;
+- finalizes the changelog;
+- reruns release, initializer, and automation-contract tests;
+- builds and verifies the candidate;
+- commits, tags, and publishes the candidate;
+- publishes ZIP, checksum, and manifest assets;
+- writes and commits `latest_release.md` and `latest_release.json`.
+
+No issue-write permission is required for publication.
+
+`tools/test_automation_contracts.py` fails CI if historical fixed issue gates are reintroduced.
+
+---
+
+## 4. Implemented standalone surface
 
 - Portable KnowledgeVault template with indexes, metadata, policies, entities, templates, AI-suggestion boundaries, and migration guidance.
-- Complete plain-Markdown examples for conversation reload, project continuation, device migration, health chronology, research review, multi-session collaboration, and version replacement.
+- Plain-Markdown examples for conversation reload, project continuation, device migration, health chronology, research review, multi-session collaboration, and version replacement.
 - Strict package tooling:
   - `tools/build_release.py`;
   - `tools/verify_release.py`;
@@ -50,88 +79,57 @@ Durable operational evidence is stored under `docs/release_evidence/`, `evidence
 - Safe initialization tooling:
   - `tools/init_vault.py`;
   - `tools/test_init_vault.py`;
-  - dry-run, overwrite refusal, full file-set and hash verification, cleanup on failure, and installation receipts.
+  - dry-run, overwrite refusal, complete file-set and hash verification, cleanup on failure, and installation receipts.
 - Automation contract tooling:
   - `tools/test_automation_contracts.py`;
   - `docs/AUTOMATION_CONTRACTS.md`.
-- Repository-native workflows:
-  - `.github/workflows/release-integrity.yml`;
-  - `.github/workflows/automated-release.yml`;
-  - `.github/workflows/downstream-propagation.yml`;
-  - `.github/workflows/onboarding-friction-bootstrap.yml`;
-  - `.github/workflows/onboarding-friction.yml`;
-  - `.github/workflows/onboarding-friction-maintenance.yml`;
-  - `.github/workflows/automation-candidate-lifecycle.yml`;
-  - `.github/workflows/automation-candidate-implementation.yml`.
 
 ---
 
-## 5. Onboarding-friction lifecycle
+## 5. Onboarding-friction evidence-to-fix lifecycle
 
-### Intake and report maintenance
+The vault does not phone home. Friction evidence comes only from explicit, privacy-safe GitHub reports.
 
-- `.github/ISSUE_TEMPLATE/onboarding-friction.yml` collects privacy-safe reproduction information.
-- `WELCOME.md` links directly to the structured form.
-- Reports are classified by platform, setup path, and failure stage.
-- Initial guidance is posted automatically.
-- Incomplete reports receive one reminder after seven inactive days.
-- Reports still incomplete after thirty inactive days close automatically without being treated as product evidence.
-- Closed reports may be edited and reopened later.
-- Required labels are recreated automatically when missing.
-- The registry is rebuilt after issue events and scheduled maintenance.
+Repository workflows own:
 
-### Durable report evidence
+1. structured friction intake;
+2. platform, setup-path, and failure-stage classification;
+3. initial guidance;
+4. seven-day incomplete-report reminders;
+5. thirty-day stale-report closure;
+6. registry reconciliation;
+7. three-report threshold escalation;
+8. independent candidate support verification;
+9. duplicate suppression;
+10. candidate evidence packet generation;
+11. recognition of explicitly linked merged fixes;
+12. candidate completion and closure.
 
-- `evidence/onboarding-friction/latest.json` is the machine-readable report registry.
-- `evidence/onboarding-friction/latest.md` is the readable summary.
-- Three reports sharing one normalized signature cause one `automation-candidate` issue to be created automatically.
+Report evidence:
 
-### Candidate admission and deduplication
+- `evidence/onboarding-friction/latest.json`;
+- `evidence/onboarding-friction/latest.md`.
 
-`.github/workflows/automation-candidate-lifecycle.yml`:
+Candidate evidence:
 
-- independently verifies every candidate against the durable registry;
-- applies `candidate-supported` only when the configured threshold is met;
-- applies `candidate-insufficient-evidence` when support is absent;
-- identifies duplicate candidate signatures;
-- preserves the earliest candidate as canonical;
-- links and closes duplicates as superseded;
-- writes readable and machine-readable candidate evidence under `evidence/onboarding-friction/candidates/`;
-- reconciles candidate state daily and after candidate issue events.
-
-### Implementation completion
-
-`.github/workflows/automation-candidate-implementation.yml`:
-
-- observes merged pull requests;
-- extracts explicit `Fixes #N`, `Closes #N`, `Resolves #N`, or `automation-candidate #N` references;
-- marks a referenced candidate implemented only when the registry already supports it;
-- records the pull request and merge commit on the candidate issue;
-- triggers candidate reconciliation;
-- causes the lifecycle workflow to preserve final evidence and close the completed candidate.
+- `evidence/onboarding-friction/candidates/`.
 
 A supported candidate authorizes only the smallest repository-native correction demonstrated by the evidence. It never authorizes access to or mutation of user vault content.
 
-Current report count remains zero. No candidate or corrective implementation is justified yet.
+Current report count is zero. No corrective implementation is justified yet.
 
 ---
 
-## 6. Automation contract enforcement
+## 6. Downstream propagation
 
-`tools/test_automation_contracts.py` now validates, using only the Python standard library:
+Future published releases automatically inspect exactly four destinations:
 
-- required workflow files, triggers, runners, permissions, and first-party action majors;
-- the onboarding issue form and its privacy boundary;
-- the friction registry schema, count consistency, threshold, and privacy scope;
-- threshold consistency across workflow, evidence, and handoff surfaces;
-- standalone and no-vault-authority scope boundaries;
-- the exact four downstream propagation destinations.
+- `StegVerse-Labs/Site`;
+- `GCAT-BCAT-Engine/Publisher`;
+- `StegVerse-Labs/admissibility-wiki`;
+- `StegVerse-002/stegguardian-wiki`.
 
-`docs/AUTOMATION_CONTRACTS.md` is the readable contract.
-
-Both `.github/workflows/release-integrity.yml` and `.github/workflows/automated-release.yml` execute the contract test. A future release must stop before tagging if these contracts drift.
-
-Release-integrity and final-release receipts now include `automation_contract_test: PASS` when the check succeeds. That receipt verifies repository automation consistency only.
+The current determination is no update required for all four. Evidence is stored under `evidence/downstream-propagation/`.
 
 ---
 
@@ -142,55 +140,36 @@ Release-integrity and final-release receipts now include `automation_contract_te
 3. Structural changes require explicit migration instructions and user-controlled adoption.
 4. Examples and AI outputs do not grant mutation authority.
 5. Release progression occurs only after executable verification succeeds.
-6. Evidence, issue transitions, version mutation, tagging, asset publication, final receipts, downstream determinations, report maintenance, candidate admission, deduplication, implementation closure, and automation-contract checks are repository-native tasks.
-7. Manual copying remains an optional zero-dependency path, not an operational requirement where Python is available.
-8. Friction evidence comes only from explicit GitHub reports; the vault does not phone home.
+6. Release state derives from changelog content and durable receipts, not fixed issue numbers.
+7. Evidence, version mutation, tagging, publication, receipts, propagation, report maintenance, candidate admission, deduplication, and implementation closure are repository-native tasks.
+8. Manual copying remains an optional zero-dependency path, not an operational requirement where Python is available.
 9. Three matching reports justify a supported automation-candidate investigation, not automatic mutation of user vaults.
-10. Candidate support is reconstructed from the durable registry rather than inferred from an issue title or label.
-11. A merged pull request completes a candidate only when it explicitly references a currently supported candidate.
-12. Automation contract validation may block publication but does not expand authority over user content.
-13. Optional ecosystem references must not become baseline dependencies.
+10. Candidate support is reconstructed from durable evidence rather than inferred from titles or labels.
+11. Optional ecosystem references must not become baseline dependencies.
+12. Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
 
 ---
 
-## 8. Remaining opportunities and continuation rule
+## 8. Continuation rule
 
-- Wait for structured reports to populate `evidence/onboarding-friction/latest.json`.
-- Let the workflows own reminders, closure, aggregation, threshold escalation, candidate admission, duplicate suppression, merged-fix recognition, evidence preservation, and lifecycle closure.
-- Let automation-contract tests block inconsistent releases.
+- Let substantive Unreleased changes trigger the next verified patch release automatically.
+- Let empty Unreleased state skip publication automatically.
+- Let automation-contract tests block inconsistent release behavior.
+- Let friction workflows create and govern future corrective work from evidence.
 - Implement only the smallest demonstrated fix for a supported candidate.
 - Do not invent onboarding automation without evidence.
 - Implement data-sharing behavior only under a separately governed scope; current text is documentation, not an active system.
-- Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
 
-No open issue currently owns required work for the verified `0.1.2` release. Future onboarding work is conditionally created and governed by repository evidence.
-
----
-
-## 9. Goal activation estimate
-
-- Standalone vault: active.
-- Complete continuity example set: active.
-- Safe initialization: implemented and CI-tested.
-- Package integrity: implemented and verified.
-- Automated release: completed for `v0.1.2`.
-- Downstream determination: completed and automated.
-- Structured onboarding-friction intake: implemented.
-- Automated report classification, guidance, reminders, closure, and aggregation: implemented.
-- Threshold-based escalation: implemented.
-- Independent candidate admission and duplicate suppression: implemented.
-- Merged-fix recognition and candidate completion: implemented.
-- Automation-contract validation: implemented and wired into both release gates.
-- Manual onboarding, candidate lifecycle, and automation consistency review tasks: eliminated.
+No open issue currently owns required work for the verified `0.1.2` release.
 
 Recommended next activation condition:
 
-> A repeated, privacy-safe friction signature reaches three reports, creates a supported candidate, and receives the smallest verified repository-native correction through an explicitly linked merged pull request, with all automation contracts still passing.
+> A substantive unreleased change or a repeated privacy-safe friction signature activates the appropriate repository-native workflow without manual issue gating.
 
 ---
 
-## 10. Archive note
+## 9. Archive note
 
-This handoff preserves the current release, verification evidence, automation behavior, initialization contract, downstream determinations, onboarding-friction system, candidate lifecycle, automation contracts, decisions, permitted scope, and conditional successor rule.
+This handoff preserves the current release, reusable release-cycle state, verification evidence, automation behavior, initialization contract, downstream determinations, onboarding-friction lifecycle, decisions, permitted scope, and conditional successor rules.
 
 The complete thread is ready for archiving without any additional part of the thread needed to move forward.
