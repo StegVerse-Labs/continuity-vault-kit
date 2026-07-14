@@ -1,0 +1,24 @@
+{
+  "version": "emoji-grammar.v1",
+  "strict_env_var": "STEGDB_EMOJI_LINT_STRICT",
+  "relationship_sequences": [
+    "👤➡️👤",
+    "👤➡️👥",
+    "👤⬅️👤",
+    "👤⬅️👥",
+    "👤↔️👤",
+    "👤↔️👥"
+  ],
+  "ascii_arrows": [
+    "-->",
+    "->",
+    "<--",
+    "<-",
+    "<->"
+  ],
+  "disallowed_arrow_chars_regex": "[➔➜➝➞➟➠⟶⟹⟵⟷⇄⇆⇐⇔⇒]",
+  "notes": [
+    "Canonical emoji arrows ➡️, ⬅️, and ↔️ are intentionally allowed.",
+    "The linter targets obscure editor and mathematical arrow glyphs, not ordinary prose about arrows."
+  ]
+}
