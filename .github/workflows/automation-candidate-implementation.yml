@@ -57,7 +57,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           : > /tmp/implemented-candidates.tsv
@@ -74,7 +73,7 @@ jobs:
               *,candidate-supported,*)
                 signature=$(printf '%s' "$issue_json" | jq -r '.title | sub("^\\[Automation candidate\\]\\s+"; "")')
                 gh issue edit "$issue" --add-label candidate-implemented --remove-label candidate-supported 2>/dev/null || true
-                gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} completed this supported automation candidate. PR: ${PR_URL}. Merge commit: \`${MERGE_SHA}\`. Lifecycle reconciliation will preserve the implementation receipt and close the candidate automatically."
+                gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} completed this supported automation candidate. PR: ${{ github.event.pull_request.html_url }}. Merge commit: \`${MERGE_SHA}\`. Lifecycle reconciliation will preserve the implementation receipt and close the candidate automatically."
                 printf '%s\t%s\n' "$issue" "$signature" >> /tmp/implemented-candidates.tsv
                 ;;
               *)
@@ -125,8 +124,7 @@ jobs:
           if next_release == -1:
               raise SystemExit('CHANGELOG Unreleased section terminator not found')
           section = text[start:next_release]
-          placeholder = '_No unreleased changes._'
-          section = section.replace(placeholder, '').rstrip()
+          section = section.replace('_No unreleased changes._', '').rstrip()
           heading = '### Improved'
           if heading in section:
               section = section.rstrip() + '\n' + '\n'.join(entries) + '\n\n'
@@ -141,7 +139,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Changelog unchanged"
           else
-            git commit -m "chore: record implemented automation candidate [skip ci]"
+            git commit -m "chore: record implemented automation candidate"
             git push origin HEAD:main
           fi
 
