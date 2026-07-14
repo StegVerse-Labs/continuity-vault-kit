@@ -1,0 +1,77 @@
+name: Onboarding friction maintenance
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+concurrency:
+  group: onboarding-friction-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Ensure maintenance labels exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create onboarding-friction --color D4C5F9 --description "Structured first-use or setup friction" --force
+          gh label create needs-reproduction --color FEF2C0 --description "Setup report needs reproducible details" --force
+          gh label create awaiting-details --color FBCA04 --description "Automated reminder sent; awaiting reporter details" --force
+          gh label create automation-candidate --color B60205 --description "Repeated friction eligible for repository automation" --force
+
+      - name: Reconcile incomplete reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh issue list \
+            --repo "$REPOSITORY" \
+            --state open \
+            --label onboarding-friction \
+            --label needs-reproduction \
+            --limit 1000 \
+            --json number,createdAt,updatedAt,labels,url > /tmp/incomplete.json
+
+          python3 - <<'PY' > /tmp/actions.tsv
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          now = datetime.now(timezone.utc)
+          issues = json.loads(Path('/tmp/incomplete.json').read_text(encoding='utf-8'))
+          for issue in issues:
+              updated = datetime.fromisoformat(issue['updatedAt'].replace('Z', '+00:00'))
+              age_days = (now - updated).days
+              labels = {item['name'] for item in issue.get('labels', [])}
+              number = issue['number']
+              if age_days >= 30:
+                  print(f"close\t{number}\t{age_days}")
+              elif age_days >= 7 and 'awaiting-details' not in labels:
+                  print(f"remind\t{number}\t{age_days}")
+          PY
+
+          while IFS=$'\t' read -r action number age_days; do
+            [ -n "$action" ] || continue
+            if [ "$action" = "remind" ]; then
+              gh issue edit "$number" --repo "$REPOSITORY" --add-label awaiting-details
+              gh issue comment "$number" --repo "$REPOSITORY" --body "Automated follow-up: this report still needs the missing reproduction details identified by the triage workflow. Please edit the structured fields rather than attaching private vault content. If no details are added, the report will close automatically after 30 inactive days and may be reopened later."
+            elif [ "$action" = "close" ]; then
+              gh issue comment "$number" --repo "$REPOSITORY" --body "Closing automatically after ${age_days} inactive days without sufficient reproduction details. No product conclusion was drawn from this incomplete report. Edit and reopen the issue when privacy-safe reproduction details are available."
+              gh issue close "$number" --repo "$REPOSITORY" --reason "not planned"
+            fi
+          done < /tmp/actions.tsv
+
+      - name: Rebuild durable registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run onboarding-friction.yml --ref main
