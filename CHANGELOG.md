@@ -15,8 +15,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - `.github/workflows/onboarding-friction-maintenance.yml` for scheduled label repair, incomplete-report reminders, abandoned-report closure, and registry reconciliation
 - `.github/workflows/automation-candidate-lifecycle.yml` to verify candidate support, suppress duplicates, maintain evidence packets, and close completed candidates
 - `.github/workflows/automation-candidate-implementation.yml` to detect merged fixes for supported candidates, complete their lifecycle, record the correction in `CHANGELOG.md`, and activate verified publication
+- `.github/workflows/release-cycle-outcome.yml` to preserve `PUBLISHED`, `SKIPPED`, `FAILED`, `INCOMPLETE`, or `RECONCILED` release-cycle outcomes after every automated publication attempt
+- `.github/workflows/release-cycle-recovery.yml` to dispatch one bounded integrity retry for a distinct incomplete release cycle and suppress duplicate recovery loops
 - `tools/test_automation_contracts.py` to validate workflow presence, required triggers and permissions, evidence schemas, threshold consistency, privacy boundaries, downstream destination coverage, and the candidate-to-release bridge
 - `docs/AUTOMATION_CONTRACTS.md` as the readable contract for release, friction, candidate, and downstream automation
+- `docs/release_evidence/latest_cycle.md` and `latest_cycle.json` as the durable release-cycle outcome surface
+- `docs/release_evidence/recovery_state.json` as the machine-readable bounded recovery state
 - `evidence/onboarding-friction/` as the human-readable and machine-readable friction registry
 - `evidence/onboarding-friction/candidates/` as durable per-candidate evidence and lifecycle receipts
 
@@ -30,10 +34,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - Release-integrity and automated-release workflows now block publication when repository automation contracts drift
 - Release evidence receipts now record the automation-contract test result and its limited verification scope
 - The release cycle derives state from substantive Unreleased content and no longer depends on historical issue numbers
+- Automated publication eligibility is evaluated inside a normal gate step using the source run conclusion and pull-request association instead of an unreliable job-level metadata predicate
+- Incomplete release cycles now self-dispatch one bounded integrity retry and refuse to loop on the same source run
 - Onboarding evidence explicitly prohibits private vault content, credentials, recovery material, and unnecessary personal information
 
 ### Notes
-This automation observes repository issue and pull-request records only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary. Automatically closed reports may be edited and reopened when privacy-safe reproduction details become available. A supported candidate authorizes only the smallest repository-native correction demonstrated by the evidence. Automation contract validation verifies repository consistency only; it does not certify user-authored content.
+This automation observes repository issue, pull-request, workflow, and release records only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary. Automatically closed reports may be edited and reopened when privacy-safe reproduction details become available. A supported candidate authorizes only the smallest repository-native correction demonstrated by the evidence. Automation contract and release-cycle validation verify repository consistency only; they do not certify user-authored content.
 
 ---
 
