@@ -10,6 +10,8 @@ The format is based on [Semantic Versioning](https://semver.org/).
 ### Added
 - `docs/EXAMPLES.md` as the stable index for small continuity patterns and reload-packet examples
 - `docs/examples/Project_Continuation_Packet.md` as a tooling-independent project handoff with explicit evidence and mutation boundaries
+- `docs/examples/Device_Migration_Packet.md` as a tooling-independent transfer packet with source authority, reconciliation, rollback, and owner acceptance
+- `docs/RELEASE_CANDIDATE_CHECKLIST.md` defining entry conditions, change classification, migration review, candidate verification, tagging, and downstream checks
 - `vault_template/KnowledgeVault/_migration/README.md` defining non-destructive migration and replacement behavior
 - `tools/test_release_tools.py` for end-to-end release tooling self-tests
 - `.github/workflows/release-integrity.yml` to run the release self-test, rebuild and verify artifacts, validate manifest shape, and upload evidence
@@ -20,11 +22,13 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - Release manifests now include schema version, file count, and per-file size and SHA-256 records
 - Release verification now requires both sidecars and validates artifact identity, archive paths, required files, and every packaged file hash
 - Release building now validates required source files before creating an artifact and reports failures with non-zero status
+- Release sequencing is now durably divided across issues #7, #8, #9, and #10
 
 ### Notes
 The migration README adds a file to the vault template but does not require existing `0.1.x` users to reorganize their vaults. The release tooling changes require newly built manifests to use the expanded file inventory before the next release is tagged. GitHub Actions execution evidence remains required before tagging.
 
 ---
+
 ## [0.1.1] – 2026-01-31
 
 ### Added
