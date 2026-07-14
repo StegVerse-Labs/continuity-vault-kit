@@ -26,6 +26,16 @@ WORKFLOWS = {
         "## [Unreleased]",
         "gh release create",
     },
+    "release-cycle-outcome.yml": {
+        "name: Release cycle outcome",
+        'workflows: ["Automated verified release"]',
+        "latest_cycle.json",
+        "latest_cycle.md",
+        "PUBLISHED",
+        "SKIPPED",
+        "FAILED",
+        "INCOMPLETE",
+    },
     "downstream-propagation.yml": {"release:", "evidence/downstream-propagation"},
     "onboarding-friction-bootstrap.yml": {"workflow_dispatch:", "onboarding-friction"},
     "onboarding-friction.yml": {
@@ -116,6 +126,39 @@ def validate_release_cycle() -> None:
         fail("release cycle missing issue-free gate tokens: " + ", ".join(missing))
     if "issues: write" in release:
         fail("automated release must not require issue-write permission")
+
+
+def validate_release_cycle_outcome() -> None:
+    receipt = read_json(REPO_ROOT / "docs" / "release_evidence" / "latest_cycle.json")
+    required = {
+        "schema_version",
+        "outcome",
+        "reason",
+        "repository",
+        "source_workflow",
+        "source_workflow_conclusion",
+        "source_workflow_run_id",
+        "source_workflow_run_url",
+        "source_head_sha",
+        "current_version",
+        "release_required_after_run",
+        "generated_utc",
+        "scope",
+    }
+    missing = sorted(required - receipt.keys())
+    if missing:
+        fail("release-cycle outcome receipt missing fields: " + ", ".join(missing))
+    allowed = {"PUBLISHED", "SKIPPED", "FAILED", "INCOMPLETE", "RECONCILED"}
+    if receipt["outcome"] not in allowed:
+        fail("release-cycle outcome is not recognized")
+    if receipt["source_workflow"] != "Automated verified release":
+        fail("release-cycle receipt must identify its source workflow")
+    if not isinstance(receipt["release_required_after_run"], bool):
+        fail("release_required_after_run must be boolean")
+    scope = str(receipt["scope"]).lower()
+    if "no certification of user-authored content" not in scope:
+        fail("release-cycle outcome scope must preserve the content-certification boundary")
+    read_text(REPO_ROOT / "docs" / "release_evidence" / "latest_cycle.md")
 
 
 def validate_candidate_release_bridge() -> None:
@@ -228,6 +271,7 @@ def main() -> int:
     checks = [
         validate_workflows,
         validate_release_cycle,
+        validate_release_cycle_outcome,
         validate_candidate_release_bridge,
         validate_friction_registry,
         validate_issue_form,
