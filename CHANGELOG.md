@@ -13,16 +13,22 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - `.github/workflows/onboarding-friction-bootstrap.yml` to create required triage labels automatically
 - `.github/workflows/onboarding-friction.yml` to classify reports, provide path-specific guidance, maintain durable evidence, and create threshold-based automation candidates
 - `.github/workflows/onboarding-friction-maintenance.yml` for scheduled label repair, incomplete-report reminders, abandoned-report closure, and registry reconciliation
+- `.github/workflows/automation-candidate-lifecycle.yml` to verify candidate support, suppress duplicates, maintain evidence packets, and close completed candidates
+- `.github/workflows/automation-candidate-implementation.yml` to detect merged fixes for supported candidates and complete their lifecycle automatically
 - `evidence/onboarding-friction/` as the human-readable and machine-readable friction registry
+- `evidence/onboarding-friction/candidates/` as durable per-candidate evidence and lifecycle receipts
 
 ### Improved
 - Repeated onboarding failures now become automation-candidate issues automatically after three reports share the same platform, setup-path, and failure-stage signature
 - Setup reports no longer require manual labeling, categorization, initial guidance, evidence aggregation, escalation, reminder follow-up, or stale-report cleanup
 - Incomplete reports receive an automated reminder after seven inactive days and close after thirty inactive days without being treated as product evidence
+- Candidate admission no longer requires manual threshold review; the workflow checks the durable registry and applies supported or insufficient-evidence state
+- Duplicate candidates are linked to the earliest canonical issue and closed automatically
+- Merged pull requests that explicitly fix supported candidates automatically mark implementation complete, preserve evidence, and close the candidate
 - Onboarding evidence explicitly prohibits private vault content, credentials, recovery material, and unnecessary personal information
 
 ### Notes
-This automation observes repository issue reports only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary. Automatically closed reports may be edited and reopened when privacy-safe reproduction details become available.
+This automation observes repository issue and pull-request records only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary. Automatically closed reports may be edited and reopened when privacy-safe reproduction details become available. A supported candidate authorizes only the smallest repository-native correction demonstrated by the evidence.
 
 ---
 
