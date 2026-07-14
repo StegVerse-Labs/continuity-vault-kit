@@ -158,6 +158,7 @@ The current determination is no update required for all four. Evidence is stored
 12. A supported merged fix must be recorded in Unreleased state before publication.
 13. Optional ecosystem references must not become baseline dependencies.
 14. Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
+15. Canonical KV footers are applied only through the dedicated `format/**` automation lane before required-footer enforcement is activated.
 
 ---
 
@@ -174,6 +175,7 @@ The current determination is no update required for all four. Evidence is stored
 - Implement only the smallest demonstrated fix for a supported candidate.
 - Do not invent onboarding automation without evidence.
 - Implement data-sharing behavior only under a separately governed scope; current text is documentation, not an active system.
+- Let `format/kv-footers` populate canonical layer footers; enable mandatory footer checks only after its formatting PR validates successfully.
 
 No open issue currently owns required work for the verified `0.1.2` release.
 
