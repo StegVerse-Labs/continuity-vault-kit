@@ -9,8 +9,10 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ### Added
 - `docs/EXAMPLES.md` as the stable index for small continuity patterns and reload-packet examples
+- `docs/examples/Project_Continuation_Packet.md` as a tooling-independent project handoff with explicit evidence and mutation boundaries
 - `vault_template/KnowledgeVault/_migration/README.md` defining non-destructive migration and replacement behavior
 - `tools/test_release_tools.py` for end-to-end release tooling self-tests
+- `.github/workflows/release-integrity.yml` to run the release self-test, rebuild and verify artifacts, validate manifest shape, and upload evidence
 
 ### Improved
 - README now exposes the examples path during first-contact repository review
@@ -20,7 +22,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - Release building now validates required source files before creating an artifact and reports failures with non-zero status
 
 ### Notes
-The migration README adds a file to the vault template but does not require existing `0.1.x` users to reorganize their vaults. The release tooling changes require newly built manifests to use the expanded file inventory before the next release is tagged.
+The migration README adds a file to the vault template but does not require existing `0.1.x` users to reorganize their vaults. The release tooling changes require newly built manifests to use the expanded file inventory before the next release is tagged. GitHub Actions execution evidence remains required before tagging.
 
 ---
 ## [0.1.1] – 2026-01-31
