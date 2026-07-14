@@ -6,16 +6,27 @@ on:
 
 permissions:
   actions: write
+  contents: write
   issues: write
   pull-requests: read
+
+concurrency:
+  group: automation-candidate-implementation
+  cancel-in-progress: false
 
 jobs:
   complete:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
       - name: Resolve referenced candidates
         id: candidates
         env:
@@ -33,7 +44,9 @@ jobs:
               r'(?i)\bautomation[- ]candidate\s+#(\d+)',
           ]
           numbers = sorted({int(value) for pattern in patterns for value in re.findall(pattern, text)})
-          Path('/tmp/candidate-numbers.txt').write_text('\n'.join(map(str, numbers)) + ('\n' if numbers else ''), encoding='utf-8')
+          Path('/tmp/candidate-numbers.txt').write_text(
+              '\n'.join(map(str, numbers)) + ('\n' if numbers else ''), encoding='utf-8'
+          )
           with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as handle:
               handle.write(f"count={len(numbers)}\n")
           PY
@@ -44,25 +57,93 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
+          : > /tmp/implemented-candidates.tsv
           while IFS= read -r issue; do
             [ -n "$issue" ] || continue
-            labels=$(gh issue view "$issue" --json labels --jq '[.labels[].name] | join(",")' 2>/dev/null || true)
+            issue_json=$(gh issue view "$issue" --json labels,title 2>/dev/null || true)
+            [ -n "$issue_json" ] || continue
+            labels=$(printf '%s' "$issue_json" | jq -r '[.labels[].name] | join(",")')
             case ",$labels," in
               *,automation-candidate,*) ;;
               *) continue ;;
             esac
             case ",$labels," in
               *,candidate-supported,*)
+                signature=$(printf '%s' "$issue_json" | jq -r '.title | sub("^\\[Automation candidate\\]\\s+"; "")')
                 gh issue edit "$issue" --add-label candidate-implemented --remove-label candidate-supported 2>/dev/null || true
                 gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} completed this supported automation candidate. PR: ${PR_URL}. Merge commit: \`${MERGE_SHA}\`. Lifecycle reconciliation will preserve the implementation receipt and close the candidate automatically."
+                printf '%s\t%s\n' "$issue" "$signature" >> /tmp/implemented-candidates.tsv
                 ;;
               *)
                 gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} referenced this candidate, but the current registry does not mark it supported. No implementation authority was inferred; candidate lifecycle reconciliation will retain the evidence state."
                 ;;
             esac
           done < /tmp/candidate-numbers.txt
+
+      - name: Record implemented corrections in Unreleased changelog
+        if: steps.candidates.outputs.count != '0'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [ ! -s /tmp/implemented-candidates.tsv ]; then
+            echo "No supported candidate was implemented; changelog remains unchanged."
+            exit 0
+          fi
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path('CHANGELOG.md')
+          text = path.read_text(encoding='utf-8')
+          marker = '## [Unreleased]'
+          if text.count(marker) != 1:
+              raise SystemExit('CHANGELOG must contain exactly one Unreleased section')
+
+          issue_rows = []
+          for line in Path('/tmp/implemented-candidates.tsv').read_text(encoding='utf-8').splitlines():
+              issue, signature = line.split('\t', 1)
+              issue_rows.append((issue, signature))
+
+          entries = []
+          for issue, signature in issue_rows:
+              entry = (
+                  f"- Automated onboarding correction for `{signature}` from supported candidate "
+                  f"#{issue}, implemented by PR #{os.environ['PR_NUMBER']} (`{os.environ['PR_TITLE']}`)."
+              )
+              if entry not in text:
+                  entries.append(entry)
+          if not entries:
+              print('Changelog entries already present')
+              raise SystemExit(0)
+
+          start = text.index(marker) + len(marker)
+          next_release = text.find('\n---', start)
+          if next_release == -1:
+              raise SystemExit('CHANGELOG Unreleased section terminator not found')
+          section = text[start:next_release]
+          placeholder = '_No unreleased changes._'
+          section = section.replace(placeholder, '').rstrip()
+          heading = '### Improved'
+          if heading in section:
+              section = section.rstrip() + '\n' + '\n'.join(entries) + '\n\n'
+          else:
+              section = section.rstrip() + f"\n\n{heading}\n" + '\n'.join(entries) + '\n\n'
+          path.write_text(text[:start] + section + text[next_release:], encoding='utf-8')
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "Changelog unchanged"
+          else
+            git commit -m "chore: record implemented automation candidate [skip ci]"
+            git push origin HEAD:main
+          fi
 
       - name: Trigger candidate reconciliation
         if: steps.candidates.outputs.count != '0'
