@@ -14,8 +14,8 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - `.github/workflows/onboarding-friction.yml` to classify reports, provide path-specific guidance, maintain durable evidence, and create threshold-based automation candidates
 - `.github/workflows/onboarding-friction-maintenance.yml` for scheduled label repair, incomplete-report reminders, abandoned-report closure, and registry reconciliation
 - `.github/workflows/automation-candidate-lifecycle.yml` to verify candidate support, suppress duplicates, maintain evidence packets, and close completed candidates
-- `.github/workflows/automation-candidate-implementation.yml` to detect merged fixes for supported candidates and complete their lifecycle automatically
-- `tools/test_automation_contracts.py` to validate workflow presence, required triggers and permissions, evidence schemas, threshold consistency, privacy boundaries, and downstream destination coverage
+- `.github/workflows/automation-candidate-implementation.yml` to detect merged fixes for supported candidates, complete their lifecycle, record the correction in `CHANGELOG.md`, and activate verified publication
+- `tools/test_automation_contracts.py` to validate workflow presence, required triggers and permissions, evidence schemas, threshold consistency, privacy boundaries, downstream destination coverage, and the candidate-to-release bridge
 - `docs/AUTOMATION_CONTRACTS.md` as the readable contract for release, friction, candidate, and downstream automation
 - `evidence/onboarding-friction/` as the human-readable and machine-readable friction registry
 - `evidence/onboarding-friction/candidates/` as durable per-candidate evidence and lifecycle receipts
@@ -26,9 +26,10 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - Incomplete reports receive an automated reminder after seven inactive days and close after thirty inactive days without being treated as product evidence
 - Candidate admission no longer requires manual threshold review; the workflow checks the durable registry and applies supported or insufficient-evidence state
 - Duplicate candidates are linked to the earliest canonical issue and closed automatically
-- Merged pull requests that explicitly fix supported candidates automatically mark implementation complete, preserve evidence, and close the candidate
+- Merged pull requests that explicitly fix supported candidates now mark implementation complete, preserve evidence, add an idempotent Unreleased changelog entry, and trigger release-integrity validation
 - Release-integrity and automated-release workflows now block publication when repository automation contracts drift
 - Release evidence receipts now record the automation-contract test result and its limited verification scope
+- The release cycle derives state from substantive Unreleased content and no longer depends on historical issue numbers
 - Onboarding evidence explicitly prohibits private vault content, credentials, recovery material, and unnecessary personal information
 
 ### Notes
