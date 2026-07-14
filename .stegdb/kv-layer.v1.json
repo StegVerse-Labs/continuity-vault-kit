@@ -1,13 +1,16 @@
 {
+  "version": "kv-layer.v1",
   "layers": {
     "FRAMEWORK": {
       "paths": [
         "README.md",
+        "WELCOME.md",
         "GETTING_STARTED.md",
         "PATCH_README.md",
         "SAFETY.md",
         "CHANGELOG.md",
         "DO_NOT_STORE_HERE.md",
+        "STATUS.md",
         "VERSION",
         ".gitignore"
       ],
@@ -27,22 +30,20 @@
   "defaults": {
     "scope_framework": "Framework",
     "scope_runtime": "Vault Template",
-    "safety_framework": "Public framework repo (no personal data).",
-    "safety_runtime": "Template content only (no personal data)."
+    "safety_framework": "Public framework repo; no user-authored personal data.",
+    "safety_runtime": "Template content only; no user-authored personal data."
   },
   "enforce": {
-    "hard_fail_markers": [
+    "forbidden_footer_lines": [
       "🔒 Layer: Personal Vault | KV",
-      "KV Layer: PERSONAL",
-      "KV Layer: PERSONAL_VAULT",
-      "PERSONAL VAULT",
-      "Personal Vault"
+      "🔒 Layer: Personal | KV"
     ],
     "binary_disallow": {
       "enabled": false,
       "max_binary_bytes_in_repo": 0
     },
     "markdown_footer": {
+      "required": false,
       "footer_separator": "---",
       "comment_footer_template": "<!-- StegDB: kv.layer.v1 | LAYER={LAYER} | SCOPE={SCOPE} -->",
       "emoji_footer_template": [
