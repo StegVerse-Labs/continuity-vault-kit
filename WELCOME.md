@@ -87,6 +87,23 @@ That guide explains how to create reload packets for long-running AI chats so ne
 
 ---
 
+## Report setup friction safely
+
+Use the repository's **Onboarding friction** issue form when setup, initialization, verification, copying, or first use does not work as expected.
+
+➡️ [Open the structured onboarding-friction form](https://github.com/StegVerse-Labs/continuity-vault-kit/issues/new?template=onboarding-friction.yml)
+
+The repository automatically:
+
+- classifies the platform, setup path, and failure stage;
+- provides path-specific first guidance;
+- records a privacy-bounded machine-readable friction registry;
+- creates an automation-candidate issue when three reports share the same signature.
+
+Do not attach private vault files, credentials, recovery material, medical records, or personal conversation content. This process uses GitHub issue reports only; the vault itself does not phone home.
+
+---
+
 ## What this is
 
 - A portable structure for preserving context and intent
