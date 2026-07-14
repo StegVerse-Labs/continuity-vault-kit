@@ -16,7 +16,7 @@ This file is the repo-local continuation source of truth. Read it before reposit
 
 Baseline use must remain functional without an account, hosted service, SDK, database, workflow dependency, or vault telemetry.
 
-Integrity tooling verifies package and copy behavior only. Automation-contract tooling verifies repository consistency only. Release-cycle receipts record repository outcomes only. None certifies the truth, safety, completeness, authority, or admissibility of user-authored content.
+Integrity tooling verifies package and copy behavior only. Automation-contract tooling verifies repository consistency only. Release-cycle receipts record repository outcomes only. This automation does not certify the truth, safety, completeness, authority, or admissibility of user-authored content.
 
 ---
 
