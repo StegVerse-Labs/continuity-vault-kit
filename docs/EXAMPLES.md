@@ -5,8 +5,9 @@ This page indexes small, inspectable examples that show how the vault preserves 
 ## Start with the reload packet
 
 - [`examples/Reload_Packet_Example.md`](./examples/Reload_Packet_Example.md) — a compact handoff that a future person or AI session can use to reconstruct the current state of a conversation, project, or decision.
+- [`examples/Project_Continuation_Packet.md`](./examples/Project_Continuation_Packet.md) — a project handoff that separates completed work, evidence, unresolved owner decisions, mutation boundaries, and the next permitted action.
 
-A reload packet should make five things recoverable:
+A reload or continuation packet should make five things recoverable:
 
 1. What was being attempted.
 2. What has already been decided or completed.
@@ -32,7 +33,6 @@ Release manifests and checksums verify packaged files; they do not certify that 
 
 Future examples may cover:
 
-- Project continuation
 - Health-record chronology
 - Research evidence review
 - Device migration
