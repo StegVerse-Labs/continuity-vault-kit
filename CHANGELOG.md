@@ -15,6 +15,8 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - `.github/workflows/onboarding-friction-maintenance.yml` for scheduled label repair, incomplete-report reminders, abandoned-report closure, and registry reconciliation
 - `.github/workflows/automation-candidate-lifecycle.yml` to verify candidate support, suppress duplicates, maintain evidence packets, and close completed candidates
 - `.github/workflows/automation-candidate-implementation.yml` to detect merged fixes for supported candidates and complete their lifecycle automatically
+- `tools/test_automation_contracts.py` to validate workflow presence, required triggers and permissions, evidence schemas, threshold consistency, privacy boundaries, and downstream destination coverage
+- `docs/AUTOMATION_CONTRACTS.md` as the readable contract for release, friction, candidate, and downstream automation
 - `evidence/onboarding-friction/` as the human-readable and machine-readable friction registry
 - `evidence/onboarding-friction/candidates/` as durable per-candidate evidence and lifecycle receipts
 
@@ -25,10 +27,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - Candidate admission no longer requires manual threshold review; the workflow checks the durable registry and applies supported or insufficient-evidence state
 - Duplicate candidates are linked to the earliest canonical issue and closed automatically
 - Merged pull requests that explicitly fix supported candidates automatically mark implementation complete, preserve evidence, and close the candidate
+- Release-integrity and automated-release workflows now block publication when repository automation contracts drift
+- Release evidence receipts now record the automation-contract test result and its limited verification scope
 - Onboarding evidence explicitly prohibits private vault content, credentials, recovery material, and unnecessary personal information
 
 ### Notes
-This automation observes repository issue and pull-request records only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary. Automatically closed reports may be edited and reopened when privacy-safe reproduction details become available. A supported candidate authorizes only the smallest repository-native correction demonstrated by the evidence.
+This automation observes repository issue and pull-request records only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary. Automatically closed reports may be edited and reopened when privacy-safe reproduction details become available. A supported candidate authorizes only the smallest repository-native correction demonstrated by the evidence. Automation contract validation verifies repository consistency only; it does not certify user-authored content.
 
 ---
 
