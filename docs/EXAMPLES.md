@@ -2,10 +2,11 @@
 
 This page indexes small, inspectable examples that show how the vault preserves continuity without requiring an account, service, database, or StegVerse integration.
 
-## Start with the reload packet
+## Available examples
 
 - [`examples/Reload_Packet_Example.md`](./examples/Reload_Packet_Example.md) — a compact handoff that a future person or AI session can use to reconstruct the current state of a conversation, project, or decision.
 - [`examples/Project_Continuation_Packet.md`](./examples/Project_Continuation_Packet.md) — a project handoff that separates completed work, evidence, unresolved owner decisions, mutation boundaries, and the next permitted action.
+- [`examples/Device_Migration_Packet.md`](./examples/Device_Migration_Packet.md) — a device-to-device vault transfer packet with source authority, difference reconciliation, rollback, and owner-acceptance boundaries.
 
 A reload or continuation packet should make five things recoverable:
 
@@ -31,11 +32,10 @@ Release manifests and checksums verify packaged files; they do not certify that 
 
 ## Planned examples
 
-Future examples may cover:
+The remaining planned set is tracked in issue #9:
 
 - Health-record chronology
 - Research evidence review
-- Device migration
 - Multi-session AI collaboration
 - Version replacement and migration
 
