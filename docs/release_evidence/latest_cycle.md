@@ -10,3 +10,7 @@
 - **Generated UTC:** `2026-07-14T15:40:43Z`
 
 This receipt records repository release-cycle state only. It does not certify user-authored content.
+
+---
+
+🔒 Layer: Framework | KV

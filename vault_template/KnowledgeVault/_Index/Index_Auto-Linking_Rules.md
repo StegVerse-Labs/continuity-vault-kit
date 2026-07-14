@@ -148,3 +148,7 @@ Over time, linking should make the vault:
 • Still readable as plain Markdown
 
 Structure should enhance memory — not replace it.
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -63,3 +63,7 @@ Use Files for:
 Do not store personal records in this public starter kit repo.
 
 If you are using a Git repo for your real vault, make it **private**.
+
+---
+
+🔒 Layer: Framework | KV

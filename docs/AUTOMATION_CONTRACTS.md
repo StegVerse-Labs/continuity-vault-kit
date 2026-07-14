@@ -42,3 +42,7 @@ A downstream update is required only when a destination already publishes a dire
 ## Change rule
 
 A change that intentionally alters one of these contracts must update all affected workflows, evidence schemas, documentation, and `tools/test_automation_contracts.py` in the same change set.
+
+---
+
+🔒 Layer: Framework | KV

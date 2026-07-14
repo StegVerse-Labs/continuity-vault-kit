@@ -10,3 +10,7 @@ Create a small section per topic and link to primary notes.
 
 ## Projects
 - (Add links)
+
+---
+
+🔒 Layer: Vault Template | KV

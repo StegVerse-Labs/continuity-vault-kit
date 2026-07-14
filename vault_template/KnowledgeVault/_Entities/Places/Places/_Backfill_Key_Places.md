@@ -6,3 +6,7 @@ List meaningful locations from life.
 - College Campus — UT Austin
 - First Apartment — Austin, TX
 - Grandma’s House — Waco, TX
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -60,3 +60,7 @@ Before opting in, read:
 
 StegVerse favors **clarity and replaceability**.
 Safety should be improved over time, without locking users into one vendor or one app.
+
+---
+
+🔒 Layer: Framework | KV

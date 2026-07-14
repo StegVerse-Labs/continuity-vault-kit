@@ -8,3 +8,7 @@ Purpose:
 - Support long-term recall and AI-assisted organization
 
 Not every company or group needs a file — only those with meaningful involvement.
+
+---
+
+🔒 Layer: Vault Template | KV

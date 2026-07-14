@@ -7,3 +7,7 @@
 - Why it stuck:
 
 Link to: `04_Media/Audio/song_log.csv` (row timestamp)
+
+---
+
+🔒 Layer: Vault Template | KV

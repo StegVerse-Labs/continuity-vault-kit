@@ -182,3 +182,7 @@ The vault can be deep and complex beneath the surface.
 Light Mode ensures the user only sees what needs gentle care — nothing more.
 
 It exists to make long-term continuity sustainable, not burdensome.
+
+---
+
+🔒 Layer: Vault Template | KV

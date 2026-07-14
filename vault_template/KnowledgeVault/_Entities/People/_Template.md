@@ -54,3 +54,7 @@ Use this section to track evolving context.
 `public | private | restricted`
 
 Defines how AI should treat this file.
+
+---
+
+🔒 Layer: Vault Template | KV

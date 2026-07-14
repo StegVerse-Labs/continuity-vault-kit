@@ -75,3 +75,7 @@ Rest, conversation, nature, music, progress on a task?
 ## 🔮 What Future-You Should Know
 
 If you read this years later, what would help you understand this moment?
+
+---
+
+🔒 Layer: Vault Template | KV

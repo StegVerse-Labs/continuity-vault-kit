@@ -102,3 +102,7 @@ It improves usability, onboarding, and safety documentation only.
 ### Notes
 This is the first stable format version of the KnowledgeVault system.
 Future versions should remain backward-compatible whenever possible.
+
+---
+
+🔒 Layer: Framework | KV

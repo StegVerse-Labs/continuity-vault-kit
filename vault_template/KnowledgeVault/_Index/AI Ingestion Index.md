@@ -24,3 +24,7 @@ Templates define note structure and can be used to interpret meaning:
 - Media Highlight
 - Song Moment
 - Event Log
+
+---
+
+🔒 Layer: Vault Template | KV

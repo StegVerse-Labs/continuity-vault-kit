@@ -10,3 +10,7 @@ Purpose:
 Do not add every contact here — only people who appear in meaningful memories.
 
 Files in this folder may be marked with a privacy level to control AI access.
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -41,3 +41,7 @@ Request or locate the missing source record, then append it without overwriting 
 ## Privacy boundary
 
 Use local references instead of copying unnecessary sensitive content into a handoff intended for sharing.
+
+---
+
+🔒 Layer: Framework | KV

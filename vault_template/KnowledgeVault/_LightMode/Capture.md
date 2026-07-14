@@ -48,3 +48,7 @@ AI and future-you will later help:
 - Link to events
 - Add tags
 - Move to the right place
+
+---
+
+🔒 Layer: Vault Template | KV

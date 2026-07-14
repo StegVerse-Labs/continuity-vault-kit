@@ -4,3 +4,7 @@
 - UT Austin — 2012–2016
 - Dell — 2020–Present
 - Austin Community Church — 2021–Present
+
+---
+
+🔒 Layer: Vault Template | KV

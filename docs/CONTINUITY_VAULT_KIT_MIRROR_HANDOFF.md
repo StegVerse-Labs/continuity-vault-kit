@@ -190,3 +190,7 @@ Recommended next activation condition:
 This handoff preserves the current release, reusable release-cycle state, all release evidence surfaces, automation behavior, initialization contract, downstream determinations, onboarding-friction lifecycle, decisions, permitted scope, and conditional successor rules.
 
 The complete thread is ready for archiving without any additional part of the thread needed to move forward.
+
+---
+
+🔒 Layer: Framework | KV

@@ -103,3 +103,7 @@ This kit is part of **StegVerse**: an open framework for expectations, identity,
 ## License
 
 See [`LICENSE`](./LICENSE).
+
+---
+
+🔒 Layer: Framework | KV

@@ -89,3 +89,7 @@ This anchors your timeline and makes future recall much easier.
 These notes are meant to grow over time — just start simple.
 
 Your KnowledgeVault becomes powerful not from complexity, but from **consistent, human entries over time**.
+
+---
+
+🔒 Layer: Framework | KV

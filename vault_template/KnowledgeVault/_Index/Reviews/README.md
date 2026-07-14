@@ -9,3 +9,7 @@ Purpose:
 
 Reviews are reminders, not obligations.
 They help maintain continuity over years and decades.
+
+---
+
+🔒 Layer: Vault Template | KV

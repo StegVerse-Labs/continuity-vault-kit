@@ -59,3 +59,7 @@ That’s it.
 
 From here, just start logging memories when they happen.
 The system will slowly build around you.
+
+---
+
+🔒 Layer: Vault Template | KV

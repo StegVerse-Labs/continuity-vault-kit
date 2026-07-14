@@ -8,3 +8,7 @@ Purpose:
 - Provide a high-level map without reading every memory file
 
 This is a summary layer. It does not replace detailed notes, events, or project files.
+
+---
+
+🔒 Layer: Vault Template | KV

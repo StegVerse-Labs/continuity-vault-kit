@@ -62,3 +62,7 @@ It is not yet optimized for broad casual adoption.
 That is acceptable for this stage.
 
 The next activation goal is to make the conversation-continuity path obvious without stripping the deeper architecture.
+
+---
+
+🔒 Layer: Framework | KV

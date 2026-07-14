@@ -25,3 +25,7 @@ Welcome. You only need these sections most of the time.
 
 ## 🔄 Occasional Maintenance
 - [Review Suggestions](../_Index/Reviews/)
+
+---
+
+🔒 Layer: Vault Template | KV

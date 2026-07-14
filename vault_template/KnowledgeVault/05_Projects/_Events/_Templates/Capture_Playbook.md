@@ -25,3 +25,7 @@ If you want a great highlight film (and possibly 3D later), ask 2–5 people to 
 
 ## Notes for privacy
 Only capture what you’re comfortable sharing for this event.
+
+---
+
+🔒 Layer: Vault Template | KV

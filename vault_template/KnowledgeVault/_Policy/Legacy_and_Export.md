@@ -83,3 +83,7 @@ Future AI systems can read:
 - Narrative notes
 
 The vault is designed to be a **portable life knowledge graph**.
+
+---
+
+🔒 Layer: Vault Template | KV

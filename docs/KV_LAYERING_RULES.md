@@ -47,18 +47,7 @@ Markdown docs in either layer get a standard footer at the bottom.
 Example:
 
 ```md
+
 ---
 
-<!-- StegDB: kv.layer.v1 | LAYER=FRAMEWORK | SCOPE=Public kit (no personal data) -->
-
-🧭 **KV Layer:** FRAMEWORK  
-🏷️ **KV Scope:** Public kit (no personal data)  
-🔒 **KV Safety:** Never store personal info here  
-🧬 **StegDB:** managed • rule=kv.layer.v1
-```
-
-To auto-apply footers locally (no moves/deletes):
-
-```bash
-python3 tools/kv_layer_check.py --mode auto-label
-```
+🔒 Layer: Framework | KV

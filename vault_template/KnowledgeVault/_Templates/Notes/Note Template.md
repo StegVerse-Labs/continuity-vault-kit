@@ -13,3 +13,7 @@ Related:
 ## References
 
 ## Follow-up
+
+---
+
+🔒 Layer: Vault Template | KV

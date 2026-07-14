@@ -28,3 +28,7 @@ This file determines:
 - which mode runs (lite/enhanced/off)
 - whether translated profile may be used
 - frequency (daily/weekly/seasonal)
+
+---
+
+🔒 Layer: Vault Template | KV

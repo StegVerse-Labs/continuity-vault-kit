@@ -12,3 +12,7 @@ Project:
 ## Issues
 
 ## Next Steps
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -11,3 +11,7 @@ Source:
 ## Key Points
 
 ## Related
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -175,3 +175,7 @@ If any rule is unclear, the system must default to:
 **Do nothing and request human input.**
 
 Safety is always preferred over automation.
+
+---
+
+🔒 Layer: Vault Template | KV

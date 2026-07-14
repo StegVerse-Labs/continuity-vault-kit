@@ -17,3 +17,7 @@ Use this checklist when moving the vault to a new device or platform.
 - No files rely on proprietary formats
 
 If these pass, the vault is structurally sound.
+
+---
+
+🔒 Layer: Vault Template | KV

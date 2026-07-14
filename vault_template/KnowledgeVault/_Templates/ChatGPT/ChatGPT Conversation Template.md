@@ -25,3 +25,7 @@ Model:
 ## Conversation
 
 (Paste conversation transcript below)
+
+---
+
+🔒 Layer: Vault Template | KV

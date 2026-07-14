@@ -127,3 +127,7 @@ This keeps KnowledgeVault:
 ✔ Easy to use  
 ✔ Flexible  
 ✔ Future‑intelligent
+
+---
+
+🔒 Layer: Framework | KV

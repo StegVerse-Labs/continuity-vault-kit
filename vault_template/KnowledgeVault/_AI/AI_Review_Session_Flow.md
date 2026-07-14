@@ -136,3 +136,7 @@ Review sessions should become:
 • Faster to complete
 
 As AI improves pattern recognition over time.
+
+---
+
+🔒 Layer: Vault Template | KV

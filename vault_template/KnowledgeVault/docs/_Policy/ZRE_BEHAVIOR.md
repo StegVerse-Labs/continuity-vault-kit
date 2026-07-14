@@ -16,3 +16,7 @@ ZRE provides symbolic reflection prompts only.
 ## Required Disclaimer
 Every output must include:
 > Symbolic reflection only — not predictions, diagnosis, or advice.
+
+---
+
+🔒 Layer: Vault Template | KV

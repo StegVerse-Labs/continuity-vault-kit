@@ -8,3 +8,7 @@ Purpose:
 - Prevent the vault from being only historical
 
 Update this occasionally — not daily. It’s a high-level “current chapter” view.
+
+---
+
+🔒 Layer: Vault Template | KV

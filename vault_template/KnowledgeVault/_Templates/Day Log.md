@@ -89,3 +89,7 @@ Example:
 Attended energy conference. Met Alex Martinez. Discussed possible solar project.
 
 This section helps future-you quickly recall why this day is significant.
+
+---
+
+🔒 Layer: Vault Template | KV

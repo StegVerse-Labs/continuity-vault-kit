@@ -15,3 +15,7 @@ Compatibility must NOT:
 - produce deterministic “scores” as truth
 - claim outcomes (e.g., “this will fail/succeed”)
 - be presented as advice or fate
+
+---
+
+🔒 Layer: Vault Template | KV

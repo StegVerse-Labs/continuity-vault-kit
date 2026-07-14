@@ -82,3 +82,7 @@ If you are building a tool that reads KnowledgeVault:
 5. Log all access in `_AI/Logs/` (if applicable)
 
 See `docs/AI_Ingestion.md` for the reference implementation.
+
+---
+
+🔒 Layer: Framework | KV

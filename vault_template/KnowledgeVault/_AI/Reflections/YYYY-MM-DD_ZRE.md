@@ -14,3 +14,7 @@ Balance without self-erasure.
 
 ## Reminder
 Symbolic reflection only — not predictions or advice.
+
+---
+
+🔒 Layer: Vault Template | KV

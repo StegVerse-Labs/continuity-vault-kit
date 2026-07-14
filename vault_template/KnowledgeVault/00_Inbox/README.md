@@ -7,3 +7,7 @@ Weekly goal:
 - Move into the correct folder (Notes / Research / Records / Projects / Media)
 
 This folder should trend toward empty.
+
+---
+
+🔒 Layer: Vault Template | KV

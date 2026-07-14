@@ -40,3 +40,7 @@ You can run this later via:
 - GitHub Actions (next step)
 
 Output is plain Markdown — portable and safe.
+
+---
+
+🔒 Layer: Framework | KV

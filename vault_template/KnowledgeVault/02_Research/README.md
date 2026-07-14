@@ -6,3 +6,7 @@ Prefer:
 - PDF copies of sources
 - Markdown summaries
 - A simple citations section in each note
+
+---
+
+🔒 Layer: Vault Template | KV

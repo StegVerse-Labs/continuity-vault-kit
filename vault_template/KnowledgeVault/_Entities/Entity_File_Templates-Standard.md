@@ -170,3 +170,7 @@ These templates ensure:
 • Compatibility with future AI tools
 • Human readability without special software
 • Strong linking without database lock-in
+
+---
+
+🔒 Layer: Vault Template | KV

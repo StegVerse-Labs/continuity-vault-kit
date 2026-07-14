@@ -11,3 +11,7 @@ Why:
 - Sorts chronologically everywhere
 - Survives every platform and app
 - Enables timeline reconstruction decades later
+
+---
+
+🔒 Layer: Vault Template | KV

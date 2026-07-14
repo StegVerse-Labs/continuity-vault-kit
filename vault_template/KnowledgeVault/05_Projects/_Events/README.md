@@ -16,3 +16,7 @@ Use:
 
 Example:
 `2026-02-04 — Lily Birthday Party`
+
+---
+
+🔒 Layer: Vault Template | KV

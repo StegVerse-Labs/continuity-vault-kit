@@ -10,3 +10,7 @@
 ### Colorado
 - Denver
   - [Travel Log – Ski Trip](../01_Notes/...)
+
+---
+
+🔒 Layer: Vault Template | KV

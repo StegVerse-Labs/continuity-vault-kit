@@ -121,3 +121,7 @@ GitHub protects the **framework**.
 
 You can rebuild structure.  
 You cannot recreate lost memories.
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -71,3 +71,7 @@ Comforting, nostalgic, hopeful, healing, energizing…
 - People Notes:
 - Day Logs:
 - Life Events:
+
+---
+
+🔒 Layer: Vault Template | KV

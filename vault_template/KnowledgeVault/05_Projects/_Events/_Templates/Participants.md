@@ -25,3 +25,7 @@ Format:
 
 ## Notes
 - If someone should not be tagged or included in exports, mark it here.
+
+---
+
+🔒 Layer: Vault Template | KV

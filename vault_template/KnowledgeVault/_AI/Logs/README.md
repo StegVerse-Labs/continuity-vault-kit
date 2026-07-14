@@ -6,3 +6,7 @@ Use:
 - AI_Log_Template.md for each session
 - One file per session
 - Store sensitive content locally, not in public repos
+
+---
+
+🔒 Layer: Vault Template | KV

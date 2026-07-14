@@ -25,3 +25,7 @@ Event Type: {{EVENT_TYPE}}
 ## Follow-ups (optional)
 - {{FOLLOWUP_1}}
 - {{FOLLOWUP_2}}
+
+---
+
+🔒 Layer: Vault Template | KV

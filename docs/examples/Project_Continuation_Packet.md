@@ -82,3 +82,7 @@ This continuation packet may be closed when:
 ## Minimal reload prompt
 
 > Read this project continuation packet and the listed authoritative files. Summarize the current state, distinguish completed work from proposals, identify unresolved owner decisions, and recommend only the next permitted action. Do not authorize file deletion or movement.
+
+---
+
+🔒 Layer: Framework | KV

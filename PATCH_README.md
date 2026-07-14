@@ -8,3 +8,7 @@ Adds:
 Install:
 - Copy contents into repo root
 - Commit
+
+---
+
+🔒 Layer: Framework | KV

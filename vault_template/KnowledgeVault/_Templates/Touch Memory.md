@@ -28,3 +28,7 @@ Cold metal railing, warm sand, a child’s tiny hand, rough tree bark.
 ---
 
 ## 🔗 Related Notes
+
+---
+
+🔒 Layer: Vault Template | KV

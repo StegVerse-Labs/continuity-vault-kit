@@ -10,3 +10,7 @@ This section records when AI systems are given access to vault information.
 
 ## Logs (most recent first)
 - (Add entries here)
+
+---
+
+🔒 Layer: Vault Template | KV

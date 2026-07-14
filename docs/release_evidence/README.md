@@ -14,3 +14,7 @@ A receipt records the tested commit, workflow run, artifact name, package digest
 ## Scope boundary
 
 A successful receipt verifies packaging integrity for the tested repository state. It does not certify the truth, safety, completeness, authority, or admissibility of user-authored vault content.
+
+---
+
+🔒 Layer: Framework | KV

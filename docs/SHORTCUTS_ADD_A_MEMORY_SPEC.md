@@ -224,3 +224,7 @@ Optional:
 - Shortcuts can’t “auto-match typed names to contacts” in a live search box.
 - “Create Contact” requires user confirmation (privacy by design).
 - GPS requires location permission; allow “Skip” always.
+
+---
+
+🔒 Layer: Framework | KV

@@ -67,3 +67,7 @@ Moved away — now visited occasionally
 `public | private | restricted`
 
 Defines how AI should treat this file.
+
+---
+
+🔒 Layer: Vault Template | KV

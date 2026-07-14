@@ -62,3 +62,7 @@ Family physician since 2022
 ```
 
 This is your personal entity reference. It is not shared with any service unless you explicitly choose to.
+
+---
+
+🔒 Layer: Vault Template | KV

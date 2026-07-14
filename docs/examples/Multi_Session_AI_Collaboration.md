@@ -40,3 +40,7 @@ A later session may summarize, compare, and identify conflicts. It may not merge
 ## Next permitted action
 
 Present the conflicting milestone priorities and unsupported dependency to the owner for resolution. Record the decision and its source before continuing implementation.
+
+---
+
+🔒 Layer: Framework | KV

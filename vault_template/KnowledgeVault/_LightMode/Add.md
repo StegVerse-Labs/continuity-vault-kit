@@ -15,3 +15,7 @@ Something bigger involving people or places
 ## 🚀 Project Update
 Progress on something ongoing  
 → Open the project file and add notes
+
+---
+
+🔒 Layer: Vault Template | KV

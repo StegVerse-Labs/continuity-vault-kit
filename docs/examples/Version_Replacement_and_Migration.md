@@ -39,3 +39,7 @@ Use this packet when adopting a newer Continuity Vault Kit without allowing the 
 ## Next permitted action
 
 Record owner acceptance, then retire the temporary candidate copy. If any difference remains unresolved, keep the prior vault authoritative and document the conflict.
+
+---
+
+🔒 Layer: Framework | KV

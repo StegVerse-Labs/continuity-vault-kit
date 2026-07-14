@@ -17,3 +17,7 @@ Place (optional):
 Feelings or thoughts:
 
 Media saved? (filename if any)
+
+---
+
+🔒 Layer: Vault Template | KV

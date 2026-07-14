@@ -152,3 +152,7 @@ See [`docs/DATA_SHARING.md`](./docs/DATA_SHARING.md) for full details.
 For more structure and examples, read:
 
 ➡️ [`GETTING_STARTED.md`](./GETTING_STARTED.md)
+
+---
+
+🔒 Layer: Framework | KV

@@ -14,3 +14,7 @@ Some areas may be marked private.
 Please respect those boundaries.
 
 I created this so that my story, relationships, and experiences would not be lost to time or technology.
+
+---
+
+🔒 Layer: Vault Template | KV

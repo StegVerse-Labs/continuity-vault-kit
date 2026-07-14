@@ -6,3 +6,7 @@ Purpose:
 - audit trail
 - rollback reference (if needed)
 - helps train future suggestion thresholds
+
+---
+
+🔒 Layer: Vault Template | KV

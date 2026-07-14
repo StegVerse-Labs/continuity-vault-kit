@@ -57,3 +57,7 @@ Where it might be used:
 ## 📄 Main Text
 
 (Place the writing here or link to the primary file location.)
+
+---
+
+🔒 Layer: Vault Template | KV

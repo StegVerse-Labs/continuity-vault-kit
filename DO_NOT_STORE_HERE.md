@@ -19,3 +19,7 @@ If you need to store these, use:
 - separate secure storage
 
 When in doubt: don’t store it here.
+
+---
+
+🔒 Layer: Framework | KV

@@ -279,3 +279,7 @@ It is one of the primary reasons the vault exists.
 The vault preserves memory.
 The reload packet restores working context.
 The human remains the authority.
+
+---
+
+🔒 Layer: Framework | KV
