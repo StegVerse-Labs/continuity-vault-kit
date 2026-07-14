@@ -8,7 +8,19 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- `.github/ISSUE_TEMPLATE/onboarding-friction.yml` for structured, privacy-bounded first-use and setup reports
+- `.github/workflows/onboarding-friction-bootstrap.yml` to create required triage labels automatically
+- `.github/workflows/onboarding-friction.yml` to classify reports, provide path-specific guidance, maintain durable evidence, and create threshold-based automation candidates
+- `evidence/onboarding-friction/` as the human-readable and machine-readable friction registry
+
+### Improved
+- Repeated onboarding failures now become automation-candidate issues automatically after three reports share the same platform, setup-path, and failure-stage signature
+- Setup reports no longer require manual labeling, categorization, initial guidance, evidence aggregation, or escalation
+- Onboarding evidence explicitly prohibits private vault content, credentials, recovery material, and unnecessary personal information
+
+### Notes
+This automation observes repository issue reports only. It does not add telemetry to user vaults, phone home, authorize vault mutation, or make an account or hosted service necessary.
 
 ---
 
