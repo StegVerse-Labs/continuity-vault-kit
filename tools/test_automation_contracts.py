@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -16,32 +15,26 @@ WORKFLOWS = {
         "name: Release integrity",
         "python3 tools/test_release_tools.py",
         "python3 tools/test_init_vault.py",
+        "python3 tools/test_automation_contracts.py",
         "actions/upload-artifact@v4",
+        '"release_required": release_required',
     },
     "automated-release.yml": {
         "name: Automated verified release",
         "workflow_run:",
+        "Determine whether a release is required",
+        "## [Unreleased]",
         "gh release create",
     },
-    "downstream-propagation.yml": {
-        "release:",
-        "evidence/downstream-propagation",
-    },
-    "onboarding-friction-bootstrap.yml": {
-        "workflow_dispatch:",
-        "onboarding-friction",
-    },
+    "downstream-propagation.yml": {"release:", "evidence/downstream-propagation"},
+    "onboarding-friction-bootstrap.yml": {"workflow_dispatch:", "onboarding-friction"},
     "onboarding-friction.yml": {
         "name: Onboarding friction triage",
         "issues:",
         "automation-candidate",
         "evidence/onboarding-friction/latest.json",
     },
-    "onboarding-friction-maintenance.yml": {
-        "schedule:",
-        "needs-reproduction",
-        "workflow_dispatch",
-    },
+    "onboarding-friction-maintenance.yml": {"schedule:", "needs-reproduction", "workflow_dispatch"},
     "automation-candidate-lifecycle.yml": {
         "automation-candidate",
         "candidate-supported",
@@ -79,8 +72,7 @@ def read_json(path: Path) -> dict[str, object]:
 def validate_workflows() -> None:
     workflow_root = REPO_ROOT / ".github" / "workflows"
     for filename, required_tokens in WORKFLOWS.items():
-        path = workflow_root / filename
-        text = read_text(path)
+        text = read_text(workflow_root / filename)
         missing = sorted(token for token in required_tokens if token not in text)
         if missing:
             fail(f"{filename} missing contract tokens: {', '.join(missing)}")
@@ -92,9 +84,38 @@ def validate_workflows() -> None:
             fail(f"{filename} uses an obsolete first-party action major")
 
 
+def validate_release_cycle() -> None:
+    integrity = read_text(REPO_ROOT / ".github" / "workflows" / "release-integrity.yml")
+    release = read_text(REPO_ROOT / ".github" / "workflows" / "automated-release.yml")
+    combined = integrity + "\n" + release
+    forbidden = (
+        "gh issue view 7",
+        "gh issue view 8",
+        "gh issue comment 7",
+        "gh issue comment 8",
+        "gh issue comment 10",
+        "gh issue close 7",
+        "gh issue close 8",
+    )
+    present = [token for token in forbidden if token in combined]
+    if present:
+        fail("release cycle contains historical issue gates: " + ", ".join(present))
+    required = {
+        "CHANGELOG.md",
+        "## [Unreleased]",
+        "release_required",
+        "no unreleased changes; release skipped",
+        "automation_contract_test",
+    }
+    missing = sorted(token for token in required if token not in combined)
+    if missing:
+        fail("release cycle missing issue-free gate tokens: " + ", ".join(missing))
+    if "issues: write" in release:
+        fail("automated release must not require issue-write permission")
+
+
 def validate_friction_registry() -> None:
-    path = REPO_ROOT / "evidence" / "onboarding-friction" / "latest.json"
-    registry = read_json(path)
+    registry = read_json(REPO_ROOT / "evidence" / "onboarding-friction" / "latest.json")
     required = {
         "schema_version",
         "generated_utc",
@@ -115,14 +136,12 @@ def validate_friction_registry() -> None:
         fail("friction reports/signature_counts have invalid types")
     if registry["report_count"] != len(reports):
         fail("friction report_count does not match reports")
-    privacy = str(registry["privacy_scope"]).lower()
-    if "private vault content prohibited" not in privacy:
+    if "private vault content prohibited" not in str(registry["privacy_scope"]).lower():
         fail("friction privacy scope must prohibit private vault content")
 
 
 def validate_issue_form() -> None:
-    path = REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "onboarding-friction.yml"
-    text = read_text(path)
+    text = read_text(REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "onboarding-friction.yml")
     required = {
         "name: Onboarding friction",
         "onboarding-friction",
@@ -147,8 +166,7 @@ def validate_threshold_consistency() -> None:
         REPO_ROOT / "docs" / "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md",
     ]
     joined = "\n".join(read_text(path).lower() for path in paths)
-    threshold_phrases = ("threshold: 3", "threshold = 3", "three reports", ">= 3")
-    if not any(phrase in joined for phrase in threshold_phrases):
+    if not any(phrase in joined for phrase in ("threshold: 3", "threshold = 3", "three reports", ">= 3")):
         fail("automation-candidate threshold is not durably represented")
 
 
@@ -167,8 +185,7 @@ def validate_scope_boundaries() -> None:
 
 
 def validate_downstream_config() -> None:
-    path = REPO_ROOT / "automation" / "downstream-propagation.json"
-    config = read_json(path)
+    config = read_json(REPO_ROOT / "automation" / "downstream-propagation.json")
     destinations = config.get("destinations")
     if not isinstance(destinations, list) or len(destinations) != 4:
         fail("downstream propagation must define exactly four destinations")
@@ -187,6 +204,7 @@ def validate_downstream_config() -> None:
 def main() -> int:
     checks = [
         validate_workflows,
+        validate_release_cycle,
         validate_friction_registry,
         validate_issue_form,
         validate_threshold_consistency,
