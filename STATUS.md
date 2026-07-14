@@ -1,7 +1,7 @@
 state: active
 works_today: yes — use the verified initializer or copy the template directly; no accounts, services, or lock-in
 current_version: 0.1.2
-current_focus: preserve the evidence-to-fix lifecycle and reusable issue-free release automation
+current_focus: preserve the evidence-to-fix lifecycle and automatic merged-fix release activation
 known_gaps:
   - Some docs may be reorganized as StegVerse expands
   - Data-sharing revenue behavior is documented but not implemented
@@ -13,13 +13,14 @@ completed_recently:
   - Replaced historical issue #7/#8/#10 release routing with changelog-driven release state
   - Release integrity now records release_required in durable evidence
   - Automated publication now skips cleanly when the Unreleased changelog section is empty
-  - Automation contracts now fail CI if historical fixed issue gates are reintroduced
+  - Supported candidate fixes now add an idempotent Unreleased changelog entry after merge
+  - The candidate changelog commit intentionally triggers release-integrity validation and verified patch publication
+  - Automation contracts reject skip-ci suppression or a broken candidate-to-release bridge
 next_steps:
   - Treat docs/release_evidence/latest.json as the machine-readable release-cycle gate
   - Treat evidence/onboarding-friction/latest.json as the report-level source of truth
   - Treat evidence/onboarding-friction/candidates/ as the candidate-level source of truth
   - Allow substantive Unreleased changes to trigger the next verified patch release automatically
-  - Allow three matching reports to create and independently validate a supported candidate automatically
-  - Keep all corrections limited to the smallest demonstrated repository-native fix
+  - Allow three matching reports to create, independently validate, implement, record, and publish the smallest supported correction automatically
   - Keep first-contact use independent of accounts, hosted services, mandatory SDKs, and vault telemetry
-last_reviewed_utc: 2026-07-14T08:45:00Z
+last_reviewed_utc: 2026-07-14T09:05:00Z
