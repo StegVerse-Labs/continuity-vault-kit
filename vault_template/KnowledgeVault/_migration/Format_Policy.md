@@ -13,3 +13,7 @@ Preferred formats:
 | Audio | .wav, .mp3 | .flac | app-only formats |
 
 If a format becomes obsolete, convert to the preferred format and record the change in `Migration_Log.md`.
+
+---
+
+🔒 Layer: Vault Template | KV

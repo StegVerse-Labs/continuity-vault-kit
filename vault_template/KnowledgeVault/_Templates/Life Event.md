@@ -59,3 +59,7 @@ One paragraph for your future self:
 - What mattered
 - What you learned
 - What you wish you’d remembered
+
+---
+
+🔒 Layer: Vault Template | KV

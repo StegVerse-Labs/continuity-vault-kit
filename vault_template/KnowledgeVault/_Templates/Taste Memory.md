@@ -28,3 +28,7 @@ Grandma’s soup, campfire marshmallows, hospital cafeteria coffee.
 ---
 
 ## 🔗 Related Notes
+
+---
+
+🔒 Layer: Vault Template | KV

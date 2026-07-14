@@ -48,3 +48,7 @@ Release checksums prove package integrity only. They do not prove that a migrati
 ## Current state
 
 No structural migration is required between the currently documented `0.1.x` releases. When a future release changes the vault format, its migration file must be added here before that release is tagged.
+
+---
+
+🔒 Layer: Vault Template | KV

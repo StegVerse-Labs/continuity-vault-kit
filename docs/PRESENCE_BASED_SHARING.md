@@ -115,3 +115,7 @@ All while keeping your personal archive under your control.
 
 Your KnowledgeVault is the **master memory archive**.  
 Shared albums, notes, and folders are **windows you open when you choose**.
+
+---
+
+🔒 Layer: Framework | KV

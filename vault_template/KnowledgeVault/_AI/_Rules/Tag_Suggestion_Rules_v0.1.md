@@ -61,3 +61,7 @@ Reason:
 - No automatic writes to memory files
 - No inference of sensitive tags (health, politics, finances) without explicit user input
 - No face recognition or message scraping
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -8,3 +8,7 @@ Purpose:
 - Enable long-term spatial memory and AI-assisted recall
 
 Not every GPS location should have a file — only places with recurring or meaningful memories.
+
+---
+
+🔒 Layer: Vault Template | KV

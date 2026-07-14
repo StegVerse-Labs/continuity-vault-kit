@@ -35,3 +35,7 @@ Photos or videos connected to this moment.
 ---
 
 ## 🔗 Related Notes
+
+---
+
+🔒 Layer: Vault Template | KV

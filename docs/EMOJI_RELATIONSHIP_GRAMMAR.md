@@ -42,3 +42,7 @@ Those are **not reliably typed**, and can differ across fonts/editors.
 - CI runs a lint that **warns** when disallowed arrow characters are detected.
 - To make CI **fail** on warnings, set repository variable:
   - `STEGDB_EMOJI_LINT_STRICT=1`
+
+---
+
+🔒 Layer: Framework | KV

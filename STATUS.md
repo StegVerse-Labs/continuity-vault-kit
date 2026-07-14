@@ -24,3 +24,7 @@ next_steps:
   - Allow substantive Unreleased changes or supported merged fixes to enter verified publication automatically
   - Keep first-contact use independent of accounts, hosted services, mandatory SDKs, and vault telemetry
 last_reviewed_utc: 2026-07-14T09:30:00Z
+
+---
+
+🔒 Layer: Framework | KV

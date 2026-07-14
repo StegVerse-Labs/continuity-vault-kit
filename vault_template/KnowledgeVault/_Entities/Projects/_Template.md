@@ -87,3 +87,7 @@ What changed because of this project?
 
 ## Privacy Level
 `public | private | restricted`
+
+---
+
+🔒 Layer: Vault Template | KV

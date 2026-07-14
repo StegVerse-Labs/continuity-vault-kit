@@ -7,3 +7,7 @@ Examples:
 
 [[Dell]] — employer during — [[Austin Career Chapter]]  
 [[Austin High School]] — education period — [[Lily Education Journey]]
+
+---
+
+🔒 Layer: Vault Template | KV

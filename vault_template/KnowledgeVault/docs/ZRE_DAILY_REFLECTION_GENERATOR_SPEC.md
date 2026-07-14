@@ -37,3 +37,7 @@ The generator must avoid:
 - predictions
 - medical/legal/financial advice
 - deterministic personality claims
+
+---
+
+🔒 Layer: Vault Template | KV

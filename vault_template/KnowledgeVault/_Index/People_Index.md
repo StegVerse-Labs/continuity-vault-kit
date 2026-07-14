@@ -1,1 +1,5 @@
 
+
+---
+
+🔒 Layer: Vault Template | KV

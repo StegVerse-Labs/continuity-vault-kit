@@ -94,3 +94,7 @@ Your playlist memories exist as:
 - Human-readable lists
 
 This means future tools — or future AI — can rebuild your playlists anytime.
+
+---
+
+🔒 Layer: Framework | KV

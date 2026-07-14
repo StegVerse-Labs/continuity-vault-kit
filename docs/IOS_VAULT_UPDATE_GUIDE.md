@@ -120,3 +120,7 @@ This process ensures:
 
 Future versions may include an automated update helper.  
 For now, manual updates are the safest approach.
+
+---
+
+🔒 Layer: Framework | KV

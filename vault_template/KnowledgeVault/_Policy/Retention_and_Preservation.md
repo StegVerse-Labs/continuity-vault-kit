@@ -11,3 +11,7 @@ Quarterly:
 
 Yearly:
 - Create a “year snapshot” export for long-term cold storage
+
+---
+
+🔒 Layer: Vault Template | KV

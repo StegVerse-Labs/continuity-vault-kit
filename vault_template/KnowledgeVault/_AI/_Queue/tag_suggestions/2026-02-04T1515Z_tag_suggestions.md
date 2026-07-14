@@ -45,3 +45,7 @@ scope:
 **Action:**
 - [ ] Apply all
 - [ ] Skip
+
+---
+
+🔒 Layer: Vault Template | KV

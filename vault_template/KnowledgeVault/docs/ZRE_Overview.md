@@ -16,3 +16,7 @@ No raw birth date/time/location is required once the translated profile exists.
 ## ZRE Recompute (Rare)
 Requires explicit user permission to access raw birth data in order to regenerate the translated profile.
 This is never automatic.
+
+---
+
+🔒 Layer: Vault Template | KV

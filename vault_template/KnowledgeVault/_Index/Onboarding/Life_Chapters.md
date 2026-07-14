@@ -40,3 +40,7 @@ Short description:
 Focus:
 Ongoing projects:
 Short description:
+
+---
+
+🔒 Layer: Vault Template | KV

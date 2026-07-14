@@ -73,3 +73,7 @@ Suggested location:
 ## 🔮 Future Value
 
 Why this trip might matter later:
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -31,3 +31,7 @@ It helps AI and humans assemble timelines and edits later.
 - Videos:
 - Audio:
 - Notes:
+
+---
+
+🔒 Layer: Vault Template | KV

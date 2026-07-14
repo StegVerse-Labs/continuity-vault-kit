@@ -78,3 +78,7 @@ Downstream publication must preserve the baseline position:
 ## 8. Completion condition
 
 The release process is complete only when the verified commit is tagged, release evidence is durably referenced, the handoff reflects the new state, and downstream verification ownership is recorded.
+
+---
+
+🔒 Layer: Framework | KV

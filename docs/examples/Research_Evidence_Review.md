@@ -40,3 +40,7 @@ Confirm the dataset version and add an independent source before strengthening t
 ## AI boundary
 
 An AI may organize and compare the registered sources. It must identify which statements are source-supported, inferred, disputed, or missing.
+
+---
+
+🔒 Layer: Framework | KV

@@ -125,3 +125,7 @@ AI systems should:
 - Prefer existing tags over creating new ones
 - Suggest tags from this dictionary when patterns are detected
 - Avoid inventing new namespaces without user approval
+
+---
+
+🔒 Layer: Vault Template | KV

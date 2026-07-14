@@ -15,3 +15,7 @@ When editing Markdown files on iOS, open them from a text editor app rather than
 ## Monthly maintenance (10 min)
 - Export any app-locked notes into Markdown/PDF and store in `01_Notes/`
 - Mirror vault to secondary cloud (optional)
+
+---
+
+🔒 Layer: Vault Template | KV

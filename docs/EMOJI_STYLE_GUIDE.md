@@ -24,3 +24,7 @@ Avoid editor-specific arrow glyphs. Use either:
 
 - ➜ (emoji)
 - `-->` (ASCII)
+
+---
+
+🔒 Layer: Framework | KV

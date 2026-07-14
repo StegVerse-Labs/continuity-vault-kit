@@ -32,3 +32,7 @@ created_at_utc: ""
 
 ## Notes
 (Anything else.)
+
+---
+
+🔒 Layer: Vault Template | KV

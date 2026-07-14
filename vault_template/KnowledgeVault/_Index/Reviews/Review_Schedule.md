@@ -47,3 +47,7 @@ Review yearly
 Purpose:
 - Add summary of major life themes
 - Ensure continuity across years
+
+---
+
+🔒 Layer: Vault Template | KV

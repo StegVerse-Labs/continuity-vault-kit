@@ -25,3 +25,7 @@ Nothing leaves the private vault without explicit permission.
 
 ## Notes
 (Anything special: kids, sensitive locations, etc.)
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -20,3 +20,7 @@ This vault is designed for long-term preservation across decades.
 - Provide the AI access to `_Index/` first
 - Then selectively share topic folders
 - Keep sensitive data encrypted or withheld unless necessary
+
+---
+
+🔒 Layer: Vault Template | KV

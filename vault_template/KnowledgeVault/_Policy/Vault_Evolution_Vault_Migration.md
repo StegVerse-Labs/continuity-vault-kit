@@ -148,3 +148,7 @@ KnowledgeVault should remain:
 
 Frameworks evolve.  
 Memories endure.
+
+---
+
+🔒 Layer: Vault Template | KV

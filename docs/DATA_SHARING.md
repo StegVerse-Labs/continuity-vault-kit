@@ -186,3 +186,7 @@ If you share `04_Media`, your photos/videos may be included in visual datasets. 
 ---
 
 Last updated: 2026-04-24
+
+---
+
+🔒 Layer: Framework | KV

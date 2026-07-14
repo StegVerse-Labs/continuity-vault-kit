@@ -118,3 +118,7 @@ Your vault is standalone by default. If you later choose, you can:
 - **Enable AI-compatible review workflows** using the documented guides in `docs/`
 
 None of these are required. They exist for users who want them.
+
+---
+
+🔒 Layer: Framework | KV

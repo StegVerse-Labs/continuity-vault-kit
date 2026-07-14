@@ -8,3 +8,7 @@ Purpose:
 - Preserve continuity of personal history
 
 This is a reference layer — not every connection must be listed here. Focus on meaningful patterns.
+
+---
+
+🔒 Layer: Vault Template | KV

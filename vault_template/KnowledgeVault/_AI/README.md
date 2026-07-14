@@ -7,3 +7,7 @@ It should never contain private secrets unless encrypted and intentionally share
 - `_Queue/` — proposed changes (human review required)
 - `_Applied/` — a log of what was applied and when
 - `_Rules/` — rules used to generate suggestions
+
+---
+
+🔒 Layer: Vault Template | KV

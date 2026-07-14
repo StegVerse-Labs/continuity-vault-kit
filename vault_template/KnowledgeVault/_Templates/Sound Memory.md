@@ -28,3 +28,7 @@ Ocean waves at night, a child’s laugh, a train in the distance, hospital monit
 ---
 
 ## 🔗 Related Notes
+
+---
+
+🔒 Layer: Vault Template | KV

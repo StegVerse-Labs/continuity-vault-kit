@@ -157,3 +157,7 @@ No app-specific notification system is required.
 If uncertainty exists about whether a prompt is appropriate:
 
 **The AI should remain silent.**
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -26,3 +26,7 @@ Each person produces a share card:
 - ShareCard contains no DOB/time/location.
 - Users should only share what they are comfortable with.
 - You may optionally omit moon/rising for additional privacy.
+
+---
+
+🔒 Layer: Vault Template | KV

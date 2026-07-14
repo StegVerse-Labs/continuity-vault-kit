@@ -71,3 +71,7 @@ After acceptance, update device-specific references and record the migration in 
 ## Completion condition
 
 Migration is complete only when the destination is verified, differences are resolved or explicitly accepted, the owner designates the destination as current, and rollback handling is recorded.
+
+---
+
+🔒 Layer: Framework | KV

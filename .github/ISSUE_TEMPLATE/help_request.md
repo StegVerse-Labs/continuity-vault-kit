@@ -18,3 +18,7 @@ labels: help
 - [ ] Other
 
 ## Any privacy or storage constraints?
+
+---
+
+🔒 Layer: Framework | KV

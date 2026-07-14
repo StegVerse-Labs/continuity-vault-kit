@@ -14,3 +14,7 @@ Related Person/Org:
 
 ## Linked File
 (Place link to the PDF or image in 03_Records/)
+
+---
+
+🔒 Layer: Vault Template | KV

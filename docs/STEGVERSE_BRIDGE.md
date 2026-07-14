@@ -92,3 +92,7 @@ If you are building a StegVerse-compatible tool:
 ---
 
 This document is not linked from README.md or WELCOME.md. It exists for users who seek deeper integration.
+
+---
+
+🔒 Layer: Framework | KV

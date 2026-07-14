@@ -35,3 +35,7 @@ Examples demonstrate structure, not a requirement to expose private information.
 Release manifests and checksums verify packaged files; they do not certify that user-authored content is true, safe, complete, or appropriate to share.
 
 New examples should remain small, manually understandable, and usable without optional StegVerse tooling.
+
+---
+
+🔒 Layer: Framework | KV

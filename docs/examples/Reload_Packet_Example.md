@@ -67,3 +67,7 @@ The current release is best understood as a technical-signal release for systems
 ## Continuation note
 
 A future session should continue from the next work list above and preserve the constraints.
+
+---
+
+🔒 Layer: Framework | KV

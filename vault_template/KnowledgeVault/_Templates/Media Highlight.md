@@ -33,3 +33,7 @@ Suggested location:
 - People Notes:
 - Travel Log:
 - Emotional Snapshot:
+
+---
+
+🔒 Layer: Vault Template | KV

@@ -65,3 +65,7 @@ Short-term aims:
 Freeform reflections about this stage of life.
 What feels important right now?
 What feels uncertain?
+
+---
+
+🔒 Layer: Vault Template | KV

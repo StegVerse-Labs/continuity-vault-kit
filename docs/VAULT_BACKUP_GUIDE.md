@@ -129,3 +129,7 @@ Backups ensure your memories survive:
 - Service changes over time
 
 With this backup plan, your vault becomes truly resilient.
+
+---
+
+🔒 Layer: Framework | KV

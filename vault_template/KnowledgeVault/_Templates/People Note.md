@@ -75,3 +75,7 @@ Search using:
 This note exists to help future-you say:
 
 > “Ohhh right, that’s who that was.”
+
+---
+
+🔒 Layer: Vault Template | KV

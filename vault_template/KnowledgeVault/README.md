@@ -7,3 +7,7 @@ This template produces a portable personal vault.
 
 If you want to propose changes to doctrine, edit StegDB:
 `StegDB/canonical/overlays/KnowledgeVaultOverlay/canon/`
+
+---
+
+🔒 Layer: Vault Template | KV

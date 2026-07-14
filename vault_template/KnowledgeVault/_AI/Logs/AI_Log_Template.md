@@ -39,4 +39,8 @@ Paths shared (if any):
 
 ## Stored Outputs
 Links to saved outputs in `_AI/Exports/`:
-- 
+-
+
+---
+
+🔒 Layer: Vault Template | KV

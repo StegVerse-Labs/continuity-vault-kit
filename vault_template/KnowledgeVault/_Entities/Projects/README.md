@@ -7,3 +7,7 @@ Projects are different from events:
 - A project unfolds over weeks, months, or years
 
 Projects connect memories, people, places, and milestones into a coherent life story.
+
+---
+
+🔒 Layer: Vault Template | KV

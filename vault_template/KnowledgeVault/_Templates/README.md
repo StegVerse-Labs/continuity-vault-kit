@@ -25,3 +25,7 @@ For conversation continuity, see:
 
 - `docs/CONVERSATION_CONTINUITY.md`
 - `docs/examples/Reload_Packet_Example.md`
+
+---
+
+🔒 Layer: Vault Template | KV

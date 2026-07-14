@@ -12,3 +12,7 @@ AI should:
 - Suggest gently
 - Never auto-edit
 - Accept “not now” without repeated prompting
+
+---
+
+🔒 Layer: Vault Template | KV

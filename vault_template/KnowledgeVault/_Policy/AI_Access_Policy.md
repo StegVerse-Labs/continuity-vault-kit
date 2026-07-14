@@ -17,3 +17,7 @@ When you share documents with AI, record:
 - when
 - purpose
 in a note under `01_Notes/` (optional)
+
+---
+
+🔒 Layer: Vault Template | KV

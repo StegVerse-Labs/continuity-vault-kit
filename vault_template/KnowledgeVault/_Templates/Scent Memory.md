@@ -60,3 +60,7 @@ Who you associate this scent with:
 ## 🌱 Why This Matters
 
 What future-you might want to remember about this sensory moment.
+
+---
+
+🔒 Layer: Vault Template | KV

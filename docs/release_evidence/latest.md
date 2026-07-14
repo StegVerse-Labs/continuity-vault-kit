@@ -18,3 +18,7 @@
 The workflow completed release tooling tests, safe initialization tests, repository automation contract validation, a clean rebuild, manifest validation, and full archive verification.
 
 This receipt verifies package integrity, installer copy behavior, and repository automation contract consistency only. It does not certify user-authored content.
+
+---
+
+🔒 Layer: Framework | KV

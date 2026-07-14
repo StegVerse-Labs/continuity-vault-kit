@@ -88,3 +88,7 @@ Keep notes here about any audits, disputes, or questions:
 ---
 
 Last updated: (fill in date)
+
+---
+
+🔒 Layer: Vault Template | KV
