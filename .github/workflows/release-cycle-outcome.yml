@@ -27,6 +27,7 @@ jobs:
           fetch-depth: 0
 
       - name: Derive durable release-cycle outcome
+        id: derive
         env:
           EVENT_NAME: ${{ github.event_name }}
           SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
@@ -59,6 +60,13 @@ jobs:
           if event_name == 'workflow_dispatch':
               outcome = 'RECONCILED'
               reason = 'Manual reconciliation of repository release-cycle state.'
+          elif conclusion == 'skipped':
+              if release_required:
+                  outcome = 'INCOMPLETE'
+                  reason = 'Automated verified release was skipped while substantive Unreleased changes remained.'
+              else:
+                  outcome = 'SKIPPED'
+                  reason = 'Automated verified release was skipped and no substantive Unreleased changes remained.'
           elif conclusion != 'success':
               outcome = 'FAILED'
               reason = f'Automated verified release concluded with {conclusion}.'
@@ -113,6 +121,8 @@ jobs:
               'This receipt records repository release-cycle state only. It does not certify user-authored content.\n',
               encoding='utf-8',
           )
+          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as handle:
+              handle.write(f'outcome={outcome}\n')
           print(f'release cycle outcome: {outcome}')
           PY
 
@@ -128,6 +138,6 @@ jobs:
             git push origin HEAD:main
           fi
 
-      - name: Fail after preserving an unsuccessful outcome
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+      - name: Fail after preserving an unresolved outcome
+        if: steps.derive.outputs.outcome == 'FAILED' || steps.derive.outputs.outcome == 'INCOMPLETE'
         run: exit 1
