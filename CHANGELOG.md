@@ -5,16 +5,23 @@ All notable changes to the Continuity Vault Kit format will be documented in thi
 The format is based on [Semantic Versioning](https://semver.org/).
 
 ---
+
 ## [Unreleased]
 
 ### Added
 - `docs/EXAMPLES.md` as the stable index for small continuity patterns and reload-packet examples
 - `docs/examples/Project_Continuation_Packet.md` as a tooling-independent project handoff with explicit evidence and mutation boundaries
 - `docs/examples/Device_Migration_Packet.md` as a tooling-independent transfer packet with source authority, reconciliation, rollback, and owner acceptance
+- `docs/examples/Health_Record_Chronology.md` separating dated source records, facts, interpretations, and qualified-review boundaries
+- `docs/examples/Research_Evidence_Review.md` separating sources, supported observations, interpretations, conflicts, and evidence gaps
+- `docs/examples/Multi_Session_AI_Collaboration.md` preserving accepted state separately from AI-session proposals
+- `docs/examples/Version_Replacement_and_Migration.md` demonstrating non-destructive adoption of a newer kit
 - `docs/RELEASE_CANDIDATE_CHECKLIST.md` defining entry conditions, change classification, migration review, candidate verification, tagging, and downstream checks
+- `docs/release_evidence/README.md` defining workflow-generated human-readable and machine-readable validation receipts
 - `vault_template/KnowledgeVault/_migration/README.md` defining non-destructive migration and replacement behavior
 - `tools/test_release_tools.py` for end-to-end release tooling self-tests
-- `.github/workflows/release-integrity.yml` to run the release self-test, rebuild and verify artifacts, validate manifest shape, and upload evidence
+- `.github/workflows/release-integrity.yml` to run validation, upload artifacts, commit durable evidence receipts, close issue #7, and activate issue #8
+- `.github/workflows/automated-release.yml` to select the patch version, verify the candidate, tag it, publish release assets, close issue #8, and activate issue #10
 
 ### Improved
 - README now exposes the examples path during first-contact repository review
@@ -22,10 +29,11 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - Release manifests now include schema version, file count, and per-file size and SHA-256 records
 - Release verification now requires both sidecars and validates artifact identity, archive paths, required files, and every packaged file hash
 - Release building now validates required source files before creating an artifact and reports failures with non-zero status
-- Release sequencing is now durably divided across issues #7, #8, #9, and #10
+- Successful main-branch integrity runs now preserve evidence and route successor work without manual copying or issue transitions
+- The complete planned continuity-example set is now indexed and issue #9 is complete
 
 ### Notes
-The migration README adds a file to the vault template but does not require existing `0.1.x` users to reorganize their vaults. The release tooling changes require newly built manifests to use the expanded file inventory before the next release is tagged. GitHub Actions execution evidence remains required before tagging.
+The migration README and examples add files without requiring existing `0.1.x` users to reorganize their vaults. The automated release path therefore classifies this batch as a backward-compatible patch release. A tag is created only after candidate build and verification succeed.
 
 ---
 
