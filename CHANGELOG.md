@@ -5,6 +5,19 @@ All notable changes to the Continuity Vault Kit format will be documented in thi
 The format is based on [Semantic Versioning](https://semver.org/).
 
 ---
+## [Unreleased]
+
+### Added
+- `docs/EXAMPLES.md` as the stable index for small continuity patterns and reload-packet examples
+
+### Improved
+- README now exposes the examples path during first-contact repository review
+- Documentation now distinguishes release integrity verification from the truth, safety, or completeness of user-authored content
+
+### Notes
+This documentation change does not alter the vault format or add a runtime dependency.
+
+---
 ## [0.1.1] – 2026-01-31
 
 ### Added
