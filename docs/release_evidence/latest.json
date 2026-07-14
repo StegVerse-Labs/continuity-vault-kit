@@ -1,17 +1,18 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "result": "PASS",
   "repository": "StegVerse-Labs/continuity-vault-kit",
-  "commit_sha": "e822b4ac74b71ba55d73bf55c93d781f2aed2203",
-  "workflow_run_id": "29308674718",
+  "commit_sha": "16893cb05c718a781c0a6931a6e49e9f226794c9",
+  "workflow_run_id": "29313219449",
   "workflow_run_attempt": "1",
-  "workflow_run_url": "https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29308674718",
-  "artifact_name": "continuity-vault-release-integrity-e822b4ac74b71ba55d73bf55c93d781f2aed2203",
+  "workflow_run_url": "https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29313219449",
+  "artifact_name": "continuity-vault-release-integrity-16893cb05c718a781c0a6931a6e49e9f226794c9",
   "version": "0.1.1",
   "release_artifact": "ContinuityVault_v0.1.1.zip",
-  "release_sha256": "435ef23d20709e93434f532d8f85aa3a5f8a30c88172b6ae38f60d191b4a94b2",
+  "release_sha256": "2d7af124468332ddad8182d9599da940fb043acf3aaf2fc8eb9f8750627388a7",
   "manifest_schema_version": "1.0",
   "manifest_file_count": 131,
-  "generated_utc": "2026-07-14T05:29:51Z",
-  "scope": "package integrity only"
+  "initializer_self_test": "PASS",
+  "generated_utc": "2026-07-14T07:02:11Z",
+  "scope": "package integrity and installer copy verification only"
 }
