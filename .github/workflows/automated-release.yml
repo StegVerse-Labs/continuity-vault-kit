@@ -14,9 +14,6 @@ concurrency:
 
 jobs:
   release:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -34,10 +31,17 @@ jobs:
 
       - name: Determine whether a release is required
         id: gate
+        env:
+          SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          SOURCE_PULL_REQUESTS: ${{ toJson(github.event.workflow_run.pull_requests) }}
         run: |
           python3 - <<'PY'
+          import json
           import os
           from pathlib import Path
+
+          conclusion = os.environ.get("SOURCE_CONCLUSION", "")
+          pull_requests = json.loads(os.environ.get("SOURCE_PULL_REQUESTS") or "[]")
 
           text = Path("CHANGELOG.md").read_text(encoding="utf-8")
           marker = "## [Unreleased]"
@@ -45,10 +49,23 @@ jobs:
               raise SystemExit("CHANGELOG must contain exactly one Unreleased section")
           section = text.split(marker, 1)[1].split("\n---", 1)[0]
           normalized = " ".join(section.split()).lower()
-          enabled = normalized not in {"", "_no unreleased changes._", "no unreleased changes."}
+          substantive = normalized not in {"", "_no unreleased changes._", "no unreleased changes."}
+          eligible_source = conclusion == "success" and not pull_requests
+          enabled = eligible_source and substantive
+
+          reason = (
+              "release required"
+              if enabled
+              else "source integrity run was not eligible for publication"
+              if not eligible_source
+              else "no unreleased changes; release skipped"
+          )
           with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as handle:
+              handle.write(f"eligible_source={'true' if eligible_source else 'false'}\n")
+              handle.write(f"substantive={'true' if substantive else 'false'}\n")
               handle.write(f"enabled={'true' if enabled else 'false'}\n")
-          print("release required" if enabled else "no unreleased changes; release skipped")
+              handle.write(f"reason={reason}\n")
+          print(reason)
           PY
 
       - name: Select backward-compatible patch version
