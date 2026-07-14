@@ -1,52 +1,73 @@
 # KV Layer Boundary Rules (kv.layer.v1)
 
-This repo enforces a **hard boundary** between:
+This repository enforces a clear boundary between:
 
-- **FRAMEWORK** (public kit docs + tooling)
-- **RUNTIME_TEMPLATE** (seed files that will exist inside a user's personal KnowledgeVault)
+- **FRAMEWORK** — public kit documentation, tooling, workflows, and repository metadata.
+- **RUNTIME_TEMPLATE** — placeholder files copied into a user's private KnowledgeVault.
 
-## ✅ Goal
+## Goal
 
-Make it *obvious* what belongs where, and make CI fail fast if something drifts.
+Make intended placement obvious and detect drift without inspecting or mutating user-authored personal vault content.
 
 ---
 
-## 🧭 Layers
+## Layers
 
 ### FRAMEWORK
-**Where:** root docs + `docs/**` + `tools/**` + `.github/**`
 
-**Meaning:** public starter kit only — **no personal data**.
+**Where:** root documentation plus `docs/**`, `tools/**`, `.github/**`, and `.stegdb/**`.
+
+**Meaning:** public starter-kit material only. Do not place user-authored personal data here.
 
 ### RUNTIME_TEMPLATE
-**Where:** `vault_template/KnowledgeVault/**`
 
-**Meaning:** safe placeholder seed files users copy into their private vault.
+**Where:** `vault_template/KnowledgeVault/**`.
 
----
-
-## 🔒 Hard-fail markers
-
-If any of these appear in any Markdown file, CI fails:
-
-- `Privacy Level: restricted`
-- `BEGIN:VCARD`
-- `SSN`
-- `Social Security`
-- `Driver's License`
-- `Passport`
-
-Tune in `.stegdb/kv-layer.v1.json`.
+**Meaning:** safe placeholder and policy seed files that users may copy into a private vault.
 
 ---
 
-## 🏷️ Footer labeling
+## Forbidden footer claims
 
-Markdown docs in either layer get a standard footer at the bottom.
+The checker rejects exact Markdown footer lines that incorrectly claim a public repository file is part of a personal vault, including:
 
-Example:
+- `🔒 Layer: Personal Vault | KV`
+- `🔒 Layer: Personal | KV`
+
+Ordinary safety documentation may discuss personal vaults, passports, identifiers, restricted records, or other sensitive topics. Those prose references are not treated as evidence that personal data is present.
+
+Configuration lives in `.stegdb/kv-layer.v1.json`.
+
+---
+
+## Footer labeling
+
+Canonical Markdown footers are:
 
 ```md
+---
+
+🔒 Layer: Framework | KV
+```
+
+and:
+
+```md
+---
+
+🔒 Layer: Vault Template | KV
+```
+
+The dedicated `format/**` workflow may add or normalize these footers. It does not move or delete files.
+
+To apply the same operation in a local checkout:
+
+```bash
+python3 tools/kv_layer_check.py --mode auto-label
+python3 tools/kv_layer_check.py --mode validate
+```
+
+Footer examples inside prose or fenced code must remain untouched. Only a recognized trailing footer block may be replaced.
 
 ---
 
