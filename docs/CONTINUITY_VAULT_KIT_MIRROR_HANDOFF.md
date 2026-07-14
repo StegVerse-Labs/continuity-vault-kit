@@ -2,7 +2,7 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with repository-native verification, publication, initialization, downstream determination, onboarding-friction lifecycle, and executable automation contracts.  
+**Status:** Active standalone release with repository-native verification, publication, initialization, downstream determination, onboarding-friction lifecycle, executable automation contracts, and merged-fix release activation.  
 **Current published version:** `0.1.2`  
 **Last updated:** 2026-07-14
 
@@ -35,7 +35,7 @@ Integrity tooling verifies package and copy behavior only. Automation-contract t
 
 ## 3. Reusable issue-free release cycle
 
-The release cycle is now reusable and does not require reopening or recreating historical issues.
+The release cycle is reusable and does not require reopening or recreating historical issues.
 
 ### Integrity gate
 
@@ -103,7 +103,10 @@ Repository workflows own:
 9. duplicate suppression;
 10. candidate evidence packet generation;
 11. recognition of explicitly linked merged fixes;
-12. candidate completion and closure.
+12. candidate completion and closure;
+13. idempotent Unreleased changelog recording for supported merged fixes;
+14. release-integrity activation from that changelog commit;
+15. verified patch publication when all contracts pass.
 
 Report evidence:
 
@@ -120,7 +123,27 @@ Current report count is zero. No corrective implementation is justified yet.
 
 ---
 
-## 6. Downstream propagation
+## 6. Merged-fix release activation
+
+`.github/workflows/automation-candidate-implementation.yml` now closes the remaining gap between an evidence-supported fix and release activation.
+
+For a merged pull request that explicitly references a supported automation candidate, the workflow:
+
+- verifies the candidate labels and support state;
+- records the merge commit and pull request on the candidate;
+- applies `candidate-implemented`;
+- adds one idempotent `### Improved` entry to the Unreleased changelog;
+- commits the changelog without `[skip ci]`;
+- pushes to `main`, causing release-integrity validation to run;
+- triggers candidate reconciliation and final closure.
+
+The changelog entry is not created for unsupported candidates. A merged pull request cannot create implementation authority merely by referencing an issue number.
+
+`tools/test_automation_contracts.py` requires this bridge and fails if `[skip ci]` is introduced into the candidate changelog path.
+
+---
+
+## 7. Downstream propagation
 
 Future published releases automatically inspect exactly four destinations:
 
@@ -133,7 +156,7 @@ The current determination is no update required for all four. Evidence is stored
 
 ---
 
-## 7. Durable decisions
+## 8. Durable decisions
 
 1. Baseline use remains independent of the wider StegVerse ecosystem.
 2. A newer kit cannot silently replace an owner-accepted vault.
@@ -141,21 +164,24 @@ The current determination is no update required for all four. Evidence is stored
 4. Examples and AI outputs do not grant mutation authority.
 5. Release progression occurs only after executable verification succeeds.
 6. Release state derives from changelog content and durable receipts, not fixed issue numbers.
-7. Evidence, version mutation, tagging, publication, receipts, propagation, report maintenance, candidate admission, deduplication, and implementation closure are repository-native tasks.
+7. Evidence, version mutation, tagging, publication, receipts, propagation, report maintenance, candidate admission, deduplication, implementation closure, changelog recording, and release activation are repository-native tasks.
 8. Manual copying remains an optional zero-dependency path, not an operational requirement where Python is available.
 9. Three matching reports justify a supported automation-candidate investigation, not automatic mutation of user vaults.
 10. Candidate support is reconstructed from durable evidence rather than inferred from titles or labels.
-11. Optional ecosystem references must not become baseline dependencies.
-12. Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
+11. A supported merged fix must be recorded in Unreleased state before publication.
+12. The candidate changelog commit must trigger, not suppress, release-integrity validation.
+13. Optional ecosystem references must not become baseline dependencies.
+14. Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
 
 ---
 
-## 8. Continuation rule
+## 9. Continuation rule
 
 - Let substantive Unreleased changes trigger the next verified patch release automatically.
 - Let empty Unreleased state skip publication automatically.
 - Let automation-contract tests block inconsistent release behavior.
 - Let friction workflows create and govern future corrective work from evidence.
+- Let an explicitly linked merged fix for a supported candidate record itself and activate verified release automatically.
 - Implement only the smallest demonstrated fix for a supported candidate.
 - Do not invent onboarding automation without evidence.
 - Implement data-sharing behavior only under a separately governed scope; current text is documentation, not an active system.
@@ -164,12 +190,12 @@ No open issue currently owns required work for the verified `0.1.2` release.
 
 Recommended next activation condition:
 
-> A substantive unreleased change or a repeated privacy-safe friction signature activates the appropriate repository-native workflow without manual issue gating.
+> A substantive unreleased change or a repeated privacy-safe friction signature activates the appropriate repository-native workflow, with supported merged fixes recording themselves and entering verified publication without manual changelog work.
 
 ---
 
-## 9. Archive note
+## 10. Archive note
 
-This handoff preserves the current release, reusable release-cycle state, verification evidence, automation behavior, initialization contract, downstream determinations, onboarding-friction lifecycle, decisions, permitted scope, and conditional successor rules.
+This handoff preserves the current release, reusable release-cycle state, verification evidence, automation behavior, initialization contract, downstream determinations, onboarding-friction lifecycle, merged-fix release bridge, decisions, permitted scope, and conditional successor rules.
 
 The complete thread is ready for archiving without any additional part of the thread needed to move forward.
