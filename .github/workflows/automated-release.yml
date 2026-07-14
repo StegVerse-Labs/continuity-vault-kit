@@ -90,6 +90,7 @@ jobs:
           rm -rf dist
           python3 tools/test_release_tools.py
           python3 tools/test_init_vault.py
+          python3 tools/test_automation_contracts.py
           rm -rf dist
           python3 tools/build_release.py
           python3 tools/verify_release.py "dist/ContinuityVault_v${{ steps.version.outputs.value }}.zip"
@@ -129,7 +130,7 @@ jobs:
           manifest="${zip}.manifest.json"
           gh release create "$tag" "$zip" "$checksum" "$manifest" \
             --title "Continuity Vault Kit ${tag}" \
-            --notes "Automated verified patch release. The builder/verifier self-test, initializer self-test, missing-sidecar negative test, clean rebuild, complete manifest inventory, per-file hashes, and package checksum all passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity and installer copy behavior only."
+            --notes "Automated verified patch release. Builder/verifier, initializer, automation contract, missing-sidecar, clean rebuild, manifest inventory, per-file hash, and package checksum checks passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity, installer copy behavior, and repository automation contract consistency only."
 
       - name: Create durable final release receipt
         if: steps.gate.outputs.enabled == 'true'
@@ -154,7 +155,7 @@ jobs:
           generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
           receipt = {
-              "schema_version": "1.0",
+              "schema_version": "1.1",
               "result": "PUBLISHED",
               "repository": os.environ["REPOSITORY"],
               "version": version,
@@ -169,8 +170,9 @@ jobs:
               "release_assets": [zip_path.name, zip_path.name + ".sha256", zip_path.name + ".manifest.json"],
               "builder_verifier_self_test": "PASS",
               "initializer_self_test": "PASS",
+              "automation_contract_test": "PASS",
               "published_utc": generated,
-              "scope": "package integrity and installer copy verification only",
+              "scope": "package integrity, installer copy verification, and repository automation contract consistency only",
           }
 
           evidence = Path("docs/release_evidence")
@@ -187,8 +189,9 @@ jobs:
               f"- **Artifact:** `{receipt['release_artifact']}`\n"
               f"- **SHA-256:** `{receipt['release_sha256']}`\n"
               f"- **Manifest files:** `{receipt['manifest_file_count']}`\n"
+              f"- **Automation contract test:** `{receipt['automation_contract_test']}`\n"
               f"- **Published UTC:** `{receipt['published_utc']}`\n\n"
-              "Builder/verifier and initializer self-tests passed before tagging. This receipt verifies package integrity and installer copy behavior only.\n",
+              "Builder/verifier, initializer, and automation contract tests passed before tagging. This receipt verifies package integrity, installer copy behavior, and repository automation contract consistency only.\n",
               encoding="utf-8",
           )
           PY
