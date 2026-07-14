@@ -17,7 +17,6 @@ import fnmatch
 import json
 import os
 import re
-import sys
 from pathlib import Path
 from typing import List, Tuple
 
@@ -97,18 +96,30 @@ def parse_footer(text: str) -> Tuple[str | None, str | None]:
 
 
 def strip_existing_footer(text: str) -> str:
-    markers = (
-        "🔒 Layer:",
-        "StegDB: kv.layer.v1",
-        "🧭 **KV Layer:**",
-        "🧬 **StegDB:** managed • rule=kv.layer.v1",
+    """Remove only a recognized footer block at the end of the document.
+
+    Footer examples embedded in prose or fenced code are preserved. This avoids
+    truncating documentation that explains the canonical footer format.
+    """
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n").rstrip()
+
+    simple = re.compile(
+        r"\n---\n\n🔒\s*Layer:\s*(?:Framework|Vault Template|Personal Vault|Personal)\s*\|\s*KV\s*$"
     )
-    index = max((text.rfind(marker) for marker in markers), default=-1)
-    if index < 0:
-        return text
-    separator = text.rfind("\n---", 0, index)
-    cut = separator if separator >= 0 else index
-    return text[:cut].rstrip() + "\n"
+    match = simple.search(normalized)
+    if match:
+        return normalized[: match.start()].rstrip() + "\n"
+
+    legacy = re.compile(
+        r"\n---\n(?:\n|.)*?"
+        r"(?:<!--\s*StegDB:\s*kv\.layer\.v1[^>]*-->|🧭\s*\*\*KV Layer:\*\*)"
+        r"(?:\n|.)*$"
+    )
+    match = legacy.search(normalized)
+    if match and len(normalized) - match.start() <= 1200:
+        return normalized[: match.start()].rstrip() + "\n"
+
+    return normalized + "\n"
 
 
 def build_footer(layer: str) -> str:
@@ -172,7 +183,11 @@ def main() -> int:
             continue
 
         text = path.read_text(encoding="utf-8", errors="replace")
-        found_forbidden = [line for line in forbidden_lines if re.search(rf"(?m)^\s*{re.escape(line)}\s*$", text)]
+        found_forbidden = [
+            line
+            for line in forbidden_lines
+            if re.search(rf"(?m)^\s*{re.escape(line)}\s*$", text)
+        ]
         if found_forbidden:
             violations.append((rel, "FORBIDDEN_FOOTER", ", ".join(sorted(found_forbidden))))
             continue
