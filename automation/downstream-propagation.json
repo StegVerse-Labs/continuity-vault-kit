@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "source_repository": "StegVerse-Labs/continuity-vault-kit",
+  "trigger": "published_release",
+  "policy": {
+    "baseline_is_standalone": true,
+    "update_required_when": [
+      "destination already publishes a Continuity Vault Kit version, release, install, download, or compatibility claim",
+      "destination contains a direct continuity-vault-kit or ContinuityVault artifact reference that becomes stale",
+      "destination explicitly declares itself a release mirror or publication surface for this repository"
+    ],
+    "no_update_required_when": [
+      "destination contains no direct reference to the kit or its release artifacts",
+      "destination only discusses general continuity or admissibility concepts without a repository-specific claim"
+    ]
+  },
+  "destinations": [
+    {
+      "repository": "StegVerse-Labs/Site",
+      "search_terms": ["continuity-vault-kit", "ContinuityVault", "KnowledgeVault Kit"],
+      "default_branch": "main"
+    },
+    {
+      "repository": "GCAT-BCAT-Engine/Publisher",
+      "search_terms": ["continuity-vault-kit", "ContinuityVault", "KnowledgeVault Kit"],
+      "default_branch": "main"
+    },
+    {
+      "repository": "StegVerse-Labs/admissibility-wiki",
+      "search_terms": ["continuity-vault-kit", "ContinuityVault", "KnowledgeVault Kit"],
+      "default_branch": "main"
+    },
+    {
+      "repository": "StegVerse-002/stegguardian-wiki",
+      "search_terms": ["continuity-vault-kit", "ContinuityVault", "KnowledgeVault Kit"],
+      "default_branch": "main"
+    }
+  ]
+}
