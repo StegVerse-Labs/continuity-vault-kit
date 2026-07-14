@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  issues: write
 
 concurrency:
   group: automated-verified-release
@@ -33,18 +32,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check release gate
+      - name: Determine whether a release is required
         id: gate
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          state=$(gh issue view 8 --json state --jq .state 2>/dev/null || echo "MISSING")
-          if [ "$state" = "OPEN" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Issue #8 is not open; no release action is required."
-          fi
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          text = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          marker = "## [Unreleased]"
+          if text.count(marker) != 1:
+              raise SystemExit("CHANGELOG must contain exactly one Unreleased section")
+          section = text.split(marker, 1)[1].split("\n---", 1)[0]
+          normalized = " ".join(section.split()).lower()
+          enabled = normalized not in {"", "_no unreleased changes._", "no unreleased changes."}
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as handle:
+              handle.write(f"enabled={'true' if enabled else 'false'}\n")
+          print("release required" if enabled else "no unreleased changes; release skipped")
+          PY
 
       - name: Select backward-compatible patch version
         if: steps.gate.outputs.enabled == 'true'
@@ -78,9 +83,10 @@ jobs:
           path = Path("CHANGELOG.md")
           text = path.read_text(encoding="utf-8")
           marker = "## [Unreleased]"
-          if text.count(marker) != 1:
-              raise SystemExit("CHANGELOG must contain exactly one Unreleased section")
-          replacement = f"## [Unreleased]\n\n_No unreleased changes._\n\n---\n\n## [{os.environ['NEXT_VERSION']}] – {date.today().isoformat()}"
+          replacement = (
+              "## [Unreleased]\n\n_No unreleased changes._\n\n---\n\n"
+              f"## [{os.environ['NEXT_VERSION']}] – {date.today().isoformat()}"
+          )
           path.write_text(text.replace(marker, replacement, 1), encoding="utf-8")
           PY
 
@@ -126,11 +132,9 @@ jobs:
           version="${{ steps.version.outputs.value }}"
           tag="v${version}"
           zip="dist/ContinuityVault_v${version}.zip"
-          checksum="${zip}.sha256"
-          manifest="${zip}.manifest.json"
-          gh release create "$tag" "$zip" "$checksum" "$manifest" \
+          gh release create "$tag" "$zip" "${zip}.sha256" "${zip}.manifest.json" \
             --title "Continuity Vault Kit ${tag}" \
-            --notes "Automated verified patch release. Builder/verifier, initializer, automation contract, missing-sidecar, clean rebuild, manifest inventory, per-file hash, and package checksum checks passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity, installer copy behavior, and repository automation contract consistency only."
+            --notes "Automated verified patch release. Release, initializer, and automation-contract tests passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity and installer copy behavior only."
 
       - name: Create durable final release receipt
         if: steps.gate.outputs.enabled == 'true'
@@ -150,10 +154,7 @@ jobs:
           zip_path = Path("dist") / f"ContinuityVault_v{version}.zip"
           checksum = zip_path.with_suffix(zip_path.suffix + ".sha256").read_text(encoding="utf-8").split()[0]
           manifest = json.loads(zip_path.with_suffix(zip_path.suffix + ".manifest.json").read_text(encoding="utf-8"))
-          run_url = f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}"
-          release_url = f"https://github.com/{os.environ['REPOSITORY']}/releases/tag/v{version}"
           generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
           receipt = {
               "schema_version": "1.1",
               "result": "PUBLISHED",
@@ -161,8 +162,8 @@ jobs:
               "version": version,
               "tag": f"v{version}",
               "release_commit": os.environ["RELEASE_COMMIT"],
-              "workflow_run_url": run_url,
-              "release_url": release_url,
+              "workflow_run_url": f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}",
+              "release_url": f"https://github.com/{os.environ['REPOSITORY']}/releases/tag/v{version}",
               "release_artifact": zip_path.name,
               "release_sha256": checksum,
               "manifest_schema_version": manifest["schema_version"],
@@ -172,9 +173,8 @@ jobs:
               "initializer_self_test": "PASS",
               "automation_contract_test": "PASS",
               "published_utc": generated,
-              "scope": "package integrity, installer copy verification, and repository automation contract consistency only",
+              "scope": "package integrity and installer copy verification only",
           }
-
           evidence = Path("docs/release_evidence")
           evidence.mkdir(parents=True, exist_ok=True)
           (evidence / "latest_release.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
@@ -189,9 +189,8 @@ jobs:
               f"- **Artifact:** `{receipt['release_artifact']}`\n"
               f"- **SHA-256:** `{receipt['release_sha256']}`\n"
               f"- **Manifest files:** `{receipt['manifest_file_count']}`\n"
-              f"- **Automation contract test:** `{receipt['automation_contract_test']}`\n"
               f"- **Published UTC:** `{receipt['published_utc']}`\n\n"
-              "Builder/verifier, initializer, and automation contract tests passed before tagging. This receipt verifies package integrity, installer copy behavior, and repository automation contract consistency only.\n",
+              "Release, initializer, and automation-contract tests passed before tagging. This receipt verifies package integrity and installer copy behavior only.\n",
               encoding="utf-8",
           )
           PY
@@ -203,13 +202,3 @@ jobs:
           git add docs/release_evidence/latest_release.md docs/release_evidence/latest_release.json
           git commit -m "evidence: record published release v${{ steps.version.outputs.value }} [skip ci]"
           git push origin HEAD:main
-
-      - name: Record completion and activate propagation
-        if: steps.gate.outputs.enabled == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh issue comment 8 --body "Automated verified release completed: \`v${{ steps.version.outputs.value }}\` at commit \`${{ steps.commit.outputs.sha }}\`. Workflow: ${RUN_URL}. Release assets and durable receipts \`docs/release_evidence/latest_release.md\` and \`latest_release.json\` were produced automatically."
-          gh issue close 8 --reason completed
-          gh issue comment 10 --body "Release propagation gate opened automatically by verified tag \`v${{ steps.version.outputs.value }}\`. Source release workflow: ${RUN_URL}."
