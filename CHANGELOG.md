@@ -9,13 +9,18 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ### Added
 - `docs/EXAMPLES.md` as the stable index for small continuity patterns and reload-packet examples
+- `vault_template/KnowledgeVault/_migration/README.md` defining non-destructive migration and replacement behavior
+- `tools/test_release_tools.py` for end-to-end release tooling self-tests
 
 ### Improved
 - README now exposes the examples path during first-contact repository review
 - Documentation now distinguishes release integrity verification from the truth, safety, or completeness of user-authored content
+- Release manifests now include schema version, file count, and per-file size and SHA-256 records
+- Release verification now requires both sidecars and validates artifact identity, archive paths, required files, and every packaged file hash
+- Release building now validates required source files before creating an artifact and reports failures with non-zero status
 
 ### Notes
-This documentation change does not alter the vault format or add a runtime dependency.
+The migration README adds a file to the vault template but does not require existing `0.1.x` users to reorganize their vaults. The release tooling changes require newly built manifests to use the expanded file inventory before the next release is tagged.
 
 ---
 ## [0.1.1] – 2026-01-31
