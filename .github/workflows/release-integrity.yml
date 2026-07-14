@@ -21,7 +21,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  issues: write
+
+concurrency:
+  group: release-integrity-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   verify-release-integrity:
@@ -31,6 +36,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -67,6 +74,71 @@ jobs:
           print(f"manifest validated: {manifest['file_count']} files")
           PY
 
+      - name: Create durable evidence receipt
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          COMMIT_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          version = Path("VERSION").read_text(encoding="utf-8").strip()
+          zip_name = f"ContinuityVault_v{version}.zip"
+          manifest_path = Path("dist") / f"{zip_name}.manifest.json"
+          checksum_path = Path("dist") / f"{zip_name}.sha256"
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          checksum = checksum_path.read_text(encoding="utf-8").split()[0]
+          run_url = f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}"
+          artifact_name = f"continuity-vault-release-integrity-{os.environ['COMMIT_SHA']}"
+          generated_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+          receipt = {
+              "schema_version": "1.0",
+              "result": "PASS",
+              "repository": os.environ["REPOSITORY"],
+              "commit_sha": os.environ["COMMIT_SHA"],
+              "workflow_run_id": os.environ["RUN_ID"],
+              "workflow_run_attempt": os.environ["RUN_ATTEMPT"],
+              "workflow_run_url": run_url,
+              "artifact_name": artifact_name,
+              "version": version,
+              "release_artifact": zip_name,
+              "release_sha256": checksum,
+              "manifest_schema_version": manifest["schema_version"],
+              "manifest_file_count": manifest["file_count"],
+              "generated_utc": generated_utc,
+              "scope": "package integrity only",
+          }
+
+          evidence_dir = Path("docs/release_evidence")
+          evidence_dir.mkdir(parents=True, exist_ok=True)
+          (evidence_dir / "latest.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+          (evidence_dir / "latest.md").write_text(
+              "# Latest Release-Integrity Evidence\n\n"
+              f"- **Result:** PASS\n"
+              f"- **Repository:** `{receipt['repository']}`\n"
+              f"- **Tested commit:** `{receipt['commit_sha']}`\n"
+              f"- **Workflow run:** {receipt['workflow_run_url']}\n"
+              f"- **Run attempt:** `{receipt['workflow_run_attempt']}`\n"
+              f"- **Uploaded artifact:** `{receipt['artifact_name']}`\n"
+              f"- **Release artifact:** `{receipt['release_artifact']}`\n"
+              f"- **Version:** `{receipt['version']}`\n"
+              f"- **Release SHA-256:** `{receipt['release_sha256']}`\n"
+              f"- **Manifest schema:** `{receipt['manifest_schema_version']}`\n"
+              f"- **Verified file count:** `{receipt['manifest_file_count']}`\n"
+              f"- **Generated UTC:** `{receipt['generated_utc']}`\n\n"
+              "The workflow completed the builder/verifier self-test, the expected missing-sidecar negative test, a clean rebuild, complete manifest validation, and full archive verification.\n\n"
+              "This receipt verifies package integrity only. It does not certify user-authored content.\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload release evidence
         uses: actions/upload-artifact@v4
         with:
@@ -74,3 +146,27 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Commit durable evidence receipt
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/release_evidence/latest.md docs/release_evidence/latest.json
+          if git diff --cached --quiet; then
+            echo "Evidence receipt unchanged"
+          else
+            git commit -m "ci: preserve release-integrity evidence [skip ci]"
+            git push
+          fi
+
+      - name: Route successful validation to release preparation
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ARTIFACT_NAME: continuity-vault-release-integrity-${{ github.sha }}
+        run: |
+          gh issue comment 7 --body "Automated validation passed for commit \`${{ github.sha }}\`. Run: ${RUN_URL}. Artifact: \`${ARTIFACT_NAME}\`. Durable receipts: \`docs/release_evidence/latest.md\` and \`latest.json\`. Issue #8 is now unblocked."
+          gh issue close 7 --reason completed
+          gh issue comment 8 --body "Entry condition satisfied automatically by release-integrity run ${RUN_URL}. Use \`docs/release_evidence/latest.json\` as the machine-readable evidence source before version mutation or tagging."
