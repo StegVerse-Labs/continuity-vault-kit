@@ -2,16 +2,14 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active public technical-signal release with AI-human conversation-continuity and examples paths surfaced.  
+**Status:** Active public technical-signal release; hardened release-integrity and migration behavior implemented, execution evidence pending.  
 **Last updated:** 2026-07-13
 
 ---
 
 ## 1. Purpose
 
-This file is the repo-local continuation handoff for sessions working on `continuity-vault-kit`.
-
-Use it as the current source of truth before continuing KnowledgeVault / Continuity Vault Kit work.
+This file is the repo-local continuation source of truth for `continuity-vault-kit`. Read it before repository mutation.
 
 ---
 
@@ -19,23 +17,19 @@ Use it as the current source of truth before continuing KnowledgeVault / Continu
 
 KnowledgeVault Kit began as a way to preserve long-running AI-human conversation continuity when chat context, memory, and session windows lose information over time.
 
-The public release presents itself as a device-agnostic personal vault, but the actual structure is broader:
-
-- Personal cognitive continuity layer
-- AI-compatible vault structure
-- Entity and relationship model
-- Consent-aware AI suggestion flow
-- Review and migration discipline
-- Optional data-sharing documentation
-- Portable folder-based continuity kit
-
-The current target audience is technically versatile systems thinkers who can inspect the file tree and recognize the deeper architecture.
-
 The approved positioning is:
 
 > Standalone by default, StegVerse-compatible by design.
 
 Baseline use must remain copyable, understandable, and functional without an account, hosted service, SDK, database, or workflow dependency.
+
+The repository currently provides:
+
+- a portable personal cognitive-continuity layer;
+- an AI-compatible vault structure;
+- entity, index, policy, migration, and suggestion boundaries;
+- reloadable AI-human handoff patterns;
+- optional packaging and integrity-verification tooling.
 
 ---
 
@@ -46,14 +40,20 @@ Baseline use must remain copyable, understandable, and functional without an acc
 - Added `docs/examples/Reload_Packet_Example.md`.
 - Added `docs/EXAMPLES.md` as the stable examples index.
 - Added `vault_template/KnowledgeVault/_Templates/README.md`.
-- Updated `README.md` with continuity, examples, and technical-review links.
-- Updated `README.md` to clarify verification as optional integrity checking.
-- Updated `WELCOME.md` with the conversation-continuity path.
-- Updated `GETTING_STARTED.md` with a reload-packet workflow.
-- Updated `CHANGELOG.md` with an Unreleased documentation entry.
-- Updated `STATUS.md` with current gaps and continuation scope.
-- Confirmed `vault_template/KnowledgeVault/_Entities/README.md` exists.
-- Confirmed `docs/AI_COMPATIBLE.md` and `docs/DATA_SHARING.md` exist.
+- Added `vault_template/KnowledgeVault/_migration/README.md` with non-destructive migration and replacement rules.
+- Added `tools/test_release_tools.py` for end-to-end builder/verifier self-testing.
+- Hardened `tools/build_release.py`:
+  - validates required source files before build;
+  - emits non-zero status on failure;
+  - generates schema version, file count, and per-file size/SHA-256 records;
+  - continues producing ZIP, checksum, and manifest sidecars.
+- Hardened `tools/verify_release.py`:
+  - requires checksum and manifest sidecars;
+  - validates artifact name, version presence, root, and bundle hash;
+  - rejects duplicate and unsafe archive paths;
+  - validates required files;
+  - verifies every packaged file against the manifest inventory.
+- Updated `README.md`, `WELCOME.md`, `GETTING_STARTED.md`, `CHANGELOG.md`, and `STATUS.md` to expose and preserve the current paths and claims.
 
 ---
 
@@ -62,74 +62,77 @@ Baseline use must remain copyable, understandable, and functional without an acc
 1. **Integration intent:** The vault remains deliberately decoupled at baseline. StegVerse SDK, StegDB, TV/TVC, or other ecosystem components may later validate or index it, but none are required for normal use.
 2. **User funnel:** A user copies or downloads the kit, reads `WELCOME.md`, starts writing, and discovers optional continuity and StegVerse paths only when useful.
 3. **AI-compatible meaning:** Predictable folder names, indexes, metadata-ready structure, explicit policy boundaries, separated AI suggestions, and reloadable handoff patterns. It does not mean unrestricted AI access.
-4. **Checksums and manifests:** Release checksums and manifests are real integrity mechanisms for packaged releases. They do not certify the truth, safety, completeness, or admissibility of user-authored content.
-5. **Versioning and replacement:** `VERSION`, `CHANGELOG.md`, release manifests, and `_migration/` form the current lifecycle surface. Future replacement rules must preserve exportability and avoid permanent authority claims.
-6. **Ecosystem references:** Keep StegDB/SDK/TVC references light and optional. Do not foreground AaCT-E, GCAT/BCAT Engine, Publisher, Fin-Co, MVQL, or macro-governance material in first-contact documentation unless a concrete integration exists.
+4. **Checksums and manifests:** Release hashes are package-integrity mechanisms. They do not certify truth, safety, completeness, authority, or admissibility of user content.
+5. **Versioning and replacement:** `VERSION`, `CHANGELOG.md`, release manifests, and `_migration/` are the lifecycle surface. A new kit must not silently overwrite an existing vault.
+6. **Migration authority:** A newer release is not automatically authoritative over an existing vault. Structural changes require a documented migration file and user-controlled adoption.
+7. **Ecosystem references:** Keep StegDB/SDK/TVC references light and optional. Do not foreground AaCT-E, GCAT/BCAT Engine, Publisher, Fin-Co, MVQL, or macro-governance material unless a concrete integration exists.
 
 ---
 
-## 5. Current repo interpretation
+## 5. Current known gaps and blockers
 
-This is a portable cognitive protocol experiment, not only a folder kit.
+- `tools/test_release_tools.py` has not yet been executed in a complete repository checkout after the hardening changes.
+- The generated ZIP, checksum, and expanded manifest have not yet been preserved as verified release evidence.
+- The next version and tag have not been selected.
+- Additional examples remain planned for project continuation, health chronology, research review, device migration, and multi-session collaboration.
+- No one-click installer exists; manual copy/unzip remains the baseline.
+- Data-sharing revenue behavior is documented but not implemented.
+- Mass-adoption onboarding remains lighter than the advanced architecture.
 
-The strongest current framing is:
+The current environment could mutate GitHub but could not clone the repository for local execution because outbound DNS resolution was unavailable. Do not treat the tool hardening as runtime-verified until the repository self-test succeeds.
 
-> Build a vault your future self and future AI sessions can actually reload.
-
-Keep first-contact docs practical and avoid adding unrelated macro-governance material to this repo.
-
----
-
-## 6. Current known gaps and blockers
-
-- Automation tooling is optional and still evolving.
-- Some docs may be reorganized as StegVerse expands.
-- No one-click installer exists; manual copy/unzip is the baseline.
-- Data-sharing revenue system is documented but not yet implemented.
-- Mass-adoption onboarding is still lighter than the advanced architecture requires.
-- Additional concrete examples remain to be authored for project continuation, health chronology, research review, device migration, and multi-session collaboration.
-- The next release version and tag have not been selected; do not tag until release contents and generated integrity artifacts are verified.
-
-These are repository tasks, not reasons to retain any prior conversation once this handoff is current.
+These are durable repository tasks, not reasons to retain a previous conversation.
 
 ---
 
-## 7. Recommended next work
+## 6. Recommended next work
 
-1. Add examples only when they demonstrate a concrete continuity task and remain usable without optional tooling.
-2. Inspect `tools/build_release.py`, `tools/verify_release.py`, and generated manifest behavior before the next release candidate.
-3. Confirm version-replacement and migration documentation matches actual `_migration/` behavior.
-4. Update onboarding only from observed confusion or serious review feedback.
-5. At release readiness, tag the repository and create a verification task for any pertinent updates to `StegVerse-Labs/Site`, `GCAT-BCAT-Engine/Publisher`, `admissibility-wiki`, and `stegguardian-wiki`.
+1. Run:
+
+   ```bash
+   python3 tools/test_release_tools.py
+   ```
+
+   in a complete checkout.
+2. Preserve the successful command output and inspect:
+   - `dist/ContinuityVault_vX.Y.Z.zip`;
+   - its `.sha256` sidecar;
+   - its `.manifest.json` sidecar;
+   - manifest file count and per-file hashes.
+3. Resolve any builder/verifier mismatch before changing `VERSION`.
+4. Select the next version only after deciding whether the added `_migration/README.md` constitutes a patch or minor format release.
+5. Add concrete examples only when they remain useful without optional tooling.
+6. At release readiness, tag the repository and create verification tasks for pertinent updates to `StegVerse-Labs/Site`, `GCAT-BCAT-Engine/Publisher`, `admissibility-wiki`, and `stegguardian-wiki`.
 
 ---
 
-## 8. Ownership and permitted continuation scope
+## 7. Ownership and permitted continuation scope
 
 - **Current owner:** Any authorized repository-maintenance session that reads this handoff before mutation.
-- **Permitted scope:** Documentation, examples, release-integrity verification, migration clarity, and optional integration documentation that does not make baseline use dependent on the wider ecosystem.
+- **Permitted scope:** Documentation, examples, release-integrity verification, migration clarity, tests, and optional integration documentation that does not make baseline use dependent on the wider ecosystem.
 - **Prohibited drift:** Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
-- **Validation requirement:** Any claim that manifests, checksums, migrations, or integrations work must be verified against the actual files and tools before publication or release tagging.
+- **Validation requirement:** Claims that manifests, checksums, migrations, or integrations work must be verified against actual files and execution evidence before release tagging.
 
 ---
 
-## 9. Current goal activation estimate
+## 8. Current goal activation estimate
 
 - Public technical-signal release: active and usable.
-- AI continuity origin story: explicitly documented and linked.
-- Technical review path: explicitly documented and linked.
-- Examples discovery path: explicitly documented and linked.
+- AI continuity origin story: documented and linked.
+- Technical review path: documented and linked.
+- Examples discovery path: documented and linked.
+- Migration behavior: now explicitly documented.
+- Release-integrity implementation: hardened, execution evidence pending.
 - Mass-adoption onboarding: incomplete, but not the current primary audience.
-- Advanced architecture: stronger than public framing, but less buried than before.
 
-Recommended activation goal remains:
+Recommended activation goal:
 
-> Make KnowledgeVault immediately understandable as a reloadable AI-human conversation continuity system while preserving the deeper cognitive protocol architecture.
+> Produce a locally verified release candidate whose generated manifest and checksum evidence exactly match the public integrity and migration claims.
 
 ---
 
-## 10. Archive note
+## 9. Archive note
 
-This handoff preserves the repository decisions, discovered tasks and blockers, completed work, remaining work, ownership, permitted continuation scope, and release-validation requirements.
+This handoff preserves repository decisions, completed changes, current blockers, remaining work, ownership, permitted continuation scope, and validation requirements.
 
 The complete thread is ready for archiving without any additional part of the thread needed to move forward.
