@@ -2,23 +2,21 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with repository-native verification, publication, initialization, downstream determination, onboarding-friction lifecycle, executable automation contracts, and merged-fix release activation.  
+**Status:** Active standalone release with repository-native verification, issue-free publication, durable release-cycle outcomes, safe initialization, downstream determination, and evidence-governed onboarding corrections.  
 **Current published version:** `0.1.2`  
 **Last updated:** 2026-07-14
 
 ---
 
-## 1. Purpose
+## 1. Purpose and framing
 
 This file is the repo-local continuation source of truth. Read it before repository mutation.
-
-Approved framing:
 
 > Standalone by default, StegVerse-compatible by design.
 
 Baseline use must remain functional without an account, hosted service, SDK, database, workflow dependency, or vault telemetry.
 
-Integrity tooling verifies package and copy behavior only. Automation-contract tooling verifies repository consistency only. Neither certifies the truth, safety, completeness, authority, or admissibility of user-authored content.
+Integrity tooling verifies package and copy behavior only. Automation-contract tooling verifies repository consistency only. Release-cycle receipts record repository outcomes only. None certifies the truth, safety, completeness, authority, or admissibility of user-authored content.
 
 ---
 
@@ -27,44 +25,54 @@ Integrity tooling verifies package and copy behavior only. Automation-contract t
 - Published release: `v0.1.2`.
 - Release commit: `5e38ca635ed420a3800ca53dd59f236175207edb`.
 - Published assets: ZIP, SHA-256 sidecar, and expanded manifest sidecar.
-- Historical activation issues #7, #8, #9, and #10 are closed.
-- Those historical issue numbers are no longer release gates.
-- Durable release evidence is stored in `docs/release_evidence/`.
+- Historical activation issues #7, #8, #9, and #10 are closed and are not reusable release gates.
+- Durable release evidence is stored under `docs/release_evidence/`.
 
 ---
 
-## 3. Reusable issue-free release cycle
-
-The release cycle is reusable and does not require reopening or recreating historical issues.
+## 3. Reusable release lifecycle
 
 ### Integrity gate
 
 `.github/workflows/release-integrity.yml`:
 
-- runs release tooling, initializer, and automation-contract tests;
+- runs release-tooling, initializer, and automation-contract tests;
 - performs a clean build and complete verification;
 - uploads release evidence;
-- writes `docs/release_evidence/latest.md` and `latest.json`;
-- records `release_required` by inspecting the `CHANGELOG.md` Unreleased section;
-- commits the durable receipt without issue comments or issue transitions.
+- writes `latest.md` and `latest.json`;
+- records `release_required` from substantive `CHANGELOG.md` Unreleased content;
+- commits evidence without issue routing.
 
 ### Publication gate
 
 `.github/workflows/automated-release.yml`:
 
-- runs after successful release integrity on `main`;
-- skips when the Unreleased section is empty or contains only `_No unreleased changes._`;
-- increments the patch version when substantive unreleased changes exist;
+- runs after successful integrity validation on `main`;
+- skips when Unreleased is empty or contains only `_No unreleased changes._`;
+- increments the patch version for substantive compatible changes;
 - finalizes the changelog;
-- reruns release, initializer, and automation-contract tests;
-- builds and verifies the candidate;
-- commits, tags, and publishes the candidate;
-- publishes ZIP, checksum, and manifest assets;
-- writes and commits `latest_release.md` and `latest_release.json`.
+- reruns all executable gates;
+- builds, verifies, tags, and publishes the candidate;
+- writes `latest_release.md` and `latest_release.json`.
 
-No issue-write permission is required for publication.
+### Outcome reconciliation
 
-`tools/test_automation_contracts.py` fails CI if historical fixed issue gates are reintroduced.
+`.github/workflows/release-cycle-outcome.yml` runs after every automated publication attempt and writes:
+
+- `docs/release_evidence/latest_cycle.json`;
+- `docs/release_evidence/latest_cycle.md`.
+
+Allowed outcome classes:
+
+- `PUBLISHED` — the current version matches the latest successful publication receipt;
+- `SKIPPED` — no substantive Unreleased changes required publication;
+- `FAILED` — the source publication workflow did not conclude successfully;
+- `INCOMPLETE` — the workflow concluded successfully but substantive Unreleased changes remain;
+- `RECONCILED` — repository state was explicitly re-evaluated through manual workflow dispatch.
+
+A failed publication attempt is preserved before the outcome reconciler itself fails, so failure state is not silent.
+
+`tools/test_automation_contracts.py` requires this workflow, the receipt files, all outcome classes, the receipt schema, and the user-content certification boundary.
 
 ---
 
@@ -93,20 +101,18 @@ The vault does not phone home. Friction evidence comes only from explicit, priva
 Repository workflows own:
 
 1. structured friction intake;
-2. platform, setup-path, and failure-stage classification;
-3. initial guidance;
-4. seven-day incomplete-report reminders;
-5. thirty-day stale-report closure;
-6. registry reconciliation;
-7. three-report threshold escalation;
-8. independent candidate support verification;
-9. duplicate suppression;
-10. candidate evidence packet generation;
-11. recognition of explicitly linked merged fixes;
-12. candidate completion and closure;
-13. idempotent Unreleased changelog recording for supported merged fixes;
-14. release-integrity activation from that changelog commit;
-15. verified patch publication when all contracts pass.
+2. deterministic classification and initial guidance;
+3. seven-day incomplete-report reminders;
+4. thirty-day stale-report closure;
+5. registry reconciliation;
+6. three-report threshold escalation;
+7. independent candidate support reconstruction;
+8. duplicate suppression and candidate evidence packets;
+9. recognition of explicitly linked merged fixes;
+10. candidate completion and closure;
+11. idempotent Unreleased changelog recording for supported merged fixes;
+12. release-integrity activation and verified publication;
+13. final release-cycle outcome reconciliation.
 
 Report evidence:
 
@@ -123,27 +129,7 @@ Current report count is zero. No corrective implementation is justified yet.
 
 ---
 
-## 6. Merged-fix release activation
-
-`.github/workflows/automation-candidate-implementation.yml` now closes the remaining gap between an evidence-supported fix and release activation.
-
-For a merged pull request that explicitly references a supported automation candidate, the workflow:
-
-- verifies the candidate labels and support state;
-- records the merge commit and pull request on the candidate;
-- applies `candidate-implemented`;
-- adds one idempotent `### Improved` entry to the Unreleased changelog;
-- commits the changelog without `[skip ci]`;
-- pushes to `main`, causing release-integrity validation to run;
-- triggers candidate reconciliation and final closure.
-
-The changelog entry is not created for unsupported candidates. A merged pull request cannot create implementation authority merely by referencing an issue number.
-
-`tools/test_automation_contracts.py` requires this bridge and fails if `[skip ci]` is introduced into the candidate changelog path.
-
----
-
-## 7. Downstream propagation
+## 6. Downstream propagation
 
 Future published releases automatically inspect exactly four destinations:
 
@@ -156,7 +142,7 @@ The current determination is no update required for all four. Evidence is stored
 
 ---
 
-## 8. Durable decisions
+## 7. Durable decisions
 
 1. Baseline use remains independent of the wider StegVerse ecosystem.
 2. A newer kit cannot silently replace an owner-accepted vault.
@@ -164,24 +150,27 @@ The current determination is no update required for all four. Evidence is stored
 4. Examples and AI outputs do not grant mutation authority.
 5. Release progression occurs only after executable verification succeeds.
 6. Release state derives from changelog content and durable receipts, not fixed issue numbers.
-7. Evidence, version mutation, tagging, publication, receipts, propagation, report maintenance, candidate admission, deduplication, implementation closure, changelog recording, and release activation are repository-native tasks.
-8. Manual copying remains an optional zero-dependency path, not an operational requirement where Python is available.
-9. Three matching reports justify a supported automation-candidate investigation, not automatic mutation of user vaults.
-10. Candidate support is reconstructed from durable evidence rather than inferred from titles or labels.
-11. A supported merged fix must be recorded in Unreleased state before publication.
-12. The candidate changelog commit must trigger, not suppress, release-integrity validation.
+7. Every publication attempt must end in a durable outcome receipt, including skipped and failed attempts.
+8. Evidence, version mutation, tagging, publication, receipts, propagation, report maintenance, candidate admission, deduplication, implementation closure, changelog recording, release activation, and outcome reconciliation are repository-native tasks.
+9. Manual copying remains an optional zero-dependency path, not an operational requirement where Python is available.
+10. Three matching reports justify a supported automation-candidate investigation, not automatic mutation of user vaults.
+11. Candidate support is reconstructed from durable evidence rather than inferred from titles or labels.
+12. A supported merged fix must be recorded in Unreleased state before publication.
 13. Optional ecosystem references must not become baseline dependencies.
 14. Do not convert this repository into an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
 
 ---
 
-## 9. Continuation rule
+## 8. Continuation rule
 
+- Treat `docs/release_evidence/latest.json` as the latest integrity and release-required gate.
+- Treat `docs/release_evidence/latest_release.json` as the latest successful publication receipt.
+- Treat `docs/release_evidence/latest_cycle.json` as the authoritative latest publication-attempt outcome.
 - Let substantive Unreleased changes trigger the next verified patch release automatically.
-- Let empty Unreleased state skip publication automatically.
+- Let empty Unreleased state skip publication automatically and record `SKIPPED`.
+- Let failed publication preserve `FAILED` before surfacing failure.
 - Let automation-contract tests block inconsistent release behavior.
 - Let friction workflows create and govern future corrective work from evidence.
-- Let an explicitly linked merged fix for a supported candidate record itself and activate verified release automatically.
 - Implement only the smallest demonstrated fix for a supported candidate.
 - Do not invent onboarding automation without evidence.
 - Implement data-sharing behavior only under a separately governed scope; current text is documentation, not an active system.
@@ -190,12 +179,12 @@ No open issue currently owns required work for the verified `0.1.2` release.
 
 Recommended next activation condition:
 
-> A substantive unreleased change or a repeated privacy-safe friction signature activates the appropriate repository-native workflow, with supported merged fixes recording themselves and entering verified publication without manual changelog work.
+> A substantive unreleased change or repeated privacy-safe friction signature activates the appropriate repository-native workflow, and every publication attempt produces a durable, contract-validated outcome receipt.
 
 ---
 
-## 10. Archive note
+## 9. Archive note
 
-This handoff preserves the current release, reusable release-cycle state, verification evidence, automation behavior, initialization contract, downstream determinations, onboarding-friction lifecycle, merged-fix release bridge, decisions, permitted scope, and conditional successor rules.
+This handoff preserves the current release, reusable release-cycle state, all release evidence surfaces, automation behavior, initialization contract, downstream determinations, onboarding-friction lifecycle, decisions, permitted scope, and conditional successor rules.
 
 The complete thread is ready for archiving without any additional part of the thread needed to move forward.
