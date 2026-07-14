@@ -15,6 +15,7 @@ on:
       - "evidence/onboarding-friction/**"
       - ".github/ISSUE_TEMPLATE/onboarding-friction.yml"
       - ".github/workflows/**"
+      - "CHANGELOG.md"
       - "VERSION"
   pull_request:
     paths:
@@ -29,12 +30,12 @@ on:
       - "evidence/onboarding-friction/**"
       - ".github/ISSUE_TEMPLATE/onboarding-friction.yml"
       - ".github/workflows/**"
+      - "CHANGELOG.md"
       - "VERSION"
   workflow_dispatch:
 
 permissions:
   contents: write
-  issues: write
 
 concurrency:
   group: release-integrity-${{ github.ref }}
@@ -80,7 +81,6 @@ jobs:
           version = Path("VERSION").read_text(encoding="utf-8").strip()
           manifest_path = Path("dist") / f"ContinuityVault_v{version}.zip.manifest.json"
           manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-
           required = {"schema_version", "artifact", "version", "created_utc", "sha256", "contents_root", "file_count", "files"}
           missing = sorted(required - manifest.keys())
           if missing:
@@ -108,16 +108,18 @@ jobs:
 
           version = Path("VERSION").read_text(encoding="utf-8").strip()
           zip_name = f"ContinuityVault_v{version}.zip"
-          manifest_path = Path("dist") / f"{zip_name}.manifest.json"
-          checksum_path = Path("dist") / f"{zip_name}.sha256"
-          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-          checksum = checksum_path.read_text(encoding="utf-8").split()[0]
+          manifest = json.loads((Path("dist") / f"{zip_name}.manifest.json").read_text(encoding="utf-8"))
+          checksum = (Path("dist") / f"{zip_name}.sha256").read_text(encoding="utf-8").split()[0]
           run_url = f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}"
           artifact_name = f"continuity-vault-release-integrity-{os.environ['COMMIT_SHA']}"
           generated_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          section = changelog.split("## [Unreleased]", 1)[1].split("\n---", 1)[0]
+          normalized = " ".join(section.split()).lower()
+          release_required = normalized not in {"", "_no unreleased changes._", "no unreleased changes."}
 
           receipt = {
-              "schema_version": "1.2",
+              "schema_version": "1.3",
               "result": "PASS",
               "repository": os.environ["REPOSITORY"],
               "commit_sha": os.environ["COMMIT_SHA"],
@@ -126,6 +128,7 @@ jobs:
               "workflow_run_url": run_url,
               "artifact_name": artifact_name,
               "version": version,
+              "release_required": release_required,
               "release_artifact": zip_name,
               "release_sha256": checksum,
               "manifest_schema_version": manifest["schema_version"],
@@ -145,18 +148,15 @@ jobs:
               f"- **Repository:** `{receipt['repository']}`\n"
               f"- **Tested commit:** `{receipt['commit_sha']}`\n"
               f"- **Workflow run:** {receipt['workflow_run_url']}\n"
-              f"- **Run attempt:** `{receipt['workflow_run_attempt']}`\n"
               f"- **Uploaded artifact:** `{receipt['artifact_name']}`\n"
-              f"- **Release artifact:** `{receipt['release_artifact']}`\n"
-              f"- **Version:** `{receipt['version']}`\n"
+              f"- **Current version:** `{receipt['version']}`\n"
+              f"- **Release required:** `{str(receipt['release_required']).lower()}`\n"
               f"- **Release SHA-256:** `{receipt['release_sha256']}`\n"
-              f"- **Manifest schema:** `{receipt['manifest_schema_version']}`\n"
               f"- **Verified file count:** `{receipt['manifest_file_count']}`\n"
               f"- **Initializer self-test:** `{receipt['initializer_self_test']}`\n"
               f"- **Automation contract test:** `{receipt['automation_contract_test']}`\n"
               f"- **Generated UTC:** `{receipt['generated_utc']}`\n\n"
-              "The workflow completed release tooling tests, safe initialization tests, repository automation contract validation, a clean rebuild, manifest validation, and full archive verification.\n\n"
-              "This receipt verifies package integrity, installer copy behavior, and repository automation contract consistency only. It does not certify user-authored content.\n",
+              "The workflow completed release tooling tests, safe initialization tests, automation contract validation, a clean rebuild, manifest validation, and full archive verification. Automated publication is determined from the Unreleased changelog section rather than historical issue state.\n",
               encoding="utf-8",
           )
           PY
@@ -181,14 +181,3 @@ jobs:
             git commit -m "ci: preserve release-integrity evidence [skip ci]"
             git push
           fi
-
-      - name: Route successful validation to release preparation
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          ARTIFACT_NAME: continuity-vault-release-integrity-${{ github.sha }}
-        run: |
-          gh issue comment 7 --body "Automated validation passed for commit \`${{ github.sha }}\`. Run: ${RUN_URL}. Artifact: \`${ARTIFACT_NAME}\`. Durable receipts: \`docs/release_evidence/latest.md\` and \`latest.json\`. Release, initializer, and automation contract tests passed; issue #8 is now unblocked."
-          gh issue close 7 --reason completed
-          gh issue comment 8 --body "Entry condition satisfied automatically by release-integrity run ${RUN_URL}. Use \`docs/release_evidence/latest.json\` as the machine-readable evidence source before version mutation or tagging."
