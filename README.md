@@ -17,6 +17,8 @@ If you are reviewing the deeper architecture, read [`docs/TECHNICAL_REVIEW_PATH.
 
 If your immediate problem is preserving long-running AI chats, read [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md).
 
+For small, inspectable patterns you can copy into a private vault, see [`docs/EXAMPLES.md`](./docs/EXAMPLES.md).
+
 ## What this is
 
 - A portable vault template you can copy anywhere
@@ -69,6 +71,7 @@ vault_template/KnowledgeVault/
 - `WELCOME.md` — first-contact onboarding (start here)
 - `GETTING_STARTED.md` — deeper walkthrough and recommended structure
 - `docs/CONVERSATION_CONTINUITY.md` — practical guide for preserving and reloading AI-human conversation state
+- `docs/EXAMPLES.md` — index of small continuity patterns and reload examples
 - `docs/TECHNICAL_REVIEW_PATH.md` — review path for systems thinkers inspecting the architecture
 - `SAFETY.md` — safety notes and threat-model guidance
 - `DO_NOT_STORE_HERE.md` — what not to keep in plain text
