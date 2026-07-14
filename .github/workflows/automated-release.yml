@@ -1,0 +1,141 @@
+name: Automated verified release
+
+on:
+  workflow_run:
+    workflows: ["Release integrity"]
+    types: [completed]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: automated-verified-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check release gate
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=$(gh issue view 8 --json state --jq .state 2>/dev/null || echo "MISSING")
+          if [ "$state" = "OPEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Issue #8 is not open; no release action is required."
+          fi
+
+      - name: Select backward-compatible patch version
+        if: steps.gate.outputs.enabled == 'true'
+        id: version
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          current = Path("VERSION").read_text(encoding="utf-8").strip()
+          parts = current.split(".")
+          if len(parts) != 3 or not all(part.isdigit() for part in parts):
+              raise SystemExit(f"VERSION is not semantic x.y.z: {current}")
+          major, minor, patch = map(int, parts)
+          next_version = f"{major}.{minor}.{patch + 1}"
+          Path("VERSION").write_text(next_version + "\n", encoding="utf-8")
+          Path(".next-version").write_text(next_version + "\n", encoding="utf-8")
+          print(next_version)
+          PY
+          echo "value=$(cat .next-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Finalize changelog entry
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          NEXT_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from datetime import date
+          from pathlib import Path
+
+          path = Path("CHANGELOG.md")
+          text = path.read_text(encoding="utf-8")
+          marker = "## [Unreleased]"
+          if text.count(marker) != 1:
+              raise SystemExit("CHANGELOG must contain exactly one Unreleased section")
+          replacement = f"## [Unreleased]\n\n_No unreleased changes._\n\n---\n\n## [{os.environ['NEXT_VERSION']}] – {date.today().isoformat()}"
+          path.write_text(text.replace(marker, replacement, 1), encoding="utf-8")
+          PY
+
+      - name: Verify release candidate
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          rm -rf dist
+          python3 tools/test_release_tools.py
+          rm -rf dist
+          python3 tools/build_release.py
+          python3 tools/verify_release.py "dist/ContinuityVault_v${{ steps.version.outputs.value }}.zip"
+
+      - name: Commit verified candidate
+        if: steps.gate.outputs.enabled == 'true'
+        id: commit
+        run: |
+          rm -f .next-version
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION CHANGELOG.md
+          git commit -m "release: v${{ steps.version.outputs.value }}"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Tag and push verified candidate
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          tag="v${{ steps.version.outputs.value }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists"
+            exit 1
+          fi
+          git tag -a "$tag" -m "Continuity Vault Kit $tag"
+          git push origin HEAD:main
+          git push origin "$tag"
+
+      - name: Publish release assets
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          tag="v${version}"
+          zip="dist/ContinuityVault_v${version}.zip"
+          checksum="${zip}.sha256"
+          manifest="${zip}.manifest.json"
+          gh release create "$tag" "$zip" "$checksum" "$manifest" \
+            --title "Continuity Vault Kit ${tag}" \
+            --notes "Automated verified patch release. The builder/verifier self-test, missing-sidecar negative test, clean rebuild, complete manifest inventory, per-file hashes, and package checksum all passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity only."
+
+      - name: Record completion and activate propagation
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment 8 --body "Automated verified release completed: \`v${{ steps.version.outputs.value }}\` at commit \`${{ steps.commit.outputs.sha }}\`. Workflow: ${RUN_URL}. Release assets include the ZIP, checksum, and expanded manifest."
+          gh issue close 8 --reason completed
+          gh issue comment 10 --body "Release propagation gate opened automatically by verified tag \`v${{ steps.version.outputs.value }}\`. Source release workflow: ${RUN_URL}."
