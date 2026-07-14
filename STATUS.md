@@ -1,24 +1,23 @@
 state: active
 works_today: yes — use the verified initializer or copy the template directly; no accounts, services, or lock-in
 current_version: 0.1.2
-current_focus: maintain automated verification, release receipts, downstream propagation checks, and safe standalone initialization
+current_focus: collect, classify, aggregate, and escalate demonstrated onboarding friction without vault telemetry or manual triage
 known_gaps:
   - Some docs may be reorganized as StegVerse expands
   - Data-sharing revenue behavior is documented but not implemented
-  - Mass-adoption onboarding is still lighter than the advanced architecture requires
+  - No real onboarding-friction reports have yet crossed the automation-candidate threshold
 completed_recently:
   - Published automated verified release v0.1.2 at commit 5e38ca635ed420a3800ca53dd59f236175207edb
-  - Closed release evidence issue #7 and release candidate issue #8 through repository-native workflows
-  - Closed example issue #9 after completing the full standalone example set
-  - Closed downstream issue #10 after all four destinations were determined to require no update
-  - Added automation/downstream-propagation.json and .github/workflows/downstream-propagation.yml for future release checks
-  - Added durable downstream determinations in evidence/downstream-propagation/latest.md and latest.json
-  - Upgraded tools/init_vault.py with dry-run, overwrite refusal, complete copy verification, rollback cleanup, and installation receipts
-  - Added tools/test_init_vault.py and integrated it into release-integrity and automated-release workflows
-  - Updated WELCOME.md with the verified one-command initialization path
-  - Updated automated-release.yml to preserve latest_release.md and latest_release.json after future publications
+  - Closed release issues #7 and #8, example issue #9, and downstream issue #10
+  - Added repository-native release, evidence, initializer, and downstream-propagation automation
+  - Added .github/ISSUE_TEMPLATE/onboarding-friction.yml for privacy-bounded structured reports
+  - Added .github/workflows/onboarding-friction-bootstrap.yml to create all triage labels automatically
+  - Added .github/workflows/onboarding-friction.yml to classify reports, provide setup-path guidance, aggregate evidence, and create threshold-based automation candidates
+  - Added evidence/onboarding-friction/latest.md and latest.json as durable friction registries
+  - Added a direct onboarding-friction form link to WELCOME.md
 next_steps:
-  - Treat docs/release_evidence/latest.json, latest_release.json, and evidence/downstream-propagation/latest.json as machine-readable operational truth
-  - Keep first-contact docs practical and baseline use independent of StegVerse services
-  - Add new automation only when it removes a demonstrated manual continuity or release task
-last_reviewed_utc: 2026-07-14T07:10:00Z
+  - Treat evidence/onboarding-friction/latest.json as the machine-readable onboarding-friction source of truth
+  - Allow repeated signatures to create automation-candidate issues automatically at the three-report threshold
+  - Implement only the smallest demonstrated fix for each accepted automation candidate
+  - Keep first-contact use independent of accounts, hosted services, mandatory SDKs, and vault telemetry
+last_reviewed_utc: 2026-07-14T07:30:00Z
