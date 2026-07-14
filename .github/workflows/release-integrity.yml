@@ -9,9 +9,13 @@ on:
       - "tools/test_release_tools.py"
       - "tools/init_vault.py"
       - "tools/test_init_vault.py"
+      - "tools/test_automation_contracts.py"
       - "vault_template/**"
+      - "automation/**"
+      - "evidence/onboarding-friction/**"
+      - ".github/ISSUE_TEMPLATE/onboarding-friction.yml"
+      - ".github/workflows/**"
       - "VERSION"
-      - ".github/workflows/release-integrity.yml"
   pull_request:
     paths:
       - "tools/build_release.py"
@@ -19,9 +23,13 @@ on:
       - "tools/test_release_tools.py"
       - "tools/init_vault.py"
       - "tools/test_init_vault.py"
+      - "tools/test_automation_contracts.py"
       - "vault_template/**"
+      - "automation/**"
+      - "evidence/onboarding-friction/**"
+      - ".github/ISSUE_TEMPLATE/onboarding-friction.yml"
+      - ".github/workflows/**"
       - "VERSION"
-      - ".github/workflows/release-integrity.yml"
   workflow_dispatch:
 
 permissions:
@@ -53,6 +61,9 @@ jobs:
 
       - name: Run vault initializer self-test
         run: python3 tools/test_init_vault.py
+
+      - name: Validate automation contracts
+        run: python3 tools/test_automation_contracts.py
 
       - name: Rebuild release evidence
         run: |
@@ -106,7 +117,7 @@ jobs:
           generated_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
           receipt = {
-              "schema_version": "1.1",
+              "schema_version": "1.2",
               "result": "PASS",
               "repository": os.environ["REPOSITORY"],
               "commit_sha": os.environ["COMMIT_SHA"],
@@ -120,8 +131,9 @@ jobs:
               "manifest_schema_version": manifest["schema_version"],
               "manifest_file_count": manifest["file_count"],
               "initializer_self_test": "PASS",
+              "automation_contract_test": "PASS",
               "generated_utc": generated_utc,
-              "scope": "package integrity and installer copy verification only",
+              "scope": "package integrity, installer copy verification, and repository automation contract consistency only",
           }
 
           evidence_dir = Path("docs/release_evidence")
@@ -141,9 +153,10 @@ jobs:
               f"- **Manifest schema:** `{receipt['manifest_schema_version']}`\n"
               f"- **Verified file count:** `{receipt['manifest_file_count']}`\n"
               f"- **Initializer self-test:** `{receipt['initializer_self_test']}`\n"
+              f"- **Automation contract test:** `{receipt['automation_contract_test']}`\n"
               f"- **Generated UTC:** `{receipt['generated_utc']}`\n\n"
-              "The workflow completed the builder/verifier self-test, expected missing-sidecar negative test, safe initializer dry-run, verified copy, installation-receipt check, overwrite-refusal check, clean rebuild, complete manifest validation, and full archive verification.\n\n"
-              "This receipt verifies package integrity and installer copy behavior only. It does not certify user-authored content.\n",
+              "The workflow completed release tooling tests, safe initialization tests, repository automation contract validation, a clean rebuild, manifest validation, and full archive verification.\n\n"
+              "This receipt verifies package integrity, installer copy behavior, and repository automation contract consistency only. It does not certify user-authored content.\n",
               encoding="utf-8",
           )
           PY
@@ -176,6 +189,6 @@ jobs:
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           ARTIFACT_NAME: continuity-vault-release-integrity-${{ github.sha }}
         run: |
-          gh issue comment 7 --body "Automated validation passed for commit \`${{ github.sha }}\`. Run: ${RUN_URL}. Artifact: \`${ARTIFACT_NAME}\`. Durable receipts: \`docs/release_evidence/latest.md\` and \`latest.json\`. Release and verified initializer tests passed; issue #8 is now unblocked."
+          gh issue comment 7 --body "Automated validation passed for commit \`${{ github.sha }}\`. Run: ${RUN_URL}. Artifact: \`${ARTIFACT_NAME}\`. Durable receipts: \`docs/release_evidence/latest.md\` and \`latest.json\`. Release, initializer, and automation contract tests passed; issue #8 is now unblocked."
           gh issue close 7 --reason completed
           gh issue comment 8 --body "Entry condition satisfied automatically by release-integrity run ${RUN_URL}. Use \`docs/release_evidence/latest.json\` as the machine-readable evidence source before version mutation or tagging."
