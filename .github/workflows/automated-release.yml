@@ -89,6 +89,7 @@ jobs:
         run: |
           rm -rf dist
           python3 tools/test_release_tools.py
+          python3 tools/test_init_vault.py
           rm -rf dist
           python3 tools/build_release.py
           python3 tools/verify_release.py "dist/ContinuityVault_v${{ steps.version.outputs.value }}.zip"
@@ -128,7 +129,77 @@ jobs:
           manifest="${zip}.manifest.json"
           gh release create "$tag" "$zip" "$checksum" "$manifest" \
             --title "Continuity Vault Kit ${tag}" \
-            --notes "Automated verified patch release. The builder/verifier self-test, missing-sidecar negative test, clean rebuild, complete manifest inventory, per-file hashes, and package checksum all passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity only."
+            --notes "Automated verified patch release. The builder/verifier self-test, initializer self-test, missing-sidecar negative test, clean rebuild, complete manifest inventory, per-file hashes, and package checksum all passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity and installer copy behavior only."
+
+      - name: Create durable final release receipt
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          VERSION_VALUE: ${{ steps.version.outputs.value }}
+          RELEASE_COMMIT: ${{ steps.commit.outputs.sha }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          version = os.environ["VERSION_VALUE"]
+          zip_path = Path("dist") / f"ContinuityVault_v{version}.zip"
+          checksum = zip_path.with_suffix(zip_path.suffix + ".sha256").read_text(encoding="utf-8").split()[0]
+          manifest = json.loads(zip_path.with_suffix(zip_path.suffix + ".manifest.json").read_text(encoding="utf-8"))
+          run_url = f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}"
+          release_url = f"https://github.com/{os.environ['REPOSITORY']}/releases/tag/v{version}"
+          generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+          receipt = {
+              "schema_version": "1.0",
+              "result": "PUBLISHED",
+              "repository": os.environ["REPOSITORY"],
+              "version": version,
+              "tag": f"v{version}",
+              "release_commit": os.environ["RELEASE_COMMIT"],
+              "workflow_run_url": run_url,
+              "release_url": release_url,
+              "release_artifact": zip_path.name,
+              "release_sha256": checksum,
+              "manifest_schema_version": manifest["schema_version"],
+              "manifest_file_count": manifest["file_count"],
+              "release_assets": [zip_path.name, zip_path.name + ".sha256", zip_path.name + ".manifest.json"],
+              "builder_verifier_self_test": "PASS",
+              "initializer_self_test": "PASS",
+              "published_utc": generated,
+              "scope": "package integrity and installer copy verification only",
+          }
+
+          evidence = Path("docs/release_evidence")
+          evidence.mkdir(parents=True, exist_ok=True)
+          (evidence / "latest_release.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+          (evidence / "latest_release.md").write_text(
+              "# Latest Published Release\n\n"
+              f"- **Result:** PUBLISHED\n"
+              f"- **Version:** `{receipt['version']}`\n"
+              f"- **Tag:** `{receipt['tag']}`\n"
+              f"- **Release commit:** `{receipt['release_commit']}`\n"
+              f"- **Workflow:** {receipt['workflow_run_url']}\n"
+              f"- **Release:** {receipt['release_url']}\n"
+              f"- **Artifact:** `{receipt['release_artifact']}`\n"
+              f"- **SHA-256:** `{receipt['release_sha256']}`\n"
+              f"- **Manifest files:** `{receipt['manifest_file_count']}`\n"
+              f"- **Published UTC:** `{receipt['published_utc']}`\n\n"
+              "Builder/verifier and initializer self-tests passed before tagging. This receipt verifies package integrity and installer copy behavior only.\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Commit final release receipt
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          git pull --rebase origin main
+          git add docs/release_evidence/latest_release.md docs/release_evidence/latest_release.json
+          git commit -m "evidence: record published release v${{ steps.version.outputs.value }} [skip ci]"
+          git push origin HEAD:main
 
       - name: Record completion and activate propagation
         if: steps.gate.outputs.enabled == 'true'
@@ -136,6 +207,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue comment 8 --body "Automated verified release completed: \`v${{ steps.version.outputs.value }}\` at commit \`${{ steps.commit.outputs.sha }}\`. Workflow: ${RUN_URL}. Release assets include the ZIP, checksum, and expanded manifest."
+          gh issue comment 8 --body "Automated verified release completed: \`v${{ steps.version.outputs.value }}\` at commit \`${{ steps.commit.outputs.sha }}\`. Workflow: ${RUN_URL}. Release assets and durable receipts \`docs/release_evidence/latest_release.md\` and \`latest_release.json\` were produced automatically."
           gh issue close 8 --reason completed
           gh issue comment 10 --body "Release propagation gate opened automatically by verified tag \`v${{ steps.version.outputs.value }}\`. Source release workflow: ${RUN_URL}."
