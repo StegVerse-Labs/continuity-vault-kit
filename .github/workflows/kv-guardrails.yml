@@ -22,21 +22,24 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Compile guardrail tools
+        run: |
+          python3 -m py_compile tools/kv_layer_check.py tools/emoji_lint.py
+
       - name: KV layer boundary + footer validation
         run: |
           python3 tools/kv_layer_check.py --mode validate
 
-      - name: Emoji + glyph lint (docs hygiene)
+      - name: Emoji + glyph lint
         run: |
-          python3 tools/emoji_lint.py
+          python3 tools/emoji_lint.py --strict
 
-      - name: Guidance if failing
+      - name: Guardrail repair guidance
         if: failure()
         run: |
           echo ""
-          echo "❌ Guardrails failed."
-          echo "✅ Fix options:"
-          echo "  1) Create a branch named format/<something>"
-          echo "  2) Push it (or run the 'KV Format Branch (Auto-footer)' workflow)"
-          echo "  3) Open PR from format/<something> -> main"
+          echo "KV guardrails failed."
+          echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
+          echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
+          echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""

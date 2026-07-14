@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
-"""
-kv_layer_check.py — StegDB-style layer boundary enforcement for KnowledgeVault.
+"""StegDB-style layer boundary enforcement for continuity-vault-kit.
 
 Modes:
-- validate   : fail CI if boundaries/labels violated
-- auto-label : add/update footers only (no moves/deletes)
-- suggest    : report conservative suggestions (no moves/deletes)
+- validate: validate known layer labels and forbidden footer claims.
+- auto-label: add or normalize canonical Markdown footers; never move/delete files.
+- suggest: emit conservative placement suggestions; never mutate files.
 
-Footer format enforced (last lines of Markdown files):
-
----
-
-🔒 Layer: Framework | KV
-or
----
-🔒 Layer: Vault Template | KV
+Canonical visible footers:
+- 🔒 Layer: Framework | KV
+- 🔒 Layer: Vault Template | KV
 """
 from __future__ import annotations
 
@@ -28,233 +22,214 @@ from pathlib import Path
 from typing import List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CONFIG_PATH = REPO_ROOT / ".stegdb" / "kv-layer.v1.json"
 
-# Legacy footer markers your repo has used before (we'll strip during auto-label)
-LEGACY_STEGDB_COMMENT_RE = re.compile(
+LEGACY_COMMENT_RE = re.compile(
     r"<!--\s*StegDB:\s*kv\.layer\.v1\s*\|\s*LAYER=([A-Z_]+)\s*\|\s*SCOPE=([^>]+?)\s*-->",
     re.MULTILINE,
 )
+VISIBLE_FOOTER_RE = re.compile(
+    r"^🔒\s*Layer:\s*(Framework|Vault Template|Personal Vault|Personal)\s*\|\s*KV\s*$",
+    re.MULTILINE,
+)
+LEGACY_LAYER_RE = re.compile(r"🧭\s*\*\*KV Layer:\*\*\s*([A-Z_]+)")
+LEGACY_SCOPE_RE = re.compile(r"🏷️\s*\*\*KV Scope:\*\*\s*(.+)")
 
-# New enforced footer (simple + highly visible)
-FOOTER_LINE_RE = re.compile(r"^🔒\s*Layer:\s*(Framework|Vault Template)\s*\|\s*KV\s*$", re.MULTILINE)
+FOOTER_BY_LAYER = {
+    "FRAMEWORK": "🔒 Layer: Framework | KV",
+    "RUNTIME_TEMPLATE": "🔒 Layer: Vault Template | KV",
+}
+VISIBLE_TO_LAYER = {
+    "Framework": "FRAMEWORK",
+    "Vault Template": "RUNTIME_TEMPLATE",
+    "Personal Vault": "PERSONAL_VAULT",
+    "Personal": "PERSONAL_VAULT",
+}
+SKIP_PARTS = {".git", "dist", "node_modules", ".venv", "venv", "__pycache__"}
 
-FOOTER_FRAMEWORK_LINE = "🔒 Layer: Framework | KV"
-FOOTER_VAULT_TEMPLATE_LINE = "🔒 Layer: Vault Template | KV"
-
-# Forbidden in this public framework repo (hard fail)
-FORBIDDEN_LAYER_PHRASES = [
-    "🔒 Layer: Personal Vault | KV",
-    "🔒 Layer: Personal | KV",
-    "Personal Vault",
-    "KV Layer: PERSONAL",
-    "KV Layer: PERSONAL_VAULT",
-]
 
 def load_config() -> dict:
-    cfg_path = REPO_ROOT / ".stegdb" / "kv-layer.v1.json"
-    if not cfg_path.exists():
-        print(f"ERROR: Missing config: {cfg_path}")
-        sys.exit(2)
-    return json.loads(cfg_path.read_text(encoding="utf-8"))
+    if not CONFIG_PATH.exists():
+        print(f"ERROR: Missing config: {CONFIG_PATH}")
+        raise SystemExit(2)
+    try:
+        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ERROR: Invalid config {CONFIG_PATH}: {exc}")
+        raise SystemExit(2) from exc
 
-def relpath(p: Path) -> str:
-    return str(p.relative_to(REPO_ROOT)).replace(os.sep, "/")
+
+def relpath(path: Path) -> str:
+    return path.relative_to(REPO_ROOT).as_posix()
+
 
 def match_any(rel: str, globs: List[str]) -> bool:
-    rel = rel.replace(os.sep, "/")
-    for g in globs:
-        if fnmatch.fnmatch(rel, g.replace(os.sep, "/")):
-            return True
-    return False
+    return any(fnmatch.fnmatch(rel, pattern.replace(os.sep, "/")) for pattern in globs)
+
 
 def expected_layer(rel: str, cfg: dict) -> str:
-    """
-    Returns one of:
-      FRAMEWORK
-      RUNTIME_TEMPLATE
-      UNKNOWN
-    """
-    fw = cfg["layers"]["FRAMEWORK"]
-    if rel in fw.get("paths", []):
+    framework = cfg["layers"]["FRAMEWORK"]
+    runtime = cfg["layers"]["RUNTIME_TEMPLATE"]
+    if rel in framework.get("paths", []) or match_any(rel, framework.get("globs", [])):
         return "FRAMEWORK"
-    if match_any(rel, fw.get("globs", [])):
-        return "FRAMEWORK"
-
-    rt = cfg["layers"]["RUNTIME_TEMPLATE"]
-    if match_any(rel, rt.get("globs", [])):
+    if match_any(rel, runtime.get("globs", [])):
         return "RUNTIME_TEMPLATE"
-
     return "UNKNOWN"
 
+
 def parse_footer(text: str) -> Tuple[str | None, str | None]:
-    """
-    Returns (layer, scope). Scope is retained for backward compatibility but
-    not required for the new footer format.
-    """
-    # 1) New footer format
-    m = FOOTER_LINE_RE.search(text)
-    if m:
-        val = m.group(1).strip()
-        if val.lower() == "framework":
-            return "FRAMEWORK", None
-        return "RUNTIME_TEMPLATE", None
+    visible = list(VISIBLE_FOOTER_RE.finditer(text))
+    if visible:
+        label = visible[-1].group(1).strip()
+        return VISIBLE_TO_LAYER[label], label
 
-    # 2) Legacy StegDB HTML comment footer
-    m2 = LEGACY_STEGDB_COMMENT_RE.search(text)
-    if m2:
-        return m2.group(1).strip(), m2.group(2).strip()
+    comment = list(LEGACY_COMMENT_RE.finditer(text))
+    if comment:
+        match = comment[-1]
+        return match.group(1).strip(), match.group(2).strip()
 
-    # 3) Legacy emoji footer form (old docs)
-    em = re.search(r"🧭\s*\*\*KV Layer:\*\*\s*([A-Z_]+)", text)
-    sc = re.search(r"🏷️\s*\*\*KV Scope:\*\*\s*(.+)", text)
-    return (em.group(1).strip() if em else None, sc.group(1).strip() if sc else None)
+    layer = list(LEGACY_LAYER_RE.finditer(text))
+    scope = list(LEGACY_SCOPE_RE.finditer(text))
+    return (
+        layer[-1].group(1).strip() if layer else None,
+        scope[-1].group(1).strip() if scope else None,
+    )
+
 
 def strip_existing_footer(text: str) -> str:
-    """
-    Removes known footer blocks (new + legacy) by truncating from the nearest separator above it.
-    Conservative: only strips if it finds a recognized footer marker.
-    """
-    markers = [
-        "🔒 Layer:",  # new footer
-        "StegDB: kv.layer.v1",  # legacy comment
-        "🧭 **KV Layer:**",      # legacy emoji footer
+    markers = (
+        "🔒 Layer:",
+        "StegDB: kv.layer.v1",
+        "🧭 **KV Layer:**",
         "🧬 **StegDB:** managed • rule=kv.layer.v1",
-    ]
-
-    idx = -1
-    for mk in markers:
-        j = text.rfind(mk)
-        if j > idx:
-            idx = j
-
-    if idx == -1:
+    )
+    index = max((text.rfind(marker) for marker in markers), default=-1)
+    if index < 0:
         return text
+    separator = text.rfind("\n---", 0, index)
+    cut = separator if separator >= 0 else index
+    return text[:cut].rstrip() + "\n"
 
-    # Find nearest separator above marker
-    sep_idx = text.rfind("\n---", 0, idx)
-    if sep_idx == -1:
-        # fallback: cut from marker itself
-        return text[:idx].rstrip() + "\n"
-    return text[:sep_idx].rstrip() + "\n"
 
 def build_footer(layer: str) -> str:
-    """
-    Builds the new simple footer format.
-    """
-    if layer == "RUNTIME_TEMPLATE":
-        line = FOOTER_VAULT_TEMPLATE_LINE
-    else:
-        line = FOOTER_FRAMEWORK_LINE
-    return "\n\n---\n\n" + line + "\n"
+    return f"\n\n---\n\n{FOOTER_BY_LAYER[layer]}\n"
 
-def is_binary(p: Path) -> bool:
-    try:
-        b = p.read_bytes()
-    except Exception:
+
+def has_canonical_footer(text: str, layer: str) -> bool:
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if not lines or lines[-1].strip() != FOOTER_BY_LAYER[layer]:
         return False
-    return b"\x00" in b
+    index = len(lines) - 2
+    while index >= 0 and not lines[index].strip():
+        index -= 1
+    return index >= 0 and lines[index].strip() == "---"
+
+
+def is_binary(path: Path) -> bool:
+    try:
+        return b"\x00" in path.read_bytes()
+    except OSError:
+        return False
+
+
+def iter_files() -> List[Path]:
+    return [
+        path
+        for path in REPO_ROOT.rglob("*")
+        if path.is_file() and not any(part in SKIP_PARTS for part in path.parts)
+    ]
+
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["validate", "auto-label", "suggest"], default="validate")
-    ap.add_argument("--paths", nargs="*", default=[], help="Optional path globs to limit checks")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["validate", "auto-label", "suggest"], default="validate")
+    parser.add_argument("--paths", nargs="*", default=[], help="Optional repository-relative globs")
+    args = parser.parse_args()
 
     cfg = load_config()
+    enforcement = cfg.get("enforce", {})
+    footer_cfg = enforcement.get("markdown_footer", {})
+    footer_required = bool(footer_cfg.get("required", True))
+    forbidden_lines = set(enforcement.get("forbidden_footer_lines", []))
 
     violations: List[Tuple[str, str, str]] = []
     suggestions: List[Tuple[str, str, str]] = []
     touched = 0
+    total_binary_bytes = 0
 
-    max_bin = cfg["enforce"]["binary_disallow"].get("max_binary_bytes_in_repo", 0)
-    total_bin = 0
-
-    for p in REPO_ROOT.rglob("*"):
-        if not p.is_file():
-            continue
-        r = relpath(p)
-        if r.startswith(".git/"):
+    for path in iter_files():
+        rel = relpath(path)
+        if args.paths and not match_any(rel, args.paths):
             continue
 
-        if args.paths and not any(fnmatch.fnmatch(r, g.replace(os.sep, "/")) for g in args.paths):
+        binary_cfg = enforcement.get("binary_disallow", {})
+        if binary_cfg.get("enabled", False) and is_binary(path):
+            total_binary_bytes += path.stat().st_size
+
+        if path.suffix.lower() != ".md":
             continue
 
-        # Binary accounting
-        if cfg["enforce"]["binary_disallow"].get("enabled", False) and is_binary(p):
-            total_bin += p.stat().st_size
-
-        # Only enforce footers on markdown
-        if p.suffix.lower() != ".md":
+        text = path.read_text(encoding="utf-8", errors="replace")
+        found_forbidden = [line for line in forbidden_lines if re.search(rf"(?m)^\s*{re.escape(line)}\s*$", text)]
+        if found_forbidden:
+            violations.append((rel, "FORBIDDEN_FOOTER", ", ".join(sorted(found_forbidden))))
             continue
 
-        text = p.read_text(encoding="utf-8", errors="replace")
-
-        # Hard fail markers from config + forbidden layer phrases
-        hits = [mk for mk in cfg["enforce"].get("hard_fail_markers", []) if mk in text]
-        for mk in FORBIDDEN_LAYER_PHRASES:
-            if mk in text and mk not in hits:
-                hits.append(mk)
-
-        if hits:
-            violations.append((r, "HARD_FAIL_MARKER", f"Found: {', '.join(hits)}"))
+        layer = expected_layer(rel, cfg)
+        if layer not in FOOTER_BY_LAYER:
             continue
 
-        layer = expected_layer(r, cfg)
+        found_layer, _ = parse_footer(text)
+        missing = found_layer is None
+        mismatch = found_layer is not None and found_layer != layer
+        noncanonical = found_layer == layer and not has_canonical_footer(text, layer)
 
-        if layer in ("FRAMEWORK", "RUNTIME_TEMPLATE"):
-            found_layer, _ = parse_footer(text)
+        if args.mode == "auto-label" and (missing or mismatch or noncanonical):
+            normalized = strip_existing_footer(text).rstrip() + build_footer(layer)
+            path.write_text(normalized, encoding="utf-8", newline="\n")
+            touched += 1
+            continue
 
-            # Normalize legacy variants (e.g., legacy footer wrote FRAMEWORK/RUNTIME_TEMPLATE)
-            # We only accept correct mapping for this repo.
-            if found_layer is None:
-                violations.append((r, "MISSING_FOOTER", f"Expected footer for {layer}"))
-                if args.mode == "auto-label":
-                    new_text = strip_existing_footer(text).rstrip() + build_footer(layer)
-                    p.write_text(new_text, encoding="utf-8", newline="\n")
-                    touched += 1
-            else:
-                # If legacy footer says FRAMEWORK/RUNTIME_TEMPLATE, ensure it matches expected layer
-                # If legacy footer says something else, it's a mismatch too.
-                if found_layer != layer:
-                    violations.append((r, "FOOTER_MISMATCH", f"Expected {layer}, found {found_layer}"))
-                    if args.mode == "auto-label":
-                        new_text = strip_existing_footer(text).rstrip() + build_footer(layer)
-                        p.write_text(new_text, encoding="utf-8", newline="\n")
-                        touched += 1
-                else:
-                    # Footer exists and maps correctly — ensure it is in the new simple format when auto-labeling
-                    if args.mode == "auto-label":
-                        # Only rewrite if not already in new format
-                        if not FOOTER_LINE_RE.search(text):
-                            new_text = strip_existing_footer(text).rstrip() + build_footer(layer)
-                            p.write_text(new_text, encoding="utf-8", newline="\n")
-                            touched += 1
+        if mismatch:
+            violations.append((rel, "FOOTER_MISMATCH", f"expected {layer}, found {found_layer}"))
+        elif missing and footer_required:
+            violations.append((rel, "MISSING_FOOTER", f"expected {FOOTER_BY_LAYER[layer]}"))
+        elif noncanonical:
+            violations.append((rel, "NONCANONICAL_FOOTER", f"expected final footer {FOOTER_BY_LAYER[layer]}"))
 
-        if args.mode == "suggest":
-            if r.startswith("docs/") and ("vault_template" in text or "00_Inbox" in text or "_Index" in text):
-                suggestions.append(
-                    (r, "MAYBE_TEMPLATE_DOC",
-                     "Consider moving to vault_template/KnowledgeVault/ or rewriting as framework doc.")
-                )
+        if args.mode == "suggest" and rel.startswith("docs/"):
+            if any(token in text for token in ("vault_template", "00_Inbox", "_Index")):
+                suggestions.append((
+                    rel,
+                    "MAYBE_TEMPLATE_DOC",
+                    "Review whether this is framework guidance or content that belongs under vault_template/KnowledgeVault/.",
+                ))
 
-    if cfg["enforce"]["binary_disallow"].get("enabled", False) and max_bin and total_bin > max_bin:
-        violations.append(("<repo>", "BINARY_SIZE_LIMIT", f"Binary bytes {total_bin} exceed limit {max_bin}"))
+    binary_cfg = enforcement.get("binary_disallow", {})
+    limit = int(binary_cfg.get("max_binary_bytes_in_repo", 0) or 0)
+    if binary_cfg.get("enabled", False) and limit and total_binary_bytes > limit:
+        violations.append(("<repo>", "BINARY_SIZE_LIMIT", f"{total_binary_bytes} bytes exceeds {limit}"))
 
     if violations:
         print("\nKV Layer Check — Violations")
-        for r, code, msg in violations:
-            print(f"- {r}: {code} — {msg}")
+        for rel, code, message in violations:
+            print(f"- {rel}: {code} — {message}")
 
     if suggestions:
         print("\nKV Layer Check — Suggestions")
-        for r, code, msg in suggestions:
-            print(f"- {r}: {code} — {msg}")
+        for rel, code, message in suggestions:
+            print(f"- {rel}: {code} — {message}")
 
     if args.mode == "auto-label":
         print(f"\nAuto-label: updated {touched} file(s).")
+    elif not violations:
+        state = "required" if footer_required else "bootstrap/advisory"
+        print(f"KV Layer Check — OK (footer policy: {state}).")
 
-    # In validate mode, any violations should fail CI
-    return 1 if (violations and args.mode == "validate") else 0
+    return 1 if args.mode == "validate" and violations else 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
