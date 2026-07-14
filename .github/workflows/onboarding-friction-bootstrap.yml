@@ -1,0 +1,29 @@
+name: Onboarding friction bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/ISSUE_TEMPLATE/onboarding-friction.yml"
+      - ".github/workflows/onboarding-friction-bootstrap.yml"
+      - ".github/workflows/onboarding-friction.yml"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ensure onboarding labels exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create onboarding-friction --repo "${{ github.repository }}" --color D4C5F9 --description "Structured first-use or setup friction" --force
+          gh label create needs-reproduction --repo "${{ github.repository }}" --color FEF2C0 --description "Setup report needs reproducible details" --force
+          gh label create automation-candidate --repo "${{ github.repository }}" --color B60205 --description "Repeated friction eligible for repository automation" --force
+          for name in ios android windows macos linux other initializer unzip manual-copy release-verification markdown first-use; do
+            gh label create "friction:${name}" --repo "${{ github.repository }}" --color C5DEF5 --description "Automated onboarding-friction classification" --force
+          done
