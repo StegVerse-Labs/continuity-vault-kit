@@ -1,0 +1,76 @@
+name: Release integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/build_release.py"
+      - "tools/verify_release.py"
+      - "tools/test_release_tools.py"
+      - "vault_template/**"
+      - "VERSION"
+      - ".github/workflows/release-integrity.yml"
+  pull_request:
+    paths:
+      - "tools/build_release.py"
+      - "tools/verify_release.py"
+      - "tools/test_release_tools.py"
+      - "vault_template/**"
+      - "VERSION"
+      - ".github/workflows/release-integrity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-release-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run release tooling self-test
+        run: python3 tools/test_release_tools.py
+
+      - name: Rebuild release evidence
+        run: |
+          rm -rf dist
+          python3 tools/build_release.py
+          python3 tools/verify_release.py "dist/ContinuityVault_v$(cat VERSION).zip"
+
+      - name: Validate manifest shape
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          version = Path("VERSION").read_text(encoding="utf-8").strip()
+          manifest_path = Path("dist") / f"ContinuityVault_v{version}.zip.manifest.json"
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+          required = {"schema_version", "artifact", "version", "created_utc", "sha256", "contents_root", "file_count", "files"}
+          missing = sorted(required - manifest.keys())
+          if missing:
+              raise SystemExit(f"manifest missing fields: {missing}")
+          if manifest["file_count"] != len(manifest["files"]):
+              raise SystemExit("manifest file_count does not match files inventory")
+          if not manifest["files"]:
+              raise SystemExit("manifest files inventory is empty")
+          print(f"manifest validated: {manifest['file_count']} files")
+          PY
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: continuity-vault-release-integrity-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
