@@ -45,6 +45,10 @@ WORKFLOWS = {
         "pull_request:",
         "types: [closed]",
         "candidate-supported",
+        "contents: write",
+        "Record implemented corrections in Unreleased changelog",
+        "CHANGELOG.md",
+        "git commit -m \"chore: record implemented automation candidate\"",
     },
 }
 
@@ -112,6 +116,25 @@ def validate_release_cycle() -> None:
         fail("release cycle missing issue-free gate tokens: " + ", ".join(missing))
     if "issues: write" in release:
         fail("automated release must not require issue-write permission")
+
+
+def validate_candidate_release_bridge() -> None:
+    workflow = read_text(
+        REPO_ROOT / ".github" / "workflows" / "automation-candidate-implementation.yml"
+    )
+    required = {
+        "candidate-supported",
+        "candidate-implemented",
+        "CHANGELOG.md",
+        "## [Unreleased]",
+        "Automated onboarding correction",
+        "git push origin HEAD:main",
+    }
+    missing = sorted(token for token in required if token not in workflow)
+    if missing:
+        fail("candidate implementation is not connected to release activation: " + ", ".join(missing))
+    if "[skip ci]" in workflow:
+        fail("candidate changelog commit must not suppress release-integrity validation")
 
 
 def validate_friction_registry() -> None:
@@ -205,6 +228,7 @@ def main() -> int:
     checks = [
         validate_workflows,
         validate_release_cycle,
+        validate_candidate_release_bridge,
         validate_friction_registry,
         validate_issue_form,
         validate_threshold_consistency,
