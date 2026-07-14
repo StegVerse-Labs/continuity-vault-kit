@@ -1,0 +1,96 @@
+name: Onboarding friction
+
+description: Report a setup, initialization, copy, verification, or first-use problem without sharing private vault content.
+title: "[Onboarding friction]: "
+labels:
+  - onboarding-friction
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for reproducible setup friction. Do not attach private vault files, credentials, recovery material, medical records, or personal conversation content.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - iPhone or iPad
+        - Android
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: path
+    attributes:
+      label: Setup path
+      options:
+        - Python initializer
+        - Download and unzip
+        - Copy vault_template manually
+        - Release ZIP verification
+        - Opening or editing Markdown files
+        - Unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Failure stage
+      options:
+        - Download
+        - Unzip or copy
+        - Dry run
+        - Initialization
+        - Verification
+        - Opening the vault
+        - Creating the first note
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Kit version
+      description: Use the VERSION file or release tag when known.
+      placeholder: 0.1.2
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What you attempted
+      description: Include the exact command or visible steps, but remove private paths, usernames, and sensitive content.
+      placeholder: python3 tools/init_vault.py --dry-run /path/to/parent
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened
+      description: Paste the shortest safe error message or describe the visible result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed credentials, private vault content, recovery material, and unnecessary personal information.
+          required: true
+        - label: I understand that checksums and installation receipts verify files and copy behavior, not the truth or safety of my content.
+          required: true
