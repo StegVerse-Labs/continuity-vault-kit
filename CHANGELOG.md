@@ -8,6 +8,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [0.1.5] – 2026-07-15
+
 ### Added
 - `docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md` defining governed reconstruction goals, material-property requirements, explicit capacity budgets, sensor substitution, adaptive sampling, fidelity elevation, exhaustion behavior, and capability-loss receipts
 - `schemas/storage-budget-policy.schema.json` as the machine-readable storage-budget and adaptive-capture contract
