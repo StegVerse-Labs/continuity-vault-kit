@@ -1,0 +1,95 @@
+{
+  "schema_version": "0.1",
+  "experience_id": "exp_voice_20260715_001",
+  "start_time": "2026-07-15T18:00:00Z",
+  "end_time": "2026-07-15T18:00:12Z",
+  "participants": [
+    {"participant_id": "user_001", "role": "speaker", "identity_proof_ref": null},
+    {"participant_id": "auri_001", "role": "system", "identity_proof_ref": "proof:auri:001"}
+  ],
+  "authorized_devices": [
+    {"device_id": "device_phone_001", "authority_state": "authorized", "attestation_ref": "attestation:phone:001"}
+  ],
+  "streams": [
+    {
+      "stream_id": "stream_text_001",
+      "modality": "text",
+      "artifact_class": "derived",
+      "capture_start": "2026-07-15T18:00:00Z",
+      "capture_end": "2026-07-15T18:00:12Z",
+      "source_device_id": "device_phone_001",
+      "clock_quality": "synchronized",
+      "user_recall_available": true,
+      "retention_class": "searchable_derived",
+      "fidelity_class": "semantic_episode_record",
+      "generated": false,
+      "source_stream_refs": ["stream_audio_ephemeral_001"],
+      "transform_method": "speech_to_text",
+      "transform_version": "stt-local-0.1",
+      "payload_ref": "vault://derived/transcripts/stream_text_001",
+      "integrity": {"algorithm": "sha256", "digest": "1111111111111111111111111111111111111111111111111111111111111111"}
+    },
+    {
+      "stream_id": "stream_audio_ephemeral_001",
+      "modality": "audio",
+      "artifact_class": "continuity",
+      "capture_start": "2026-07-15T18:00:00Z",
+      "capture_end": "2026-07-15T18:00:12Z",
+      "source_device_id": "device_phone_001",
+      "clock_quality": "synchronized",
+      "user_recall_available": false,
+      "retention_class": "deleted_with_receipt",
+      "fidelity_class": "continuity_receipt_only",
+      "generated": false,
+      "source_stream_refs": [],
+      "transform_method": null,
+      "transform_version": null,
+      "payload_ref": null,
+      "integrity": {"algorithm": "sha256", "digest": "2222222222222222222222222222222222222222222222222222222222222222"}
+    }
+  ],
+  "consent_transitions": [
+    {
+      "participant_id": "user_001",
+      "effective_time": "2026-07-15T18:00:00Z",
+      "scope": ["transient_audio_capture", "speech_to_text"],
+      "state": "granted",
+      "authority_ref": "consent:user_001:001"
+    }
+  ],
+  "retention_policy": {
+    "policy_id": "policy:voice:transcription-only:v1",
+    "default_voice_mode": "transcription_only",
+    "raw_media_default": "discard_after_processing",
+    "fidelity_reduction_allowed": true,
+    "maximum_buffer_seconds": 30
+  },
+  "provenance_root": {"algorithm": "sha256", "digest": "3333333333333333333333333333333333333333333333333333333333333333"},
+  "reconstruction_rights": [
+    {
+      "principal_id": "user_001",
+      "scope": ["canonical_text", "synthesized_playback"],
+      "may_access_raw": false,
+      "may_generate_reconstruction": true,
+      "expires_at": null
+    }
+  ],
+  "completeness_status": "complete_for_declared_scope",
+  "missing_evidence": [],
+  "fidelity_transitions": [
+    {
+      "transition_id": "transition_audio_delete_001",
+      "source_stream_id": "stream_audio_ephemeral_001",
+      "from_class": "raw_original",
+      "to_class": "continuity_receipt_only",
+      "effective_time": "2026-07-15T18:00:20Z",
+      "policy_ref": "policy:voice:transcription-only:v1",
+      "actor_ref": "device_phone_001",
+      "method": "verified_transcription_then_delete",
+      "information_loss": ["original_voice", "background_audio", "prosody"],
+      "reversible": false,
+      "source_integrity": {"algorithm": "sha256", "digest": "4444444444444444444444444444444444444444444444444444444444444444"},
+      "destination_integrity": {"algorithm": "sha256", "digest": "2222222222222222222222222222222222222222222222222222222222222222"}
+    }
+  ]
+}
