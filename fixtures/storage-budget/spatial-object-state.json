@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "policy-spatial-object-state",
+  "policy_version": "0.1.0",
+  "reconstruction_goal": "spatial_object_state_recall",
+  "material_properties": [
+    {"property": "object_identity", "requirement": "required", "coverage_refs": ["object-events"]},
+    {"property": "object_position_and_trajectory", "requirement": "required", "coverage_refs": ["depth-track", "motion-track"]},
+    {"property": "scene_geometry", "requirement": "required", "coverage_refs": ["depth-track"]},
+    {"property": "original_pixel_level_video_evidence", "requirement": "omitted", "coverage_refs": [], "omission_reason": "Scene-state reconstruction is sufficient for the declared goal"}
+  ],
+  "capacity_budget": {
+    "max_bytes_per_episode": 268435456,
+    "max_bytes_per_hour": 67108864,
+    "max_bytes_per_day": 1073741824,
+    "local_bytes": 134217728,
+    "protected_evidence_bytes": 0,
+    "archival_bytes": 125829120,
+    "continuity_receipt_reserve_bytes": 4194304,
+    "replication_allowance": 2,
+    "temporary_buffer_bytes": 16777216,
+    "temporary_overage_allowed": false,
+    "ephemeral_compute_excluded": true,
+    "retention": [
+      {"artifact_class": "continuity", "duration_seconds": null, "indefinite": true},
+      {"artifact_class": "derived", "duration_seconds": 31536000, "indefinite": false}
+    ]
+  },
+  "capture_plan": {
+    "goal_satisfied_at_start": true,
+    "declared_omissions": ["original_pixel_level_video_evidence"],
+    "streams": [
+      {"stream_ref": "depth-track", "modality": "depth", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 33554432, "sampling_rate": 10, "sampling_unit": "frames_per_second", "fidelity_class": "scene_state_record", "covered_properties": ["object_position_and_trajectory", "scene_geometry"], "user_recall_available": true},
+      {"stream_ref": "motion-track", "modality": "motion", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 4194304, "sampling_rate": 30, "sampling_unit": "samples_per_second", "fidelity_class": "scene_state_record", "covered_properties": ["object_position_and_trajectory"], "user_recall_available": true},
+      {"stream_ref": "object-events", "modality": "text", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 1048576, "sampling_rate": null, "sampling_unit": null, "fidelity_class": "semantic_episode_record", "covered_properties": ["object_identity"], "user_recall_available": true}
+    ]
+  },
+  "adaptive_sampling_rules": [
+    {"rule_id": "reduce-depth-stable-scene", "trigger": "stable_scene", "action": "reduce_sampling", "affected_stream_refs": ["depth-track"], "required_properties_preserved": true, "receipt_required": true, "threshold": 30}
+  ],
+  "fidelity_elevation_rules": [
+    {"rule_id": "restore-depth-on-object-movement", "trigger": "material_object_movement", "affected_stream_refs": ["depth-track"], "elevated_fidelity_class": "sparse_reconstruction_package", "maximum_duration_seconds": 120, "authority_required": true, "receipt_required": true}
+  ],
+  "budget_exhaustion_behavior": "reduce_preferred_properties_only",
+  "receipt_policy": {"events": ["initial_capture_plan", "adaptive_sampling_change", "fidelity_elevation", "budget_threshold_crossing", "budget_exhaustion"], "integrity_algorithm": "sha256"},
+  "authority_ref": "policy-authority:local-owner",
+  "consent_policy_ref": "consent:episode-current"
+}
