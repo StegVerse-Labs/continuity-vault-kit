@@ -5,7 +5,8 @@ continuity, pair-bound authorization, authenticated minimized ingestion, bounded
 ephemeral reconstruction, durable replay controls, lifecycle tombstones,
 plaintext-free journals, authoritative commit boundaries, receipt propagation,
 deployment adapter contracts, provider activation receipts, fail-closed provider
-readiness, and live conformance evidence without storing plaintext chat in the chain.
+readiness, live conformance evidence, and concrete provider probes without storing
+plaintext chat in the chain.
 """
 
 from .access import AccessReceipt, CallableKeyUnwrapper, KeyUnwrapper, RelationshipRegistry, RelationshipState, make_access_receipt
@@ -20,6 +21,7 @@ from .master_records_state import DurableMasterRecordsOutbox, InMemoryMasterReco
 from .proofs import CallableProofVerifier, ProofVerifier, require_dual_proof
 from .provider_activation import DeploymentReceipt, ProductionActivationProfile, ProviderSelection, default_aws_profile
 from .provider_conformance import ConformanceReport, ProviderProbe, ProviderProbeResult, assemble_deployment_receipt, run_provider_conformance
+from .provider_probes import AwsCliProbe, CommandRunner, HttpProbeClient, HttpsEndpointProbe, SpiffeWorkloadProbe, UrlLibHttpProbeClient, default_live_probes
 from .readiness import REQUIRED_PROVIDERS, ReadinessReport, load_and_validate, validate_provider_profile
 from .replay import DurableTransportReplayRegistry, InMemoryReplayStateStore, ReplayState, ReplayStateStore
 from .routing import OpaqueRouteEntry, OpaqueRouteIndex, validate_candidate_events
