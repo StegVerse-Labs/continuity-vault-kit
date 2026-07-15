@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/delegation-policy.schema.json",
+  "title": "Governed Delegation Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "delegation_id",
+    "principal",
+    "delegate",
+    "authority_source",
+    "scope",
+    "validity",
+    "confirmation_policy",
+    "receipt_policy",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "delegation_id": {"type": "string", "minLength": 1},
+    "principal": {"$ref": "#/$defs/entityRef"},
+    "delegate": {"$ref": "#/$defs/entityRef"},
+    "authority_source": {"enum": ["direct_instruction", "standing_delegation"]},
+    "purpose": {"type": "string", "minLength": 1},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions", "resources", "destinations"],
+      "properties": {
+        "actions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "resources": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "destinations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "constraints": {"type": "object"},
+        "exclusions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["starts_at", "revocable"],
+      "properties": {
+        "starts_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "revocable": {"const": true},
+        "revoked_at": {"type": ["string", "null"], "format": "date-time"},
+        "revocation_reason": {"type": ["string", "null"]}
+      }
+    },
+    "confirmation_policy": {
+      "enum": ["execute_when_covered", "always_confirm", "confirm_on_material_change", "confirm_by_risk_rule"]
+    },
+    "escalation_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "condition", "decision"],
+        "properties": {
+          "rule_id": {"type": "string", "minLength": 1},
+          "condition": {"type": "string", "minLength": 1},
+          "decision": {"const": "ASK"}
+        }
+      }
+    },
+    "receipt_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "events", "integrity_algorithm"],
+      "properties": {
+        "required": {"const": true},
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["delegation_created", "action_authorized", "action_completed", "action_failed", "escalation_requested", "delegation_revised", "delegation_revoked", "delegation_expired"]}
+        },
+        "integrity_algorithm": {"enum": ["sha256", "sha384", "sha512", "blake3"]}
+      }
+    },
+    "status": {"enum": ["proposed", "active", "revoked", "expired", "rejected"]},
+    "relationship_declaration_ref": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"authority_source": {"const": "direct_instruction"}}},
+      "then": {
+        "properties": {
+          "confirmation_policy": {"enum": ["execute_when_covered", "confirm_on_material_change"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "revoked"}}},
+      "then": {"properties": {"validity": {"required": ["revoked_at", "revocation_reason"]}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "active"}}},
+      "then": {"properties": {"validity": {"properties": {"revoked_at": {"type": "null"}}}}}
+    }
+  ],
+  "$defs": {
+    "entityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity_id", "entity_type"],
+      "properties": {
+        "entity_id": {"type": "string", "minLength": 1},
+        "entity_type": {"enum": ["user", "governed_ai", "organization", "service"]}
+      }
+    }
+  }
+}
