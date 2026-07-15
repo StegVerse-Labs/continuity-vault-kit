@@ -1,0 +1,41 @@
+{
+  "schema_version": "0.1",
+  "cases": [
+    {
+      "case_id": "narrow-private-group-only",
+      "transition": "narrow",
+      "from_policy_ref": "fixtures/delegation/standing-social-posts.json",
+      "requested_change": {"scope.destinations": ["facebook:private-family-group"]},
+      "requires_user_acceptance": true,
+      "result_status": "proposed"
+    },
+    {
+      "case_id": "expand-public-timeline",
+      "transition": "expand",
+      "from_policy_ref": "fixtures/delegation/standing-social-posts.json",
+      "requested_change": {"scope.destinations": ["facebook:private-family-group", "facebook:public-timeline"]},
+      "requires_user_acceptance": true,
+      "result_status": "proposed"
+    },
+    {
+      "case_id": "reject-proposal",
+      "transition": "reject",
+      "requires_user_acceptance": true,
+      "result_status": "rejected"
+    },
+    {
+      "case_id": "revoke-active-delegation",
+      "transition": "revoke",
+      "requires_user_acceptance": true,
+      "result_status": "revoked",
+      "receipt_event": "delegation_revoked"
+    },
+    {
+      "case_id": "expire-by-time",
+      "transition": "expire",
+      "requires_user_acceptance": false,
+      "result_status": "expired",
+      "receipt_event": "delegation_expired"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "dialogue_id": "family-photo-posting-preference",
+  "observations": [
+    "Post this selected family photo to the private family group.",
+    "Do the same with this one.",
+    "You can post selected family photos there without asking every time."
+  ],
+  "pattern": {
+    "purpose": "Post user-selected family photos to the private family group",
+    "actions": ["publish_post"],
+    "resources": ["photo:user_selected", "caption:user_supplied"],
+    "destinations": ["facebook:private-family-group"],
+    "constraints": {"visibility": "private_group"},
+    "exclusions": ["public_timeline", "location_tagging"],
+    "starts_at": "2026-07-15T21:10:00Z",
+    "expires_at": "2027-07-15T21:10:00Z",
+    "confirmation_policy": "confirm_on_material_change"
+  },
+  "expected_proposal": {
+    "authority_source": "standing_delegation",
+    "status": "proposed",
+    "self_activating": false,
+    "required_user_controls": ["accept", "narrow", "expand", "reject", "expire", "revoke"]
+  }
+}
