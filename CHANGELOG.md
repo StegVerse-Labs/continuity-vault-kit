@@ -8,6 +8,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [0.1.6] – 2026-07-15
+
 ### Added
 - `schemas/delegation-policy.schema.json` defining direct instructions and revocable standing delegations
 - `delegation/decision.py` with ACT, ASK, and DENY authority outcomes
