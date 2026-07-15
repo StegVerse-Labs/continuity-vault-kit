@@ -8,7 +8,22 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- `schemas/action-execution-envelope.schema.json` binding an ACT decision to an exact connector operation, destination, resource, payload, and idempotency key
+- `schemas/action-execution-receipt.schema.json` for PREPARED, EXECUTED, FAILED, and INDETERMINATE outcomes
+- `execution/adapter.py` with connector-neutral request preparation, exact binding checks, receipt generation, and duplicate suppression
+- Facebook `Good times!` reference envelope and execution-result fixtures
+- `tools/validate_action_execution.py`, `tests/test_action_execution.py`, and dedicated Governed Action Execution Validation CI
+
+### Improved
+- EXECUTED outcomes require platform identity and confirmation evidence
+- INDETERMINATE outcomes block automatic retry when duplicate side effects remain possible
+- prior EXECUTED receipts suppress duplicate execution and return the existing result
+- confirmed FAILED outcomes may retry only the exact same envelope
+- release handoff and downstream propagation evidence now identify published `v0.1.6`
+
+### Notes
+Connectors execute authority supplied by a valid envelope; they do not create, broaden, reinterpret, or retain authority. This implementation contains no live Facebook integration or platform credentials.
 
 ---
 
