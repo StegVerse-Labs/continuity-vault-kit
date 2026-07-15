@@ -5,11 +5,11 @@
   "repository": "StegVerse-Labs/continuity-vault-kit",
   "source_workflow": "Automated verified release",
   "source_workflow_conclusion": "success",
-  "source_workflow_run_id": "29435330853",
-  "source_workflow_run_url": "https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29435330853",
-  "source_head_sha": "45dd0a1a23ecf263f3b5e18541231e16221e8db2",
+  "source_workflow_run_id": "29435349217",
+  "source_workflow_run_url": "https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29435349217",
+  "source_head_sha": "5d82a1d56a90c67469a41e3770eb6d67d2db6f91",
   "current_version": "0.1.2",
   "release_required_after_run": true,
-  "generated_utc": "2026-07-15T17:09:32Z",
+  "generated_utc": "2026-07-15T17:09:48Z",
   "scope": "repository release-cycle outcome only; no certification of user-authored content"
 }
