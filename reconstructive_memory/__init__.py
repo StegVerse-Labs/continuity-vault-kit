@@ -4,8 +4,8 @@ This package is dependency-free and prototype-scoped. It models minimal
 continuity, pair-bound authorization, authenticated minimized ingestion, bounded
 ephemeral reconstruction, durable replay controls, lifecycle tombstones,
 plaintext-free journals, authoritative commit boundaries, receipt propagation,
-deployment adapter contracts, and provider activation receipts without storing
-plaintext chat in the chain.
+deployment adapter contracts, provider activation receipts, and fail-closed
+provider readiness without storing plaintext chat in the chain.
 """
 
 from .access import AccessReceipt, CallableKeyUnwrapper, KeyUnwrapper, RelationshipRegistry, RelationshipState, make_access_receipt
@@ -19,6 +19,7 @@ from .master_records import MasterRecordAcknowledgement, MasterRecordEnvelope, M
 from .master_records_state import DurableMasterRecordsOutbox, InMemoryMasterRecordsStateStore, MasterRecordsEntry, MasterRecordsState, MasterRecordsStateStore
 from .proofs import CallableProofVerifier, ProofVerifier, require_dual_proof
 from .provider_activation import DeploymentReceipt, ProductionActivationProfile, ProviderSelection, default_aws_profile
+from .readiness import REQUIRED_PROVIDERS, ReadinessReport, load_and_validate, validate_provider_profile
 from .replay import DurableTransportReplayRegistry, InMemoryReplayStateStore, ReplayState, ReplayStateStore
 from .routing import OpaqueRouteEntry, OpaqueRouteIndex, validate_candidate_events
 from .session import ReconstructionSessionCoordinator, ReconstructionSessionResult
