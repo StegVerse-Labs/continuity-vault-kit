@@ -27,6 +27,13 @@ jobs:
           echo "exit_code=$?" >> kv-layer-diagnostics.txt
           exit 0
 
+      - name: Capture emoji diagnostics
+        run: |
+          set +e
+          python3 tools/emoji_lint.py --strict > emoji-diagnostics.txt 2>&1
+          echo "exit_code=$?" >> emoji-diagnostics.txt
+          exit 0
+
       - name: Capture automation contract diagnostics
         run: |
           set +e
@@ -40,6 +47,7 @@ jobs:
           name: repository-validation-diagnostics-${{ github.sha }}
           path: |
             kv-layer-diagnostics.txt
+            emoji-diagnostics.txt
             automation-contract-diagnostics.txt
           if-no-files-found: error
           retention-days: 7
