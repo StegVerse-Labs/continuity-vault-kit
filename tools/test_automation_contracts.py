@@ -149,10 +149,19 @@ def validate_release_cycle_outcome() -> None:
     if missing:
         fail("release-cycle outcome receipt missing fields: " + ", ".join(missing))
     allowed = {"PUBLISHED", "SKIPPED", "FAILED", "INCOMPLETE", "RECONCILED"}
-    if receipt["outcome"] not in allowed:
+    outcome = receipt["outcome"]
+    if outcome not in allowed:
         fail("release-cycle outcome is not recognized")
-    if receipt["source_workflow"] != "Automated verified release":
-        fail("release-cycle receipt must identify its source workflow")
+    expected_source = (
+        "Reconcile published release evidence"
+        if outcome == "RECONCILED"
+        else "Automated verified release"
+    )
+    if receipt["source_workflow"] != expected_source:
+        fail(
+            "release-cycle receipt source workflow does not match outcome: "
+            f"expected {expected_source!r} for {outcome!r}"
+        )
     if not isinstance(receipt["release_required_after_run"], bool):
         fail("release_required_after_run must be boolean")
     scope = str(receipt["scope"]).lower()
