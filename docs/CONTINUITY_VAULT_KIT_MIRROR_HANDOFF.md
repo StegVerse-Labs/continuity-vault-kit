@@ -14,7 +14,7 @@ This file is the repository-local continuation source of truth. Read it before m
 
 Baseline use remains functional without an account, hosted service, SDK, database, telemetry, or connection to the wider StegVerse ecosystem.
 
-The vault does not phone home. Integrity tooling verifies package and copy behavior only. Repository workflows do not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content. Automation never authorizes access to or mutation of user vault content.
+The vault does not phone home. Integrity tooling verifies package and copy behavior only. Repository automation does not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content. Automation never authorizes access to or mutation of user vault content.
 
 Onboarding-friction automation retains its evidence threshold of three reports before a candidate may be treated as supported. That threshold authorizes investigation only, never automatic mutation. Any supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
 
