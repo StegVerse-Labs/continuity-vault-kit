@@ -98,4 +98,6 @@ The correct public claim is therefore:
 
 > A working local-first prototype is built and publicly verifiable. It creates canonical conversation events, commits them into a Merkle-verifiable chain, applies distinct retention classes, indexes durable consequences, and reconstructs historical decisions with provenance. The larger production architecture remains under development.
 
+---
+
 🔒 Layer: Framework | KV
