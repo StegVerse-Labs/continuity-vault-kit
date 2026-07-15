@@ -54,6 +54,18 @@ A pair binding is valid only for one relationship epoch. Revocation makes that e
 
 The v0.1 `RelationshipRegistry` models active and revoked epochs. It is intentionally local and in-memory. A production registry must obtain authoritative revocation state and verify StegID and entity proofs at the access boundary.
 
+## Dual-proof verification boundary
+
+`ProofVerifier` separates proof presence from proof validity. A nonempty StegID or entity proof is not sufficient. Both proofs must be independently accepted by a verifier before protected routing, key release, or reconstruction proceeds.
+
+The callable implementation is an adapter boundary only. It does not define a signature suite, trust store, attestation format, or replay-defense protocol. Those remain production security gates.
+
+## Minimized Ecosystem Chat ingestion
+
+`EcosystemChatIngestor` accepts only user-approved observations. It creates a minimal `ChainEvent` that contains no raw chat text. For reconstructable retention, a caller-supplied minimizer selects the smallest approved durable representation and a separate `ContentProtector` encrypts and binds it outside the chain.
+
+Integrity-only observations create no protected object and preserve no content commitment. Unapproved observations fail closed. A live transport adapter must still prove that the approval, policy, pair, and event-order inputs are authentic before invoking this boundary.
+
 ## Key-unwrapping boundary
 
 `KeyUnwrapper` is an interface, not a key derivation scheme. Public StegID, entity, pair, and event hashes must never be used directly as encryption keys. The callable prototype validates pair, policy, and epoch state before delegating to an external unwrap operation and rejects empty or invalid key material.
@@ -81,11 +93,13 @@ The receipt does not contain reconstructed plaintext, raw search terms, or the r
 
 ## Fail-closed rules
 
-Reconstruction, routing, or key release fails when:
+Reconstruction, routing, ingestion, proof verification, or key release fails when:
 
-- either user or entity proof is missing;
+- either user or entity proof is absent or fails verification;
 - the pair identifier, relationship epoch, or policy does not match;
 - the relationship is revoked or unknown;
+- an observation lacks user approval;
+- reconstructable retention produces no minimized content;
 - an event link or content commitment fails verification;
 - a protected object is unavailable;
 - a request crosses pair or policy boundaries;
@@ -99,9 +113,13 @@ Reconstruction, routing, or key release fails when:
 
 `reconstructive_memory/access.py` provides relationship-epoch state and revocation, fail-closed relationship resolution, a concrete key-unwrapping interface boundary, and hashed access receipts that exclude plaintext.
 
+`reconstructive_memory/proofs.py` provides independent StegID and designated-entity proof verification boundaries.
+
+`reconstructive_memory/ingestion.py` provides user-approved, minimized Ecosystem Chat observation ingestion with protected-content separation.
+
 `reconstructive_memory/routing.py` provides opaque candidate routing, event-set commitments, bounded candidate selection, and pair/policy revalidation.
 
-The JSON Schemas define the minimal event and access-receipt contracts. Unit tests cover reconstruction, integrity-only behavior, pair mismatch, bounded windows, revocation, epoch mismatch, key unwrap refusal, opaque routing boundaries, and plaintext-free access receipts.
+The JSON Schemas define the minimal event and access-receipt contracts. Unit tests cover reconstruction, integrity-only behavior, pair mismatch, bounded windows, revocation, epoch mismatch, proof refusal, key unwrap refusal, minimized ingestion, opaque routing boundaries, and plaintext-free access receipts.
 
 Run the complete dependency-free validation with:
 
@@ -114,13 +132,13 @@ python3 tools/check_reconstructive_memory.py
 This prototype does not yet provide:
 
 - production cryptography or key management;
-- StegID signature verification;
-- AI-entity attestation;
+- a concrete StegID signature suite;
+- a concrete AI-entity attestation suite;
 - hardware-backed or threshold key unwrapping;
 - encrypted semantic indexing;
 - process-level memory zeroization;
 - distributed custody or Master-Records installation;
-- live Ecosystem Chat ingestion.
+- live Ecosystem Chat transport integration.
 
 Those are successor implementation gates, not implied capabilities.
 
