@@ -4,8 +4,8 @@ This package is intentionally dependency-free and prototype-scoped. It models a
 minimal continuity chain, pair-bound authorization, bounded ephemeral
 reconstruction, relationship epochs, proof verification, minimized chat
 ingestion, key-unwrapping boundaries, opaque routing, expiring capabilities,
-protected-object tombstones, and access receipts without storing plaintext chat
-content in the chain.
+protected-object tombstones, coordinated reconstruction sessions, and access
+receipts without storing plaintext chat content in the chain.
 """
 
 from .core import (
@@ -33,6 +33,7 @@ from .lifecycle import (
 )
 from .proofs import CallableProofVerifier, ProofVerifier, require_dual_proof
 from .routing import OpaqueRouteEntry, OpaqueRouteIndex, validate_candidate_events
+from .session import ReconstructionSessionCoordinator, ReconstructionSessionResult
 
 __all__ = [
     "AccessReceipt",
@@ -54,6 +55,8 @@ __all__ = [
     "ProofVerifier",
     "ProtectedObject",
     "ReconstructionResult",
+    "ReconstructionSessionCoordinator",
+    "ReconstructionSessionResult",
     "RelationshipRegistry",
     "RelationshipState",
     "compute_pair_id",
