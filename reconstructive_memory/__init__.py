@@ -2,8 +2,9 @@
 
 This package is intentionally dependency-free and prototype-scoped. It models a
 minimal continuity chain, pair-bound authorization, bounded ephemeral
-reconstruction, relationship epochs, key-unwrapping boundaries, and access
-receipts without storing plaintext chat content in the chain.
+reconstruction, relationship epochs, key-unwrapping boundaries, access
+receipts, and opaque candidate routing without storing plaintext chat content
+in the chain.
 """
 
 from .core import (
@@ -22,6 +23,7 @@ from .access import (
     RelationshipState,
     make_access_receipt,
 )
+from .routing import OpaqueRouteEntry, OpaqueRouteIndex, validate_candidate_events
 
 __all__ = [
     "AccessReceipt",
@@ -30,10 +32,13 @@ __all__ = [
     "ChainEvent",
     "EphemeralReconstructor",
     "KeyUnwrapper",
+    "OpaqueRouteEntry",
+    "OpaqueRouteIndex",
     "ProtectedObject",
     "ReconstructionResult",
     "RelationshipRegistry",
     "RelationshipState",
     "compute_pair_id",
     "make_access_receipt",
+    "validate_candidate_events",
 ]
