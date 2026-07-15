@@ -2,9 +2,9 @@
 
 This package is dependency-free and prototype-scoped. It models minimal
 continuity, pair-bound authorization, authenticated minimized ingestion, bounded
-ephemeral reconstruction, replay controls, lifecycle tombstones, plaintext-free
-journals, and authoritative commit boundaries without storing plaintext chat in
-the chain.
+ephemeral reconstruction, durable replay controls, lifecycle tombstones,
+plaintext-free journals, and authoritative commit boundaries without storing
+plaintext chat in the chain.
 """
 
 from .access import (
@@ -33,6 +33,7 @@ from .lifecycle import (
     make_tombstone_event,
 )
 from .proofs import CallableProofVerifier, ProofVerifier, require_dual_proof
+from .replay import DurableTransportReplayRegistry, InMemoryReplayStateStore, ReplayState, ReplayStateStore
 from .routing import OpaqueRouteEntry, OpaqueRouteIndex, validate_candidate_events
 from .session import ReconstructionSessionCoordinator, ReconstructionSessionResult
 from .transport import (
@@ -55,8 +56,10 @@ __all__ = [
     "ChatTransportEnvelope",
     "CommitSnapshot",
     "ContentProtector",
+    "DurableTransportReplayRegistry",
     "EcosystemChatIngestor",
     "EphemeralReconstructor",
+    "InMemoryReplayStateStore",
     "IngestionResult",
     "KeyUnwrapper",
     "ObjectLifecycleRegistry",
@@ -71,6 +74,8 @@ __all__ = [
     "ReconstructionSessionResult",
     "RelationshipRegistry",
     "RelationshipState",
+    "ReplayState",
+    "ReplayStateStore",
     "SessionJournal",
     "SessionJournalEntry",
     "TransportReplayRegistry",
