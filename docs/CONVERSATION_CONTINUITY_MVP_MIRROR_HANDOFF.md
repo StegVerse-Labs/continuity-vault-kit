@@ -73,4 +73,6 @@ Add signed Merkle inclusion proofs and encrypted payload custody while keeping t
 
 This file preserves the implementation state, public claim boundary, verification behavior, remaining modules, destination ownership, and next activation goal. The complete originating thread is ready for archiving without any additional part of the thread needed to move forward.
 
+---
+
 🔒 Layer: Framework | KV
