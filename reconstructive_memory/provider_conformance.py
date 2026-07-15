@@ -10,12 +10,12 @@ from .provider_activation import DeploymentReceipt, ProductionActivationProfile
 
 
 REQUIRED_ROLES = (
-    "stegid_verification",
-    "ai_entity_attestation",
-    "key_custody",
-    "replicated_state",
-    "ecosystem_chat",
-    "master_records",
+    "steg-id-signature",
+    "ai-entity-attestation",
+    "key-custody",
+    "replicated-state",
+    "ecosystem-chat",
+    "master-records",
 )
 
 
@@ -57,7 +57,7 @@ class ProviderProbeResult:
     def verify(self) -> None:
         if self.role not in REQUIRED_ROLES:
             raise ValueError("unsupported provider role")
-        if not self.resource_id or self.resource_id == "UNCONFIGURED":
+        if not self.resource_id or "UNCONFIGURED" in self.resource_id:
             raise ValueError("probe lacks configured resource")
         if not self.observed_identity or not self.capability:
             raise ValueError("probe lacks observed identity or capability")
@@ -134,10 +134,11 @@ def assemble_deployment_receipt(
     *,
     receipt_id: str,
     issued_at: int,
-    signer_identity: str,
 ) -> DeploymentReceipt:
     profile.verify()
     report.verify()
+    if not profile.activation_ready():
+        raise PermissionError("provider profile is not verified")
     if not report.ready:
         raise PermissionError("provider conformance is not ready")
     if not hmac.compare_digest(report.profile_commitment, profile.profile_hash):
@@ -146,10 +147,11 @@ def assemble_deployment_receipt(
     receipt = DeploymentReceipt(
         receipt_id=receipt_id,
         profile_hash=profile.profile_hash,
+        validation_commit=report.report_hash,
+        rollback_ref=profile.rollback_ref,
+        provider_evidence=evidence,
         issued_at=issued_at,
-        signer_identity=signer_identity,
-        evidence_commitments=evidence,
-        validation_commitment=report.report_hash,
+        decision="ALLOW",
     ).with_hash()
-    receipt.verify(profile)
+    receipt.verify()
     return receipt
