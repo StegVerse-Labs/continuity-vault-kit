@@ -1,0 +1,51 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "policy-experiential-playback",
+  "policy_version": "0.1.0",
+  "reconstruction_goal": "approximate_experiential_playback",
+  "material_properties": [
+    {"property": "spoken_semantic_content", "requirement": "required", "coverage_refs": ["transcript"]},
+    {"property": "speaker_timing_and_overlap", "requirement": "required", "coverage_refs": ["speaker-timing"]},
+    {"property": "body_pose_and_gesture", "requirement": "required", "coverage_refs": ["pose-track"]},
+    {"property": "scene_geometry", "requirement": "preferred", "coverage_refs": ["keyframes"]},
+    {"property": "exact_original_audio_waveform", "requirement": "omitted", "coverage_refs": [], "omission_reason": "Playback is explicitly approximate and synthesized"}
+  ],
+  "capacity_budget": {
+    "max_bytes_per_episode": 536870912,
+    "max_bytes_per_hour": 134217728,
+    "max_bytes_per_day": 2147483648,
+    "local_bytes": 268435456,
+    "protected_evidence_bytes": 0,
+    "archival_bytes": 260046848,
+    "continuity_receipt_reserve_bytes": 8388608,
+    "replication_allowance": 1.5,
+    "temporary_buffer_bytes": 33554432,
+    "temporary_overage_allowed": true,
+    "ephemeral_compute_excluded": true,
+    "retention": [
+      {"artifact_class": "continuity", "duration_seconds": null, "indefinite": true},
+      {"artifact_class": "derived", "duration_seconds": 31536000, "indefinite": false},
+      {"artifact_class": "generated_reconstruction", "duration_seconds": 2592000, "indefinite": false}
+    ]
+  },
+  "capture_plan": {
+    "goal_satisfied_at_start": true,
+    "declared_omissions": ["exact_original_audio_waveform"],
+    "streams": [
+      {"stream_ref": "transcript", "modality": "text", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 262144, "sampling_rate": null, "sampling_unit": null, "fidelity_class": "semantic_episode_record", "covered_properties": ["spoken_semantic_content"], "user_recall_available": true},
+      {"stream_ref": "speaker-timing", "modality": "audio", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 1048576, "sampling_rate": 100, "sampling_unit": "timing_events_per_second", "fidelity_class": "sparse_reconstruction_package", "covered_properties": ["speaker_timing_and_overlap"], "user_recall_available": true},
+      {"stream_ref": "pose-track", "modality": "motion", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 16777216, "sampling_rate": 15, "sampling_unit": "poses_per_second", "fidelity_class": "scene_state_record", "covered_properties": ["body_pose_and_gesture"], "user_recall_available": true},
+      {"stream_ref": "keyframes", "modality": "image", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 33554432, "sampling_rate": 0.2, "sampling_unit": "frames_per_second", "fidelity_class": "sparse_reconstruction_package", "covered_properties": ["scene_geometry"], "user_recall_available": true}
+    ]
+  },
+  "adaptive_sampling_rules": [
+    {"rule_id": "reduce-keyframes-stable-scene", "trigger": "stable_scene", "action": "reduce_sampling", "affected_stream_refs": ["keyframes"], "required_properties_preserved": true, "receipt_required": true, "threshold": 60}
+  ],
+  "fidelity_elevation_rules": [
+    {"rule_id": "elevate-on-low-confidence", "trigger": "low_reconstruction_confidence", "affected_stream_refs": ["keyframes", "pose-track"], "elevated_fidelity_class": "sparse_reconstruction_package", "maximum_duration_seconds": 180, "authority_required": true, "receipt_required": true}
+  ],
+  "budget_exhaustion_behavior": "request_additional_capacity",
+  "receipt_policy": {"events": ["initial_capture_plan", "adaptive_sampling_change", "fidelity_elevation", "budget_threshold_crossing", "budget_exhaustion", "capability_loss"], "integrity_algorithm": "sha256"},
+  "authority_ref": "policy-authority:local-owner",
+  "consent_policy_ref": "consent:episode-current"
+}

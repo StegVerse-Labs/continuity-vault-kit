@@ -58,7 +58,7 @@ WORKFLOWS = {
         "contents: write",
         "Record implemented corrections in Unreleased changelog",
         "CHANGELOG.md",
-        "git commit -m \"chore: record implemented automation candidate\"",
+        'git commit -m "chore: record implemented automation candidate"',
     },
 }
 
@@ -149,10 +149,19 @@ def validate_release_cycle_outcome() -> None:
     if missing:
         fail("release-cycle outcome receipt missing fields: " + ", ".join(missing))
     allowed = {"PUBLISHED", "SKIPPED", "FAILED", "INCOMPLETE", "RECONCILED"}
-    if receipt["outcome"] not in allowed:
+    outcome = receipt["outcome"]
+    if outcome not in allowed:
         fail("release-cycle outcome is not recognized")
-    if receipt["source_workflow"] != "Automated verified release":
-        fail("release-cycle receipt must identify its source workflow")
+    expected_source = (
+        "Reconcile published release evidence"
+        if outcome == "RECONCILED"
+        else "Automated verified release"
+    )
+    if receipt["source_workflow"] != expected_source:
+        fail(
+            "release-cycle receipt source workflow does not match outcome: "
+            f"expected {expected_source!r} for {outcome!r}"
+        )
     if not isinstance(receipt["release_required_after_run"], bool):
         fail("release_required_after_run must be boolean")
     scope = str(receipt["scope"]).lower()
@@ -241,13 +250,15 @@ def validate_scope_boundaries() -> None:
     required = {
         "standalone by default",
         "does not certify",
-        "does not phone home",
+        "no undeclared outbound transmission",
+        "explicit, revocable, scoped delegation",
+        "standing preferences",
         "smallest repository-native correction",
-        "never authorizes access to or mutation of user vault content",
+        "repository automation does not independently grant authority",
     }
     missing = sorted(token for token in required if token not in handoff)
     if missing:
-        fail("handoff missing automation scope boundaries: " + ", ".join(missing))
+        fail("handoff missing delegated-authority boundaries: " + ", ".join(missing))
 
 
 def validate_downstream_config() -> None:

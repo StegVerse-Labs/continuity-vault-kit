@@ -1,0 +1,46 @@
+name: Storage Budget Policy Validation
+
+on:
+  pull_request:
+    paths:
+      - "docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md"
+      - "schemas/storage-budget-policy.schema.json"
+      - "fixtures/storage-budget/**"
+      - "tools/validate_storage_budget_policy.py"
+      - "multimodal_storage/budget_planner.py"
+      - "tests/test_storage_budget_policy.py"
+      - "tests/test_budget_planner.py"
+      - ".github/workflows/storage-budget-policy.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md"
+      - "schemas/storage-budget-policy.schema.json"
+      - "fixtures/storage-budget/**"
+      - "tools/validate_storage_budget_policy.py"
+      - "multimodal_storage/budget_planner.py"
+      - "tests/test_storage_budget_policy.py"
+      - "tests/test_budget_planner.py"
+      - ".github/workflows/storage-budget-policy.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile executable policy surface
+        run: |
+          python -m py_compile tools/validate_storage_budget_policy.py multimodal_storage/budget_planner.py
+      - name: Validate reference policies
+        run: |
+          python tools/validate_storage_budget_policy.py fixtures/storage-budget/*.json
+      - name: Run invariant and planner tests
+        run: |
+          python -m unittest tests.test_storage_budget_policy tests.test_budget_planner -v

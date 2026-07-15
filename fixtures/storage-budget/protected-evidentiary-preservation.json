@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "policy-protected-evidence",
+  "policy_version": "0.1.0",
+  "reconstruction_goal": "protected_evidentiary_preservation",
+  "material_properties": [
+    {"property": "exact_original_audio_waveform", "requirement": "required", "coverage_refs": ["raw-audio"]},
+    {"property": "original_pixel_level_video_evidence", "requirement": "required", "coverage_refs": ["raw-video"]},
+    {"property": "precise_event_ordering", "requirement": "required", "coverage_refs": ["continuity"]},
+    {"property": "bounded_clock_synchronization", "requirement": "required", "coverage_refs": ["continuity"]}
+  ],
+  "capacity_budget": {
+    "max_bytes_per_episode": 8589934592,
+    "max_bytes_per_hour": 2147483648,
+    "max_bytes_per_day": 34359738368,
+    "local_bytes": 1073741824,
+    "protected_evidence_bytes": 6442450944,
+    "archival_bytes": 1069547520,
+    "continuity_receipt_reserve_bytes": 4194304,
+    "replication_allowance": 2,
+    "temporary_buffer_bytes": 536870912,
+    "temporary_overage_allowed": false,
+    "ephemeral_compute_excluded": true,
+    "retention": [
+      {"artifact_class": "continuity", "duration_seconds": null, "indefinite": true},
+      {"artifact_class": "protected_raw", "duration_seconds": 31536000, "indefinite": false},
+      {"artifact_class": "temporary_buffer", "duration_seconds": 600, "indefinite": false}
+    ]
+  },
+  "capture_plan": {
+    "goal_satisfied_at_start": true,
+    "declared_omissions": [],
+    "streams": [
+      {"stream_ref": "continuity", "modality": "text", "artifact_class": "continuity", "enabled": true, "estimated_bytes_per_hour": 262144, "sampling_rate": null, "sampling_unit": null, "fidelity_class": "continuity_receipt_only", "covered_properties": ["precise_event_ordering", "bounded_clock_synchronization"], "user_recall_available": true},
+      {"stream_ref": "raw-audio", "modality": "audio", "artifact_class": "protected_raw", "enabled": true, "estimated_bytes_per_hour": 134217728, "sampling_rate": 48000, "sampling_unit": "samples_per_second", "fidelity_class": "raw_original", "covered_properties": ["exact_original_audio_waveform"], "user_recall_available": false},
+      {"stream_ref": "raw-video", "modality": "video", "artifact_class": "protected_raw", "enabled": true, "estimated_bytes_per_hour": 1879048192, "sampling_rate": 30, "sampling_unit": "frames_per_second", "fidelity_class": "raw_original", "covered_properties": ["original_pixel_level_video_evidence"], "user_recall_available": false}
+    ]
+  },
+  "fidelity_elevation_rules": [
+    {"rule_id": "evidence-preservation-request", "trigger": "evidence_preservation_request", "affected_stream_refs": ["raw-audio", "raw-video"], "elevated_fidelity_class": "raw_original", "maximum_duration_seconds": 3600, "authority_required": true, "receipt_required": true}
+  ],
+  "budget_exhaustion_behavior": "fail_closed_for_declared_goal",
+  "capability_loss_policy": {"emit_declaration": true, "goal_may_remain_satisfied_after_required_property_loss": false, "remaining_reconstruction_class": "protected_partial"},
+  "receipt_policy": {"events": ["initial_capture_plan", "fidelity_elevation", "budget_threshold_crossing", "budget_exhaustion", "capability_loss", "deletion"], "integrity_algorithm": "sha512"},
+  "authority_ref": "policy-authority:evidence-custodian",
+  "consent_policy_ref": "consent:protected-evidence-current"
+}

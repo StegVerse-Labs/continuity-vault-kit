@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/storage-budget-policy.schema.json",
+  "title": "Storage Budget and Adaptive Capture Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_id",
+    "policy_version",
+    "reconstruction_goal",
+    "material_properties",
+    "capacity_budget",
+    "capture_plan",
+    "budget_exhaustion_behavior",
+    "receipt_policy"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "policy_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "policy_version": {"type": "string", "minLength": 1, "maxLength": 64},
+    "reconstruction_goal": {
+      "enum": [
+        "semantic_recall",
+        "spatial_object_state_recall",
+        "approximate_experiential_playback",
+        "protected_evidentiary_preservation"
+      ]
+    },
+    "material_properties": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/materialProperty"}
+    },
+    "capacity_budget": {"$ref": "#/$defs/capacityBudget"},
+    "capture_plan": {"$ref": "#/$defs/capturePlan"},
+    "sensor_substitutions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/sensorSubstitution"}
+    },
+    "adaptive_sampling_rules": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/adaptiveRule"}
+    },
+    "fidelity_elevation_rules": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/elevationRule"}
+    },
+    "budget_exhaustion_behavior": {
+      "enum": [
+        "stop_nonessential_capture",
+        "reduce_preferred_properties_only",
+        "request_additional_capacity",
+        "end_episode_capture",
+        "preserve_continuity_only",
+        "fail_closed_for_declared_goal"
+      ]
+    },
+    "capability_loss_policy": {"$ref": "#/$defs/capabilityLossPolicy"},
+    "receipt_policy": {"$ref": "#/$defs/receiptPolicy"},
+    "authority_ref": {"type": ["string", "null"]},
+    "consent_policy_ref": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "materialProperty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["property", "requirement", "coverage_refs"],
+      "properties": {
+        "property": {
+          "enum": [
+            "spoken_semantic_content",
+            "exact_original_audio_waveform",
+            "speaker_timing_and_overlap",
+            "visual_identity_evidence",
+            "body_pose_and_gesture",
+            "object_identity",
+            "object_position_and_trajectory",
+            "scene_geometry",
+            "visible_environment_text",
+            "ambient_sound_events",
+            "precise_event_ordering",
+            "bounded_clock_synchronization",
+            "environmental_measurements",
+            "original_pixel_level_video_evidence"
+          ]
+        },
+        "requirement": {"enum": ["required", "preferred", "omitted"]},
+        "coverage_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "acceptable_uncertainty": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "omission_reason": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"requirement": {"const": "required"}}, "required": ["requirement"]},
+          "then": {"properties": {"coverage_refs": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"requirement": {"const": "omitted"}}, "required": ["requirement"]},
+          "then": {
+            "required": ["omission_reason"],
+            "properties": {"coverage_refs": {"maxItems": 0}, "omission_reason": {"type": "string", "minLength": 1}}
+          }
+        }
+      ]
+    },
+    "capacityBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_bytes_per_episode",
+        "local_bytes",
+        "protected_evidence_bytes",
+        "archival_bytes",
+        "continuity_receipt_reserve_bytes",
+        "replication_allowance",
+        "temporary_buffer_bytes",
+        "ephemeral_compute_excluded"
+      ],
+      "properties": {
+        "max_bytes_per_episode": {"type": "integer", "minimum": 1},
+        "max_bytes_per_hour": {"type": ["integer", "null"], "minimum": 1},
+        "max_bytes_per_day": {"type": ["integer", "null"], "minimum": 1},
+        "local_bytes": {"type": "integer", "minimum": 0},
+        "protected_evidence_bytes": {"type": "integer", "minimum": 0},
+        "archival_bytes": {"type": "integer", "minimum": 0},
+        "continuity_receipt_reserve_bytes": {"type": "integer", "minimum": 1},
+        "replication_allowance": {"type": "number", "minimum": 1},
+        "temporary_buffer_bytes": {"type": "integer", "minimum": 0},
+        "temporary_overage_allowed": {"type": "boolean", "default": false},
+        "ephemeral_compute_excluded": {"const": true},
+        "retention": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/retentionRule"}
+        }
+      }
+    },
+    "retentionRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_class", "duration_seconds"],
+      "properties": {
+        "artifact_class": {"enum": ["continuity", "derived", "protected_raw", "generated_reconstruction", "temporary_buffer"]},
+        "duration_seconds": {"type": ["integer", "null"], "minimum": 0},
+        "indefinite": {"type": "boolean", "default": false}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"indefinite": {"const": true}}, "required": ["indefinite"]},
+          "then": {"properties": {"duration_seconds": {"type": "null"}}}
+        }
+      ]
+    },
+    "capturePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["streams", "goal_satisfied_at_start"],
+      "properties": {
+        "streams": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/streamPlan"}
+        },
+        "goal_satisfied_at_start": {"const": true},
+        "declared_omissions": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "streamPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stream_ref", "modality", "artifact_class", "enabled", "estimated_bytes_per_hour", "covered_properties"],
+      "properties": {
+        "stream_ref": {"type": "string", "minLength": 1},
+        "modality": {"enum": ["text", "audio", "video", "image", "depth", "motion", "location", "biometric", "ambient", "other"]},
+        "artifact_class": {"enum": ["continuity", "derived", "protected_raw", "generated_reconstruction", "ephemeral"]},
+        "enabled": {"type": "boolean"},
+        "estimated_bytes_per_hour": {"type": "integer", "minimum": 0},
+        "sampling_rate": {"type": ["number", "null"], "minimum": 0},
+        "sampling_unit": {"type": ["string", "null"]},
+        "fidelity_class": {"enum": ["raw_original", "high_fidelity_evidence", "sparse_reconstruction_package", "scene_state_record", "semantic_episode_record", "continuity_receipt_only", "not_applicable"]},
+        "covered_properties": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "user_recall_available": {"type": "boolean", "default": false}
+      }
+    },
+    "sensorSubstitution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["substitution_id", "replaced_stream_refs", "substitute_stream_refs", "preserved_properties", "lost_properties", "validation_basis", "restore_triggers"],
+      "properties": {
+        "substitution_id": {"type": "string", "minLength": 1},
+        "replaced_stream_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "substitute_stream_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "preserved_properties": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "lost_properties": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "expected_uncertainty": {"type": "number", "minimum": 0, "maximum": 1},
+        "validation_basis": {"type": "string", "minLength": 1},
+        "restore_triggers": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "adaptiveRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_id", "trigger", "action", "affected_stream_refs", "required_properties_preserved", "receipt_required"],
+      "properties": {
+        "rule_id": {"type": "string", "minLength": 1},
+        "trigger": {"enum": ["stable_scene", "low_motion", "speech_inactive", "redundant_sensor_state", "capacity_threshold", "custom"]},
+        "action": {"enum": ["reduce_sampling", "pause_preferred_stream", "switch_to_substitute", "restore_sampling"]},
+        "affected_stream_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "required_properties_preserved": {"const": true},
+        "receipt_required": {"const": true},
+        "threshold": {"type": ["number", "null"]}
+      }
+    },
+    "elevationRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_id", "trigger", "affected_stream_refs", "elevated_fidelity_class", "maximum_duration_seconds", "authority_required", "receipt_required"],
+      "properties": {
+        "rule_id": {"type": "string", "minLength": 1},
+        "trigger": {"enum": ["explicit_user_request", "safety_event", "dispute", "new_participant", "material_object_movement", "consent_change", "evidence_preservation_request", "sensor_disagreement", "low_reconstruction_confidence", "authority_transition"]},
+        "affected_stream_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}, "uniqueItems": true},
+        "elevated_fidelity_class": {"enum": ["raw_original", "high_fidelity_evidence", "sparse_reconstruction_package", "scene_state_record", "semantic_episode_record"]},
+        "maximum_duration_seconds": {"type": "integer", "minimum": 1},
+        "authority_required": {"const": true},
+        "receipt_required": {"const": true}
+      }
+    },
+    "capabilityLossPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emit_declaration", "goal_may_remain_satisfied_after_required_property_loss"],
+      "properties": {
+        "emit_declaration": {"const": true},
+        "goal_may_remain_satisfied_after_required_property_loss": {"const": false},
+        "remaining_reconstruction_class": {"enum": ["none", "continuity_only", "semantic_only", "bounded_sparse", "protected_partial"]}
+      }
+    },
+    "receiptPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["events", "integrity_algorithm"],
+      "properties": {
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "initial_capture_plan",
+              "sensor_substitution",
+              "adaptive_sampling_change",
+              "fidelity_elevation",
+              "budget_threshold_crossing",
+              "budget_exhaustion",
+              "fidelity_reduction",
+              "deletion",
+              "capability_loss",
+              "policy_revision"
+            ]
+          }
+        },
+        "integrity_algorithm": {"enum": ["sha256", "sha384", "sha512", "blake3"]},
+        "retain_continuity_after_payload_deletion": {"const": true}
+      }
+    }
+  }
+}
