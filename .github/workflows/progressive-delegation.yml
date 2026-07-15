@@ -4,27 +4,35 @@ on:
   pull_request:
     paths:
       - "schemas/delegation-policy.schema.json"
+      - "schemas/relationship-declaration.schema.json"
       - "fixtures/delegation/**"
       - "fixtures/delegation-decisions/**"
       - "fixtures/delegation-onboarding/**"
       - "fixtures/delegation-lifecycle/**"
+      - "fixtures/relationship-declarations/**"
       - "delegation/**"
       - "tools/validate_delegation_policy.py"
       - "tests/test_delegation_*.py"
+      - "tests/test_relationship_declaration.py"
       - "docs/PROGRESSIVE_DELEGATION_AND_FAIR_AGENCY.md"
+      - "docs/PROGRESSIVE_DELEGATION_IMPLEMENTATION_STATUS.md"
       - ".github/workflows/progressive-delegation.yml"
   push:
     branches: ["main"]
     paths:
       - "schemas/delegation-policy.schema.json"
+      - "schemas/relationship-declaration.schema.json"
       - "fixtures/delegation/**"
       - "fixtures/delegation-decisions/**"
       - "fixtures/delegation-onboarding/**"
       - "fixtures/delegation-lifecycle/**"
+      - "fixtures/relationship-declarations/**"
       - "delegation/**"
       - "tools/validate_delegation_policy.py"
       - "tests/test_delegation_*.py"
+      - "tests/test_relationship_declaration.py"
       - "docs/PROGRESSIVE_DELEGATION_AND_FAIR_AGENCY.md"
+      - "docs/PROGRESSIVE_DELEGATION_IMPLEMENTATION_STATUS.md"
       - ".github/workflows/progressive-delegation.yml"
 
 permissions:
@@ -41,10 +49,10 @@ jobs:
           python-version: "3.12"
       - name: Compile delegation surface
         run: |
-          python -m py_compile delegation/decision.py delegation/onboarding.py tools/validate_delegation_policy.py
+          python -m py_compile delegation/decision.py delegation/onboarding.py delegation/relationship.py tools/validate_delegation_policy.py
       - name: Validate delegation policies
         run: |
           python tools/validate_delegation_policy.py fixtures/delegation/*.json
-      - name: Run authority, canonical-case, and onboarding tests
+      - name: Run authority, onboarding, and relationship tests
         run: |
-          python -m unittest tests.test_delegation_decision tests.test_delegation_cases tests.test_delegation_onboarding -v
+          python -m unittest tests.test_delegation_decision tests.test_delegation_cases tests.test_delegation_onboarding tests.test_relationship_declaration -v
