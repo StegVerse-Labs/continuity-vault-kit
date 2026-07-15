@@ -14,6 +14,7 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "routing.py",
     ROOT / "reconstructive_memory" / "proofs.py",
     ROOT / "reconstructive_memory" / "ingestion.py",
+    ROOT / "reconstructive_memory" / "transport.py",
     ROOT / "reconstructive_memory" / "lifecycle.py",
     ROOT / "reconstructive_memory" / "session.py",
     ROOT / "reconstructive_memory" / "journal.py",
@@ -23,7 +24,7 @@ REQUIRED = (
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
 )
 
-SCHEMAS = REQUIRED[9:11]
+SCHEMAS = REQUIRED[10:12]
 
 
 def fail(message: str) -> None:
@@ -54,12 +55,13 @@ def main() -> int:
     print("RECONSTRUCTIVE MEMORY VALIDATION PASSED")
     print("- minimal chain and bounded reconstruction: present")
     print("- pair/epoch and dual-proof authorization: present")
+    print("- authenticated replay-resistant chat transport: present")
     print("- minimized chat ingestion and opaque routing: present")
     print("- expiring capability and tombstone controls: present")
     print("- coordinated session and plaintext-free journal: present")
     print("- authoritative receipt/capability commit boundary: present")
-    print("- production cryptography: NOT CLAIMED")
-    print("- live Ecosystem Chat transport integration: NOT CLAIMED")
+    print("- concrete production signature suite: NOT CLAIMED")
+    print("- deployed Ecosystem Chat transport integration: NOT CLAIMED")
     return 0
 
 
