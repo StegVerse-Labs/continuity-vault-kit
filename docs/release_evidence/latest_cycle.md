@@ -1,12 +1,12 @@
 # Latest Release-Cycle Outcome
 
 - **Outcome:** `PUBLISHED`
-- **Reason:** Version 0.1.5 is represented by the latest publication receipt.
-- **Version:** `0.1.5`
+- **Reason:** Version 0.1.6 is represented by the latest publication receipt.
+- **Version:** `0.1.6`
 - **Release required after run:** `false`
 - **Source conclusion:** `success`
-- **Source workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29451672731
-- **Source head SHA:** `895030d10e97b8bd633d107cda90e46d4f876461`
-- **Generated UTC:** `2026-07-15T21:22:24Z`
+- **Source workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29451719513
+- **Source head SHA:** `69631b1de465466213ae1d59d952eabd68fba7cf`
+- **Generated UTC:** `2026-07-15T21:23:18Z`
 
 This receipt records repository release-cycle state only. It does not certify user-authored content.
