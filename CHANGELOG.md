@@ -8,7 +8,22 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- `docs/FIDELITY_GOVERNED_MULTIMODAL_STORAGE.md` defining artifact-class separation, transcription-only voice recall, multimodal fidelity transitions, sparse reconstruction, sensor substitution, and reconstruction-completeness requirements
+- `schemas/experience-capsule.schema.json` as the machine-readable contract for governed multimodal episodes, streams, consent transitions, retention policy, reconstruction rights, missing evidence, and fidelity transitions
+- Four reference capsules covering transcription-only voice, protected audio evidence, sparse video reconstruction, and materially incomplete ambient capture
+- `tools/validate_experience_capsule.py` and `tests/test_experience_capsule.py` to enforce generated-content labeling, ephemeral payload restrictions, voice-recall boundaries, fidelity-loss declarations, and completeness consistency
+- `multimodal_storage/adapter.py` and `tests/test_multimodal_storage_adapter.py` to authorize canonical text and derived recall without granting protected raw-media access by implication
+- `.github/workflows/fidelity-governed-storage.yml` as the dedicated executable validation gate for the multimodal storage contract
+
+### Improved
+- Reconstructive-memory integration now distinguishes ordinary recall, generated reconstruction rights, and protected raw-evidence access
+- Text-to-speech playback is explicitly treated as synthesized presentation rather than replay of an original voice event
+- Fidelity reduction and deletion preserve continuity receipts, information-loss declarations, and recovery limitations
+- Multimodal reconstruction results must disclose missing, protected, deleted, disputed, uncertain, or generated-only evidence states
+
+### Notes
+The multimodal storage layer does not establish surveillance authority, guarantee complete experiential preservation, convert inferred emotion into fact, or make generated reconstruction equivalent to original evidence. Lower compute cost supports selective and explainable fidelity management but does not remove raw-media storage cost.
 
 ---
 
