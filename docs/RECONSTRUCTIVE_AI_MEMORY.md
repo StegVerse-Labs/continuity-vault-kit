@@ -39,13 +39,14 @@ An authorized query:
 1. proves the user identity;
 2. proves the designated AI-entity identity;
 3. validates the current pair, epoch, policy, and capability;
-4. locates candidate events using minimal chain data;
-5. follows only required dependency and supersession edges;
-6. decrypts only the bounded selected objects;
-7. verifies content commitments;
-8. returns the reconstruction;
-9. destroys the temporary working state;
-10. emits an access receipt that does not retain reconstructed plaintext by default.
+4. resolves an opaque route token without storing the plaintext query in the chain index;
+5. locates only bounded candidate events;
+6. follows only required dependency and supersession edges;
+7. decrypts only the bounded selected objects;
+8. verifies content commitments;
+9. returns the reconstruction;
+10. destroys the temporary working state;
+11. emits an access receipt that does not retain reconstructed plaintext by default.
 
 ## Relationship lifecycle
 
@@ -58,6 +59,12 @@ The v0.1 `RelationshipRegistry` models active and revoked epochs. It is intentio
 `KeyUnwrapper` is an interface, not a key derivation scheme. Public StegID, entity, pair, and event hashes must never be used directly as encryption keys. The callable prototype validates pair, policy, and epoch state before delegating to an external unwrap operation and rejects empty or invalid key material.
 
 Production implementations should bind this interface to hardware-backed, threshold, or user-controlled key services.
+
+## Opaque coarse routing
+
+`OpaqueRouteIndex` stores opaque route tokens and committed event identifiers. It does not store natural-language queries or readable semantic labels. An authorized resolver derives the opaque token only after pair, policy, and epoch validation. Candidate events are bounded and their pair/policy bindings are rechecked before reconstruction.
+
+This is a routing primitive, not encrypted semantic search. Production search still requires a protected resolver, encrypted or isolated index custody, token rotation, and leakage analysis.
 
 ## Access receipts
 
@@ -74,7 +81,7 @@ The receipt does not contain reconstructed plaintext, raw search terms, or the r
 
 ## Fail-closed rules
 
-Reconstruction or key release fails when:
+Reconstruction, routing, or key release fails when:
 
 - either user or entity proof is missing;
 - the pair identifier, relationship epoch, or policy does not match;
@@ -82,30 +89,25 @@ Reconstruction or key release fails when:
 - an event link or content commitment fails verification;
 - a protected object is unavailable;
 - a request crosses pair or policy boundaries;
-- the dependency closure exceeds the permitted event window;
+- the candidate route or dependency closure exceeds its permitted window;
+- an opaque route commitment fails verification;
 - key unwrapping returns no usable key material.
 
 ## Implemented in this slice
 
-`reconstructive_memory/core.py` provides:
+`reconstructive_memory/core.py` provides deterministic pair identifiers, minimal hashed chain events, chain validation, dependency-complete bounded selection, protected-object binding checks, content-commitment verification, and ephemeral reconstruction results.
 
-- deterministic pair identifiers;
-- minimal hashed chain events;
-- chain-link validation;
-- dependency-complete bounded selection;
-- dual-proof authorization context;
-- protected-object binding checks;
-- content-commitment verification;
-- ephemeral reconstruction results marked as non-retained and destroyed.
+`reconstructive_memory/access.py` provides relationship-epoch state and revocation, fail-closed relationship resolution, a concrete key-unwrapping interface boundary, and hashed access receipts that exclude plaintext.
 
-`reconstructive_memory/access.py` provides:
+`reconstructive_memory/routing.py` provides opaque candidate routing, event-set commitments, bounded candidate selection, and pair/policy revalidation.
 
-- relationship-epoch state and revocation;
-- fail-closed relationship resolution;
-- a concrete key-unwrapping interface boundary;
-- hashed access receipts that exclude plaintext.
+The JSON Schemas define the minimal event and access-receipt contracts. Unit tests cover reconstruction, integrity-only behavior, pair mismatch, bounded windows, revocation, epoch mismatch, key unwrap refusal, opaque routing boundaries, and plaintext-free access receipts.
 
-The two JSON Schemas define the minimal event and access-receipt contracts. Unit tests cover reconstruction, integrity-only behavior, pair mismatch, bounded windows, revocation, epoch mismatch, key unwrap refusal, and plaintext-free access receipts.
+Run the complete dependency-free validation with:
+
+```bash
+python3 tools/check_reconstructive_memory.py
+```
 
 ## Explicitly not claimed
 
