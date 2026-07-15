@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
-  "last_source_workflow_run_id": "29435330853",
-  "dispatch_count": 38,
+  "last_source_workflow_run_id": "29435349217",
+  "dispatch_count": 39,
   "last_action": "DISPATCH_RELEASE_INTEGRITY",
-  "updated_utc": "2026-07-15T17:09:45Z",
+  "updated_utc": "2026-07-15T17:10:01Z",
   "source_outcome": "INCOMPLETE",
   "release_required": true
 }
