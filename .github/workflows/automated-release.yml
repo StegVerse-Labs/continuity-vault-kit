@@ -223,7 +223,7 @@ jobs:
       - name: Commit final release receipt
         if: steps.gate.outputs.enabled == 'true'
         run: |
-          git pull --rebase origin main
           git add docs/release_evidence/latest_release.md docs/release_evidence/latest_release.json
           git commit -m "evidence: record published release v${{ steps.version.outputs.value }} [skip ci]"
+          git pull --rebase origin main
           git push origin HEAD:main
