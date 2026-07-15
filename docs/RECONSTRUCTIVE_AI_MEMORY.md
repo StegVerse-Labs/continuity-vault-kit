@@ -93,7 +93,7 @@ The dedicated workflow `.github/workflows/reconstructive-memory.yml` compiles th
 python3 tools/check_reconstructive_memory.py
 ```
 
-The validator checks required files and schemas and discovers all `test_reconstructive_memory*.py` tests.
+The validator checks required files and schemas and discovers all `test_reconstructive_memory*.py` tests. Run #7 passed on commit `ce6fc2906dfc9c81ad33eec1e45aa8d828b123d4`, including compilation and the full validator after the authenticated transport slice was added.
 
 ## Implemented modules
 
