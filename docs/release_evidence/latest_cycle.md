@@ -5,8 +5,8 @@
 - **Version:** `0.1.4`
 - **Release required after run:** `false`
 - **Source conclusion:** `success`
-- **Source workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29445520564
-- **Source head SHA:** `f33ec0c37916908e6268bb6703f0dea20d0a2e81`
-- **Generated UTC:** `2026-07-15T19:42:51Z`
+- **Source workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29445541422
+- **Source head SHA:** `d0b8a069ea322decc5f4745f82ce76d4ee287009`
+- **Generated UTC:** `2026-07-15T19:43:13Z`
 
 This receipt records repository release-cycle state only. It does not certify user-authored content.
