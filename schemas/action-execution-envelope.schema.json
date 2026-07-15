@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/action-execution-envelope.schema.json",
+  "title": "Governed Action Execution Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "envelope_id",
+    "instruction_ref",
+    "authority_decision",
+    "action",
+    "resource",
+    "destination",
+    "payload",
+    "connector",
+    "idempotency",
+    "receipt_required",
+    "state"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "envelope_id": {"type": "string", "minLength": 1},
+    "instruction_ref": {"type": "string", "minLength": 1},
+    "authority_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "decision_sha256", "delegation_id", "authority_source"],
+      "properties": {
+        "outcome": {"const": "ACT"},
+        "decision_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "delegation_id": {"type": "string", "minLength": 1},
+        "authority_source": {"enum": ["direct_instruction", "standing_delegation"]}
+      }
+    },
+    "action": {"type": "string", "minLength": 1},
+    "resource": {"type": "string", "minLength": 1},
+    "destination": {"type": "string", "minLength": 1},
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_sha256", "media_refs", "text"],
+      "properties": {
+        "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "media_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "text": {"type": ["string", "null"]}
+      }
+    },
+    "connector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["connector_id", "operation", "credential_ref"],
+      "properties": {
+        "connector_id": {"type": "string", "minLength": 1},
+        "operation": {"type": "string", "minLength": 1},
+        "credential_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "idempotency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "duplicate_policy"],
+      "properties": {
+        "key": {"type": "string", "minLength": 1},
+        "duplicate_policy": {"enum": ["suppress", "verify_before_retry", "never_retry_automatically"]}
+      }
+    },
+    "receipt_required": {"const": true},
+    "state": {"const": "PREPARED"}
+  }
+}
