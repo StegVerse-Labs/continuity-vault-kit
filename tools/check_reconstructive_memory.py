@@ -16,12 +16,14 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "ingestion.py",
     ROOT / "reconstructive_memory" / "lifecycle.py",
     ROOT / "reconstructive_memory" / "session.py",
+    ROOT / "reconstructive_memory" / "journal.py",
+    ROOT / "reconstructive_memory" / "authority.py",
     ROOT / "schemas" / "reconstructive-memory-event.v0.1.json",
     ROOT / "schemas" / "reconstructive-memory-access-receipt.v0.1.json",
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
 )
 
-SCHEMAS = REQUIRED[7:9]
+SCHEMAS = REQUIRED[9:11]
 
 
 def fail(message: str) -> None:
@@ -50,16 +52,12 @@ def main() -> int:
         fail("unit tests failed")
 
     print("RECONSTRUCTIVE MEMORY VALIDATION PASSED")
-    print("- minimal chain: present")
-    print("- pair/epoch authorization: present")
-    print("- dual proof verification boundary: present")
-    print("- minimized chat ingestion boundary: present")
-    print("- key unwrap boundary: present")
-    print("- opaque routing: present")
-    print("- expiring single-use capability controls: present")
-    print("- protected-object tombstone controls: present")
-    print("- coordinated reconstruction session: present")
-    print("- plaintext-free access receipt: present")
+    print("- minimal chain and bounded reconstruction: present")
+    print("- pair/epoch and dual-proof authorization: present")
+    print("- minimized chat ingestion and opaque routing: present")
+    print("- expiring capability and tombstone controls: present")
+    print("- coordinated session and plaintext-free journal: present")
+    print("- authoritative receipt/capability commit boundary: present")
     print("- production cryptography: NOT CLAIMED")
     print("- live Ecosystem Chat transport integration: NOT CLAIMED")
     return 0
