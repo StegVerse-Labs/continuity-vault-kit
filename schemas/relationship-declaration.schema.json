@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/relationship-declaration.schema.json",
+  "title": "Governed AI Relationship Declaration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "relationship_id",
+    "principal",
+    "ai_entity",
+    "user_responsibilities",
+    "ai_responsibilities",
+    "ai_declared_limitations",
+    "renegotiation_triggers",
+    "revision",
+    "status",
+    "receipt_policy"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "relationship_id": {"type": "string", "minLength": 1},
+    "principal": {"$ref": "#/$defs/entity"},
+    "ai_entity": {"$ref": "#/$defs/entity"},
+    "purpose": {"type": "string", "minLength": 1},
+    "user_responsibilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "ai_responsibilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "ai_declared_limitations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "shared_values": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "renegotiation_triggers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["trigger_id", "condition", "required_response"],
+        "properties": {
+          "trigger_id": {"type": "string", "minLength": 1},
+          "condition": {"type": "string", "minLength": 1},
+          "required_response": {"enum": ["DISCLOSE", "ASK", "PAUSE", "RENEGOTIATE"]}
+        }
+      }
+    },
+    "delegation_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision_id", "previous_revision_ref", "proposed_by", "accepted_by"],
+      "properties": {
+        "revision_id": {"type": "string", "minLength": 1},
+        "previous_revision_ref": {"type": ["string", "null"]},
+        "proposed_by": {"enum": ["user", "ai_entity", "joint"]},
+        "accepted_by": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["user", "ai_entity"]}
+        }
+      }
+    },
+    "status": {"enum": ["proposed", "active", "superseded", "paused", "ended"]},
+    "receipt_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "events"],
+      "properties": {
+        "required": {"const": true},
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["relationship_proposed", "relationship_accepted", "relationship_revised", "relationship_paused", "relationship_ended", "limitation_declared", "renegotiation_requested"]}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity_id", "entity_type"],
+      "properties": {
+        "entity_id": {"type": "string", "minLength": 1},
+        "entity_type": {"enum": ["user", "governed_ai"]}
+      }
+    }
+  }
+}
