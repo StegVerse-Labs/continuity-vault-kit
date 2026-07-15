@@ -1,0 +1,16 @@
+{
+  "parent_id": "spiffe://UNCONFIGURED/spire/agent/UNCONFIGURED",
+  "spiffe_id": "spiffe://UNCONFIGURED/reconstructive-memory/service",
+  "selectors": [
+    "unix:uid:UNCONFIGURED",
+    "unix:path:/opt/stegverse/reconstructive-memory/bin/service"
+  ],
+  "ttl_seconds": 3600,
+  "federates_with": [],
+  "activation_profile_mapping": {
+    "provider_role": "ai-entity-attestation",
+    "resource_id": "spiffe://UNCONFIGURED/reconstructive-memory/service",
+    "required_environment": "SPIFFE_ENDPOINT_SOCKET"
+  },
+  "status": "FAIL_CLOSED"
+}
