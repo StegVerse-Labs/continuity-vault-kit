@@ -3,8 +3,8 @@
 This package is dependency-free and prototype-scoped. It models minimal
 continuity, pair-bound authorization, authenticated minimized ingestion, bounded
 ephemeral reconstruction, durable replay controls, lifecycle tombstones,
-plaintext-free journals, and authoritative commit boundaries without storing
-plaintext chat in the chain.
+plaintext-free journals, authoritative commit boundaries, and receipt
+propagation without storing plaintext chat in the chain.
 """
 
 from .access import (
@@ -31,6 +31,12 @@ from .lifecycle import (
     ObjectLifecycleRegistry,
     ObjectLifecycleState,
     make_tombstone_event,
+)
+from .master_records import (
+    MasterRecordAcknowledgement,
+    MasterRecordEnvelope,
+    MasterRecordsOutbox,
+    MasterRecordsVerifier,
 )
 from .proofs import CallableProofVerifier, ProofVerifier, require_dual_proof
 from .replay import DurableTransportReplayRegistry, InMemoryReplayStateStore, ReplayState, ReplayStateStore
@@ -62,6 +68,10 @@ __all__ = [
     "InMemoryReplayStateStore",
     "IngestionResult",
     "KeyUnwrapper",
+    "MasterRecordAcknowledgement",
+    "MasterRecordEnvelope",
+    "MasterRecordsOutbox",
+    "MasterRecordsVerifier",
     "ObjectLifecycleRegistry",
     "ObjectLifecycleState",
     "OpaqueRouteEntry",
