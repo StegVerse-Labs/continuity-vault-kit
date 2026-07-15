@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "schemas/delegation-policy.schema.json"
+      - "schemas/delegation-transition-receipt.schema.json"
       - "schemas/relationship-declaration.schema.json"
       - "fixtures/delegation/**"
       - "fixtures/delegation-decisions/**"
@@ -21,6 +22,7 @@ on:
     branches: ["main"]
     paths:
       - "schemas/delegation-policy.schema.json"
+      - "schemas/delegation-transition-receipt.schema.json"
       - "schemas/relationship-declaration.schema.json"
       - "fixtures/delegation/**"
       - "fixtures/delegation-decisions/**"
@@ -49,10 +51,10 @@ jobs:
           python-version: "3.12"
       - name: Compile delegation surface
         run: |
-          python -m py_compile delegation/decision.py delegation/onboarding.py delegation/relationship.py tools/validate_delegation_policy.py
+          python -m py_compile delegation/decision.py delegation/onboarding.py delegation/relationship.py delegation/lifecycle.py tools/validate_delegation_policy.py
       - name: Validate delegation policies
         run: |
           python tools/validate_delegation_policy.py fixtures/delegation/*.json
-      - name: Run authority, onboarding, and relationship tests
+      - name: Run authority, onboarding, lifecycle, and relationship tests
         run: |
-          python -m unittest tests.test_delegation_decision tests.test_delegation_cases tests.test_delegation_onboarding tests.test_relationship_declaration -v
+          python -m unittest tests.test_delegation_decision tests.test_delegation_cases tests.test_delegation_onboarding tests.test_delegation_lifecycle tests.test_relationship_declaration -v
