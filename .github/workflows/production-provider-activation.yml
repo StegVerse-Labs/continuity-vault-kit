@@ -1,0 +1,160 @@
+name: Production Provider Activation
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Terraform operation
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+      confirm_apply:
+        description: Type APPLY to authorize infrastructure mutation
+        required: false
+        type: string
+      spiffe_identity:
+        description: Configured SPIFFE workload identity
+        required: true
+        type: string
+      ecosystem_chat_endpoint:
+        description: Authenticated Ecosystem Chat HTTPS endpoint
+        required: true
+        type: string
+      master_records_endpoint:
+        description: Authenticated Master-Records HTTPS endpoint
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_WORKING_DIR: infra/production-providers
+
+jobs:
+  activate:
+    name: Plan or apply protected providers
+    runs-on: ubuntu-latest
+    environment: production-provider-activation
+    concurrency:
+      group: production-provider-activation
+      cancel-in-progress: false
+    steps:
+      - name: Check out exact repository state
+        uses: actions/checkout@v4
+
+      - name: Reject incomplete or unsafe inputs
+        shell: bash
+        env:
+          REQUESTED_ACTION: ${{ inputs.action }}
+          CONFIRM_APPLY: ${{ inputs.confirm_apply }}
+          SPIFFE_IDENTITY: ${{ inputs.spiffe_identity }}
+          CHAT_ENDPOINT: ${{ inputs.ecosystem_chat_endpoint }}
+          MASTER_RECORDS_ENDPOINT: ${{ inputs.master_records_endpoint }}
+          AWS_ROLE_ARN: ${{ vars.PROVIDER_ACTIVATION_AWS_ROLE_ARN }}
+          AWS_REGION: ${{ vars.PROVIDER_ACTIVATION_AWS_REGION }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          test -n "$AWS_REGION"
+          [[ "$SPIFFE_IDENTITY" == spiffe://* ]]
+          [[ "$CHAT_ENDPOINT" == https://* ]]
+          [[ "$MASTER_RECORDS_ENDPOINT" == https://* ]]
+          if [[ "$REQUESTED_ACTION" == "apply" && "$CONFIRM_APPLY" != "APPLY" ]]; then
+            echo "Apply requires exact confirmation token APPLY" >&2
+            exit 1
+          fi
+
+      - name: Configure AWS identity through GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.PROVIDER_ACTIVATION_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.PROVIDER_ACTIVATION_AWS_REGION }}
+          role-session-name: continuity-vault-provider-activation
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Check Terraform formatting
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -input=false
+
+      - name: Validate Terraform
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      - name: Create immutable execution plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -input=false -out=provider-activation.tfplan
+
+      - name: Apply approved execution plan
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -input=false -auto-approve provider-activation.tfplan
+
+      - name: Export configured provider identifiers
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform output -json > provider-outputs.json
+
+      - name: Assemble fail-closed activation input artifact
+        if: ${{ inputs.action == 'apply' }}
+        shell: bash
+        env:
+          SPIFFE_IDENTITY: ${{ inputs.spiffe_identity }}
+          CHAT_ENDPOINT: ${{ inputs.ecosystem_chat_endpoint }}
+          MASTER_RECORDS_ENDPOINT: ${{ inputs.master_records_endpoint }}
+          AWS_REGION: ${{ vars.PROVIDER_ACTIVATION_AWS_REGION }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          outputs = json.loads(Path("infra/production-providers/provider-outputs.json").read_text())
+          def value(name):
+              item = outputs.get(name)
+              if not isinstance(item, dict) or not item.get("value"):
+                  raise SystemExit(f"missing Terraform output: {name}")
+              return item["value"]
+
+          artifact = {
+              "schema": "stegverse.production-provider-inputs.v1",
+              "decision": "FAIL_CLOSED",
+              "source_commit": os.environ["SOURCE_COMMIT"],
+              "providers": {
+                  "steg-id-signature": {"identity_ref": value("stegid_kms_key_arn"), "region": os.environ["AWS_REGION"]},
+                  "key-custody": {"identity_ref": value("custody_kms_key_arn"), "region": os.environ["AWS_REGION"]},
+                  "replicated-state": {"identity_ref": value("state_table_arn"), "region": os.environ["AWS_REGION"]},
+                  "ai-entity-attestation": {"identity_ref": os.environ["SPIFFE_IDENTITY"], "region": "global"},
+                  "ecosystem-chat": {"identity_ref": os.environ["CHAT_ENDPOINT"], "region": "global"},
+                  "master-records": {"identity_ref": os.environ["MASTER_RECORDS_ENDPOINT"], "region": "global"},
+              },
+              "next_gate": "execute all six live probes and assemble signed deployment receipt",
+          }
+          Path("activation-provider-inputs.json").write_text(json.dumps(artifact, sort_keys=True, indent=2) + "\n")
+          PY
+
+      - name: Upload plan and provider evidence inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-provider-activation-${{ github.run_id }}
+          path: |
+            infra/production-providers/provider-activation.tfplan
+            infra/production-providers/provider-outputs.json
+            activation-provider-inputs.json
+          if-no-files-found: error
+          retention-days: 30
