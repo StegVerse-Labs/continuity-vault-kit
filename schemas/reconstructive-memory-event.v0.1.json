@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/reconstructive-memory-event.v0.1.json",
+  "title": "Reconstructive Memory Minimal Chain Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "sequence",
+    "event_type",
+    "pair_id",
+    "policy_ref",
+    "authority_ref",
+    "retention_class",
+    "previous_event_hash",
+    "dependencies",
+    "supersedes",
+    "event_hash"
+  ],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "sequence": {"type": "integer", "minimum": 1},
+    "event_type": {"type": "string", "minLength": 1},
+    "pair_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "content_ref": {"type": ["string", "null"]},
+    "content_commitment": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "policy_ref": {"type": "string", "minLength": 1},
+    "authority_ref": {"type": "string", "minLength": 1},
+    "retention_class": {
+      "enum": ["integrity-only", "reconstructable", "full-fidelity"]
+    },
+    "previous_event_hash": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "supersedes": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "time_bucket": {"type": ["string", "null"]},
+    "event_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}
