@@ -12,6 +12,9 @@ from .session import ReconstructionSessionResult
 @dataclass(frozen=True)
 class PreparedSession:
     session_id: str
+    pair_id: str
+    policy_ref: str
+    relationship_epoch: int
     capability_commitment: str
     request_commitment: str
     expected_use_count: int
@@ -26,12 +29,11 @@ class CommitSnapshot:
 
 
 class AuthoritativeSessionStore:
-    """In-memory compare-and-swap boundary for one reconstruction commit.
+    """Compare-and-swap boundary for one reconstruction commit.
 
-    The lock models the minimum atomicity requirement: capability consumption,
-    receipt persistence, and the journal transition become visible together.
-    Production implementations must provide the same invariant in durable,
-    replicated storage.
+    The lock models the minimum atomicity invariant: capability consumption,
+    receipt persistence, and the terminal journal transition become visible
+    together. A production adapter must reproduce this in durable storage.
     """
 
     def __init__(self, capability: CapabilityGrant, journal: SessionJournal | None = None) -> None:
@@ -68,8 +70,18 @@ class AuthoritativeSessionStore:
                 entry.session_id == session_id for entry in self._journal.entries
             ):
                 raise PermissionError("session identifier replay")
+            if pair_id != self._capability.pair_id or policy_ref != self._capability.policy_ref:
+                raise PermissionError("preparation crosses capability pair or policy")
+            if relationship_epoch != self._capability.relationship_epoch:
+                raise PermissionError("preparation relationship epoch mismatch")
+            if not request_commitment:
+                raise ValueError("request commitment is required")
+
             prepared = PreparedSession(
                 session_id=session_id,
+                pair_id=pair_id,
+                policy_ref=policy_ref,
+                relationship_epoch=relationship_epoch,
                 capability_commitment=self._capability.commitment,
                 request_commitment=request_commitment,
                 expected_use_count=self._capability.use_count,
@@ -96,16 +108,28 @@ class AuthoritativeSessionStore:
             current = self._prepared.get(prepared.session_id)
             if current != prepared:
                 raise PermissionError("session preparation is unknown or stale")
-            if self._capability.use_count != prepared.expected_use_count:
+            if self._capability.commitment != prepared.capability_commitment:
                 raise PermissionError("capability changed after preparation")
+            if self._capability.use_count != prepared.expected_use_count:
+                raise PermissionError("capability use count changed after preparation")
+
             consumed = result.consumed_capability
             if consumed.capability_id != self._capability.capability_id:
                 raise PermissionError("committed capability identifier mismatch")
+            if consumed.pair_id != prepared.pair_id or consumed.policy_ref != prepared.policy_ref:
+                raise PermissionError("committed capability binding mismatch")
+            if consumed.relationship_epoch != prepared.relationship_epoch:
+                raise PermissionError("committed capability epoch mismatch")
             if consumed.use_count != self._capability.use_count + 1:
                 raise PermissionError("capability consumption transition is invalid")
+
             result.receipt.verify()
-            if result.receipt.capability_commitment != result.receipt.payload()["capability_commitment"]:
-                raise ValueError("receipt capability commitment is unstable")
+            if result.receipt.pair_id != prepared.pair_id:
+                raise PermissionError("receipt pair binding mismatch")
+            if result.receipt.policy_ref != prepared.policy_ref:
+                raise PermissionError("receipt policy binding mismatch")
+            if result.receipt.relationship_epoch != prepared.relationship_epoch:
+                raise PermissionError("receipt epoch binding mismatch")
             if result.receipt.receipt_id in self._receipts:
                 raise PermissionError("receipt identifier replay")
 
@@ -130,6 +154,8 @@ class AuthoritativeSessionStore:
             current = self._prepared.get(prepared.session_id)
             if current != prepared:
                 raise PermissionError("session preparation is unknown or stale")
+            if not failure_code:
+                raise ValueError("failure code is required")
             self._journal = self._journal.abort(prepared.session_id, failure_code=failure_code)
             del self._prepared[prepared.session_id]
             self._version += 1
