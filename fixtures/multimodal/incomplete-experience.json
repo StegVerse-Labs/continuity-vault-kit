@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "experience_id": "exp_incomplete_001",
+  "start_time": "2026-07-15T18:20:00Z",
+  "end_time": "2026-07-15T18:22:00Z",
+  "participants": [{"participant_id": "user_001", "role": "observer", "identity_proof_ref": null}],
+  "authorized_devices": [{"device_id": "device_room_001", "authority_state": "authorized", "attestation_ref": "attestation:room:001"}],
+  "streams": [{"stream_id": "stream_ambient_001", "modality": "ambient", "artifact_class": "derived", "capture_start": "2026-07-15T18:20:00Z", "capture_end": "2026-07-15T18:20:45Z", "source_device_id": "device_room_001", "clock_quality": "uncertain", "user_recall_available": true, "retention_class": "searchable_derived", "fidelity_class": "semantic_episode_record", "generated": false, "source_stream_refs": [], "transform_method": "ambient_event_summary", "transform_version": "0.1", "payload_ref": "vault://derived/ambient/stream_ambient_001", "integrity": {"algorithm": "sha256", "digest": "abababababababababababababababababababababababababababababababab"}}],
+  "consent_transitions": [{"participant_id": "user_001", "effective_time": "2026-07-15T18:20:00Z", "scope": ["ambient_summary"], "state": "granted", "authority_ref": "consent:user_001:ambient"}],
+  "retention_policy": {"policy_id": "policy:ambient:summary:v1", "default_voice_mode": "no_derived_voice", "raw_media_default": "prohibited", "fidelity_reduction_allowed": true, "maximum_buffer_seconds": 0},
+  "provenance_root": {"algorithm": "sha256", "digest": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"},
+  "reconstruction_rights": [{"principal_id": "user_001", "scope": ["ambient_summary"], "may_access_raw": false, "may_generate_reconstruction": false, "expires_at": null}],
+  "completeness_status": "materially_incomplete",
+  "missing_evidence": [{"interval_start": "2026-07-15T18:20:45Z", "interval_end": "2026-07-15T18:22:00Z", "reason": "device_unavailable", "materiality": "material"}],
+  "fidelity_transitions": []
+}
