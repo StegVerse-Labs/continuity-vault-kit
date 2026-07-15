@@ -22,12 +22,13 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "authority.py",
     ROOT / "reconstructive_memory" / "master_records.py",
     ROOT / "reconstructive_memory" / "master_records_state.py",
+    ROOT / "reconstructive_memory" / "deployment.py",
     ROOT / "schemas" / "reconstructive-memory-event.v0.1.json",
     ROOT / "schemas" / "reconstructive-memory-access-receipt.v0.1.json",
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
 )
 
-SCHEMAS = REQUIRED[13:15]
+SCHEMAS = REQUIRED[14:16]
 
 
 def fail(message: str) -> None:
@@ -65,6 +66,7 @@ def main() -> int:
     print("- coordinated session and plaintext-free journal: present")
     print("- authoritative receipt/capability commit boundary: present")
     print("- durable Master-Records outbox lifecycle: present")
+    print("- external CAS store and delivery adapter contracts: present")
     print("- concrete production signature suite: NOT CLAIMED")
     print("- deployed Ecosystem Chat transport integration: NOT CLAIMED")
     return 0
