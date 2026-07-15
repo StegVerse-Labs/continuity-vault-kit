@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/experience-capsule.schema.json",
+  "title": "Experience Capsule",
+  "description": "A governed multimodal episode binding continuity, consent, retention, evidence, derived records, and reconstruction limits.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "experience_id",
+    "start_time",
+    "participants",
+    "authorized_devices",
+    "streams",
+    "consent_transitions",
+    "retention_policy",
+    "provenance_root",
+    "reconstruction_rights",
+    "completeness_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "experience_id": {"type": "string", "minLength": 8, "maxLength": 256},
+    "start_time": {"type": "string", "format": "date-time"},
+    "end_time": {"type": ["string", "null"], "format": "date-time"},
+    "participants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/participant"}
+    },
+    "authorized_devices": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/device"}
+    },
+    "streams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/stream"}
+    },
+    "consent_transitions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/consentTransition"}
+    },
+    "retention_policy": {"$ref": "#/$defs/retentionPolicy"},
+    "provenance_root": {"$ref": "#/$defs/integrityCommitment"},
+    "reconstruction_rights": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/reconstructionRight"}
+    },
+    "completeness_status": {
+      "enum": [
+        "complete_for_declared_scope",
+        "bounded_but_coherent",
+        "materially_incomplete",
+        "protected_evidence_unavailable",
+        "source_deleted_under_policy",
+        "timing_uncertain",
+        "interpretation_disputed",
+        "generated_only"
+      ]
+    },
+    "missing_evidence": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/missingEvidence"}
+    },
+    "fidelity_transitions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/fidelityTransition"}
+    }
+  },
+  "$defs": {
+    "integrityCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "digest"],
+      "properties": {
+        "algorithm": {"enum": ["sha256", "sha384", "sha512", "blake3"]},
+        "digest": {"type": "string", "pattern": "^[A-Fa-f0-9]{32,128}$"}
+      }
+    },
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["participant_id", "role"],
+      "properties": {
+        "participant_id": {"type": "string", "minLength": 1},
+        "role": {"enum": ["speaker", "observer", "operator", "subject", "system", "unknown"]},
+        "identity_proof_ref": {"type": ["string", "null"]}
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "authority_state"],
+      "properties": {
+        "device_id": {"type": "string", "minLength": 1},
+        "authority_state": {"enum": ["authorized", "revoked", "expired", "unknown"]},
+        "attestation_ref": {"type": ["string", "null"]}
+      }
+    },
+    "stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "modality",
+        "artifact_class",
+        "capture_start",
+        "clock_quality",
+        "user_recall_available",
+        "integrity"
+      ],
+      "properties": {
+        "stream_id": {"type": "string", "minLength": 1},
+        "modality": {"enum": ["text", "audio", "video", "image", "depth", "motion", "location", "biometric", "ambient", "other"]},
+        "artifact_class": {"enum": ["continuity", "derived", "protected_raw", "generated_reconstruction"]},
+        "capture_start": {"type": "string", "format": "date-time"},
+        "capture_end": {"type": ["string", "null"], "format": "date-time"},
+        "source_device_id": {"type": ["string", "null"]},
+        "clock_quality": {"enum": ["synchronized", "bounded_drift", "local_only", "uncertain"]},
+        "user_recall_available": {"type": "boolean"},
+        "retention_class": {"enum": ["permanent_continuity", "searchable_derived", "protected_evidence", "ephemeral", "deleted_with_receipt"]},
+        "fidelity_class": {"enum": ["raw_original", "high_fidelity_evidence", "sparse_reconstruction_package", "scene_state_record", "semantic_episode_record", "continuity_receipt_only", "not_applicable"]},
+        "generated": {"type": "boolean", "default": false},
+        "source_stream_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "transform_method": {"type": ["string", "null"]},
+        "transform_version": {"type": ["string", "null"]},
+        "payload_ref": {"type": ["string", "null"]},
+        "integrity": {"$ref": "#/$defs/integrityCommitment"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"artifact_class": {"const": "generated_reconstruction"}}, "required": ["artifact_class"]},
+          "then": {
+            "required": ["generated", "source_stream_refs", "transform_method", "transform_version"],
+            "properties": {"generated": {"const": true}}
+          }
+        },
+        {
+          "if": {"properties": {"retention_class": {"const": "ephemeral"}}, "required": ["retention_class"]},
+          "then": {"properties": {"payload_ref": {"type": "null"}}}
+        }
+      ]
+    },
+    "consentTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["participant_id", "effective_time", "scope", "state", "authority_ref"],
+      "properties": {
+        "participant_id": {"type": "string"},
+        "effective_time": {"type": "string", "format": "date-time"},
+        "scope": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "state": {"enum": ["granted", "restricted", "withdrawn", "expired", "emergency_exception"]},
+        "authority_ref": {"type": "string"}
+      }
+    },
+    "retentionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "default_voice_mode", "raw_media_default", "fidelity_reduction_allowed"],
+      "properties": {
+        "policy_id": {"type": "string"},
+        "default_voice_mode": {"enum": ["transcription_only", "verification_buffer", "protected_evidence", "no_derived_voice"]},
+        "raw_media_default": {"enum": ["discard_after_processing", "bounded_buffer", "protected_retention", "prohibited"]},
+        "fidelity_reduction_allowed": {"type": "boolean"},
+        "maximum_buffer_seconds": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "reconstructionRight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["principal_id", "scope", "may_access_raw", "may_generate_reconstruction"],
+      "properties": {
+        "principal_id": {"type": "string"},
+        "scope": {"type": "array", "items": {"type": "string"}},
+        "may_access_raw": {"type": "boolean"},
+        "may_generate_reconstruction": {"type": "boolean"},
+        "expires_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "missingEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interval_start", "reason", "materiality"],
+      "properties": {
+        "interval_start": {"type": "string", "format": "date-time"},
+        "interval_end": {"type": ["string", "null"], "format": "date-time"},
+        "reason": {"enum": ["not_captured", "deleted_under_policy", "protected", "corrupt", "timing_uncertain", "device_unavailable", "consent_not_granted"]},
+        "materiality": {"enum": ["none", "minor", "material", "unknown"]}
+      }
+    },
+    "fidelityTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transition_id",
+        "source_stream_id",
+        "from_class",
+        "to_class",
+        "effective_time",
+        "policy_ref",
+        "actor_ref",
+        "information_loss",
+        "reversible",
+        "source_integrity",
+        "destination_integrity"
+      ],
+      "properties": {
+        "transition_id": {"type": "string"},
+        "source_stream_id": {"type": "string"},
+        "from_class": {"enum": ["raw_original", "high_fidelity_evidence", "sparse_reconstruction_package", "scene_state_record", "semantic_episode_record", "continuity_receipt_only"]},
+        "to_class": {"enum": ["high_fidelity_evidence", "sparse_reconstruction_package", "scene_state_record", "semantic_episode_record", "continuity_receipt_only"]},
+        "effective_time": {"type": "string", "format": "date-time"},
+        "policy_ref": {"type": "string"},
+        "actor_ref": {"type": "string"},
+        "method": {"type": ["string", "null"]},
+        "information_loss": {"type": "array", "items": {"type": "string"}},
+        "reversible": {"type": "boolean"},
+        "source_integrity": {"$ref": "#/$defs/integrityCommitment"},
+        "destination_integrity": {"$ref": "#/$defs/integrityCommitment"}
+      }
+    }
+  }
+}
