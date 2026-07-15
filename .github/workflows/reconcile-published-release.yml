@@ -1,5 +1,6 @@
 name: Reconcile published release evidence
 
+# This workflow may be activated by changing this file or dispatched manually.
 on:
   push:
     branches: ["main"]
