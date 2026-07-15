@@ -15,6 +15,7 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "proofs.py",
     ROOT / "reconstructive_memory" / "ingestion.py",
     ROOT / "reconstructive_memory" / "transport.py",
+    ROOT / "reconstructive_memory" / "replay.py",
     ROOT / "reconstructive_memory" / "lifecycle.py",
     ROOT / "reconstructive_memory" / "session.py",
     ROOT / "reconstructive_memory" / "journal.py",
@@ -24,7 +25,7 @@ REQUIRED = (
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
 )
 
-SCHEMAS = REQUIRED[10:12]
+SCHEMAS = REQUIRED[11:13]
 
 
 def fail(message: str) -> None:
@@ -55,7 +56,8 @@ def main() -> int:
     print("RECONSTRUCTIVE MEMORY VALIDATION PASSED")
     print("- minimal chain and bounded reconstruction: present")
     print("- pair/epoch and dual-proof authorization: present")
-    print("- authenticated replay-resistant chat transport: present")
+    print("- authenticated chat transport: present")
+    print("- durable compare-and-swap replay state: present")
     print("- minimized chat ingestion and opaque routing: present")
     print("- expiring capability and tombstone controls: present")
     print("- coordinated session and plaintext-free journal: present")
