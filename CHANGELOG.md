@@ -8,7 +8,23 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- `docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md` defining governed reconstruction goals, material-property requirements, explicit capacity budgets, sensor substitution, adaptive sampling, fidelity elevation, exhaustion behavior, and capability-loss receipts
+- `schemas/storage-budget-policy.schema.json` as the machine-readable storage-budget and adaptive-capture contract
+- Four reference policies covering semantic recall, spatial/object-state recall, approximate experiential playback, and protected evidentiary preservation
+- `tools/validate_storage_budget_policy.py` and `tests/test_storage_budget_policy.py` enforcing required-property coverage, allocation limits, substitution consistency, receipt requirements, and exhaustion behavior
+- `multimodal_storage/budget_planner.py` and `tests/test_budget_planner.py` providing an advisory-only capture-plan analysis that cannot activate sensors, mutate retention, purchase capacity, or grant authority
+- `docs/STORAGE_BUDGET_EXPERIENCE_CAPSULE_MAPPING.md` binding policy streams and capability-loss states to the existing ExperienceCapsule contract
+- `.github/workflows/storage-budget-policy.yml` as the dedicated validation gate for storage-budget policies and planner behavior
+
+### Improved
+- Capacity pressure may reduce preferred properties only; required-property loss now forces an explicit capability-loss declaration
+- Replication, continuity-receipt reserve, protected evidence, archival allocation, and temporary buffers are accounted for separately
+- `RECONCILED` release-cycle receipts may identify the reconciliation workflow while all other outcomes remain bound to the automated release workflow
+- Repository handoff automation boundaries again preserve no-phone-home, no-certification, three-report evidence, smallest-correction, and no-vault-mutation requirements
+
+### Notes
+The storage-budget layer is advisory and policy-bound. It does not establish surveillance authority, control sensors, grant protected-evidence access, purchase storage, or imply that cheaper compute removes physical storage cost. Generated reconstruction remains distinct from original evidence.
 
 ---
 
