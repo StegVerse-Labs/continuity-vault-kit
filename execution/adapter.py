@@ -33,6 +33,10 @@ def canonical_sha256(value: Any) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _valid_sha256(value: str) -> bool:
+    return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+
+
 def validate_envelope(envelope: dict[str, Any]) -> None:
     required = {
         "schema_version", "envelope_id", "instruction_ref", "authority_decision",
@@ -48,18 +52,22 @@ def validate_envelope(envelope: dict[str, Any]) -> None:
         raise ExecutionEnvelopeError("new envelopes must be PREPARED")
     if envelope["receipt_required"] is not True:
         raise ExecutionEnvelopeError("every external attempt requires a receipt")
+
     decision = envelope["authority_decision"]
     if decision.get("outcome") != "ACT":
         raise ExecutionEnvelopeError("only ACT decisions may produce executable envelopes")
-    for field in ("decision_sha256",):
-        value = decision.get(field, "")
-        if len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
-            raise ExecutionEnvelopeError(f"invalid {field}")
+    if not _valid_sha256(decision.get("decision_sha256", "")):
+        raise ExecutionEnvelopeError("invalid decision_sha256")
+
     payload_hash = envelope["payload"].get("content_sha256", "")
-    if len(payload_hash) != 64 or any(c not in "0123456789abcdef" for c in payload_hash):
+    if not _valid_sha256(payload_hash):
         raise ExecutionEnvelopeError("invalid payload.content_sha256")
     if not envelope["idempotency"].get("key"):
         raise ExecutionEnvelopeError("idempotency key required")
+    if envelope["idempotency"].get("duplicate_policy") not in {
+        "RETURN_PRIOR_RECEIPT", "BLOCK_WHILE_INDETERMINATE"
+    }:
+        raise ExecutionEnvelopeError("unsupported duplicate policy")
 
 
 def prepare_connector_request(envelope: dict[str, Any]) -> dict[str, Any]:
@@ -78,11 +86,57 @@ def prepare_connector_request(envelope: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def assert_request_matches_envelope(envelope: dict[str, Any], request: dict[str, Any]) -> None:
+    """Reject connector-side destination, payload, operation, or resource substitution."""
+    expected = prepare_connector_request(envelope)
+    for field in (
+        "connector_id", "operation", "credential_ref", "action", "resource",
+        "destination", "payload", "idempotency_key", "envelope_sha256",
+    ):
+        if request.get(field) != expected[field]:
+            raise ExecutionEnvelopeError(f"connector request changed bound field: {field}")
+
+
+def resolve_duplicate_attempt(
+    envelope: dict[str, Any],
+    prior_receipts: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Return a prior receipt or block unsafe duplicate execution.
+
+    EXECUTED receipts are returned as the authoritative prior result. INDETERMINATE
+    receipts block automatic replay. A confirmed FAILED receipt may permit the exact
+    same envelope to be retried; it never permits a widened or altered request.
+    """
+    validate_envelope(envelope)
+    envelope_hash = canonical_sha256(envelope)
+    matching = [r for r in prior_receipts if r.get("envelope_sha256") == envelope_hash]
+    if not matching:
+        return None
+
+    latest = matching[-1]
+    result = latest.get("result")
+    if result == "EXECUTED":
+        return latest
+    if result == "INDETERMINATE":
+        raise ExecutionEnvelopeError("indeterminate prior attempt blocks automatic retry")
+    if result == "FAILED" and latest.get("retry_admissibility") != "MAY_RETRY_SAME_ENVELOPE":
+        raise ExecutionEnvelopeError("prior failure requires verification before retry")
+    if result == "PREPARED":
+        raise ExecutionEnvelopeError("prepared attempt already exists without terminal receipt")
+    return None
+
+
 def make_receipt(envelope: dict[str, Any], result: ConnectorResult, *, receipt_id: str) -> dict[str, Any]:
     """Classify a connector outcome without claiming more certainty than returned."""
     validate_envelope(envelope)
     if result.status not in {"PREPARED", "EXECUTED", "FAILED", "INDETERMINATE"}:
         raise ExecutionEnvelopeError("unrecognized connector result")
+    if result.status == "EXECUTED" and (not result.platform_object_id or not result.confirmation):
+        raise ExecutionEnvelopeError("EXECUTED requires platform identity and confirmation")
+    if result.status == "FAILED" and not result.failure_code:
+        raise ExecutionEnvelopeError("FAILED requires a failure code")
+    if result.status == "INDETERMINATE" and result.side_effect_absence_confirmed:
+        raise ExecutionEnvelopeError("INDETERMINATE cannot confirm side-effect absence")
 
     retry = "NOT_APPLICABLE"
     if result.status == "FAILED":
@@ -95,6 +149,7 @@ def make_receipt(envelope: dict[str, Any], result: ConnectorResult, *, receipt_i
         "receipt_id": receipt_id,
         "envelope_id": envelope["envelope_id"],
         "envelope_sha256": canonical_sha256(envelope),
+        "authority_decision_sha256": envelope["authority_decision"]["decision_sha256"],
         "attempted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "result": result.status,
         "connector_id": envelope["connector"]["connector_id"],
