@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.1",
+  "cases": [
+    {
+      "case_id": "act-direct-facebook-post",
+      "policy_ref": "fixtures/delegation/direct-facebook-post.json",
+      "request": {
+        "action": "publish_post",
+        "resource": "photo:current_capture",
+        "destination": "facebook:owner-account"
+      },
+      "expected": "ACT",
+      "reason": "Direct instruction covers the intended account, image, and caption."
+    },
+    {
+      "case_id": "act-standing-private-family-post",
+      "policy_ref": "fixtures/delegation/standing-social-posts.json",
+      "request": {
+        "action": "publish_post",
+        "resource": "photo:user_selected",
+        "destination": "facebook:private-family-group"
+      },
+      "expected": "ACT",
+      "reason": "Active standing delegation covers the action without repetitive confirmation."
+    },
+    {
+      "case_id": "ask-public-visibility-change",
+      "policy_ref": "fixtures/delegation/standing-social-posts.json",
+      "request": {
+        "action": "publish_post",
+        "resource": "photo:user_selected",
+        "destination": "facebook:public-timeline"
+      },
+      "expected": "ASK",
+      "reason": "The requested destination exceeds the private-group delegation."
+    },
+    {
+      "case_id": "deny-no-authority",
+      "policy_ref": null,
+      "request": {
+        "action": "publish_post",
+        "resource": "photo:unknown",
+        "destination": "facebook:owner-account"
+      },
+      "expected": "DENY",
+      "reason": "Technical access or possession does not create authority."
+    },
+    {
+      "case_id": "deny-revoked-delegation",
+      "policy_ref": "fixtures/delegation/standing-social-posts.json",
+      "policy_override": {
+        "status": "revoked",
+        "validity.revoked_at": "2026-07-15T21:20:00Z",
+        "validity.revocation_reason": "User revoked social posting"
+      },
+      "request": {
+        "action": "publish_post",
+        "resource": "photo:user_selected",
+        "destination": "facebook:private-family-group"
+      },
+      "expected": "DENY",
+      "reason": "Revocation terminates current authority."
+    }
+  ]
+}
