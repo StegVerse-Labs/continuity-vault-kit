@@ -65,7 +65,7 @@ def validate_envelope(envelope: dict[str, Any]) -> None:
     if not envelope["idempotency"].get("key"):
         raise ExecutionEnvelopeError("idempotency key required")
     if envelope["idempotency"].get("duplicate_policy") not in {
-        "RETURN_PRIOR_RECEIPT", "BLOCK_WHILE_INDETERMINATE"
+        "suppress", "verify_before_retry", "never_retry_automatically"
     }:
         raise ExecutionEnvelopeError("unsupported duplicate policy")
 
