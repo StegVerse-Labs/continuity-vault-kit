@@ -28,6 +28,22 @@ A pair binding is valid only for one relationship epoch. Revocation makes that e
 
 `ProofVerifier` separates proof presence from proof validity. Both the StegID proof and designated AI-entity proof must independently verify before protected routing, key release, or reconstruction.
 
+## Authenticated Ecosystem Chat transport
+
+`AuthenticatedChatTransportAdapter` is the boundary between an Ecosystem Chat transport event and minimized KnowledgeVault ingestion. It requires a canonical `ChatTransportEnvelope` containing source-session identity, monotonic sequence, validity window, nonce, pair, policy, relationship epoch, retention metadata, and a commitment to the plaintext rather than plaintext in the signed metadata.
+
+Before ingestion it verifies:
+
+- the user-approval proof;
+- the Ecosystem Chat transport proof;
+- pair, policy, and relationship-epoch binding;
+- freshness and expiration;
+- envelope and nonce uniqueness;
+- monotonic sequence within the source session;
+- explicit approval for durable continuity.
+
+Only after those checks does it delegate to `EcosystemChatIngestor`, which minimizes and protects approved content outside the durable chain. The replay registry is currently in-memory. Production deployment requires an authoritative distributed nonce and sequence registry and a concrete signature or attestation suite.
+
 ## Minimized Ecosystem Chat ingestion
 
 `EcosystemChatIngestor` accepts only user-approved observations. It creates a minimal `ChainEvent` containing no raw chat text. A caller-supplied minimizer selects the smallest approved durable representation, and a separate `ContentProtector` encrypts it outside the chain. Integrity-only observations create no protected object or content commitment.
@@ -84,6 +100,7 @@ The validator checks required files and schemas and discovers all `test_reconstr
 - `core.py`: minimal chain and bounded causal reconstruction.
 - `access.py`: relationship lifecycle, key-unwrapping boundary, and receipts.
 - `proofs.py`: independent identity proof-verification interfaces.
+- `transport.py`: authenticated freshness, binding, sequence, and replay checks before ingestion.
 - `ingestion.py`: approved and minimized chat ingestion.
 - `routing.py`: opaque bounded candidate routing.
 - `lifecycle.py`: expiring capabilities, replay denial, object lifecycle, and tombstones.
@@ -93,7 +110,7 @@ The validator checks required files and schemas and discovers all `test_reconstr
 
 ## Explicitly not claimed
 
-This prototype does not yet provide production cryptography, concrete StegID signatures, concrete AI-entity attestation, hardware-backed key custody, durable distributed transactions, actual custody-layer erasure, encrypted semantic indexing, process memory zeroization, distributed custody, Master-Records installation, or live Ecosystem Chat transport integration.
+This prototype does not yet provide production cryptography, concrete StegID signatures, concrete AI-entity attestation, hardware-backed key custody, durable distributed transport replay state, durable distributed transactions, actual custody-layer erasure, encrypted semantic indexing, process memory zeroization, distributed custody, Master-Records installation, or deployed Ecosystem Chat integration.
 
 Those are successor implementation gates, not implied capabilities.
 
