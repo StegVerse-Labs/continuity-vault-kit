@@ -2,7 +2,7 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with repository-native verification, issue-free publication, bounded recovery, safe initialization, downstream determination, and evidence-governed onboarding corrections.  
+**Status:** Active standalone release with repository-native verification, reconstructive memory, and an in-progress fidelity-governed multimodal storage contract.  
 **Current published version:** `0.1.2`  
 **Last updated:** 2026-07-15
 
@@ -122,7 +122,61 @@ Published releases inspect exactly four destinations:
 
 Determinations and receipts are stored under `evidence/downstream-propagation/`. Propagation never certifies user-authored content and never creates baseline dependencies.
 
-## 7. Durable decisions
+## 7. Fidelity-governed multimodal storage activation
+
+### Active branch
+
+`agent/fidelity-governed-storage-v0-1`
+
+### Completed in this activation slice
+
+- Added `docs/FIDELITY_GOVERNED_MULTIMODAL_STORAGE.md`.
+- Added `schemas/experience-capsule.schema.json`.
+- Defined separate artifact classes for continuity, derived records, protected raw evidence, ephemeral compute state, and generated reconstructions.
+- Defined transcription-only voice as the default low-storage boundary while preserving the distinction between synthesized playback and original voice evidence.
+- Defined a video fidelity ladder from raw original capture to continuity-receipt-only state.
+- Defined time-varying consent transitions, user recall rights, missing-evidence declarations, and reconstruction completeness states.
+- Defined the initial machine-readable `ExperienceCapsule` contract, including stream artifact class, modality, clock quality, retention class, fidelity class, integrity commitments, consent transitions, reconstruction rights, and fidelity transitions.
+
+### Parallel-session boundary
+
+The merged reconstructive-memory v0.1 work in PR #14 owns minimal continuity events, proof boundaries, authorization, protected-object lifecycle, coordinated reconstruction sessions, durable receipts, Master-Records outbox behavior, and external storage/delivery contracts. This branch must not duplicate or redefine those completed state-machine boundaries.
+
+This activation owns only the next layer:
+
+- multimodal episode representation;
+- artifact-class separation;
+- voice retention and recall limits;
+- sparse and scene-state video representation;
+- fidelity transition receipts;
+- reconstruction completeness for multimodal evidence.
+
+### Remaining files and modules
+
+Destination: `StegVerse-Labs/continuity-vault-kit`
+
+1. `schemas/fidelity-transition.schema.json` or a deliberate decision to keep the transition definition embedded in the capsule schema.
+2. `fixtures/multimodal/transcription-only-voice.json`.
+3. `fixtures/multimodal/protected-audio-evidence.json`.
+4. `fixtures/multimodal/sparse-video-reconstruction.json`.
+5. `fixtures/multimodal/incomplete-experience.json`.
+6. `tools/validate_experience_capsule.py`.
+7. `tests/test_experience_capsule.py`.
+8. `.github/workflows/fidelity-governed-storage.yml`.
+9. Integration adapter connecting an authorized experience capsule to the existing reconstructive-memory session boundary without granting raw-evidence access by implication.
+10. Changelog entry after executable validation exists.
+
+### Next bounded task
+
+Implement fixtures and a dependency-light validator that enforces:
+
+- generated reconstructions are explicitly labeled and source-linked;
+- ephemeral streams do not expose durable payload references;
+- transcription-only voice does not imply original-audio recall;
+- fidelity reductions declare information loss and reversibility;
+- incomplete evidence cannot be reported as complete for the declared scope.
+
+## 8. Durable decisions
 
 1. Baseline use remains independent of the wider StegVerse ecosystem.
 2. A newer kit cannot silently replace an owner-accepted vault.
@@ -138,8 +192,12 @@ Determinations and receipts are stored under `evidence/downstream-propagation/`.
 12. Supported merged fixes are recorded in Unreleased state before publication.
 13. Optional ecosystem references do not become baseline dependencies.
 14. This repository must not become an identity authority, surveillance surface, mandatory hosted service, financial product, or broad ecosystem-governance repository.
+15. A transcript may be the canonical recall object without preserving or exposing the original voice recording.
+16. Generated reconstruction is never original evidence.
+17. Lower compute cost does not eliminate raw-media storage cost; it enables more selective, explainable fidelity management.
+18. Deletion and fidelity reduction preserve continuity receipts and explicit recovery limitations.
 
-## 8. Continuation rule
+## 9. Continuation rule
 
 - Treat `latest.json` as the integrity and release-required gate.
 - Treat `latest_release.json` as the latest successful publication receipt.
@@ -152,14 +210,16 @@ Determinations and receipts are stored under `evidence/downstream-propagation/`.
 - Implement only the smallest demonstrated fix for a supported candidate.
 - Do not invent onboarding automation without evidence.
 - Implement data sharing only under separately governed scope.
+- Continue multimodal work only from the active branch and the bounded task in section 7.
+- Do not merge the multimodal activation until fixtures, validator, tests, and dedicated CI are green.
 
 Recommended next activation condition:
 
-> `VERSION`, `latest_release.json`, and `latest_cycle.json` jointly confirm the next verified patch publication, or a new durable failure receipt identifies the next bounded correction.
+> The experience-capsule schema has executable fixtures and validation, dedicated CI is successful, and the integration boundary demonstrates that user recall does not silently authorize protected raw-evidence access.
 
-## 9. Archive note
+## 10. Archive note
 
-This handoff preserves release state, release evidence surfaces, bounded recovery behavior, automation contracts, initialization boundaries, downstream determinations, onboarding-friction governance, durable decisions, and successor rules. Remaining work can proceed from this file, repository issues, workflow evidence, and committed implementation artifacts.
+This handoff preserves release state, reconstructive-memory ownership boundaries, the active multimodal branch, installed files, remaining modules, durable design decisions, and the next bounded task. Remaining work can proceed from this file, repository issues, workflow evidence, and committed implementation artifacts without access to the originating conversation.
 
 ---
 
