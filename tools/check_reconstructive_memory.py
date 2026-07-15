@@ -15,12 +15,13 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "proofs.py",
     ROOT / "reconstructive_memory" / "ingestion.py",
     ROOT / "reconstructive_memory" / "lifecycle.py",
+    ROOT / "reconstructive_memory" / "session.py",
     ROOT / "schemas" / "reconstructive-memory-event.v0.1.json",
     ROOT / "schemas" / "reconstructive-memory-access-receipt.v0.1.json",
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
 )
 
-SCHEMAS = REQUIRED[6:8]
+SCHEMAS = REQUIRED[7:9]
 
 
 def fail(message: str) -> None:
@@ -57,6 +58,7 @@ def main() -> int:
     print("- opaque routing: present")
     print("- expiring single-use capability controls: present")
     print("- protected-object tombstone controls: present")
+    print("- coordinated reconstruction session: present")
     print("- plaintext-free access receipt: present")
     print("- production cryptography: NOT CLAIMED")
     print("- live Ecosystem Chat transport integration: NOT CLAIMED")
