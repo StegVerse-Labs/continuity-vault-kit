@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/reconstructive-memory-access-receipt.v0.1.json",
+  "title": "Reconstructive Memory Access Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id",
+    "pair_id",
+    "relationship_epoch",
+    "policy_ref",
+    "capability_commitment",
+    "request_commitment",
+    "event_range_commitment",
+    "event_count",
+    "result_class",
+    "plaintext_retained",
+    "workspace_destroyed",
+    "receipt_hash"
+  ],
+  "properties": {
+    "receipt_id": {"type": "string", "minLength": 1},
+    "pair_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "relationship_epoch": {"type": "integer", "minimum": 1},
+    "policy_ref": {"type": "string", "minLength": 1},
+    "capability_commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "request_commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "event_range_commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "event_count": {"type": "integer", "minimum": 1},
+    "result_class": {"const": "ephemeral_reconstruction"},
+    "plaintext_retained": {"const": false},
+    "workspace_destroyed": {"const": true},
+    "receipt_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}
