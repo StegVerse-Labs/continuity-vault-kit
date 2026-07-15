@@ -29,15 +29,17 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "provider_probes.py",
     ROOT / "reconstructive_memory" / "provider_drift.py",
     ROOT / "reconstructive_memory" / "provider_incident.py",
+    ROOT / "reconstructive_memory" / "provider_containment.py",
     ROOT / "schemas" / "reconstructive-memory-event.v0.1.json",
     ROOT / "schemas" / "reconstructive-memory-access-receipt.v0.1.json",
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
     ROOT / "docs" / "PRODUCTION_PROVIDER_ACTIVATION.md",
     ROOT / "docs" / "PROVIDER_CONFORMANCE_DRIFT.md",
     ROOT / "docs" / "PROVIDER_CONFORMANCE_INCIDENT_LIFECYCLE.md",
+    ROOT / "docs" / "PROVIDER_CONTAINMENT_ACTIONS.md",
 )
 
-SCHEMAS = REQUIRED[20:22]
+SCHEMAS = REQUIRED[21:23]
 
 
 def fail(message: str) -> None:
@@ -81,6 +83,7 @@ def main() -> int:
     print("- executable AWS, SPIFFE, and HTTPS provider probes: present")
     print("- continuous provider conformance drift detection: present")
     print("- provider incident quarantine, revocation, and re-attestation lifecycle: present")
+    print("- receipt-backed provider containment actions: present")
     print("- external resource identifiers and credentials: UNCONFIGURED")
     return 0
 
