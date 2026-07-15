@@ -58,7 +58,7 @@ WORKFLOWS = {
         "contents: write",
         "Record implemented corrections in Unreleased changelog",
         "CHANGELOG.md",
-        "git commit -m \"chore: record implemented automation candidate\"",
+        'git commit -m "chore: record implemented automation candidate"',
     },
 }
 
@@ -250,13 +250,15 @@ def validate_scope_boundaries() -> None:
     required = {
         "standalone by default",
         "does not certify",
-        "does not phone home",
+        "no undeclared outbound transmission",
+        "explicit, revocable, scoped delegation",
+        "standing preferences",
         "smallest repository-native correction",
-        "never authorizes access to or mutation of user vault content",
+        "repository automation does not independently grant authority",
     }
     missing = sorted(token for token in required if token not in handoff)
     if missing:
-        fail("handoff missing automation scope boundaries: " + ", ".join(missing))
+        fail("handoff missing delegated-authority boundaries: " + ", ".join(missing))
 
 
 def validate_downstream_config() -> None:
