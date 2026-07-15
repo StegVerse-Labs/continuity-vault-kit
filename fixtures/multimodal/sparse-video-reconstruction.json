@@ -1,0 +1,53 @@
+{
+  "schema_version": "0.1",
+  "experience_id": "exp_sparse_video_001",
+  "start_time": "2026-07-15T18:10:00Z",
+  "end_time": "2026-07-15T18:11:00Z",
+  "participants": [{"participant_id": "user_001", "role": "subject", "identity_proof_ref": null}],
+  "authorized_devices": [{"device_id": "device_glasses_001", "authority_state": "authorized", "attestation_ref": "attestation:glasses:001"}],
+  "streams": [
+    {
+      "stream_id": "stream_video_sparse_001",
+      "modality": "video",
+      "artifact_class": "derived",
+      "capture_start": "2026-07-15T18:10:00Z",
+      "capture_end": "2026-07-15T18:11:00Z",
+      "source_device_id": "device_glasses_001",
+      "clock_quality": "bounded_drift",
+      "user_recall_available": true,
+      "retention_class": "searchable_derived",
+      "fidelity_class": "sparse_reconstruction_package",
+      "generated": false,
+      "source_stream_refs": ["stream_video_raw_001"],
+      "transform_method": "keyframe_motion_scene_state_extraction",
+      "transform_version": "sparse-video-0.1",
+      "payload_ref": "vault://derived/video/stream_video_sparse_001",
+      "integrity": {"algorithm": "sha256", "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+    },
+    {
+      "stream_id": "stream_video_rendered_001",
+      "modality": "video",
+      "artifact_class": "generated_reconstruction",
+      "capture_start": "2026-07-15T18:10:00Z",
+      "capture_end": "2026-07-15T18:11:00Z",
+      "source_device_id": null,
+      "clock_quality": "bounded_drift",
+      "user_recall_available": true,
+      "retention_class": "searchable_derived",
+      "fidelity_class": "scene_state_record",
+      "generated": true,
+      "source_stream_refs": ["stream_video_sparse_001"],
+      "transform_method": "governed_scene_render",
+      "transform_version": "scene-render-0.1",
+      "payload_ref": "vault://generated/video/stream_video_rendered_001",
+      "integrity": {"algorithm": "sha256", "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}
+    }
+  ],
+  "consent_transitions": [{"participant_id": "user_001", "effective_time": "2026-07-15T18:10:00Z", "scope": ["video_capture", "sparse_reconstruction", "generated_replay"], "state": "granted", "authority_ref": "consent:user_001:sparse-video"}],
+  "retention_policy": {"policy_id": "policy:video:sparse:v1", "default_voice_mode": "no_derived_voice", "raw_media_default": "bounded_buffer", "fidelity_reduction_allowed": true, "maximum_buffer_seconds": 3600},
+  "provenance_root": {"algorithm": "sha256", "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+  "reconstruction_rights": [{"principal_id": "user_001", "scope": ["sparse_package", "generated_replay"], "may_access_raw": false, "may_generate_reconstruction": true, "expires_at": null}],
+  "completeness_status": "bounded_but_coherent",
+  "missing_evidence": [{"interval_start": "2026-07-15T18:10:00Z", "interval_end": "2026-07-15T18:11:00Z", "reason": "deleted_under_policy", "materiality": "minor"}],
+  "fidelity_transitions": [{"transition_id": "transition_video_sparse_001", "source_stream_id": "stream_video_raw_001", "from_class": "raw_original", "to_class": "sparse_reconstruction_package", "effective_time": "2026-07-15T19:10:00Z", "policy_ref": "policy:video:sparse:v1", "actor_ref": "device_glasses_001", "method": "keyframe_motion_scene_state_extraction", "information_loss": ["intermediate_frames", "fine_texture", "unmodeled_background_motion"], "reversible": false, "source_integrity": {"algorithm": "sha256", "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}, "destination_integrity": {"algorithm": "sha256", "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}}]
+}

@@ -1,0 +1,53 @@
+name: Fidelity-Governed Storage Validation
+
+on:
+  pull_request:
+    paths:
+      - "docs/FIDELITY_GOVERNED_MULTIMODAL_STORAGE.md"
+      - "schemas/experience-capsule.schema.json"
+      - "fixtures/multimodal/**"
+      - "multimodal_storage/**"
+      - "tools/validate_experience_capsule.py"
+      - "tests/test_experience_capsule.py"
+      - "tests/test_multimodal_storage_adapter.py"
+      - ".github/workflows/fidelity-governed-storage.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/FIDELITY_GOVERNED_MULTIMODAL_STORAGE.md"
+      - "schemas/experience-capsule.schema.json"
+      - "fixtures/multimodal/**"
+      - "multimodal_storage/**"
+      - "tools/validate_experience_capsule.py"
+      - "tests/test_experience_capsule.py"
+      - "tests/test_multimodal_storage_adapter.py"
+      - ".github/workflows/fidelity-governed-storage.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile validator, adapter, and tests
+        run: python3 -m compileall -q multimodal_storage tools/validate_experience_capsule.py tests/test_experience_capsule.py tests/test_multimodal_storage_adapter.py
+
+      - name: Validate reference capsules
+        run: python3 tools/validate_experience_capsule.py
+
+      - name: Run invariant and access-boundary tests
+        run: python3 -m unittest tests.test_experience_capsule tests.test_multimodal_storage_adapter
+
+      - name: Confirm schema parses
+        run: python3 -c 'import json; json.load(open("schemas/experience-capsule.schema.json", encoding="utf-8")); print("schema JSON valid")'
