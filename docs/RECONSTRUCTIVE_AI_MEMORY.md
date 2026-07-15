@@ -42,7 +42,9 @@ Before ingestion it verifies:
 - monotonic sequence within the source session;
 - explicit approval for durable continuity.
 
-Only after those checks does it delegate to `EcosystemChatIngestor`, which minimizes and protects approved content outside the durable chain. The replay registry is currently in-memory. Production deployment requires an authoritative distributed nonce and sequence registry and a concrete signature or attestation suite.
+Only after those checks does it delegate to `EcosystemChatIngestor`, which minimizes and protects approved content outside the durable chain.
+
+`DurableTransportReplayRegistry` advances immutable replay-state snapshots through a compare-and-swap `ReplayStateStore`. The state retains only envelope and nonce commitments plus last accepted sequence values. The included store is an in-memory adapter for testing; production deployment must implement the same compare-and-swap contract in durable replicated storage.
 
 ## Minimized Ecosystem Chat ingestion
 
@@ -85,6 +87,14 @@ No consumed capability is returned when proof, routing, lifecycle, integrity, or
 
 Abort writes only an aborted journal state and leaves the capability unconsumed. This implementation is in-memory; production adapters must preserve the same invariant in durable replicated storage with authoritative clocks and replay-resistant nonce registration.
 
+## Master-Records propagation boundary
+
+`MasterRecordsOutbox` creates a plaintext-free, hash-linked export envelope for an access receipt, deletion result, transport acceptance, or another governed continuity receipt. Each export binds the source commitment to one pair, policy, relationship epoch, destination, creation time, and prior export hash.
+
+The outbox refuses duplicate export identifiers and refuses exporting the same source commitment twice. An export remains pending until a destination-controlled `MasterRecordAcknowledgement` verifies and matches the exact export hash. Enqueueing proves only that a receipt was prepared for propagation; acknowledgement proves only that the destination accepted the committed envelope. Neither state claims that downstream policy interpretation, publication, or broader admissibility occurred.
+
+The current outbox is process-local. Production installation must persist pending exports, acknowledgements, and export-chain state in an authoritative store and connect the verifier to the actual Master-Records identity and receipt format.
+
 ## Validation
 
 The dedicated workflow `.github/workflows/reconstructive-memory.yml` compiles the module and runs:
@@ -93,7 +103,7 @@ The dedicated workflow `.github/workflows/reconstructive-memory.yml` compiles th
 python3 tools/check_reconstructive_memory.py
 ```
 
-The validator checks required files and schemas and discovers all `test_reconstructive_memory*.py` tests. Run #7 passed on commit `ce6fc2906dfc9c81ad33eec1e45aa8d828b123d4`, including compilation and the full validator after the authenticated transport slice was added.
+The validator checks required files and schemas and discovers all `test_reconstructive_memory*.py` tests.
 
 ## Implemented modules
 
@@ -101,16 +111,18 @@ The validator checks required files and schemas and discovers all `test_reconstr
 - `access.py`: relationship lifecycle, key-unwrapping boundary, and receipts.
 - `proofs.py`: independent identity proof-verification interfaces.
 - `transport.py`: authenticated freshness, binding, sequence, and replay checks before ingestion.
+- `replay.py`: immutable replay snapshots and compare-and-swap replay-state adapter.
 - `ingestion.py`: approved and minimized chat ingestion.
 - `routing.py`: opaque bounded candidate routing.
 - `lifecycle.py`: expiring capabilities, replay denial, object lifecycle, and tombstones.
 - `session.py`: coordinated fail-closed reconstruction.
 - `journal.py`: plaintext-free transaction history.
 - `authority.py`: atomic receipt, capability, and journal commit boundary.
+- `master_records.py`: replay-safe receipt propagation and verified destination acknowledgement.
 
 ## Explicitly not claimed
 
-This prototype does not yet provide production cryptography, concrete StegID signatures, concrete AI-entity attestation, hardware-backed key custody, durable distributed transport replay state, durable distributed transactions, actual custody-layer erasure, encrypted semantic indexing, process memory zeroization, distributed custody, Master-Records installation, or deployed Ecosystem Chat integration.
+This prototype does not yet provide production cryptography, concrete StegID signatures, concrete AI-entity attestation, hardware-backed key custody, durable replicated replay or transaction storage, actual custody-layer erasure, encrypted semantic indexing, process memory zeroization, distributed custody, deployed Master-Records installation, or deployed Ecosystem Chat integration.
 
 Those are successor implementation gates, not implied capabilities.
 
