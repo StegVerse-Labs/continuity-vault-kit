@@ -1,0 +1,44 @@
+name: Progressive Delegation Validation
+
+on:
+  pull_request:
+    paths:
+      - "schemas/delegation-policy.schema.json"
+      - "fixtures/delegation/**"
+      - "delegation/**"
+      - "tools/validate_delegation_policy.py"
+      - "tests/test_delegation_*.py"
+      - "docs/PROGRESSIVE_DELEGATION_AND_FAIR_AGENCY.md"
+      - ".github/workflows/progressive-delegation.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/delegation-policy.schema.json"
+      - "fixtures/delegation/**"
+      - "delegation/**"
+      - "tools/validate_delegation_policy.py"
+      - "tests/test_delegation_*.py"
+      - "docs/PROGRESSIVE_DELEGATION_AND_FAIR_AGENCY.md"
+      - ".github/workflows/progressive-delegation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile delegation surface
+        run: |
+          python -m py_compile delegation/decision.py delegation/onboarding.py tools/validate_delegation_policy.py
+      - name: Validate delegation fixtures
+        run: |
+          python tools/validate_delegation_policy.py fixtures/delegation/*.json
+      - name: Run authority and onboarding tests
+        run: |
+          python -m unittest tests.test_delegation_decision tests.test_delegation_onboarding -v
