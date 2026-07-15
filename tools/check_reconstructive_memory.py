@@ -26,13 +26,14 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "provider_activation.py",
     ROOT / "reconstructive_memory" / "readiness.py",
     ROOT / "reconstructive_memory" / "provider_conformance.py",
+    ROOT / "reconstructive_memory" / "provider_probes.py",
     ROOT / "schemas" / "reconstructive-memory-event.v0.1.json",
     ROOT / "schemas" / "reconstructive-memory-access-receipt.v0.1.json",
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
     ROOT / "docs" / "PRODUCTION_PROVIDER_ACTIVATION.md",
 )
 
-SCHEMAS = REQUIRED[17:19]
+SCHEMAS = REQUIRED[18:20]
 
 
 def fail(message: str) -> None:
@@ -73,6 +74,7 @@ def main() -> int:
     print("- external CAS store and delivery adapter contracts: present")
     print("- concrete provider selection and readiness gate: present")
     print("- live provider conformance and receipt assembly: present")
+    print("- executable AWS, SPIFFE, and HTTPS provider probes: present")
     print("- external resource identifiers and credentials: UNCONFIGURED")
     return 0
 
