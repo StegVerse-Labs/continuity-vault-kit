@@ -1,0 +1,41 @@
+{
+  "schema_version": "reconstructive-memory-activation-evidence.v1",
+  "environment": "production",
+  "profile_path": "UNCONFIGURED",
+  "profile_commitment": "UNCONFIGURED",
+  "validation_commit": "UNCONFIGURED",
+  "providers": {
+    "steg-id-signature": {
+      "resource_id": "UNCONFIGURED",
+      "probe_result_commitment": "UNCONFIGURED"
+    },
+    "ai-entity-attestation": {
+      "resource_id": "UNCONFIGURED",
+      "probe_result_commitment": "UNCONFIGURED"
+    },
+    "key-custody": {
+      "resource_id": "UNCONFIGURED",
+      "probe_result_commitment": "UNCONFIGURED"
+    },
+    "replicated-state": {
+      "resource_id": "UNCONFIGURED",
+      "probe_result_commitment": "UNCONFIGURED"
+    },
+    "ecosystem-chat": {
+      "resource_id": "UNCONFIGURED",
+      "probe_result_commitment": "UNCONFIGURED"
+    },
+    "master-records": {
+      "resource_id": "UNCONFIGURED",
+      "probe_result_commitment": "UNCONFIGURED",
+      "destination_acknowledgement_commitment": "UNCONFIGURED"
+    }
+  },
+  "conformance_report_commitment": "UNCONFIGURED",
+  "deployment_receipt_commitment": "UNCONFIGURED",
+  "rollback_test_commitment": "UNCONFIGURED",
+  "revocation_test_commitment": "UNCONFIGURED",
+  "operator_identity": "UNCONFIGURED",
+  "approved_at": "UNCONFIGURED",
+  "decision": "FAIL_CLOSED"
+}
