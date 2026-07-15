@@ -12,10 +12,14 @@ REQUIRED = (
     ROOT / "reconstructive_memory" / "core.py",
     ROOT / "reconstructive_memory" / "access.py",
     ROOT / "reconstructive_memory" / "routing.py",
+    ROOT / "reconstructive_memory" / "proofs.py",
+    ROOT / "reconstructive_memory" / "ingestion.py",
     ROOT / "schemas" / "reconstructive-memory-event.v0.1.json",
     ROOT / "schemas" / "reconstructive-memory-access-receipt.v0.1.json",
     ROOT / "docs" / "RECONSTRUCTIVE_AI_MEMORY.md",
 )
+
+SCHEMAS = REQUIRED[5:7]
 
 
 def fail(message: str) -> None:
@@ -27,7 +31,7 @@ def main() -> int:
         if not path.is_file():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
-    for schema in REQUIRED[3:5]:
+    for schema in SCHEMAS:
         try:
             data = json.loads(schema.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
@@ -46,11 +50,13 @@ def main() -> int:
     print("RECONSTRUCTIVE MEMORY VALIDATION PASSED")
     print("- minimal chain: present")
     print("- pair/epoch authorization: present")
+    print("- dual proof verification boundary: present")
+    print("- minimized chat ingestion boundary: present")
     print("- key unwrap boundary: present")
     print("- opaque routing: present")
     print("- plaintext-free access receipt: present")
     print("- production cryptography: NOT CLAIMED")
-    print("- live Ecosystem Chat ingestion: NOT CLAIMED")
+    print("- live Ecosystem Chat transport integration: NOT CLAIMED")
     return 0
 
 
