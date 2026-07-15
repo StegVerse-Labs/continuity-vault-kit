@@ -8,6 +8,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [0.1.4] – 2026-07-15
+
 ### Added
 - `docs/FIDELITY_GOVERNED_MULTIMODAL_STORAGE.md` defining artifact-class separation, transcription-only voice recall, multimodal fidelity transitions, sparse reconstruction, sensor substitution, and reconstruction-completeness requirements
 - `schemas/experience-capsule.schema.json` as the machine-readable contract for governed multimodal episodes, streams, consent transitions, retention policy, reconstruction rights, missing evidence, and fidelity transitions
