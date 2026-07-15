@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "experience_id": "exp_audio_evidence_001",
+  "start_time": "2026-07-15T18:05:00Z",
+  "end_time": "2026-07-15T18:05:30Z",
+  "participants": [{"participant_id": "user_001", "role": "speaker", "identity_proof_ref": null}],
+  "authorized_devices": [{"device_id": "device_phone_001", "authority_state": "authorized", "attestation_ref": "attestation:phone:001"}],
+  "streams": [
+    {
+      "stream_id": "stream_audio_protected_001",
+      "modality": "audio",
+      "artifact_class": "protected_raw",
+      "capture_start": "2026-07-15T18:05:00Z",
+      "capture_end": "2026-07-15T18:05:30Z",
+      "source_device_id": "device_phone_001",
+      "clock_quality": "synchronized",
+      "user_recall_available": false,
+      "retention_class": "protected_evidence",
+      "fidelity_class": "raw_original",
+      "generated": false,
+      "source_stream_refs": [],
+      "transform_method": null,
+      "transform_version": null,
+      "payload_ref": "protected://audio/stream_audio_protected_001",
+      "integrity": {"algorithm": "sha256", "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+    }
+  ],
+  "consent_transitions": [{"participant_id": "user_001", "effective_time": "2026-07-15T18:05:00Z", "scope": ["protected_audio_evidence"], "state": "granted", "authority_ref": "consent:user_001:audio-evidence"}],
+  "retention_policy": {"policy_id": "policy:audio:evidence:v1", "default_voice_mode": "protected_evidence", "raw_media_default": "protected_retention", "fidelity_reduction_allowed": false, "maximum_buffer_seconds": null},
+  "provenance_root": {"algorithm": "sha256", "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "reconstruction_rights": [{"principal_id": "user_001", "scope": ["existence_receipt"], "may_access_raw": false, "may_generate_reconstruction": false, "expires_at": null}],
+  "completeness_status": "protected_evidence_unavailable",
+  "missing_evidence": [{"interval_start": "2026-07-15T18:05:00Z", "interval_end": "2026-07-15T18:05:30Z", "reason": "protected", "materiality": "material"}],
+  "fidelity_transitions": []
+}
