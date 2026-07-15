@@ -1,21 +1,11 @@
 """Privacy-preserving reconstructive memory primitives.
 
-This package is intentionally dependency-free and prototype-scoped. It models a
-minimal continuity chain, pair-bound authorization, bounded ephemeral
-reconstruction, relationship epochs, proof verification, minimized chat
-ingestion, key-unwrapping boundaries, opaque routing, expiring capabilities,
-protected-object tombstones, coordinated reconstruction sessions, and access
-receipts without storing plaintext chat content in the chain.
+This package is dependency-free and prototype-scoped. It models minimal
+continuity, pair-bound authorization, minimized ingestion, bounded ephemeral
+reconstruction, replay controls, lifecycle tombstones, plaintext-free journals,
+and authoritative commit boundaries without storing plaintext chat in the chain.
 """
 
-from .core import (
-    AuthorizationContext,
-    ChainEvent,
-    EphemeralReconstructor,
-    ProtectedObject,
-    ReconstructionResult,
-    compute_pair_id,
-)
 from .access import (
     AccessReceipt,
     CallableKeyUnwrapper,
@@ -24,7 +14,17 @@ from .access import (
     RelationshipState,
     make_access_receipt,
 )
+from .authority import AuthoritativeSessionStore, CommitSnapshot, PreparedSession
+from .core import (
+    AuthorizationContext,
+    ChainEvent,
+    EphemeralReconstructor,
+    ProtectedObject,
+    ReconstructionResult,
+    compute_pair_id,
+)
 from .ingestion import ChatObservation, ContentProtector, EcosystemChatIngestor, IngestionResult
+from .journal import SessionJournal, SessionJournalEntry
 from .lifecycle import (
     CapabilityGrant,
     ObjectLifecycleRegistry,
@@ -37,12 +37,14 @@ from .session import ReconstructionSessionCoordinator, ReconstructionSessionResu
 
 __all__ = [
     "AccessReceipt",
+    "AuthoritativeSessionStore",
     "AuthorizationContext",
     "CallableKeyUnwrapper",
     "CallableProofVerifier",
     "CapabilityGrant",
     "ChainEvent",
     "ChatObservation",
+    "CommitSnapshot",
     "ContentProtector",
     "EcosystemChatIngestor",
     "EphemeralReconstructor",
@@ -52,6 +54,7 @@ __all__ = [
     "ObjectLifecycleState",
     "OpaqueRouteEntry",
     "OpaqueRouteIndex",
+    "PreparedSession",
     "ProofVerifier",
     "ProtectedObject",
     "ReconstructionResult",
@@ -59,6 +62,8 @@ __all__ = [
     "ReconstructionSessionResult",
     "RelationshipRegistry",
     "RelationshipState",
+    "SessionJournal",
+    "SessionJournalEntry",
     "compute_pair_id",
     "make_access_receipt",
     "make_tombstone_event",
