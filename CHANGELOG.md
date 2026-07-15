@@ -8,6 +8,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [0.1.3] – 2026-07-15
+
 ### Added
 - `docs/continuity_notes/2026-07-14-kv-public-announcement-context.md` as a bounded continuity record preserving the public-announcement milestone and subsequent focus shift without creating architecture, integration, product, or implementation authority
 - `.github/ISSUE_TEMPLATE/onboarding-friction.yml` for structured, privacy-bounded first-use and setup reports
