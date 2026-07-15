@@ -1,9 +1,10 @@
 """Privacy-preserving reconstructive memory primitives.
 
 This package is dependency-free and prototype-scoped. It models minimal
-continuity, pair-bound authorization, minimized ingestion, bounded ephemeral
-reconstruction, replay controls, lifecycle tombstones, plaintext-free journals,
-and authoritative commit boundaries without storing plaintext chat in the chain.
+continuity, pair-bound authorization, authenticated minimized ingestion, bounded
+ephemeral reconstruction, replay controls, lifecycle tombstones, plaintext-free
+journals, and authoritative commit boundaries without storing plaintext chat in
+the chain.
 """
 
 from .access import (
@@ -34,9 +35,16 @@ from .lifecycle import (
 from .proofs import CallableProofVerifier, ProofVerifier, require_dual_proof
 from .routing import OpaqueRouteEntry, OpaqueRouteIndex, validate_candidate_events
 from .session import ReconstructionSessionCoordinator, ReconstructionSessionResult
+from .transport import (
+    AuthenticatedChatTransportAdapter,
+    ChatTransportEnvelope,
+    TransportReplayRegistry,
+    TransportVerifier,
+)
 
 __all__ = [
     "AccessReceipt",
+    "AuthenticatedChatTransportAdapter",
     "AuthoritativeSessionStore",
     "AuthorizationContext",
     "CallableKeyUnwrapper",
@@ -44,6 +52,7 @@ __all__ = [
     "CapabilityGrant",
     "ChainEvent",
     "ChatObservation",
+    "ChatTransportEnvelope",
     "CommitSnapshot",
     "ContentProtector",
     "EcosystemChatIngestor",
@@ -64,6 +73,8 @@ __all__ = [
     "RelationshipState",
     "SessionJournal",
     "SessionJournalEntry",
+    "TransportReplayRegistry",
+    "TransportVerifier",
     "compute_pair_id",
     "make_access_receipt",
     "make_tombstone_event",
