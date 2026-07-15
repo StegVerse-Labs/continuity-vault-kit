@@ -1,0 +1,44 @@
+name: Governed Action Execution Validation
+
+on:
+  pull_request:
+    paths:
+      - "schemas/action-execution-*.json"
+      - "fixtures/action-execution/**"
+      - "execution/**"
+      - "tools/validate_action_execution.py"
+      - "tests/test_action_execution.py"
+      - ".github/workflows/governed-action-execution.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/action-execution-*.json"
+      - "fixtures/action-execution/**"
+      - "execution/**"
+      - "tools/validate_action_execution.py"
+      - "tests/test_action_execution.py"
+      - ".github/workflows/governed-action-execution.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile execution surface
+        run: |
+          python -m py_compile execution/adapter.py tools/validate_action_execution.py
+      - name: Validate envelope and result fixtures
+        run: |
+          python tools/validate_action_execution.py \
+            fixtures/action-execution/facebook-good-times.prepared.json \
+            --results fixtures/action-execution/results.json
+      - name: Run governed execution tests
+        run: |
+          python -m unittest tests.test_action_execution -v
