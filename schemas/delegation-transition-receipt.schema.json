@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/delegation-transition-receipt.schema.json",
+  "title": "Delegation Transition Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "transition", "event", "delegation_id", "source_policy_sha256", "result_policy_sha256", "actor", "reason", "occurred_at", "user_accepted", "requested_change"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "transition": {"enum": ["accept", "narrow", "expand", "reject", "revoke", "expire"]},
+    "event": {"enum": ["delegation_created", "delegation_revised", "delegation_revoked", "delegation_expired"]},
+    "delegation_id": {"type": "string", "minLength": 1},
+    "source_policy_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "result_policy_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "actor": {"type": "string", "minLength": 1},
+    "reason": {"type": "string", "minLength": 1},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "user_accepted": {"type": "boolean"},
+    "requested_change": {"type": ["object", "null"]}
+  }
+}
