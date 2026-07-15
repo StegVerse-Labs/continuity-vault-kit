@@ -1,0 +1,50 @@
+name: Production Provider Readiness
+
+on:
+  pull_request:
+    paths:
+      - "config/production-provider-profile*.json"
+      - "reconstructive_memory/readiness.py"
+      - "tests/test_reconstructive_memory_readiness.py"
+      - "tools/check_provider_readiness.py"
+      - ".github/workflows/provider-readiness.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "config/production-provider-profile*.json"
+      - "reconstructive_memory/readiness.py"
+      - "tests/test_reconstructive_memory_readiness.py"
+      - "tools/check_provider_readiness.py"
+      - ".github/workflows/provider-readiness.yml"
+  workflow_dispatch:
+    inputs:
+      profile_path:
+        description: Repository path to a configured provider profile
+        required: false
+        default: config/production-provider-profile.template.json
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile readiness boundary
+        run: python3 -m compileall -q reconstructive_memory/readiness.py tools/check_provider_readiness.py tests/test_reconstructive_memory_readiness.py
+      - name: Run readiness tests
+        run: python3 -m unittest tests.test_reconstructive_memory_readiness
+      - name: Confirm template remains fail-closed
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          set +e
+          python3 tools/check_provider_readiness.py config/production-provider-profile.template.json
+          code=$?
+          test "$code" -eq 1
+      - name: Validate requested profile
+        if: github.event_name == 'workflow_dispatch'
+        run: python3 tools/check_provider_readiness.py "${{ inputs.profile_path }}"
