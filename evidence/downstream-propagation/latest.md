@@ -1,31 +1,36 @@
 # Downstream Propagation Determination
 
-- Source release: `pending-automated-release`
-- Checked UTC: `2026-07-14T05:40:00Z`
-- Method: connected GitHub repository code search
+- Source release: `v0.1.4`
+- Checked UTC: `2026-07-15T19:11:29Z`
 
 ## StegVerse-Labs/Site
 
-**Determination:** no update required
+**Determination:** update required
 
-No direct `continuity-vault-kit`, `ContinuityVault`, or `KnowledgeVault Kit` reference was found.
+Existing repository-specific references require review against the new release.
+
+- `scripts/check_site_knowledgevault_paper.py` — continuity-vault-kit
+- `docs/KNOWLEDGEVAULT_PAPER_PUBLICATION.md` — continuity-vault-kit
+- `docs/SITE_KNOWLEDGEVAULT_PAPER_MIRROR_HANDOFF.md` — continuity-vault-kit
+- `papers/knowledgevault/conversation-continuity.html` — continuity-vault-kit
+- `docs/continuity_notes/2026-07-15-knowledgevault-paper-publication.md` — continuity-vault-kit
 
 ## GCAT-BCAT-Engine/Publisher
 
-**Determination:** no update required
+**Determination:** update required
 
-No direct `continuity-vault-kit`, `ContinuityVault`, or `KnowledgeVault Kit` reference was found.
+Existing repository-specific references require review against the new release.
+
+- `docs/VAULT_PUBLISHER_INTEGRATION.md` — continuity-vault-kit
 
 ## StegVerse-Labs/admissibility-wiki
 
 **Determination:** no update required
 
-No direct `continuity-vault-kit`, `ContinuityVault`, or `KnowledgeVault Kit` reference was found.
+No direct Continuity Vault Kit release, install, download, compatibility, or mirror reference was found.
 
 ## StegVerse-002/stegguardian-wiki
 
 **Determination:** no update required
 
-No direct `continuity-vault-kit`, `ContinuityVault`, or `KnowledgeVault Kit` reference was found.
-
-Future published releases are checked automatically by `.github/workflows/downstream-propagation.yml` using `automation/downstream-propagation.json`.
+No direct Continuity Vault Kit release, install, download, compatibility, or mirror reference was found.

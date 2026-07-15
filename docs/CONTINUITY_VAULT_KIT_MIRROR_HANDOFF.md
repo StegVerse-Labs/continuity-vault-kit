@@ -3,7 +3,7 @@
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
 **Status:** Active standalone release with repository-native verification, reconstructive memory, and a validated fidelity-governed multimodal storage activation in PR #20.  
-**Current published version:** `0.1.3`  
+**Current published version:** `0.1.4`  
 **Last updated:** 2026-07-15
 
 ## 1. Purpose and scope boundary
@@ -128,7 +128,7 @@ Determinations and receipts are stored under `evidence/downstream-propagation/`.
 
 - Branch: `agent/fidelity-governed-storage-v0-1`
 - Pull request: `#20 Add fidelity-governed multimodal storage contract`
-- PR state: draft pending current-head verification after changelog and handoff updates
+- PR state: merged; release evidence reconciled
 
 ### Completed implementation
 
@@ -219,7 +219,14 @@ Recommended next activation condition:
 
 > PR #20 is merged from a green current head, `VERSION`, `latest_release.json`, and `latest_cycle.json` confirm the resulting patch publication, and downstream determination receipts exist for all four governed destinations.
 
-## 10. Archive note
+## 10. Release reconciliation
+
+- `v0.1.4` assets were downloaded and independently verified.
+- `latest_release.json`, `latest_cycle.json`, and downstream propagation receipts now agree.
+- Issue #24 owns no remaining work after the reconciliation workflow closes it.
+- The next integration candidate is storage-budget and adaptive-capture policy.
+
+## 11. Archive note
 
 This handoff preserves release state, reconstructive-memory ownership boundaries, PR #20 implementation inventory, validated invariants, current remaining actions, and the next integration candidate. Remaining work can proceed from this file, the pull request, workflow evidence, and release receipts without access to the originating conversation.
 

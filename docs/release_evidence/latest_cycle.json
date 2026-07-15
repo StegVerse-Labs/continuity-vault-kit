@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
-  "outcome": "SKIPPED",
-  "reason": "No substantive Unreleased changes required publication.",
+  "outcome": "RECONCILED",
+  "reason": "Existing v0.1.4 publication and assets were verified and its missing final receipt was reconstructed without creating a new release.",
   "repository": "StegVerse-Labs/continuity-vault-kit",
-  "source_workflow": "Automated verified release",
+  "source_workflow": "Reconcile published release evidence",
   "source_workflow_conclusion": "success",
-  "source_workflow_run_id": "29442995636",
-  "source_workflow_run_url": "https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29442995636",
-  "source_head_sha": "509d20ad6409e294c820dc1876efeb035de66832",
+  "source_workflow_run_id": "29443559621",
+  "source_workflow_run_url": "https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29443559621",
+  "source_head_sha": "82e98b50bd813c53068b11b2332ea433d88afc7f",
   "current_version": "0.1.4",
   "release_required_after_run": false,
-  "generated_utc": "2026-07-15T19:02:56Z",
+  "generated_utc": "2026-07-15T19:11:29Z",
   "scope": "repository release-cycle outcome only; no certification of user-authored content"
 }

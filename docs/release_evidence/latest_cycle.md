@@ -1,12 +1,9 @@
 # Latest Release-Cycle Outcome
 
-- **Outcome:** `SKIPPED`
-- **Reason:** No substantive Unreleased changes required publication.
+- **Outcome:** RECONCILED
 - **Version:** `0.1.4`
-- **Release required after run:** `false`
-- **Source conclusion:** `success`
-- **Source workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29442995636
-- **Source head SHA:** `509d20ad6409e294c820dc1876efeb035de66832`
-- **Generated UTC:** `2026-07-15T19:02:56Z`
+- **Reason:** Existing v0.1.4 publication and assets were verified and its missing final receipt was reconstructed without creating a new release.
+- **Workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29443559621
+- **Generated UTC:** `2026-07-15T19:11:29Z`
 
-This receipt records repository release-cycle state only. It does not certify user-authored content.
+This outcome records repository release evidence only and does not certify user-authored content.
