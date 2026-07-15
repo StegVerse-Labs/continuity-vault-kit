@@ -18,8 +18,9 @@ Repository automation does not certify the truth, safety, completeness, authorit
 
 - Standalone mode permits **no undeclared outbound transmission**.
 - A direct user instruction may authorize the covered action.
-- An explicit, revocable, scoped delegation may authorize repeated action without a per-item toggle.
+- An **explicit, revocable, scoped delegation** may authorize repeated action through **standing preferences** without a per-item toggle.
 - Per-action confirmation is required only when user policy, scope, material context, risk, law, or platform rules require it.
+- Repository automation does not independently grant authority.
 - Technical access, credentials, possession, repetition, and AI recommendation do not create authority.
 - A governed entity must not silently expand its own authority.
 - Material delegated actions and authority transitions require receipts.
@@ -29,6 +30,8 @@ Example:
 > “Auri, post this photo to Facebook with the caption ‘Good times!’”
 
 When the intended account, image, and caption are clear, the instruction supplies current authority. Auri should act through a bounded execution envelope and preserve a receipt rather than request approval for every technical sub-step.
+
+Onboarding-friction automation retains its threshold of three reports before a candidate may be treated as supported. A supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
 
 ## 2. Published state
 
