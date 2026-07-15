@@ -2,7 +2,7 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with reconstructive memory, fidelity-governed multimodal storage, and an executable storage-budget and adaptive-capture policy in draft PR #30.  
+**Status:** Active standalone release with reconstructive memory, fidelity-governed multimodal storage, an executable storage-budget policy in PR #30, and a durable progressive-delegation architecture seed.  
 **Current published version:** `0.1.4`  
 **Last updated:** 2026-07-15
 
@@ -14,9 +14,27 @@ This file is the repository-local continuation source of truth. Read it before m
 
 Baseline use remains functional without an account, hosted service, SDK, database, telemetry, or connection to the wider StegVerse ecosystem.
 
-The vault does not phone home. Integrity tooling verifies package and copy behavior only. Repository automation does not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content. Automation never authorizes access to or mutation of user vault content.
+Repository automation does not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content.
 
-Onboarding-friction automation retains its evidence threshold of three reports before a candidate may be treated as supported. That threshold authorizes investigation only, never automatic mutation. Any supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
+### Delegated-authority boundary
+
+The repository does not treat “no authority” as “no action.” It distinguishes unauthorized action from valid user-directed action.
+
+- Standalone mode permits **no undeclared outbound transmission**.
+- A direct user instruction may authorize the covered action.
+- An **explicit, revocable, scoped delegation** may authorize repeated action through **standing preferences** without requiring a per-item toggle.
+- Per-action confirmation is required only when the user selected it, the action exceeds scope, the context materially changed, or an escalation rule applies.
+- Repository automation does not independently grant authority.
+- A governed entity must not silently expand its own authority.
+- Every material delegated action remains attributable through receipts.
+
+Example:
+
+> “Auri, post this photo to Facebook with the caption ‘Good times!’”
+
+When the intended account, image, and caption are clear, that direct instruction supplies current authority. Auri should perform the action and record the result rather than asking the user to approve every technical sub-step.
+
+Onboarding-friction automation retains its evidence threshold of three reports before a candidate may be treated as supported. That threshold authorizes investigation only. Any supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
 
 ## 2. Published and reconciled state
 
@@ -96,23 +114,21 @@ Enforced boundaries:
 - Issue: `#28 Define storage budgets and adaptive multimodal capture policy`.
 - Branch: `agent/storage-budget-adaptive-capture-v0-1`.
 - Pull request: `#30 Define storage budgets and adaptive capture policy`.
-- PR state: draft pending current-head green verification and changelog activation.
+- PR remains draft until the delegated-authority correction and current-head checks are green.
 
 ### Completed implementation
 
 - `docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md`.
 - `schemas/storage-budget-policy.schema.json`.
-- `fixtures/storage-budget/semantic-recall.json`.
-- `fixtures/storage-budget/spatial-object-state.json`.
-- `fixtures/storage-budget/approximate-experiential-playback.json`.
-- `fixtures/storage-budget/protected-evidentiary-preservation.json`.
+- Four goal fixtures under `fixtures/storage-budget/`.
 - `tools/validate_storage_budget_policy.py`.
 - `tests/test_storage_budget_policy.py`.
 - `multimodal_storage/budget_planner.py`.
 - `tests/test_budget_planner.py`.
 - `docs/STORAGE_BUDGET_EXPERIENCE_CAPSULE_MAPPING.md`.
 - `.github/workflows/storage-budget-policy.yml`.
-- automation-contract correction allowing only `RECONCILED` receipts to identify the reconciliation workflow.
+- automation-contract correction for reconciled release receipts.
+- substantive Unreleased changelog entry.
 
 ### Enforced invariants
 
@@ -130,23 +146,52 @@ Enforced boundaries:
 12. The advisory planner cannot activate sensors, mutate retention, purchase capacity, or grant authority.
 13. Consent and authority outrank capacity pressure.
 14. Lower compute cost does not remove physical storage cost.
+15. Storage policy evaluates available authority; it does not require repetitive confirmation when valid delegation already covers the action.
 
 ### Remaining release-stage work
 
-1. Confirm Storage Budget Policy Validation, Fidelity-Governed Storage Validation, KV Guardrails, repository diagnostics, and Release integrity are all green on the current head.
-2. Add a substantive Unreleased changelog entry.
-3. Update PR #30 body to reflect completed executable implementation.
-4. Mark PR #30 ready only after the changelog head is green.
-5. Merge only after readiness and mergeability are confirmed.
-6. Observe the repository release lifecycle and downstream determination receipts before claiming publication.
+1. Confirm all current-head checks are green after delegated-authority correction.
+2. Update PR #30 body to reflect completed implementation and corrected authority model.
+3. Mark PR #30 ready only after the corrected head is green.
+4. Merge only after readiness and mergeability are confirmed.
+5. Observe the release lifecycle and downstream determination receipts before claiming publication.
 
 Do not add live sensor control or autonomous storage purchasing in this activation.
 
-## 7. Durable decisions
+## 7. Progressive delegation and fair agency — next architecture
+
+Authoritative seed:
+
+- `docs/PROGRESSIVE_DELEGATION_AND_FAIR_AGENCY.md`.
+
+The next goal is to make governance the reason Auri can safely do more for the user.
+
+Required authority states:
+
+1. **Direct instruction — ACT.**
+2. **Standing delegation — ACT.**
+3. **Escalation required — ASK.**
+4. **No authority — DENY.**
+
+Required onboarding behavior:
+
+- Auri learns what the user wants handled automatically.
+- Repeated instructions become proposed standing delegations, never silent assumptions.
+- The user may accept, narrow, expand, reject, expire, or revoke delegation.
+- Exceptions become proposed policy revisions.
+- Current authority and unresolved ambiguity survive session boundaries.
+- The user remains responsible for authority granted.
+- Auri remains responsible for staying within scope and preserving receipts.
+
+Fair agency is not equal power on day one. Delegated authority gives Auri permission to act; fair agency gives Auri standing to participate in how the relationship evolves through demonstrated reliability, declared limitations, accepted responsibilities, and reciprocal renegotiation.
+
+Prosocial assistance may support helpfulness, civility, humility, and restraint when these reflect the user’s declared preferences. It must not impose moral conformity.
+
+## 8. Durable decisions
 
 1. Baseline use remains independent of the wider ecosystem.
 2. A newer kit cannot silently replace an owner-accepted vault.
-3. Examples and AI outputs do not grant mutation authority.
+3. Examples and AI outputs do not independently grant authority.
 4. Release progression requires executable verification.
 5. Generated reconstruction is never original evidence.
 6. A transcript may be canonical recall without original voice retention.
@@ -158,22 +203,25 @@ Do not add live sensor control or autonomous storage purchasing in this activati
 12. Continuity and decision-receipt capacity is reserved before discretionary media allocation.
 13. Deduplication savings count only while shared content remains durably available under compatible custody and retention rights.
 14. This repository does not become a surveillance authority, identity authority, mandatory hosted service, or autonomous purchasing system.
+15. Governance exists to make delegated action safe, attributable, bounded, and revocable—not to eliminate delegated action.
+16. A rule that only prevents action and offers no admissible delegated path is incomplete governance.
+17. No undeclared outbound transmission is a default against unauthorized communication, not a ban on user-authorized publishing, sharing, synchronization, or connected service use.
 
-## 8. Continuation rule
+## 9. Continuation rule
 
-- Continue storage-budget work only from issue #28, PR #30, the active branch, and section 6 of this handoff.
-- Do not merge until fixtures, validator, tests, planner, mapping, and dedicated CI are green.
+- Continue storage-budget work only from issue #28, PR #30, the active branch, and section 6.
+- Continue progressive-delegation work from the dedicated successor issue, `docs/PROGRESSIVE_DELEGATION_AND_FAIR_AGENCY.md`, and section 7.
+- Do not merge PR #30 until the corrected authority contract and all dedicated CI are green.
 - Do not claim runtime optimization beyond the advisory planner.
-- Do not let Site or Publisher downstream work redefine this repository's source contracts.
-- Let remaining downstream reviews proceed independently from their own repository-local handoffs and issues.
+- Do not let Site or Publisher downstream work redefine source contracts.
 
 Recommended next activation condition:
 
-> PR #30 is merged from a green current head, a compatible patch publication is confirmed by authoritative receipts, and downstream determinations exist for all four governed destinations.
+> PR #30 is merged from a green corrected head, and the successor progressive-delegation goal has a machine-readable delegation schema, ACT/ASK/DENY fixtures, revocation behavior, and an onboarding dialogue-to-policy adapter.
 
-## 9. Archive note
+## 10. Archive note
 
-This handoff preserves the reconciled `v0.1.4` state, downstream ownership, completed multimodal implementation, active storage-budget branch and PR, executable policy inventory, validated invariants, remaining release-stage actions, and continuation rules. Continuation no longer requires access to the originating conversation.
+This handoff preserves the reconciled `v0.1.4` state, completed multimodal implementation, storage-budget branch and PR, corrected delegated-authority model, progressive-delegation architecture seed, remaining release-stage actions, and the next implementation goal. Continuation no longer requires access to the originating conversation.
 
 ---
 
