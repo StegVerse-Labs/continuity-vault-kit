@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/action-execution-receipt.schema.json",
+  "title": "Governed Action Execution Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "envelope_id",
+    "envelope_sha256",
+    "attempted_at",
+    "result",
+    "connector_id",
+    "idempotency_key",
+    "retry_admissibility"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "receipt_id": {"type": "string", "minLength": 1},
+    "envelope_id": {"type": "string", "minLength": 1},
+    "envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "attempted_at": {"type": "string", "format": "date-time"},
+    "result": {"enum": ["PREPARED", "EXECUTED", "FAILED", "INDETERMINATE"]},
+    "connector_id": {"type": "string", "minLength": 1},
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "platform_result": {
+      "type": ["object", "null"],
+      "properties": {
+        "platform_object_id": {"type": "string"},
+        "platform_url": {"type": "string"},
+        "confirmation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "failure": {
+      "type": ["object", "null"],
+      "properties": {
+        "code": {"type": "string"},
+        "message": {"type": "string"},
+        "side_effect_absence_confirmed": {"type": "boolean"}
+      }
+    },
+    "retry_admissibility": {"enum": ["NOT_APPLICABLE", "MAY_RETRY_SAME_ENVELOPE", "VERIFY_BEFORE_RETRY", "DO_NOT_RETRY_AUTOMATICALLY"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"result": {"const": "EXECUTED"}}},
+      "then": {"required": ["platform_result"]}
+    },
+    {
+      "if": {"properties": {"result": {"enum": ["FAILED", "INDETERMINATE"]}}},
+      "then": {"required": ["failure"]}
+    }
+  ]
+}

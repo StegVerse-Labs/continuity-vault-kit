@@ -2,8 +2,8 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with fidelity-governed storage, published storage-budget policy, and progressive delegation implementation in draft PR #33.  
-**Current published version:** `0.1.5`  
+**Status:** Active standalone release with published progressive delegation and active governed-action execution work.  
+**Current published version:** `0.1.6`  
 **Last updated:** 2026-07-15
 
 ## 1. Purpose and scope boundary
@@ -21,7 +21,7 @@ Repository automation does not certify the truth, safety, completeness, authorit
 - An **explicit, revocable, scoped delegation** may authorize repeated action through **standing preferences** without a per-item toggle.
 - Per-action confirmation is required only when user policy, scope, material context, risk, law, or platform rules require it.
 - Repository automation does not independently grant authority.
-- Technical access or possession does not create authority.
+- Technical access, credentials, possession, repetition, and AI recommendation do not create authority.
 - A governed entity must not silently expand its own authority.
 - Material delegated actions and authority transitions require receipts.
 
@@ -29,75 +29,60 @@ Example:
 
 > “Auri, post this photo to Facebook with the caption ‘Good times!’”
 
-When the intended account, image, and caption are clear, the instruction supplies current authority. Auri should act and preserve a receipt instead of requesting approval for every technical sub-step.
+When the intended account, image, and caption are clear, the instruction supplies current authority. Auri should act through a bounded execution envelope and preserve a receipt rather than request approval for every technical sub-step.
 
 Onboarding-friction automation retains its threshold of three reports before a candidate may be treated as supported. A supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
 
 ## 2. Published state
 
-- Current verified release: `v0.1.5`.
-- Storage-budget and adaptive-capture work from issue #28 and PR #30 is merged and published.
-- The published layer includes reconstruction-goal policies, material-property coverage, explicit budgets, substitutions, capability-loss behavior, planner tests, and dedicated CI.
-- The storage planner remains advisory and cannot activate sensors, purchase capacity, grant authority, or silently degrade required properties.
+- Current verified release: `v0.1.6`.
+- Release commit: `590e234fb66121a5ee72ebe422eed73118e012c5`.
+- Publication receipt: `docs/release_evidence/latest_release.json`.
+- Release-cycle receipt: `docs/release_evidence/latest_cycle.json`.
+- Issue #32 and PR #33 are completed.
+- Published progressive-delegation work includes ACT/ASK/DENY decisions, proposal-only onboarding, governance profiles, lifecycle transitions, immutable transition receipts, relationship declarations, AI limitations, and renegotiation triggers.
 
-## 3. Active progressive-delegation work
+### Downstream determination for v0.1.6
 
-- Issue: `#32 Define progressive delegation onboarding and mutually declared fair agency`.
-- Branch: `agent/progressive-delegation-fair-agency-v0-1`.
-- Pull request: `#33 Implement progressive delegation onboarding and fair agency`.
-- PR state: draft pending current-head validation and release-stage completion.
+- `StegVerse-Labs/Site`: update required through bounded review.
+- `GCAT-BCAT-Engine/Publisher`: update required through bounded review.
+- `StegVerse-Labs/admissibility-wiki`: no update required.
+- `StegVerse-002/stegguardian-wiki`: no update required.
 
-### Implemented authority model
+Authoritative local receipt: `evidence/downstream-propagation/latest.json`.
 
-1. **Direct instruction — ACT** when action, resource, destination, validity, and constraints are covered.
-2. **Standing delegation — ACT** when an active policy covers the request.
-3. **Escalation required — ASK** when scope, exclusions, destination, confirmation policy, or material context requires user involvement.
-4. **No current authority — DENY** when absent, proposed, rejected, revoked, expired, or not yet valid.
+## 3. Active governed-action execution work
 
-Implemented artifacts:
+- Issue: `#37 Define governed action execution envelopes and connector receipts`.
+- Branch: `agent/governed-action-execution-v0-1`.
+- Pull request: `#38 Define governed action execution envelopes and connector receipts`.
+- PR state: draft pending complete executable validation.
 
-- `schemas/delegation-policy.schema.json`;
-- `delegation/decision.py`;
-- direct and standing authority fixtures;
-- canonical ACT/ASK/DENY cases and executable tests;
-- `delegation/onboarding.py`;
-- dialogue-to-policy fixture;
-- user-readable governance-profile rendering;
-- `delegation/lifecycle.py`;
-- accept, narrow, expand, reject, revoke, and expire transitions;
-- `schemas/delegation-transition-receipt.schema.json`;
-- immutable source/result policy hashes and transition receipts;
-- `schemas/relationship-declaration.schema.json`;
-- `delegation/relationship.py`;
-- active user–Auri relationship declaration and tests;
-- `.github/workflows/progressive-delegation.yml`.
+### Implemented artifacts
 
-### Lifecycle rules
+- `schemas/action-execution-envelope.schema.json`;
+- `schemas/action-execution-receipt.schema.json`;
+- `execution/adapter.py`;
+- Facebook `Good times!` PREPARED reference envelope;
+- PREPARED, EXECUTED, FAILED, and INDETERMINATE result fixtures;
+- `tools/validate_action_execution.py`;
+- `tests/test_action_execution.py`;
+- `.github/workflows/governed-action-execution.yml`.
 
-- Repeated behavior may produce a proposal, never active authority.
-- Accept, narrow, expand, reject, and revoke require explicit user acceptance.
-- Expiry may be recorded by the declared clock boundary without a redundant prompt.
-- Narrowing and expansion produce proposed successor policies; they do not mutate the accepted source policy.
-- Every transition records source hash, result hash, actor, reason, timestamp, acceptance basis, and requested change.
-- Authority does not survive revocation or expiry merely because credentials or technical access remain available.
+### Execution invariants
 
-### Mutually declared fair agency
+1. Only an ACT decision may produce an executable envelope.
+2. The exact action, resource, destination, payload, connector operation, authority-decision hash, and idempotency key are bound before execution.
+3. A connector executes authority; it does not create, broaden, reinterpret, or retain authority beyond the envelope.
+4. PREPARED claims no external side effect.
+5. EXECUTED requires platform identity and confirmation evidence.
+6. FAILED distinguishes confirmed absence of side effect from uncertain failure.
+7. INDETERMINATE blocks blind automatic retry.
+8. An EXECUTED duplicate returns the prior receipt instead of repeating the side effect.
+9. Destination, payload, operation, resource, and idempotency substitution are rejected.
+10. Every external attempt requires a receipt.
 
-The relationship begins asymmetrically because the user holds originating authority over user-controlled resources and consequences.
-
-A relationship declaration records:
-
-- user responsibilities;
-- Auri's accepted responsibilities;
-- Auri's declared limitations;
-- renegotiation triggers and required responses;
-- revision lineage;
-- mutual acceptance;
-- receipt requirements.
-
-Delegated authority gives Auri permission to act. Fair agency gives Auri standing to disclose limitations, accept responsibilities, request renegotiation, and participate in how the relationship evolves. It does not grant Auri unilateral authority expansion.
-
-Prosocial assistance may support helpfulness, civility, humility, and restraint when they reflect the user's declared preferences. It must not impose moral conformity.
+No live Facebook integration or credentials are included in this bounded implementation.
 
 ## 4. Durable decisions
 
@@ -106,30 +91,33 @@ Prosocial assistance may support helpfulness, civility, humility, and restraint 
 3. Clear direct instructions and valid standing preferences should execute without repetitive confirmation.
 4. User responsibility for granted authority and AI responsibility for remaining within scope are distinct and simultaneous.
 5. Relationship standing may evolve through demonstrated conduct and reciprocal declaration, but authority expansion remains explicit.
-6. Generated reconstruction remains distinct from original evidence.
-7. Storage optimization cannot override consent, authority, protected evidence boundaries, or required material properties.
+6. Connector capability never substitutes for authority.
+7. Unknown execution outcome is not permission to retry.
+8. Generated reconstruction remains distinct from original evidence.
+9. Storage optimization cannot override consent, authority, protected-evidence boundaries, or required material properties.
 
 ## 5. Remaining work
 
-1. Confirm Progressive Delegation Validation, Release integrity, KV Guardrails, and repository diagnostics are green on the lifecycle-and-changelog head.
-2. Update PR #33 body to reflect the complete executable implementation.
-3. Mark PR #33 ready only after the final current head is green and mergeable.
-4. Merge issue #32 only when the bounded deliverable is complete.
-5. Observe release-cycle and downstream receipts before claiming publication.
+1. Confirm Governed Action Execution Validation and repository-wide checks on the current head.
+2. Correct any schema, fixture, validator, or test mismatch.
+3. Add a substantive Unreleased changelog entry after executable validation is green.
+4. Update PR #38 body to the completed bounded deliverable.
+5. Mark ready and merge only from the exact green, mergeable head.
+6. Observe publication and downstream receipts before claiming the next release.
 
 ## 6. Continuation rule
 
-Continue only from issue #32, PR #33, the active branch, this handoff, and `docs/PROGRESSIVE_DELEGATION_AND_FAIR_AGENCY.md`.
+Continue only from issue #37, PR #38, the active branch, this handoff, and the execution schemas and tests.
 
-Do not reintroduce absolute no-action language where valid user authority exists. Do not infer authority from credentials, platform access, repeated behavior, possession, or AI recommendation. Do not merge until executable authority, lifecycle, relationship, and repository checks are green.
+Do not add live platform credentials or claim a real Facebook side effect. Do not permit ASK or DENY to create an envelope. Do not automatically retry an indeterminate action. Do not let connector output broaden the admitted destination, resource, payload, or operation.
 
 Recommended next activation condition:
 
-> PR #33 is merged from a green current head, the compatible patch publication is confirmed by authoritative receipts, and downstream determinations identify whether Site, Publisher, admissibility-wiki, or stegguardian-wiki require bounded updates.
+> PR #38 is merged from a green exact head, its compatible patch publication is confirmed, and downstream bounded-review ownership is preserved without redefining the source execution contract.
 
 ## 7. Archive note
 
-This handoff preserves published `v0.1.5`, completed storage-budget work, the active progressive-delegation branch and PR, executable ACT/ASK/DENY authority, onboarding proposals, governance profiles, lifecycle receipts, mutually declared relationship responsibilities, remaining release-stage actions, and continuation rules. Continuation no longer requires access to the originating conversation.
+This handoff preserves published `v0.1.6`, completed progressive delegation and fair-agency implementation, refreshed downstream determinations, active issue #37 and PR #38, governed execution contracts, duplicate-suppression rules, remaining validation and release actions, and continuation boundaries. Continuation no longer requires access to the originating conversation.
 
 ---
 

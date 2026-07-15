@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1",
+  "cases": [
+    {
+      "case_id": "prepared-no-side-effect",
+      "result": "PREPARED",
+      "retry_admissibility": "NOT_APPLICABLE"
+    },
+    {
+      "case_id": "executed-facebook-post",
+      "result": "EXECUTED",
+      "platform_object_id": "facebook:post:example-001",
+      "platform_url": "https://example.invalid/facebook/post/example-001",
+      "confirmation": "connector-confirmed-published",
+      "retry_admissibility": "NOT_APPLICABLE"
+    },
+    {
+      "case_id": "failed-confirmed-no-side-effect",
+      "result": "FAILED",
+      "failure_code": "PLATFORM_REJECTED",
+      "failure_message": "Platform rejected request before creation",
+      "side_effect_absence_confirmed": true,
+      "retry_admissibility": "MAY_RETRY_SAME_ENVELOPE"
+    },
+    {
+      "case_id": "indeterminate-timeout",
+      "result": "INDETERMINATE",
+      "failure_code": "TIMEOUT_AFTER_SUBMISSION",
+      "failure_message": "Connector timed out after request submission",
+      "side_effect_absence_confirmed": false,
+      "retry_admissibility": "DO_NOT_RETRY_AUTOMATICALLY"
+    }
+  ]
+}

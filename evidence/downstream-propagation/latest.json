@@ -1,57 +1,28 @@
 {
   "schema_version": "1.0",
   "source_repository": "StegVerse-Labs/continuity-vault-kit",
-  "source_release": "v0.1.4",
-  "checked_utc": "2026-07-15T19:11:29Z",
+  "source_release": "v0.1.6",
+  "source_release_commit": "590e234fb66121a5ee72ebe422eed73118e012c5",
+  "checked_utc": "2026-07-15T21:36:00Z",
   "results": [
     {
       "repository": "StegVerse-Labs/Site",
       "determination": "update required",
-      "rationale": "Existing repository-specific references require review against the new release.",
+      "rationale": "Existing Continuity Vault Kit publication and mirror references require bounded review for the v0.1.6 progressive-delegation and fair-agency release.",
       "matches": [
-        {
-          "path": "scripts/check_site_knowledgevault_paper.py",
-          "terms": [
-            "continuity-vault-kit"
-          ]
-        },
-        {
-          "path": "docs/KNOWLEDGEVAULT_PAPER_PUBLICATION.md",
-          "terms": [
-            "continuity-vault-kit"
-          ]
-        },
-        {
-          "path": "docs/SITE_KNOWLEDGEVAULT_PAPER_MIRROR_HANDOFF.md",
-          "terms": [
-            "continuity-vault-kit"
-          ]
-        },
-        {
-          "path": "papers/knowledgevault/conversation-continuity.html",
-          "terms": [
-            "continuity-vault-kit"
-          ]
-        },
-        {
-          "path": "docs/continuity_notes/2026-07-15-knowledgevault-paper-publication.md",
-          "terms": [
-            "continuity-vault-kit"
-          ]
-        }
+        {"path": "scripts/check_site_knowledgevault_paper.py", "terms": ["continuity-vault-kit"]},
+        {"path": "docs/KNOWLEDGEVAULT_PAPER_PUBLICATION.md", "terms": ["continuity-vault-kit"]},
+        {"path": "docs/SITE_KNOWLEDGEVAULT_PAPER_MIRROR_HANDOFF.md", "terms": ["continuity-vault-kit"]},
+        {"path": "papers/knowledgevault/conversation-continuity.html", "terms": ["continuity-vault-kit"]},
+        {"path": "docs/continuity_notes/2026-07-15-knowledgevault-paper-publication.md", "terms": ["continuity-vault-kit"]}
       ]
     },
     {
       "repository": "GCAT-BCAT-Engine/Publisher",
       "determination": "update required",
-      "rationale": "Existing repository-specific references require review against the new release.",
+      "rationale": "The Publisher integration document directly references Continuity Vault Kit and requires bounded review for v0.1.6.",
       "matches": [
-        {
-          "path": "docs/VAULT_PUBLISHER_INTEGRATION.md",
-          "terms": [
-            "continuity-vault-kit"
-          ]
-        }
+        {"path": "docs/VAULT_PUBLISHER_INTEGRATION.md", "terms": ["continuity-vault-kit"]}
       ]
     },
     {

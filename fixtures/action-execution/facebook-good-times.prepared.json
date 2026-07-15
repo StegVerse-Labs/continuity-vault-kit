@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "envelope_id": "exec-facebook-good-times-001",
+  "instruction_ref": "delegation:direct-facebook-post-001",
+  "authority_decision": {
+    "outcome": "ACT",
+    "decision_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "delegation_id": "direct-facebook-post-001",
+    "authority_source": "direct_instruction"
+  },
+  "action": "publish_post",
+  "resource": "photo:current_capture",
+  "destination": "facebook:owner-account",
+  "payload": {
+    "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "media_refs": ["photo:current_capture"],
+    "text": "Good times!"
+  },
+  "connector": {
+    "connector_id": "connector:facebook-neutral-adapter",
+    "operation": "create_post",
+    "credential_ref": "credential:user-owned-facebook-session"
+  },
+  "idempotency": {
+    "key": "facebook-good-times-001",
+    "duplicate_policy": "verify_before_retry"
+  },
+  "receipt_required": true,
+  "state": "PREPARED"
+}
