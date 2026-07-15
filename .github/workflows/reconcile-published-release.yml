@@ -35,13 +35,12 @@ jobs:
         id: release
         env:
           INPUT_TAG: ${{ inputs.release_tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           tag="${INPUT_TAG:-v$(cat VERSION)}"
           gh release view "$tag" >/dev/null
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Download and verify published assets
         env:
@@ -87,7 +86,7 @@ jobs:
           assets = root / ".release-reconciliation"
           zip_path = assets / f"ContinuityVault_v{version}.zip"
           checksum = hashlib.sha256(zip_path.read_bytes()).hexdigest()
-          sidecar = (zip_path.with_suffix(zip_path.suffix + ".sha256")).read_text(encoding="utf-8").split()[0]
+          sidecar = zip_path.with_suffix(zip_path.suffix + ".sha256").read_text(encoding="utf-8").split()[0]
           if checksum != sidecar:
               raise SystemExit("published checksum mismatch")
           manifest_path = zip_path.with_suffix(zip_path.suffix + ".manifest.json")
@@ -222,9 +221,6 @@ jobs:
           if "## 10. Release reconciliation" not in handoff:
               handoff = handoff.replace(marker, reconciliation, 1)
           handoff_path.write_text(handoff, encoding="utf-8")
-
-          actionable = [r for r in results if r["determination"] != "no update required"]
-          Path(os.environ["GITHUB_OUTPUT"]).write_text(f"actionable_count={len(actionable)}\n", encoding="utf-8")
           PY
 
       - name: Commit reconciled evidence
