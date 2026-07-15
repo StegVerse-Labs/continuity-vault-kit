@@ -62,3 +62,7 @@ To auto-apply footers locally (no moves/deletes):
 ```bash
 python3 tools/kv_layer_check.py --mode auto-label
 ```
+
+---
+
+🔒 Layer: Framework | KV
