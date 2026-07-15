@@ -1,0 +1,44 @@
+name: Conversation continuity MVP
+
+on:
+  push:
+    paths:
+      - "tools/conversation_continuity.py"
+      - "tools/test_conversation_continuity.py"
+      - "examples/conversation_continuity/**"
+      - "docs/CONVERSATION_CONTINUITY_MVP.md"
+      - ".github/workflows/conversation-continuity-mvp.yml"
+  pull_request:
+    paths:
+      - "tools/conversation_continuity.py"
+      - "tools/test_conversation_continuity.py"
+      - "examples/conversation_continuity/**"
+      - "docs/CONVERSATION_CONTINUITY_MVP.md"
+      - ".github/workflows/conversation-continuity-mvp.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile continuity tooling
+        run: python -m py_compile tools/conversation_continuity.py tools/test_conversation_continuity.py
+      - name: Run adversarial self-test
+        run: python tools/test_conversation_continuity.py
+      - name: Build public fixture receipt
+        run: |
+          python tools/conversation_continuity.py build examples/conversation_continuity/sample_session.jsonl continuity-evidence
+          python tools/conversation_continuity.py verify continuity-evidence
+          python tools/conversation_continuity.py reconstruct continuity-evidence "bundle retention" > continuity-evidence/reconstruction.json
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: conversation-continuity-evidence
+          path: continuity-evidence/
