@@ -22,89 +22,76 @@ The chain must not be treated as the plaintext conversation archive.
 
 ### 2. Protected object store
 
-Potentially sensitive content is stored separately under encryption and bound to:
-
-- one KnowledgeVault;
-- one StegID identity;
-- one designated StegVerse AI entity;
-- one relationship epoch;
-- one active access policy.
+Potentially sensitive content is stored separately under encryption and bound to one KnowledgeVault, one StegID identity, one designated StegVerse AI entity, one relationship epoch, and one active access policy.
 
 Public hashes identify and verify the relationship. They are not encryption keys.
 
 ### 3. Ephemeral reconstruction workspace
 
-An authorized query:
-
-1. proves the user identity;
-2. proves the designated AI-entity identity;
-3. validates the current pair, epoch, policy, and single-use capability;
-4. resolves an opaque route token without storing the plaintext query in the chain index;
-5. locates only bounded candidate events;
-6. follows only required dependency and supersession edges;
-7. confirms each selected protected object remains active and reconstructable;
-8. decrypts only the bounded selected objects;
-9. verifies content commitments;
-10. returns the reconstruction;
-11. destroys the temporary working state;
-12. consumes the capability and emits an access receipt that does not retain reconstructed plaintext by default.
+An authorized query proves both identities, validates the current relationship and capability, resolves an opaque route, selects a bounded causal subgraph, checks object lifecycle state, decrypts only selected objects, verifies commitments, emits a plaintext-free receipt, and returns a consumed capability state. Temporary plaintext is not retained by default.
 
 ## Relationship lifecycle
 
 A pair binding is valid only for one relationship epoch. Revocation makes that epoch unusable even when an old capability or wrapped key remains available. Replacing an AI entity creates a successor pair and requires separately authorized key rewrapping; the successor does not inherit access merely by being newer.
 
-The v0.1 `RelationshipRegistry` models active and revoked epochs. It is intentionally local and in-memory. A production registry must obtain authoritative revocation state and verify StegID and entity proofs at the access boundary.
-
 ## Capability lifecycle
 
-`CapabilityGrant` models bounded authorization rather than a reusable bearer token. A capability is bound to one pair, policy, and relationship epoch; has an activation and expiration time; carries a nonce; and has an explicit use limit. The normal posture is one use.
+`CapabilityGrant` models bounded authorization rather than a reusable bearer token. A capability is bound to one pair, policy, and relationship epoch; has an activation and expiration time; carries a nonce; and has an explicit use limit. Expired, revoked, premature, mismatched, or exhausted capabilities fail closed.
 
-Expired, revoked, premature, mismatched, or exhausted capabilities fail closed. Receipts preserve a commitment to the capability rather than the reusable capability identifier or nonce.
-
-This prototype uses caller-supplied integer time and an in-memory use counter. A production implementation must use an authoritative clock, atomic consumption, replay-resistant nonce registration, and distributed race protection.
+A production implementation must use an authoritative clock, atomic consumption, replay-resistant nonce registration, and distributed race protection.
 
 ## Dual-proof verification boundary
 
-`ProofVerifier` separates proof presence from proof validity. A nonempty StegID or entity proof is not sufficient. Both proofs must be independently accepted by a verifier before protected routing, key release, or reconstruction proceeds.
+`ProofVerifier` separates proof presence from proof validity. Both the StegID proof and designated AI-entity proof must be independently accepted before protected routing, key release, or reconstruction proceeds.
 
-The callable implementation is an adapter boundary only. It does not define a signature suite, trust store, attestation format, or replay-defense protocol. Those remain production security gates.
+The callable implementation is an adapter boundary only. It does not define a signature suite, trust store, attestation format, or replay-defense protocol.
 
 ## Minimized Ecosystem Chat ingestion
 
-`EcosystemChatIngestor` accepts only user-approved observations. It creates a minimal `ChainEvent` that contains no raw chat text. For reconstructable retention, a caller-supplied minimizer selects the smallest approved durable representation and a separate `ContentProtector` encrypts and binds it outside the chain.
+`EcosystemChatIngestor` accepts only user-approved observations. It creates a minimal `ChainEvent` containing no raw chat text. For reconstructable retention, a caller-supplied minimizer selects the smallest approved durable representation and a separate `ContentProtector` encrypts and binds it outside the chain.
 
-Integrity-only observations create no protected object and preserve no content commitment. Unapproved observations fail closed. A live transport adapter must still prove that the approval, policy, pair, and event-order inputs are authentic before invoking this boundary.
+Integrity-only observations create no protected object and preserve no content commitment.
 
 ## Protected-object deletion and tombstones
 
 `ObjectLifecycleRegistry` separates chain continuity from content recoverability. An active object may be reconstructed only while its lifecycle binding matches the protected object. A user deletion or cryptographic-erasure action changes the object state to `tombstoned` and makes further reconstruction fail closed.
 
-The chain may retain a minimal integrity-only tombstone event containing a commitment to the deletion reason and receipt. It does not retain the deleted content reference in the event payload. This preserves the fact and order of deletion without falsely claiming that the underlying personal content remains recoverable.
+The chain may retain a minimal integrity-only tombstone event containing a commitment to the deletion reason and receipt. It does not retain the deleted content reference in the event payload.
 
-A production implementation must ensure actual key destruction or protected-object deletion in the custody layer; changing lifecycle metadata alone is not cryptographic erasure.
+Changing lifecycle metadata alone is not cryptographic erasure. Production custody must destroy the key or delete the protected object.
 
 ## Key-unwrapping boundary
 
-`KeyUnwrapper` is an interface, not a key derivation scheme. Public StegID, entity, pair, and event hashes must never be used directly as encryption keys. The callable prototype validates pair, policy, and epoch state before delegating to an external unwrap operation and rejects empty or invalid key material.
+`KeyUnwrapper` is an interface, not a key derivation scheme. Public StegID, entity, pair, and event hashes must never be used directly as encryption keys.
 
 Production implementations should bind this interface to hardware-backed, threshold, or user-controlled key services.
 
 ## Opaque coarse routing
 
-`OpaqueRouteIndex` stores opaque route tokens and committed event identifiers. It does not store natural-language queries or readable semantic labels. An authorized resolver derives the opaque token only after pair, policy, and epoch validation. Candidate events are bounded and their pair/policy bindings are rechecked before reconstruction.
+`OpaqueRouteIndex` stores opaque route tokens and committed event identifiers. It does not store natural-language queries or readable semantic labels. Candidate events are bounded and pair/policy bindings are rechecked before reconstruction.
 
-This is a routing primitive, not encrypted semantic search. Production search still requires a protected resolver, encrypted or isolated index custody, token rotation, and leakage analysis.
+This is a routing primitive, not encrypted semantic search.
+
+## Coordinated reconstruction sessions
+
+`ReconstructionSessionCoordinator` orders the full access path as one logical transaction:
+
+1. resolve the active relationship;
+2. verify both identity proofs;
+3. validate the capability without consuming it;
+4. resolve and validate bounded candidate events;
+5. enforce lifecycle state at the moment each protected object is decrypted;
+6. reconstruct the dependency-complete event set;
+7. emit a plaintext-free access receipt;
+8. return the capability in consumed state only after all prior steps succeed.
+
+No consumed capability is returned when proof, routing, lifecycle, integrity, or reconstruction fails. This prevents ordinary failure paths from burning a capability before useful reconstruction occurs.
+
+The coordinator is still a logical transaction. A production service must atomically persist capability consumption and the receipt in one authoritative store to prevent concurrent replay races.
 
 ## Access receipts
 
-Authorized reconstruction emits a receipt containing:
-
-- pair and relationship epoch;
-- policy reference;
-- commitments to the capability and request descriptor;
-- commitment to the selected event range;
-- event count;
-- workspace-destruction and plaintext-retention posture.
+Authorized reconstruction emits a receipt containing pair and epoch, policy, commitments to the capability and request descriptor, commitment to the selected event range, event count, and workspace-destruction posture.
 
 The receipt does not contain reconstructed plaintext, raw search terms, the reusable capability identifier, or capability nonce.
 
@@ -113,7 +100,7 @@ The receipt does not contain reconstructed plaintext, raw search terms, the reus
 Reconstruction, routing, ingestion, proof verification, object access, or key release fails when:
 
 - either user or entity proof is absent or fails verification;
-- the pair identifier, relationship epoch, or policy does not match;
+- pair, epoch, or policy does not match;
 - the relationship is revoked or unknown;
 - a capability is premature, expired, revoked, mismatched, or exhausted;
 - an observation lacks user approval;
@@ -121,27 +108,22 @@ Reconstruction, routing, ingestion, proof verification, object access, or key re
 - an event link or content commitment fails verification;
 - a protected object is unavailable, unknown, tombstoned, or incorrectly bound;
 - a request crosses pair or policy boundaries;
-- the candidate route or dependency closure exceeds its permitted window;
+- candidate routing or dependency closure exceeds its permitted window;
 - an opaque route commitment fails verification;
 - key unwrapping returns no usable key material.
 
 ## Implemented in this slice
 
-`reconstructive_memory/core.py` provides deterministic pair identifiers, minimal hashed chain events, chain validation, dependency-complete bounded selection, protected-object binding checks, content-commitment verification, and ephemeral reconstruction results.
+- `core.py`: minimal chain and bounded causal reconstruction.
+- `access.py`: relationship lifecycle, key-unwrapping boundary, and access receipts.
+- `proofs.py`: independent StegID and entity proof-verification interfaces.
+- `ingestion.py`: approved, minimized Ecosystem Chat ingestion.
+- `routing.py`: opaque bounded candidate routing.
+- `lifecycle.py`: expiring capabilities, replay denial, object lifecycle, and tombstones.
+- `session.py`: coordinated fail-closed reconstruction sessions.
+- JSON Schemas, unit tests, and a unified dependency-free validator.
 
-`reconstructive_memory/access.py` provides relationship-epoch state and revocation, fail-closed relationship resolution, a concrete key-unwrapping interface boundary, and hashed access receipts that exclude plaintext.
-
-`reconstructive_memory/proofs.py` provides independent StegID and designated-entity proof verification boundaries.
-
-`reconstructive_memory/ingestion.py` provides user-approved, minimized Ecosystem Chat observation ingestion with protected-content separation.
-
-`reconstructive_memory/routing.py` provides opaque candidate routing, event-set commitments, bounded candidate selection, and pair/policy revalidation.
-
-`reconstructive_memory/lifecycle.py` provides expiring and single-use capability controls, protected-object lifecycle state, tombstone commitments, and integrity-only tombstone event construction.
-
-The JSON Schemas define the minimal event and access-receipt contracts. Unit tests cover reconstruction, integrity-only behavior, pair mismatch, bounded windows, relationship revocation, epoch mismatch, proof refusal, key unwrap refusal, minimized ingestion, opaque routing boundaries, capability replay and expiration, object tombstones, and plaintext-free access receipts.
-
-Run the complete dependency-free validation with:
+Run validation with:
 
 ```bash
 python3 tools/check_reconstructive_memory.py
@@ -149,18 +131,7 @@ python3 tools/check_reconstructive_memory.py
 
 ## Explicitly not claimed
 
-This prototype does not yet provide:
-
-- production cryptography or key management;
-- a concrete StegID signature suite;
-- a concrete AI-entity attestation suite;
-- hardware-backed or threshold key unwrapping;
-- authoritative distributed capability consumption;
-- actual custody-layer cryptographic erasure;
-- encrypted semantic indexing;
-- process-level memory zeroization;
-- distributed custody or Master-Records installation;
-- live Ecosystem Chat transport integration.
+This prototype does not yet provide production cryptography, concrete StegID signatures, concrete AI-entity attestation, hardware-backed key custody, authoritative distributed capability consumption, actual custody-layer erasure, encrypted semantic indexing, process memory zeroization, distributed custody, Master-Records installation, or live Ecosystem Chat transport integration.
 
 Those are successor implementation gates, not implied capabilities.
 
