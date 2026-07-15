@@ -1,0 +1,45 @@
+{
+  "environment": "staging",
+  "providers": {
+    "stegid_verify": {
+      "technology": "aws-kms-asymmetric-verify",
+      "resource_id": "UNCONFIGURED",
+      "region": "UNCONFIGURED",
+      "evidence_commitment": "UNCONFIGURED"
+    },
+    "ai_entity_attestation": {
+      "technology": "spiffe-spire-x509-svid",
+      "resource_id": "UNCONFIGURED",
+      "trust_domain": "UNCONFIGURED",
+      "evidence_commitment": "UNCONFIGURED"
+    },
+    "key_custody": {
+      "technology": "aws-kms-customer-managed-key",
+      "resource_id": "UNCONFIGURED",
+      "region": "UNCONFIGURED",
+      "evidence_commitment": "UNCONFIGURED"
+    },
+    "authoritative_state": {
+      "technology": "amazon-dynamodb-conditional-writes",
+      "resource_id": "UNCONFIGURED",
+      "region": "UNCONFIGURED",
+      "evidence_commitment": "UNCONFIGURED"
+    },
+    "ecosystem_chat": {
+      "technology": "stegverse-authenticated-https",
+      "resource_id": "UNCONFIGURED",
+      "endpoint": "UNCONFIGURED",
+      "evidence_commitment": "UNCONFIGURED"
+    },
+    "master_records": {
+      "technology": "stegverse-receipt-ingestion-https",
+      "resource_id": "UNCONFIGURED",
+      "endpoint": "UNCONFIGURED",
+      "evidence_commitment": "UNCONFIGURED"
+    }
+  },
+  "rollback": {
+    "procedure_ref": "UNCONFIGURED",
+    "revocation_receipt_ref": "UNCONFIGURED"
+  }
+}
