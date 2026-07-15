@@ -1,0 +1,39 @@
+name: Reconstructive Memory Validation
+
+on:
+  pull_request:
+    paths:
+      - "reconstructive_memory/**"
+      - "tests/test_reconstructive_memory*.py"
+      - "schemas/reconstructive-memory-*.json"
+      - "tools/check_reconstructive_memory.py"
+      - "docs/RECONSTRUCTIVE_AI_MEMORY.md"
+      - ".github/workflows/reconstructive-memory.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "reconstructive_memory/**"
+      - "tests/test_reconstructive_memory*.py"
+      - "schemas/reconstructive-memory-*.json"
+      - "tools/check_reconstructive_memory.py"
+      - "docs/RECONSTRUCTIVE_AI_MEMORY.md"
+      - ".github/workflows/reconstructive-memory.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile reconstructive memory
+        run: python3 -m compileall -q reconstructive_memory tests tools/check_reconstructive_memory.py
+      - name: Run reconstructive memory validator
+        run: python3 tools/check_reconstructive_memory.py

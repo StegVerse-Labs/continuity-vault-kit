@@ -22,5 +22,5 @@ Use a small set of **universal iOS emojis** as consistent visual cues.
 
 Avoid editor-specific arrow glyphs. Use either:
 
-- ➜ (emoji)
-- `-->` (ASCII)
+- relationship emoji such as `👤➡️👤`, or
+- ASCII arrows such as `-->` or `->`.

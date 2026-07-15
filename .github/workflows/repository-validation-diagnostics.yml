@@ -1,0 +1,53 @@
+name: Repository validation diagnostics
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Capture KV layer diagnostics
+        run: |
+          set +e
+          python3 tools/kv_layer_check.py --mode validate > kv-layer-diagnostics.txt 2>&1
+          echo "exit_code=$?" >> kv-layer-diagnostics.txt
+          exit 0
+
+      - name: Capture emoji diagnostics
+        run: |
+          set +e
+          python3 tools/emoji_lint.py --strict > emoji-diagnostics.txt 2>&1
+          echo "exit_code=$?" >> emoji-diagnostics.txt
+          exit 0
+
+      - name: Capture automation contract diagnostics
+        run: |
+          set +e
+          python3 tools/test_automation_contracts.py > automation-contract-diagnostics.txt 2>&1
+          echo "exit_code=$?" >> automation-contract-diagnostics.txt
+          exit 0
+
+      - name: Upload repository diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-validation-diagnostics-${{ github.sha }}
+          path: |
+            kv-layer-diagnostics.txt
+            emoji-diagnostics.txt
+            automation-contract-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 7
