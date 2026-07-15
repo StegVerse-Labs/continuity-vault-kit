@@ -2,7 +2,7 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with reconstructive memory, fidelity-governed multimodal storage, and an in-progress storage-budget and adaptive-capture policy.  
+**Status:** Active standalone release with reconstructive memory, fidelity-governed multimodal storage, and an executable storage-budget and adaptive-capture policy in draft PR #30.  
 **Current published version:** `0.1.4`  
 **Last updated:** 2026-07-15
 
@@ -14,7 +14,9 @@ This file is the repository-local continuation source of truth. Read it before m
 
 Baseline use remains functional without an account, hosted service, SDK, database, telemetry, or connection to the wider StegVerse ecosystem.
 
-Integrity tooling verifies package and copy behavior only. Repository workflows do not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content. They do not authorize access to or mutation of user vault content.
+Integrity tooling verifies package and copy behavior only. Repository workflows do not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content. Automation never authorizes access to or mutation of user vault content.
+
+Onboarding-friction automation retains its evidence threshold of three reports before a candidate may be treated as supported. That threshold authorizes investigation only, never automatic mutation.
 
 ## 2. Published and reconciled state
 
@@ -23,7 +25,6 @@ Integrity tooling verifies package and copy behavior only. Repository workflows 
 - Published artifact: `ContinuityVault_v0.1.4.zip` plus SHA-256 and manifest sidecars.
 - Release evidence was reconciled by workflow run `29443559621` after the original final-receipt commit failed post-publication.
 - `docs/release_evidence/latest_release.json` identifies `v0.1.4`.
-- `docs/release_evidence/latest_cycle.json` records `RECONCILED`.
 - Issue #24 is closed.
 
 Downstream determination for `v0.1.4`:
@@ -52,6 +53,7 @@ Rules:
 4. Recovery is bounded and duplicate-suppressed.
 5. No release claim is valid until `VERSION`, `latest_release.json`, and `latest_cycle.json` agree.
 6. Downstream propagation determines publication awareness only and grants no destination authority.
+7. A `RECONCILED` cycle receipt may identify `Reconcile published release evidence`; other cycle outcomes identify `Automated verified release`.
 
 ## 4. Implemented standalone surface
 
@@ -89,73 +91,54 @@ Enforced boundaries:
 
 ## 6. Storage-budget and adaptive-capture activation
 
-### Active issue, branch, and ownership
+### Active issue, branch, and pull request
 
 - Issue: `#28 Define storage budgets and adaptive multimodal capture policy`.
 - Branch: `agent/storage-budget-adaptive-capture-v0-1`.
-- This activation owns capacity declarations, material-property coverage, sensor substitution, adaptive sampling, temporary fidelity elevation, budget exhaustion, and capability-loss receipts.
-- It does not redefine reconstructive-memory authority or the existing multimodal access adapter.
+- Pull request: `#30 Define storage budgets and adaptive capture policy`.
+- PR state: draft pending current-head green verification and changelog activation.
 
-### Completed first bounded deliverable
+### Completed implementation
 
-- Added `docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md`.
-- Added `schemas/storage-budget-policy.schema.json`.
-- Defined reconstruction goals:
-  - semantic recall;
-  - spatial and object-state recall;
-  - approximate experiential playback;
-  - protected evidentiary preservation.
-- Defined required, preferred, and omitted material properties.
-- Defined episode, hourly, daily, local, protected, archival, replication, continuity-reserve, and temporary-buffer budgets.
-- Defined sensor-substitution declarations with preserved and lost properties.
-- Defined adaptive sampling and governed fidelity-elevation triggers.
-- Defined predeclared budget-exhaustion behavior.
-- Defined explicit capability-loss declarations when required properties can no longer be preserved.
-- Required receipts for initial plan selection, substitution, sampling changes, elevation, threshold crossing, exhaustion, reduction, deletion, capability loss, and policy revision.
+- `docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md`.
+- `schemas/storage-budget-policy.schema.json`.
+- `fixtures/storage-budget/semantic-recall.json`.
+- `fixtures/storage-budget/spatial-object-state.json`.
+- `fixtures/storage-budget/approximate-experiential-playback.json`.
+- `fixtures/storage-budget/protected-evidentiary-preservation.json`.
+- `tools/validate_storage_budget_policy.py`.
+- `tests/test_storage_budget_policy.py`.
+- `multimodal_storage/budget_planner.py`.
+- `tests/test_budget_planner.py`.
+- `docs/STORAGE_BUDGET_EXPERIENCE_CAPSULE_MAPPING.md`.
+- `.github/workflows/storage-budget-policy.yml`.
+- automation-contract correction allowing only `RECONCILED` receipts to identify the reconciliation workflow.
 
-### Core invariants
+### Enforced invariants
 
 1. Every policy has one declared reconstruction goal.
-2. Every required material property has at least one coverage reference.
+2. Every required material property has enabled stream coverage.
 3. Storage and replication limits are explicit.
 4. Ephemeral compute state is excluded from durable storage totals.
-5. A substitution declares both preserved and lost properties.
+5. A substitution declares preserved and lost properties.
 6. Adaptive reduction cannot remove a required property.
 7. Fidelity elevation requires authority and a receipt.
 8. Budget exhaustion follows a predeclared behavior.
 9. Required-property loss forces an explicit capability-loss state.
 10. Protected evidence cannot silently degrade into generated-only recall.
 11. Ordinary recall rights do not grant protected evidence access.
-12. Lower compute cost does not remove physical storage cost.
+12. The advisory planner cannot activate sensors, mutate retention, purchase capacity, or grant authority.
+13. Consent and authority outrank capacity pressure.
+14. Lower compute cost does not remove physical storage cost.
 
-### Remaining implementation
+### Remaining release-stage work
 
-Destination: `StegVerse-Labs/continuity-vault-kit`
-
-1. `fixtures/storage-budget/semantic-recall.json`.
-2. `fixtures/storage-budget/spatial-object-recall.json`.
-3. `fixtures/storage-budget/adaptive-video.json`.
-4. `fixtures/storage-budget/protected-evidence.json`.
-5. `fixtures/storage-budget/budget-exhaustion.json`.
-6. `tools/validate_storage_budget_policy.py`.
-7. `tests/test_storage_budget_policy.py`.
-8. Optional dependency-light planner that produces a governed capture plan without controlling sensors.
-9. Planner tests covering property coverage, arithmetic, substitution, and exhaustion.
-10. `.github/workflows/storage-budget-policy.yml`.
-11. Integration mapping to `ExperienceCapsule` stream references and fidelity transitions.
-12. Substantive Unreleased changelog entry after executable validation exists.
-
-### Next bounded task
-
-Implement fixtures and a dependency-light validator enforcing:
-
-- required-property coverage;
-- allocation and replication arithmetic;
-- continuity-receipt reserve preservation;
-- substitution consistency;
-- adaptive rules preserving required properties;
-- protected-evidence non-degradation;
-- budget-exhaustion and capability-loss consistency.
+1. Confirm Storage Budget Policy Validation, Fidelity-Governed Storage Validation, KV Guardrails, repository diagnostics, and Release integrity are all green on the current head.
+2. Add a substantive Unreleased changelog entry.
+3. Update PR #30 body to reflect completed executable implementation.
+4. Mark PR #30 ready only after the changelog head is green.
+5. Merge only after readiness and mergeability are confirmed.
+6. Observe the repository release lifecycle and downstream determination receipts before claiming publication.
 
 Do not add live sensor control or autonomous storage purchasing in this activation.
 
@@ -178,19 +161,19 @@ Do not add live sensor control or autonomous storage purchasing in this activati
 
 ## 8. Continuation rule
 
-- Continue storage-budget work only from issue #28, the active branch, and section 6 of this handoff.
-- Do not merge until fixtures, validator, tests, and dedicated CI are green.
-- Do not claim runtime optimization until the planner and integration boundary are executable.
+- Continue storage-budget work only from issue #28, PR #30, the active branch, and section 6 of this handoff.
+- Do not merge until fixtures, validator, tests, planner, mapping, and dedicated CI are green.
+- Do not claim runtime optimization beyond the advisory planner.
 - Do not let Site or Publisher downstream work redefine this repository's source contracts.
 - Let remaining downstream reviews proceed independently from their own repository-local handoffs and issues.
 
 Recommended next activation condition:
 
-> The storage-budget schema has positive and negative fixtures, executable validation, dedicated CI, and a planner or decision adapter that demonstrates required properties cannot be silently lost under capacity pressure.
+> PR #30 is merged from a green current head, a compatible patch publication is confirmed by authoritative receipts, and downstream determinations exist for all four governed destinations.
 
 ## 9. Archive note
 
-This handoff preserves the reconciled `v0.1.4` state, downstream ownership, completed multimodal implementation, active storage-budget branch, installed first deliverable, invariants, remaining files, and next bounded task. Continuation no longer requires access to the originating conversation.
+This handoff preserves the reconciled `v0.1.4` state, downstream ownership, completed multimodal implementation, active storage-budget branch and PR, executable policy inventory, validated invariants, remaining release-stage actions, and continuation rules. Continuation no longer requires access to the originating conversation.
 
 ---
 
