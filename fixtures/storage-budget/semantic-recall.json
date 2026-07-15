@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "policy-semantic-recall-default",
+  "policy_version": "0.1.0",
+  "reconstruction_goal": "semantic_recall",
+  "material_properties": [
+    {"property": "spoken_semantic_content", "requirement": "required", "coverage_refs": ["transcript"]},
+    {"property": "precise_event_ordering", "requirement": "required", "coverage_refs": ["continuity"]},
+    {"property": "exact_original_audio_waveform", "requirement": "omitted", "coverage_refs": [], "omission_reason": "Transcription-only voice policy"}
+  ],
+  "capacity_budget": {
+    "max_bytes_per_episode": 10485760,
+    "max_bytes_per_hour": 2097152,
+    "max_bytes_per_day": 52428800,
+    "local_bytes": 8388608,
+    "protected_evidence_bytes": 0,
+    "archival_bytes": 1048576,
+    "continuity_receipt_reserve_bytes": 262144,
+    "replication_allowance": 1.5,
+    "temporary_buffer_bytes": 1048576,
+    "temporary_overage_allowed": false,
+    "ephemeral_compute_excluded": true,
+    "retention": [
+      {"artifact_class": "continuity", "duration_seconds": null, "indefinite": true},
+      {"artifact_class": "derived", "duration_seconds": 31536000, "indefinite": false},
+      {"artifact_class": "temporary_buffer", "duration_seconds": 300, "indefinite": false}
+    ]
+  },
+  "capture_plan": {
+    "goal_satisfied_at_start": true,
+    "declared_omissions": ["exact_original_audio_waveform"],
+    "streams": [
+      {"stream_ref": "continuity", "modality": "text", "artifact_class": "continuity", "enabled": true, "estimated_bytes_per_hour": 65536, "sampling_rate": null, "sampling_unit": null, "fidelity_class": "continuity_receipt_only", "covered_properties": ["precise_event_ordering"], "user_recall_available": true},
+      {"stream_ref": "transcript", "modality": "text", "artifact_class": "derived", "enabled": true, "estimated_bytes_per_hour": 262144, "sampling_rate": null, "sampling_unit": null, "fidelity_class": "semantic_episode_record", "covered_properties": ["spoken_semantic_content"], "user_recall_available": true},
+      {"stream_ref": "voice-buffer", "modality": "audio", "artifact_class": "ephemeral", "enabled": true, "estimated_bytes_per_hour": 1048576, "sampling_rate": 16000, "sampling_unit": "samples_per_second", "fidelity_class": "not_applicable", "covered_properties": [], "user_recall_available": false}
+    ]
+  },
+  "adaptive_sampling_rules": [
+    {"rule_id": "pause-voice-buffer-after-transcript", "trigger": "speech_inactive", "action": "pause_preferred_stream", "affected_stream_refs": ["voice-buffer"], "required_properties_preserved": true, "receipt_required": true, "threshold": 5}
+  ],
+  "budget_exhaustion_behavior": "preserve_continuity_only",
+  "capability_loss_policy": {"emit_declaration": true, "goal_may_remain_satisfied_after_required_property_loss": false, "remaining_reconstruction_class": "continuity_only"},
+  "receipt_policy": {"events": ["initial_capture_plan", "adaptive_sampling_change", "budget_threshold_crossing", "budget_exhaustion", "deletion"], "integrity_algorithm": "sha256"},
+  "authority_ref": "policy-authority:local-owner",
+  "consent_policy_ref": "consent:episode-current"
+}
