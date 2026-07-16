@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0",
   "source_repository": "StegVerse-Labs/continuity-vault-kit",
-  "source_release": "v0.1.6",
-  "source_release_commit": "590e234fb66121a5ee72ebe422eed73118e012c5",
-  "checked_utc": "2026-07-15T21:36:00Z",
+  "source_release": "v0.1.7",
+  "source_release_commit": "1ebba01cabfb08a77fe137035071e708a566080c",
+  "checked_utc": "2026-07-16T23:47:00Z",
   "results": [
     {
       "repository": "StegVerse-Labs/Site",
-      "determination": "update required",
-      "rationale": "Existing Continuity Vault Kit publication and mirror references require bounded review for the v0.1.6 progressive-delegation and fair-agency release.",
+      "determination": "bounded review required",
+      "rationale": "The public KnowledgeVault paper and mirror handoff reference continuity-vault-kit. Review is required to confirm v0.1.7 compatibility while preserving the publication boundary that Site does not certify production readiness, grant authority, or claim live connector behavior.",
       "matches": [
         {"path": "scripts/check_site_knowledgevault_paper.py", "terms": ["continuity-vault-kit"]},
         {"path": "docs/KNOWLEDGEVAULT_PAPER_PUBLICATION.md", "terms": ["continuity-vault-kit"]},
@@ -19,22 +19,22 @@
     },
     {
       "repository": "GCAT-BCAT-Engine/Publisher",
-      "determination": "update required",
-      "rationale": "The Publisher integration document directly references Continuity Vault Kit and requires bounded review for v0.1.6.",
+      "determination": "correction required",
+      "rationale": "docs/VAULT_PUBLISHER_INTEGRATION.md describes an ingestion endpoint, weekly batch workflow, anonymized aggregation, licensing, revenue calculation, contribution scoring, and payouts as implemented behavior. continuity-vault-kit documents optional data sharing but does not implement these capabilities; the downstream document must be marked proposal-only or replaced with a verified integration contract.",
       "matches": [
-        {"path": "docs/VAULT_PUBLISHER_INTEGRATION.md", "terms": ["continuity-vault-kit"]}
+        {"path": "docs/VAULT_PUBLISHER_INTEGRATION.md", "terms": ["ingestion endpoint", "weekly batch", "Revenue distribution", "Payout"]}
       ]
     },
     {
       "repository": "StegVerse-Labs/admissibility-wiki",
       "determination": "no update required",
-      "rationale": "No direct Continuity Vault Kit release, install, download, compatibility, or mirror reference was found.",
+      "rationale": "No direct Continuity Vault Kit release, install, download, compatibility, connector-execution, or mirror reference was found in the prior bounded review.",
       "matches": []
     },
     {
       "repository": "StegVerse-002/stegguardian-wiki",
       "determination": "no update required",
-      "rationale": "No direct Continuity Vault Kit release, install, download, compatibility, or mirror reference was found.",
+      "rationale": "No direct Continuity Vault Kit release, install, download, compatibility, connector-execution, or mirror reference was found in the prior bounded review.",
       "matches": []
     }
   ]
