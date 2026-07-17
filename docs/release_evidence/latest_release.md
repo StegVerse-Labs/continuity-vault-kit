@@ -1,14 +1,14 @@
 # Latest Published Release
 
 - **Result:** PUBLISHED
-- **Version:** `0.1.7`
-- **Tag:** `v0.1.7`
-- **Release commit:** `1ebba01cabfb08a77fe137035071e708a566080c`
-- **Workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29453657000
-- **Release:** https://github.com/StegVerse-Labs/continuity-vault-kit/releases/tag/v0.1.7
-- **Artifact:** `ContinuityVault_v0.1.7.zip`
-- **SHA-256:** `12c828c2619d91b8befa40ee56700369c86542377f7333aa9e729937089497b0`
+- **Version:** `0.1.8`
+- **Tag:** `v0.1.8`
+- **Release commit:** `57dc9405f92ce3716373af9a9923c3572cb9940b`
+- **Workflow:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/29548623228
+- **Release:** https://github.com/StegVerse-Labs/continuity-vault-kit/releases/tag/v0.1.8
+- **Artifact:** `ContinuityVault_v0.1.8.zip`
+- **SHA-256:** `eecd98020a1d8001075db594bbfc9e37ba1837e532dc54ddd7149e6500656d20`
 - **Manifest files:** `131`
-- **Published UTC:** `2026-07-15T21:56:03Z`
+- **Published UTC:** `2026-07-17T01:54:47Z`
 
 Release, initializer, and automation-contract tests passed before tagging. This receipt verifies package integrity and installer copy behavior only.
