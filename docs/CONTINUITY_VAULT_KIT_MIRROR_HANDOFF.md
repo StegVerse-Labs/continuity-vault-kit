@@ -17,11 +17,15 @@ Repository automation does not certify the truth, safety, completeness, authorit
 ### Durable authority boundary
 
 - Standalone mode permits no undeclared outbound transmission.
-- Direct instructions and accepted standing delegations may authorize covered action.
+- A direct user instruction may authorize the covered action.
+- An explicit, revocable, scoped delegation may authorize repeated action through standing preferences without a per-item toggle.
+- Repository automation does not independently grant authority.
 - Technical access, credentials, possession, repetition, and AI recommendation do not create authority.
+- A governed entity must not silently expand its own authority.
 - Recall may report, reconstruct, compare, and verify continuity evidence; it does not create or broaden authority.
 - Reconstructed or inferred content must never be presented as exact retained source.
 - Material delegated actions, authority transitions, and continuity use require attributable receipts.
+- Onboarding-friction automation retains its threshold of three reports; a supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
 
 ## 2. Published state
 
