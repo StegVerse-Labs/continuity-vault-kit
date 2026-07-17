@@ -8,6 +8,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [0.1.8] – 2026-07-17
+
 ### Added
 - `schemas/conversation-event.schema.json` for canonical append-only continuity events covering claims, decisions, supersession, artifacts, implementation, authority, handoffs, and archive state
 - `continuity/recall.py` with deterministic chain validation, rebuildable indexing, time-bounded recall, supersession-aware current-state selection, and archive-readiness evaluation
