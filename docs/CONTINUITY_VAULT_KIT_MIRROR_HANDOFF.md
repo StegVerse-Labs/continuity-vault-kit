@@ -2,11 +2,11 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with published governed-action execution and active automated conversation recall work.  
-**Current published version:** `0.1.7`  
+**Status:** Automated provenance-preserving conversation recall released and downstream propagation completed  
+**Current published version:** `0.1.8`  
 **Last updated:** 2026-07-17
 
-## 1. Purpose and scope boundary
+## 1. Source of truth
 
 This file is the repository-local continuation source of truth. Read it before mutation.
 
@@ -14,112 +14,106 @@ This file is the repository-local continuation source of truth. Read it before m
 
 Repository automation does not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content.
 
-### Durable authority boundary
+## 2. Published capability
 
-- Standalone mode permits no undeclared outbound transmission.
-- A direct user instruction may authorize the covered action.
-- An explicit, revocable, scoped delegation may authorize repeated action through standing preferences without a per-item toggle.
-- Repository automation does not independently grant authority.
-- Technical access, credentials, possession, repetition, and AI recommendation do not create authority.
-- A governed entity must not silently expand its own authority.
-- Recall may report, reconstruct, compare, and verify continuity evidence; it does not create or broaden authority.
-- Reconstructed or inferred content must never be presented as exact retained source.
-- Material delegated actions, authority transitions, and continuity use require attributable receipts.
-- Onboarding-friction automation retains its threshold of three reports; a supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
-
-## 2. Published state
-
-- Current verified release: `v0.1.7`.
-- Release commit: `1ebba01cabfb08a77fe137035071e708a566080c`.
+- Verified release: `v0.1.8`.
+- Release commit: `57dc9405f92ce3716373af9a9923c3572cb9940b`.
 - Publication receipt: `docs/release_evidence/latest_release.json`.
-- Release-cycle receipt: `docs/release_evidence/latest_cycle.json`.
-- Issue #37 and PR #38 are completed.
-- Published governed-action execution includes exact action/resource/destination/payload binding, connector-neutral preparation, PREPARED/EXECUTED/FAILED/INDETERMINATE receipts, duplicate suppression, and indeterminate-retry blocking.
+- Automated recall implementation: issue `#42`, merged PR `#43`.
+- Publisher propagation: merged PR `GCAT-BCAT-Engine/Publisher#10`.
+- Downstream receipt: `evidence/downstream-propagation/latest.json`.
 
-### Downstream determination for v0.1.7
+The released recall layer includes:
 
-- `StegVerse-Labs/Site`: bounded review required.
-- `GCAT-BCAT-Engine/Publisher`: bounded review required.
-- `StegVerse-Labs/admissibility-wiki`: no direct update required.
-- `StegVerse-002/stegguardian-wiki`: no direct update required.
+- canonical append-only conversation events;
+- previous-event and retained-content hash validation;
+- duplicate, ordering, tamper, and missing-payload detection;
+- rebuildable derived indexing;
+- supersession-aware current-state recall;
+- explicit exact, semantic-reconstruction, inference, integrity-only, and unavailable result classes;
+- implementation-state reporting, supporting-event provenance, and verification roots;
+- deterministic example-vault fixtures;
+- executable tests and dedicated CI;
+- a command path for answering what changed between historical and current state without rereading a transcript.
 
-Authoritative local receipt: `evidence/downstream-propagation/latest.json`.
+## 3. Durable authority and fidelity boundaries
 
-## 3. Active automated conversation recall work
-
-- Issue: `#42 Build automated provenance-preserving conversation recall`.
-- Branch: `agent/conversation-recall-v0-1`.
-- Pull request: `#43 Build automated provenance-preserving conversation recall`.
-- PR state: draft; current head must remain green and mergeable before readiness.
-
-### Implemented artifacts
-
-- `schemas/conversation-event.schema.json`;
-- `continuity/recall.py`;
-- canonical example-vault events and supporting context/receipt/manifest files;
-- `tests/test_conversation_recall.py`;
-- `.github/workflows/conversation-recall.yml`;
-- `docs/AUTOMATED_CONVERSATION_RECALL.md`;
-- automated-continuity additions to `docs/CONVERSATION_CONTINUITY.md`;
-- substantive Unreleased changelog entry.
-
-### Recall invariants
-
-1. Canonical events are append-only and linked by previous-event hash.
-2. Retained payloads are bound by content hash.
-3. Derived indexes are disposable and rebuildable from canonical events.
+1. Recall may report, reconstruct, compare, and verify evidence; it does not create or broaden authority.
+2. Reconstructed, inferred, integrity-only, or unavailable material must never be presented as exact retained source.
+3. Derived indexes are disposable and rebuildable; they are not canonical records.
 4. Superseded decisions do not appear as current.
-5. Results distinguish exact, semantic reconstruction, inference, integrity-only, and unavailable evidence.
-6. Missing payloads cannot claim recoverable fidelity.
-7. Duplicate identifiers, broken links, altered payloads, and out-of-order timestamps fail closed.
-8. Recall returns supporting event identifiers and a verification root.
-9. Archive readiness remains false while a current accepted goal lacks complete implementation, verification, release, or required propagation evidence.
-10. Recall does not create authority or silently rewrite source records.
+5. Missing payloads cannot claim recoverable fidelity.
+6. Archive readiness remains false while an accepted goal lacks implementation, verification, release, or required propagation evidence.
+7. Material delegated actions, authority transitions, exports, admissions, and continuity use require attributable receipts.
 
-## 4. Current validation state
+## 4. Validation and release evidence
 
-The first executable recall head passed:
+The recall implementation passed on its exact merge head:
 
 - Conversation Recall Validation;
 - Release integrity;
 - KV Guardrails;
 - Repository validation diagnostics.
 
-Every subsequent documentation or fixture commit must be validated on its exact head before readiness or merge.
+Release `v0.1.8` reports:
 
-## 5. Remaining work
+- builder/verifier self-test: PASS;
+- initializer self-test: PASS;
+- automation contract test: PASS;
+- release archive, checksum, and manifest published.
 
-1. Confirm all four required checks are green on the exact current PR #43 head.
-2. Correct any schema, fixture, documentation, validator, or archive-readiness mismatch.
-3. Update PR #43 body to describe the completed bounded deliverable.
-4. Mark PR #43 ready only from the exact green, mergeable head.
-5. Merge issue #42 only when every acceptance criterion passes.
-6. Observe publication and release-cycle receipts before claiming the next release.
-7. Record bounded downstream determinations for Site, Publisher, admissibility-wiki, and stegguardian-wiki.
-8. Activate the next adjacent continuity goal only after release and propagation evidence are authoritative.
+## 5. Downstream outcomes
 
-## 6. Known installation and propagation destinations
+### `StegVerse-Labs/Site`
 
-- `StegVerse-Labs/Site` — consumer-facing documentation or integration update subject to bounded review.
-- `GCAT-BCAT-Engine/Publisher` — publisher-facing contract or packaging update subject to bounded review.
-- `StegVerse-Labs/admissibility-wiki` — update only if the recall contract changes admissibility guidance.
-- `StegVerse-002/stegguardian-wiki` — update only if guardian operations or authority boundaries change.
+Bounded review is complete. The paper route, index entry, publication boundary, validator, and implementation linkage are installed on main through merged PR `#18` and merge commit `4920684d8ec1b8ef8f2ff587bf318de995687d7f`.
 
-No direct downstream mutation is authorized merely by this handoff. Use the downstream propagation receipt and each destination repository handoff as the source of truth.
+The deployment provider may still need to expose the already-merged canonical route. That external observation requires no manual user action and does not require the originating conversation.
 
-## 7. Continuation rule
+### `GCAT-BCAT-Engine/Publisher`
 
-Continue only from issue #42, PR #43, the active branch, this handoff, the recall schema/engine/tests, and authoritative workflow evidence.
+The required update is implemented and merged through PR `#10`, merge commit `d7183ebf89373b7602af7f1e68386423bab57040`.
 
-Do not claim exact wording when only semantic reconstruction or integrity evidence exists. Do not treat a searchable index as canonical. Do not archive an accepted goal with incomplete implementation, release evidence, or required propagation. Do not merge from a head different from the validated head.
+Publisher now has:
 
-Recommended next activation condition:
+- a repository-local continuity recall handoff;
+- a governed export contract;
+- a dependency-light, fail-closed admission validator;
+- deterministic admission and rejection receipts;
+- authorization, destination, purpose, source-release, event-ID, verification-root, fidelity, retention, payload, supersession, and prohibited-path checks;
+- fixtures, tests, dedicated CI, and green repository-wide validation.
 
-> PR #43 is merged from an exact green head, a compatible patch release is published and verified, downstream determinations are recorded, and no unresolved acceptance criterion remains.
+Publisher admission does not claim or grant live recurring ingestion, licensing, contribution scoring, revenue calculation, or payout authority.
 
-## 8. Archive note
+### Wikis
 
-This handoff preserves published `v0.1.7`, completed governed-action execution, active issue #42 and PR #43, automated recall contracts, example-vault evidence, fidelity and supersession rules, validation requirements, release and propagation obligations, and next-goal activation boundaries. Continuation no longer requires access to the originating conversation.
+- `StegVerse-Labs/admissibility-wiki`: no direct update required.
+- `StegVerse-002/stegguardian-wiki`: no direct update required.
+
+The recall and Publisher contracts preserve rather than change their authority boundaries.
+
+## 6. Goal completion
+
+Issue `#42` acceptance criteria are satisfied:
+
+1. historical-to-current recall is executable from canonical fixtures;
+2. fidelity classes are explicit;
+3. superseded decisions are excluded from current state;
+4. indexes are rebuildable;
+5. tampering and missing payloads fail honestly;
+6. CI, release publication, and downstream determinations are complete.
+
+No further repository mutation, integration, verification, documentation, packaging, release, or propagation goal remains adjacent to this bounded goal.
+
+## 7. Next integration rule
+
+A new goal may begin only from a newly identified user objective, defect, supported friction report, changed downstream contract, or independently recorded ecosystem task. Do not invent work merely to prevent archival.
+
+## 8. Archive determination
+
+The implementation, tests, workflows, release receipts, downstream propagation receipt, Publisher handoff and merged integration, Site handoff, wiki determinations, and repository history preserve all continuation state.
+
+The complete thread is ready for archiving without any additional part of the thread needed to move forward.
 
 ---
 
