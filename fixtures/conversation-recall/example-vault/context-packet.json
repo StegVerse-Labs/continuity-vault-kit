@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "packet_id": "example-continuity-2026-07-17",
+  "objective": "Demonstrate provenance-preserving recall without rereading a transcript.",
+  "current_decisions": ["storage-policy-v2"],
+  "superseded_decisions": ["storage-policy-v1"],
+  "active_constraints": [
+    "Do not represent semantic reconstruction as exact wording.",
+    "Derived indexes must be rebuildable from canonical events.",
+    "Archive readiness remains false while implementation or propagation is incomplete."
+  ],
+  "event_log": "events.jsonl",
+  "verification_root": "c75ae4fb1b048b3583ec7463bf63b9d0c12b7334831c9b0235651eb569b494ed"
+}
