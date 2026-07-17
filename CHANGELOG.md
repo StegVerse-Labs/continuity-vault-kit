@@ -8,7 +8,22 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- `schemas/conversation-event.schema.json` for canonical append-only continuity events covering claims, decisions, supersession, artifacts, implementation, authority, handoffs, and archive state
+- `continuity/recall.py` with deterministic chain validation, rebuildable indexing, time-bounded recall, supersession-aware current-state selection, and archive-readiness evaluation
+- canonical example-vault fixtures containing events, a context packet, memory-use receipt, multimodal-input manifest, and selected AI context
+- executable recall tests and dedicated Conversation Recall Validation CI
+- `docs/AUTOMATED_CONVERSATION_RECALL.md` documenting fidelity classes, command-line recall, verification roots, and archive blockers
+
+### Improved
+- normal continuity recall no longer requires manually copying a reload packet when canonical events are present
+- recall results distinguish exact source, semantic reconstruction, inference, integrity-only evidence, and unavailable data
+- superseded decisions are excluded from current state
+- altered payloads, broken chains, duplicate event identifiers, out-of-order timestamps, and unsupported fidelity claims fail closed
+- accepted goals with incomplete implementation, release, verification, or propagation evidence keep archive readiness false
+
+### Notes
+Derived indexes remain disposable and rebuildable. Recall reports provenance and fidelity but does not create authority or silently elevate reconstructed content to exact source text.
 
 ---
 

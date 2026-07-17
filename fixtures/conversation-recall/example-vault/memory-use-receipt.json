@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "receipt_id": "memory-use-example-001",
+  "used_at": "2026-07-17T00:35:00Z",
+  "consumer": "continuity.recall",
+  "source_events": ["evt-002", "evt-003", "evt-004"],
+  "purpose": "Answer what changed between the prior storage decision and the current state.",
+  "result_fidelity": "exact",
+  "inference_used": false,
+  "verification": "chain_confirmed",
+  "verification_root": "c75ae4fb1b048b3583ec7463bf63b9d0c12b7334831c9b0235651eb569b494ed"
+}

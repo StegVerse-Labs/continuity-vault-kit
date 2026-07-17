@@ -1,0 +1,51 @@
+name: Conversation Recall Validation
+
+on:
+  pull_request:
+    paths:
+      - "schemas/conversation-event.schema.json"
+      - "continuity/**"
+      - "fixtures/conversation-recall/**"
+      - "tests/test_conversation_recall.py"
+      - ".github/workflows/conversation-recall.yml"
+      - "docs/CONVERSATION_CONTINUITY.md"
+      - "docs/AUTOMATED_CONVERSATION_RECALL.md"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/conversation-event.schema.json"
+      - "continuity/**"
+      - "fixtures/conversation-recall/**"
+      - "tests/test_conversation_recall.py"
+      - ".github/workflows/conversation-recall.yml"
+      - "docs/CONVERSATION_CONTINUITY.md"
+      - "docs/AUTOMATED_CONVERSATION_RECALL.md"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile recall surface
+        run: python -m py_compile continuity/recall.py tests/test_conversation_recall.py
+      - name: Run recall tests
+        run: python -m unittest tests.test_conversation_recall -v
+      - name: Demonstrate yesterday-to-now recall
+        run: |
+          python continuity/recall.py fixtures/conversation-recall/example-vault/events.jsonl \
+            "What changed between yesterday and now about ingestion storage?" \
+            --since 2026-07-16T00:00:00Z \
+            --until 2026-07-17T23:59:59Z \
+            --index-out /tmp/conversation-index.json
+      - name: Confirm incomplete work blocks archive readiness
+        run: |
+          output=$(python continuity/recall.py fixtures/conversation-recall/example-vault/events.jsonl readiness --archive-readiness)
+          echo "$output"
+          echo "$output" | grep '"ready": false'

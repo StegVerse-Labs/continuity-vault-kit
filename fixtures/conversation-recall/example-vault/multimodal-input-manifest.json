@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "manifest_id": "multimodal-example-001",
+  "inputs": [
+    {
+      "input_id": "selected-ai-context",
+      "media_type": "text/markdown",
+      "path": "selected-ai-context.md",
+      "retention_class": "full_fidelity",
+      "fidelity": "exact",
+      "authority": "user-selected"
+    }
+  ],
+  "excluded_inputs": [],
+  "selection_basis": "Only material explicitly selected for the example recall operation is admitted."
+}
