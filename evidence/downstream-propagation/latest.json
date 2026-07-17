@@ -1,41 +1,59 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "source_repository": "StegVerse-Labs/continuity-vault-kit",
-  "source_release": "v0.1.6",
-  "source_release_commit": "590e234fb66121a5ee72ebe422eed73118e012c5",
-  "checked_utc": "2026-07-15T21:36:00Z",
+  "source_release": "v0.1.8",
+  "source_release_commit": "57dc9405f92ce3716373af9a9923c3572cb9940b",
+  "checked_utc": "2026-07-17T02:20:00Z",
   "results": [
     {
       "repository": "StegVerse-Labs/Site",
-      "determination": "update required",
-      "rationale": "Existing Continuity Vault Kit publication and mirror references require bounded review for the v0.1.6 progressive-delegation and fair-agency release.",
-      "matches": [
-        {"path": "scripts/check_site_knowledgevault_paper.py", "terms": ["continuity-vault-kit"]},
-        {"path": "docs/KNOWLEDGEVAULT_PAPER_PUBLICATION.md", "terms": ["continuity-vault-kit"]},
-        {"path": "docs/SITE_KNOWLEDGEVAULT_PAPER_MIRROR_HANDOFF.md", "terms": ["continuity-vault-kit"]},
-        {"path": "papers/knowledgevault/conversation-continuity.html", "terms": ["continuity-vault-kit"]},
-        {"path": "docs/continuity_notes/2026-07-15-knowledgevault-paper-publication.md", "terms": ["continuity-vault-kit"]}
-      ]
+      "determination": "bounded review complete",
+      "rationale": "The KnowledgeVault paper route, index entry, publication boundary, validator, and implementation linkage are installed on main. The canonical public route remains deployment-provider observation only.",
+      "evidence": {
+        "handoff": "docs/SITE_KNOWLEDGEVAULT_PAPER_MIRROR_HANDOFF.md",
+        "merged_pr": 18,
+        "merge_commit": "4920684d8ec1b8ef8f2ff587bf318de995687d7f",
+        "canonical_route": "papers/knowledgevault/conversation-continuity.html",
+        "external_observation_pending": true
+      }
     },
     {
       "repository": "GCAT-BCAT-Engine/Publisher",
-      "determination": "update required",
-      "rationale": "The Publisher integration document directly references Continuity Vault Kit and requires bounded review for v0.1.6.",
-      "matches": [
-        {"path": "docs/VAULT_PUBLISHER_INTEGRATION.md", "terms": ["continuity-vault-kit"]}
-      ]
+      "determination": "update implemented and merged",
+      "rationale": "Publisher now has an executable, fail-closed admission boundary for authorized continuity recall exports, deterministic receipts, fixtures, tests, CI, and a repository-local handoff.",
+      "evidence": {
+        "handoff": "docs/PUBLISHER_CONTINUITY_RECALL_MIRROR_HANDOFF.md",
+        "merged_pr": 10,
+        "merge_commit": "d7183ebf89373b7602af7f1e68386423bab57040",
+        "exact_green_head": "1c1d90dba2eb04d5a865f3565782da15b2eab5be",
+        "checks": [
+          "Architecture Guard",
+          "Continuity Recall Admission Validation",
+          "Publisher Check",
+          "Publisher Readiness"
+        ]
+      }
     },
     {
       "repository": "StegVerse-Labs/admissibility-wiki",
-      "determination": "no update required",
-      "rationale": "No direct Continuity Vault Kit release, install, download, compatibility, or mirror reference was found.",
-      "matches": []
+      "determination": "no direct update required",
+      "rationale": "The recall release does not change admissibility guidance or grant new authority; Publisher admission preserves fidelity and provenance boundaries.",
+      "evidence": {"matches": []}
     },
     {
       "repository": "StegVerse-002/stegguardian-wiki",
-      "determination": "no update required",
-      "rationale": "No direct Continuity Vault Kit release, install, download, compatibility, or mirror reference was found.",
-      "matches": []
+      "determination": "no direct update required",
+      "rationale": "The recall release does not change Guardian operations or enforcement authority.",
+      "evidence": {"matches": []}
     }
-  ]
+  ],
+  "goal_status": "COMPLETE",
+  "manual_user_action_required": false,
+  "adjacent_goal_review": {
+    "remaining_repository_mutations": [],
+    "external_observations": [
+      "Site deployment provider may still need to expose the already-merged canonical public route."
+    ],
+    "external_observation_requires_originating_session": false
+  }
 }
