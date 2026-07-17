@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/conversation-event.schema.json",
+  "title": "Canonical Conversation Continuity Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "timestamp", "actor", "event_type", "topic", "content_hash", "resulting_state_hash", "retention_class", "fidelity"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "previous_event_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "actor": {"type": "string", "minLength": 1},
+    "event_type": {"enum": ["session_opened", "claim_introduced", "claim_challenged", "decision_proposed", "decision_revised", "decision_accepted", "decision_superseded", "artifact_created", "implementation_recorded", "authority_changed", "handoff_committed", "session_archived"]},
+    "topic": {"type": "string", "minLength": 1},
+    "subject_id": {"type": ["string", "null"]},
+    "supersedes": {"type": ["string", "null"]},
+    "content": {"type": ["object", "null"]},
+    "content_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "resulting_state_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "retention_class": {"enum": ["integrity_only", "reconstructable", "full_fidelity"]},
+    "fidelity": {"enum": ["exact", "semantic_reconstruction", "inference", "integrity_only", "unavailable"]},
+    "artifact_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "authority_context": {"type": ["object", "null"]},
+    "policy_context": {"type": ["object", "null"]}
+  }
+}
