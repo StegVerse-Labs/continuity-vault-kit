@@ -2,9 +2,9 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Active standalone release with published progressive delegation and active governed-action execution work.  
-**Current published version:** `0.1.6`  
-**Last updated:** 2026-07-15
+**Status:** Active standalone release with published governed-action execution and active automated conversation recall work.  
+**Current published version:** `0.1.7`  
+**Last updated:** 2026-07-17
 
 ## 1. Purpose and scope boundary
 
@@ -14,110 +14,108 @@ This file is the repository-local continuation source of truth. Read it before m
 
 Repository automation does not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content.
 
-### Delegated-authority boundary
+### Durable authority boundary
 
-- Standalone mode permits **no undeclared outbound transmission**.
-- A direct user instruction may authorize the covered action.
-- An **explicit, revocable, scoped delegation** may authorize repeated action through **standing preferences** without a per-item toggle.
-- Per-action confirmation is required only when user policy, scope, material context, risk, law, or platform rules require it.
-- Repository automation does not independently grant authority.
+- Standalone mode permits no undeclared outbound transmission.
+- Direct instructions and accepted standing delegations may authorize covered action.
 - Technical access, credentials, possession, repetition, and AI recommendation do not create authority.
-- A governed entity must not silently expand its own authority.
-- Material delegated actions and authority transitions require receipts.
-
-Example:
-
-> “Auri, post this photo to Facebook with the caption ‘Good times!’”
-
-When the intended account, image, and caption are clear, the instruction supplies current authority. Auri should act through a bounded execution envelope and preserve a receipt rather than request approval for every technical sub-step.
-
-Onboarding-friction automation retains its threshold of three reports before a candidate may be treated as supported. A supported candidate authorizes only the smallest repository-native correction demonstrated by evidence.
+- Recall may report, reconstruct, compare, and verify continuity evidence; it does not create or broaden authority.
+- Reconstructed or inferred content must never be presented as exact retained source.
+- Material delegated actions, authority transitions, and continuity use require attributable receipts.
 
 ## 2. Published state
 
-- Current verified release: `v0.1.6`.
-- Release commit: `590e234fb66121a5ee72ebe422eed73118e012c5`.
+- Current verified release: `v0.1.7`.
+- Release commit: `1ebba01cabfb08a77fe137035071e708a566080c`.
 - Publication receipt: `docs/release_evidence/latest_release.json`.
 - Release-cycle receipt: `docs/release_evidence/latest_cycle.json`.
-- Issue #32 and PR #33 are completed.
-- Published progressive-delegation work includes ACT/ASK/DENY decisions, proposal-only onboarding, governance profiles, lifecycle transitions, immutable transition receipts, relationship declarations, AI limitations, and renegotiation triggers.
+- Issue #37 and PR #38 are completed.
+- Published governed-action execution includes exact action/resource/destination/payload binding, connector-neutral preparation, PREPARED/EXECUTED/FAILED/INDETERMINATE receipts, duplicate suppression, and indeterminate-retry blocking.
 
-### Downstream determination for v0.1.6
+### Downstream determination for v0.1.7
 
-- `StegVerse-Labs/Site`: update required through bounded review.
-- `GCAT-BCAT-Engine/Publisher`: update required through bounded review.
-- `StegVerse-Labs/admissibility-wiki`: no update required.
-- `StegVerse-002/stegguardian-wiki`: no update required.
+- `StegVerse-Labs/Site`: bounded review required.
+- `GCAT-BCAT-Engine/Publisher`: bounded review required.
+- `StegVerse-Labs/admissibility-wiki`: no direct update required.
+- `StegVerse-002/stegguardian-wiki`: no direct update required.
 
 Authoritative local receipt: `evidence/downstream-propagation/latest.json`.
 
-## 3. Active governed-action execution work
+## 3. Active automated conversation recall work
 
-- Issue: `#37 Define governed action execution envelopes and connector receipts`.
-- Branch: `agent/governed-action-execution-v0-1`.
-- Pull request: `#38 Define governed action execution envelopes and connector receipts`.
-- PR state: draft pending complete executable validation.
+- Issue: `#42 Build automated provenance-preserving conversation recall`.
+- Branch: `agent/conversation-recall-v0-1`.
+- Pull request: `#43 Build automated provenance-preserving conversation recall`.
+- PR state: draft; current head must remain green and mergeable before readiness.
 
 ### Implemented artifacts
 
-- `schemas/action-execution-envelope.schema.json`;
-- `schemas/action-execution-receipt.schema.json`;
-- `execution/adapter.py`;
-- Facebook `Good times!` PREPARED reference envelope;
-- PREPARED, EXECUTED, FAILED, and INDETERMINATE result fixtures;
-- `tools/validate_action_execution.py`;
-- `tests/test_action_execution.py`;
-- `.github/workflows/governed-action-execution.yml`.
+- `schemas/conversation-event.schema.json`;
+- `continuity/recall.py`;
+- canonical example-vault events and supporting context/receipt/manifest files;
+- `tests/test_conversation_recall.py`;
+- `.github/workflows/conversation-recall.yml`;
+- `docs/AUTOMATED_CONVERSATION_RECALL.md`;
+- automated-continuity additions to `docs/CONVERSATION_CONTINUITY.md`;
+- substantive Unreleased changelog entry.
 
-### Execution invariants
+### Recall invariants
 
-1. Only an ACT decision may produce an executable envelope.
-2. The exact action, resource, destination, payload, connector operation, authority-decision hash, and idempotency key are bound before execution.
-3. A connector executes authority; it does not create, broaden, reinterpret, or retain authority beyond the envelope.
-4. PREPARED claims no external side effect.
-5. EXECUTED requires platform identity and confirmation evidence.
-6. FAILED distinguishes confirmed absence of side effect from uncertain failure.
-7. INDETERMINATE blocks blind automatic retry.
-8. An EXECUTED duplicate returns the prior receipt instead of repeating the side effect.
-9. Destination, payload, operation, resource, and idempotency substitution are rejected.
-10. Every external attempt requires a receipt.
+1. Canonical events are append-only and linked by previous-event hash.
+2. Retained payloads are bound by content hash.
+3. Derived indexes are disposable and rebuildable from canonical events.
+4. Superseded decisions do not appear as current.
+5. Results distinguish exact, semantic reconstruction, inference, integrity-only, and unavailable evidence.
+6. Missing payloads cannot claim recoverable fidelity.
+7. Duplicate identifiers, broken links, altered payloads, and out-of-order timestamps fail closed.
+8. Recall returns supporting event identifiers and a verification root.
+9. Archive readiness remains false while a current accepted goal lacks complete implementation, verification, release, or required propagation evidence.
+10. Recall does not create authority or silently rewrite source records.
 
-No live Facebook integration or credentials are included in this bounded implementation.
+## 4. Current validation state
 
-## 4. Durable decisions
+The first executable recall head passed:
 
-1. Governance exists to make delegated action safe, attributable, bounded, revocable, and usable—not to eliminate delegated action.
-2. A rule that only prevents action and provides no admissible delegated path is incomplete governance.
-3. Clear direct instructions and valid standing preferences should execute without repetitive confirmation.
-4. User responsibility for granted authority and AI responsibility for remaining within scope are distinct and simultaneous.
-5. Relationship standing may evolve through demonstrated conduct and reciprocal declaration, but authority expansion remains explicit.
-6. Connector capability never substitutes for authority.
-7. Unknown execution outcome is not permission to retry.
-8. Generated reconstruction remains distinct from original evidence.
-9. Storage optimization cannot override consent, authority, protected-evidence boundaries, or required material properties.
+- Conversation Recall Validation;
+- Release integrity;
+- KV Guardrails;
+- Repository validation diagnostics.
+
+Every subsequent documentation or fixture commit must be validated on its exact head before readiness or merge.
 
 ## 5. Remaining work
 
-1. Confirm Governed Action Execution Validation and repository-wide checks on the current head.
-2. Correct any schema, fixture, validator, or test mismatch.
-3. Add a substantive Unreleased changelog entry after executable validation is green.
-4. Update PR #38 body to the completed bounded deliverable.
-5. Mark ready and merge only from the exact green, mergeable head.
-6. Observe publication and downstream receipts before claiming the next release.
+1. Confirm all four required checks are green on the exact current PR #43 head.
+2. Correct any schema, fixture, documentation, validator, or archive-readiness mismatch.
+3. Update PR #43 body to describe the completed bounded deliverable.
+4. Mark PR #43 ready only from the exact green, mergeable head.
+5. Merge issue #42 only when every acceptance criterion passes.
+6. Observe publication and release-cycle receipts before claiming the next release.
+7. Record bounded downstream determinations for Site, Publisher, admissibility-wiki, and stegguardian-wiki.
+8. Activate the next adjacent continuity goal only after release and propagation evidence are authoritative.
 
-## 6. Continuation rule
+## 6. Known installation and propagation destinations
 
-Continue only from issue #37, PR #38, the active branch, this handoff, and the execution schemas and tests.
+- `StegVerse-Labs/Site` — consumer-facing documentation or integration update subject to bounded review.
+- `GCAT-BCAT-Engine/Publisher` — publisher-facing contract or packaging update subject to bounded review.
+- `StegVerse-Labs/admissibility-wiki` — update only if the recall contract changes admissibility guidance.
+- `StegVerse-002/stegguardian-wiki` — update only if guardian operations or authority boundaries change.
 
-Do not add live platform credentials or claim a real Facebook side effect. Do not permit ASK or DENY to create an envelope. Do not automatically retry an indeterminate action. Do not let connector output broaden the admitted destination, resource, payload, or operation.
+No direct downstream mutation is authorized merely by this handoff. Use the downstream propagation receipt and each destination repository handoff as the source of truth.
+
+## 7. Continuation rule
+
+Continue only from issue #42, PR #43, the active branch, this handoff, the recall schema/engine/tests, and authoritative workflow evidence.
+
+Do not claim exact wording when only semantic reconstruction or integrity evidence exists. Do not treat a searchable index as canonical. Do not archive an accepted goal with incomplete implementation, release evidence, or required propagation. Do not merge from a head different from the validated head.
 
 Recommended next activation condition:
 
-> PR #38 is merged from a green exact head, its compatible patch publication is confirmed, and downstream bounded-review ownership is preserved without redefining the source execution contract.
+> PR #43 is merged from an exact green head, a compatible patch release is published and verified, downstream determinations are recorded, and no unresolved acceptance criterion remains.
 
-## 7. Archive note
+## 8. Archive note
 
-This handoff preserves published `v0.1.6`, completed progressive delegation and fair-agency implementation, refreshed downstream determinations, active issue #37 and PR #38, governed execution contracts, duplicate-suppression rules, remaining validation and release actions, and continuation boundaries. Continuation no longer requires access to the originating conversation.
+This handoff preserves published `v0.1.7`, completed governed-action execution, active issue #42 and PR #43, automated recall contracts, example-vault evidence, fidelity and supersession rules, validation requirements, release and propagation obligations, and next-goal activation boundaries. Continuation no longer requires access to the originating conversation.
 
 ---
 
