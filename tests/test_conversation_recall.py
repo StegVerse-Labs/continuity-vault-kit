@@ -1,10 +1,13 @@
 import copy
 import unittest
+from pathlib import Path
 
-from continuity.recall import build_index, event_hash, recall, sha256, validate_chain
+from continuity.recall import archive_readiness, build_index, event_hash, load_jsonl, recall, sha256, validate_chain
+
+FIXTURE = Path("fixtures/conversation-recall/example-vault/events.jsonl")
 
 
-def make_event(event_id, event_type, topic, subject_id, content, fidelity="exact", supersedes=None, previous=None):
+def make_event(event_id, event_type, topic, subject_id, content, fidelity="exact", supersedes=None, previous=None, status=None):
     event = {
         "event_id": event_id,
         "previous_event_hash": previous,
@@ -26,11 +29,12 @@ def make_event(event_id, event_type, topic, subject_id, content, fidelity="exact
     return event
 
 
-def chain():
-    e1 = make_event("e1", "decision_accepted", "ingestion storage", "storage-v1", {"decision": "store bundles in every repository"}, previous=None)
+def chain(complete=False):
+    e1 = make_event("e1", "decision_accepted", "ingestion storage", "storage-v1", {"decision": "store bundles in every repository"})
     e2 = make_event("e2", "decision_superseded", "ingestion storage", "storage-v2", {"reason": "custody and reconstruction"}, supersedes="storage-v1", previous=event_hash(e1))
     e3 = make_event("e3", "decision_accepted", "ingestion storage", "storage-v2", {"decision": "master-records retains full bundles; downstream retains hashes and receipts"}, previous=event_hash(e2))
-    e4 = make_event("e4", "implementation_recorded", "ingestion storage", "storage-v2", {"repositories": 3, "status": "partial"}, fidelity="semantic_reconstruction", previous=event_hash(e3))
+    implementation = {"status": "complete", "remaining": []} if complete else {"status": "partial", "remaining": ["propagation verification"]}
+    e4 = make_event("e4", "implementation_recorded", "ingestion storage", "storage-v2", implementation, fidelity="semantic_reconstruction", previous=event_hash(e3))
     return [e1, e2, e3, e4]
 
 
@@ -42,12 +46,26 @@ class ConversationRecallTests(unittest.TestCase):
         self.assertFalse(result["superseded"])
         self.assertEqual(result["verification"], "chain_confirmed")
 
+    def test_time_window_answers_yesterday_to_now(self):
+        events = load_jsonl(FIXTURE)
+        result = recall(events, "What changed between yesterday and now about ingestion storage?", since="2026-07-16T00:00:00Z", until="2026-07-17T23:59:59Z")
+        self.assertEqual(result["historical_conclusion"]["decision"], "master-records retains full bundles; downstream repositories retain hashes, receipts, pointers, and active-custody exceptions")
+        self.assertEqual(result["result_type"], "exact")
+        self.assertEqual(result["verification_root"], "c75ae4fb1b048b3583ec7463bf63b9d0c12b7334831c9b0235651eb569b494ed")
+
+    def test_archive_readiness_stays_false_for_partial_goal(self):
+        readiness = archive_readiness(load_jsonl(FIXTURE))
+        self.assertFalse(readiness["ready"])
+        self.assertIn("storage-policy-v2", readiness["blockers"])
+
+    def test_archive_readiness_can_become_true(self):
+        readiness = archive_readiness(chain(complete=True))
+        self.assertTrue(readiness["ready"])
+
     def test_index_is_rebuildable(self):
         events = validate_chain(chain())
-        first = build_index(events)
-        second = build_index(events)
-        self.assertEqual(first, second)
-        self.assertEqual(first["event_count"], 4)
+        self.assertEqual(build_index(events), build_index(events))
+        self.assertEqual(build_index(events)["event_count"], 4)
 
     def test_tampered_content_is_rejected(self):
         events = copy.deepcopy(chain())
