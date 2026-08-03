@@ -1,0 +1,53 @@
+{
+  "schema_version": "security-baseline.v1",
+  "profile": "FEDERAL_FLOOR_PLUS",
+  "status": "ENFORCED_REPOSITORY_BASELINE",
+  "authoritative_references": [
+    "NIST CSF 2.0",
+    "NIST SP 800-218 SSDF 1.1",
+    "NIST SP 800-53 Rev. 5 control families",
+    "CISA Secure by Design"
+  ],
+  "principles": [
+    "Federal requirements are a minimum floor, not a target ceiling.",
+    "Fail closed when required evidence is absent.",
+    "Least privilege and read-only defaults apply to automation.",
+    "No repository workflow may inspect or mutate user-authored personal vault content.",
+    "Release artifacts require deterministic integrity evidence.",
+    "Security claims require directly inspectable receipts."
+  ],
+  "required_files": [
+    "SECURITY.md",
+    "security/security-baseline.v1.json",
+    "tools/security_baseline_check.py",
+    ".github/workflows/security-baseline.yml",
+    "docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md"
+  ],
+  "required_workflow_permissions": {
+    "security-baseline.yml": ["contents: read"]
+  },
+  "required_release_evidence": [
+    "docs/release_evidence/latest_release.json",
+    "docs/release_evidence/latest_cycle.json"
+  ],
+  "forbidden_patterns": [
+    "permissions: write-all",
+    "contents: write\n  actions: write",
+    "pull-requests: write\n  contents: write"
+  ],
+  "security_gates": {
+    "config_parse": true,
+    "required_files": true,
+    "workflow_permissions": true,
+    "release_evidence": true,
+    "personal_vault_boundary": true,
+    "release_integrity": true
+  },
+  "claim": {
+    "task_id": "CVK-SEC-001",
+    "owner": "security/federal-floor-plus",
+    "role": "CLAIMED_FOR_IMPLEMENTATION",
+    "created_utc": "2026-08-02T22:49:00Z",
+    "release_condition": "Merged PR with green Security Baseline, KV Guardrails, and Release integrity checks"
+  }
+}

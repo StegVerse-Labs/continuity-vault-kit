@@ -1,0 +1,27 @@
+name: Security Baseline
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate-security-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile validator
+        run: python3 -m py_compile tools/security_baseline_check.py
+      - name: Validate Federal Floor Plus baseline
+        run: python3 tools/security_baseline_check.py
+      - name: Validate existing repository contracts
+        run: |
+          python3 tools/test_automation_contracts.py
+          python3 tools/kv_layer_check.py --mode validate
