@@ -55,10 +55,10 @@ These are production files, not placeholders or proposed content.
 5. Workflows must use least-privilege permissions.
 6. Releases require archive, manifest, SHA-256, and durable outcome evidence.
 7. Repository automation does not independently grant authority.
-8. Delegated authority must be explicit, revocable, scoped, and attributable.
+8. Delegated authority must be based on explicit, revocable, scoped delegation and remain attributable.
 9. Standing preferences may guide proposals but are not execution authority.
 10. No undeclared outbound transmission is permitted.
-11. A supported correction authorizes only the smallest repository-native change demonstrated by evidence.
+11. A supported correction authorizes only the smallest repository-native correction demonstrated by evidence.
 12. User-authored personal vault content remains outside repository automation scope.
 13. An accepted vault cannot be silently replaced.
 14. Initialization or migration requires owner approval, dry-run capability, overwrite refusal, and installation receipts.
