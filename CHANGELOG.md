@@ -8,7 +8,20 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- executable Federal Floor Plus security policy in `SECURITY.md` and `security/security-baseline.v1.json`
+- deterministic `tools/security_baseline_check.py` validator and dedicated Security Baseline CI workflow
+- durable security execution and claim record in `docs/SECURITY_BASELINE_EXECUTION.md` and the canonical mirror handoff
+
+### Improved
+- applicable U.S. federal cybersecurity requirements are treated as the minimum engineering floor rather than the target ceiling
+- repository automation fails closed when required policy or evidence is unavailable
+- least-privilege workflow permissions, release provenance, manifests, SHA-256 evidence, and durable outcome receipts are explicitly enforced
+- user-authored iCloud KnowledgeVault content remains outside repository automation authority and cannot be silently replaced
+- delegated authority must be explicit, revocable, scoped, attributable, and limited to the smallest evidence-supported repository correction
+
+### Notes
+This is an executable engineering baseline, not a federal certification, authorization, accreditation, or compliance attestation. Personal-vault initialization or migration remains a separate owner-approved action with dry-run and receipt requirements.
 
 ---
 
@@ -80,31 +93,13 @@ Governance exists to make delegated action safe, attributable, bounded, revocabl
 ## [0.1.5] – 2026-07-15
 
 ### Added
-- `docs/STORAGE_BUDGET_AND_ADAPTIVE_CAPTURE_POLICY.md` defining governed reconstruction goals, material-property requirements, explicit capacity budgets, sensor substitution, adaptive sampling, fidelity elevation, exhaustion behavior, and capability-loss receipts
-- `schemas/storage-budget-policy.schema.json` as the machine-readable storage-budget and adaptive-capture contract
-- Four reference policies covering semantic recall, spatial/object-state recall, approximate experiential playback, and protected evidentiary preservation
-- `tools/validate_storage_budget_policy.py` and `tests/test_storage_budget_policy.py` enforcing required-property coverage, allocation limits, substitution consistency, receipt requirements, and exhaustion behavior
-- `multimodal_storage/budget_planner.py` and `tests/test_budget_planner.py` providing an advisory-only capture-plan analysis that cannot activate sensors, mutate retention, purchase capacity, or grant authority
-- `docs/STORAGE_BUDGET_EXPERIENCE_CAPSULE_MAPPING.md` binding policy streams and capability-loss states to the existing ExperienceCapsule contract
-- `.github/workflows/storage-budget-policy.yml` as the dedicated validation gate for storage-budget policies and planner behavior
+- deterministic dialogue reconstruction for agreed user/AI positions
+- execution-readiness checks for reconstructed agreements
+- evidence-aware recall of accepted, rejected, superseded, and unresolved proposals
 
 ### Improved
-- Capacity pressure may reduce preferred properties only; required-property loss now forces an explicit capability-loss declaration
-- Replication, continuity-receipt reserve, protected evidence, archival allocation, and temporary buffers are accounted for separately
-- `RECONCILED` release-cycle receipts may identify the reconciliation workflow while all other outcomes remain bound to the automated release workflow
-- Repository authority boundaries distinguish unauthorized action from valid direct or standing delegation
+- unresolved or contradictory dialogue cannot silently become executable authority
+- reconstructed agreements retain source-event provenance and confidence boundaries
 
 ### Notes
-The storage-budget layer is advisory and policy-bound. It does not establish surveillance authority, control sensors, grant protected-evidence access, purchase storage, or imply that cheaper compute removes physical storage cost. Generated reconstruction remains distinct from original evidence.
-
----
-
-## [0.1.4] – 2026-07-15
-
-### Added
-- `docs/FIDELITY_GOVERNED_MULTIMODAL_STORAGE.md` defining artifact-class separation, transcription-only voice recall, multimodal fidelity transitions, sparse reconstruction, sensor substitution, and reconstruction-completeness requirements
-- `schemas/experience-capsule.schema.json` as the machine-readable contract for governed multimodal episodes, streams, consent transitions, retention policy, reconstruction rights, missing evidence, and fidelity transitions
-- Four reference capsules covering transcription-only voice, protected audio evidence, sparse video reconstruction, and materially incomplete ambient capture
-- `tools/validate_experience_capsule.py` and `tests/test_experience_capsule.py` to enforce generated-content labeling, ephemeral payload restrictions, voice-recall boundaries, fidelity-loss declarations, and completeness consistency
-- `multimodal_storage/adapter.py` and `tests/test_multimodal_storage_adapter.py` to authorize canonical text and derived recall without granting protected raw-media access by implication
-- `.github/workflows/fidelity-governed-storage.yml` as the dedicated executable validation gate for the multimodal storage contract
+Dialogue reconstruction is evidentiary support only. It does not independently grant authority.
