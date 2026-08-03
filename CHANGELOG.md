@@ -8,6 +8,12 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [0.1.9] – 2026-08-03
+
 ### Added
 - executable Federal Floor Plus security policy in `SECURITY.md` and `security/security-baseline.v1.json`
 - deterministic `tools/security_baseline_check.py` validator and dedicated Security Baseline CI workflow
