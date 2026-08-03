@@ -2,76 +2,48 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault conversation continuity  
-**Status:** Working local-first vertical slice committed to `main`; repository workflow verification pending/observable through GitHub Actions.  
-**Last updated:** 2026-07-14
+**Status:** `SUPERSEDED — MERGED INTO CANONICAL WORKSTREAM`  
+**Last updated:** 2026-08-02
 
-## Source of truth
+## Canonical continuation
 
-Read this handoff together with `docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md` before changing the conversation-continuity runtime.
+This historical MVP handoff is no longer an independent execution authority.
 
-## Implemented files
+MERGED INTO:
 
-- `tools/conversation_continuity.py`
-- `tools/test_conversation_continuity.py`
-- `examples/conversation_continuity/sample_session.jsonl`
-- `docs/CONVERSATION_CONTINUITY_MVP.md`
-- `.github/workflows/conversation-continuity-mvp.yml`
+- `docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md` — repository-wide canonical handoff;
+- `automation/session-consolidation-2026-08-02.json` — machine-readable goal and claim inventory;
+- `docs/SESSION_CONSOLIDATION_2026-08-02.md` — readable consolidation and archive record;
+- issue `#39` and draft PR `#40` — active recoverable-execution orchestration workstream.
 
-## Implemented behavior
+Do not create a duplicate conversation-continuity implementation branch or revive this file's old pending-work list as an unclaimed task inventory.
 
-1. Canonical JSON serialization for conversation events.
-2. Versioned event envelopes with event identity, actor, time, event type, topic, status, retention class, prior-event hash, content commitment, references, supersession, artifacts, and metadata.
-3. Ordered SHA-256 event chaining from a deterministic genesis value.
-4. Deterministic Merkle root over committed event hashes.
-5. Three retention classes: `integrity-only`, `reconstructable`, and `full-fidelity`.
-6. Derived structured search index.
-7. Historical decision reconstruction with result fidelity, supporting events, source event hash, artifact reference, and Merkle root.
-8. Independent verification of sequence, prior links, hashes, chain tip, event count, and Merkle root.
-9. Adversarial mutation test requiring verification failure after a retained summary is altered.
-10. GitHub Actions evidence generation and artifact upload.
+## Historical MVP disposition
 
-## Verified locally before repository mutation
+The following MVP files remain valid historical implementation surfaces:
 
-```text
-OK: conversation continuity MVP self-test passed
-```
+- `tools/conversation_continuity.py`;
+- `tools/test_conversation_continuity.py`;
+- `examples/conversation_continuity/sample_session.jsonl`;
+- `docs/CONVERSATION_CONTINUITY_MVP.md`;
+- `.github/workflows/conversation-continuity-mvp.yml`.
 
-The self-test builds the public fixture, verifies it, searches it, reconstructs the accepted bundle-retention decision, mutates the accepted semantic summary, and confirms that verification exits non-zero with an event-hash mismatch.
+The historical local-first prototype established canonical conversation events, SHA-256 chaining, Merkle commitments, retention classes, indexing, reconstruction, and adversarial mutation detection. It did not establish the complete production architecture.
 
-## Permitted public claim
+## Current ownership and claims
 
-> A working local-first prototype is built and publicly verifiable. It creates canonical conversation events, commits them into a Merkle-verifiable chain, applies distinct retention classes, indexes durable consequences, and reconstructs historical decisions with provenance. The larger production architecture remains under development.
+- MVP history and repository-wide authority boundaries: `COMPLETE`, owned by `main` and the canonical handoff.
+- Recoverable execution orchestration: `CLAIMED_FOR_IMPLEMENTATION`, owned by draft PR `#40` on branch `agent/recoverable-execution-orchestration-v0-1`, with issue `#39` as the durable task record.
+- Production provider activation: `BLOCKED`, owned by issue `#16`, the protected activation workflow, and an explicitly authorized operator.
+- This historical handoff: `SUPERSEDED`; no active implementation, validation, integration, or propagation claim.
 
-Do not claim that the full production system described in the position paper is complete.
+## Collision boundary
 
-## Remaining build surfaces
+Do not modify the files or capabilities claimed by draft PR `#40` from another session unless reconciling that PR with explicit repository evidence. Do not infer live provider authority from repository implementation.
 
-1. Signed event identities and external timestamp anchors.
-2. Merkle inclusion-proof generation and verification for individual events.
-3. Encrypted reconstructable and full-fidelity payload custody.
-4. Provider import adapters, beginning with exported conversation JSON and pasted-session ingestion.
-5. Governed retention/deletion policy execution.
-6. Access control and disclosure filtering.
-7. Semantic and natural-language ranking beyond deterministic structured search.
-8. Cross-session and cross-artifact provenance graph.
-9. Search UI and ecosystem-search integration.
-10. Independent implementation and validation.
+## Archive state
 
-## Destination ownership
-
-- Runtime and canonical schemas: `StegVerse-Labs/continuity-vault-kit`.
-- Public discovery and user interface after release determination: `StegVerse-Labs/Site`.
-- Publication and downstream bundle routing after release determination: `GCAT-BCAT-Engine/Publisher`.
-- Admissibility interpretation only when separately justified: `StegVerse-Labs/admissibility-wiki`.
-- Guardian/operator policy interpretation only when separately justified: `StegVerse-002/stegguardian-wiki`.
-
-## Next activation goal
-
-Add signed Merkle inclusion proofs and encrypted payload custody while keeping the baseline local, account-free, database-free, and standard-library-compatible where practical.
-
-## Archive note
-
-This file preserves the implementation state, public claim boundary, verification behavior, remaining modules, destination ownership, and next activation goal. The complete originating thread is ready for archiving without any additional part of the thread needed to move forward.
+All unique information from the originating MVP thread is preserved in repository files, Git history, the canonical handoff, the session consolidation inventory, and the active issue/PR records. The originating MVP session is archive-safe.
 
 ---
 
