@@ -77,7 +77,7 @@ Published release evidence:
 
 - version/tag: `0.1.9` / `v0.1.9`;
 - release commit: `e474f15c4a0a9414ef7391e9f8212ff3ebcb2b8f`;
-- publication evidence commit: `2d4700e3a086f66eefa46514f10d3c24ffec450` is not the publication receipt; the authoritative publication evidence commit is `2d4700e3a086f66eefa46514f10d3bcd564f0432`;
+- publication evidence commit: `2d4700e3a086f66eefa46514f10d3bcd564f0432`;
 - SHA-256: `9b0924ea393bcb0ac9c2ad582e36ec2adba92055472f9fc4f76cf6f70e821f8b`;
 - release-cycle outcome: `PUBLISHED`;
 - recovery state: `NO_RECOVERY_REQUIRED`.
