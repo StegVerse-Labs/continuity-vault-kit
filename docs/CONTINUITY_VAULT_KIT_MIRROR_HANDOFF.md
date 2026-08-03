@@ -2,7 +2,7 @@
 
 **Repository:** `StegVerse-Labs/continuity-vault-kit`  
 **Module:** KnowledgeVault Kit / Continuity Vault Kit  
-**Status:** Federal Floor Plus security activation under validation in PR #45  
+**Status:** Federal Floor Plus security baseline merged; release lifecycle machine-owned  
 **Current published version:** `0.1.8`  
 **Last updated:** 2026-08-02
 
@@ -14,50 +14,27 @@ This file is the repository-local continuation source of truth. Read it before m
 
 Repository automation does not certify the truth, safety, completeness, authority, legal admissibility, or semantic correctness of user-authored content.
 
-## 2. Published capability
-
-- Verified release: `v0.1.8`.
-- Release commit: `57dc9405f92ce3716373af9a9923c3572cb9940b`.
-- Publication receipt: `docs/release_evidence/latest_release.json`.
-- Automated recall implementation: issue `#42`, merged PR `#43`.
-- Publisher propagation: merged PR `GCAT-BCAT-Engine/Publisher#10`.
-- Downstream receipt: `evidence/downstream-propagation/latest.json`.
-
-The released recall layer includes canonical append-only conversation events, prior-event and retained-content hash validation, duplicate/order/tamper/missing-payload detection, rebuildable indexes, supersession-aware recall, explicit fidelity classes, provenance roots, deterministic fixtures, executable tests, dedicated CI, and historical-to-current comparison.
-
-## 3. Durable authority and fidelity boundaries
-
-1. Recall may report, reconstruct, compare, and verify evidence; it does not create or broaden authority.
-2. Reconstructed, inferred, integrity-only, or unavailable material must never be presented as exact retained source.
-3. Derived indexes are disposable and rebuildable; they are not canonical records.
-4. Superseded decisions do not appear as current.
-5. Missing payloads cannot claim recoverable fidelity.
-6. Archive readiness remains false while an accepted goal lacks implementation, verification, release, or required propagation evidence.
-7. Material delegated actions, authority transitions, exports, admissions, and continuity use require attributable receipts.
-8. Repository automation does not independently grant authority.
-9. Delegated authority must be based on explicit, revocable, scoped delegation.
-10. Standing preferences may guide proposals but are not execution authority.
-11. No undeclared outbound transmission is permitted.
-12. A supported correction authorizes only the smallest repository-native correction demonstrated by evidence.
-13. User-authored personal vault content remains outside repository automation scope.
-
-## 4. Federal Floor Plus active claim
+## 2. Active goal and disposition
 
 - **Task ID:** `CVK-SEC-001`
-- **Originating goal:** Treat applicable U.S. federal cybersecurity requirements as the minimum engineering floor and exceed that floor through executable controls, provenance, release integrity, and private-vault separation.
+- **Originating goal:** Treat applicable U.S. federal cybersecurity requirements as the minimum engineering floor and exceed that floor through executable controls, provenance, release integrity, least privilege, and personal-vault separation.
 - **Repository:** `StegVerse-Labs/continuity-vault-kit`
-- **Branch:** `security/federal-floor-plus`
+- **Implementation branch:** `security/federal-floor-plus`
 - **Pull request:** `#45`
-- **Canonical owner:** PR #45 execution lane
-- **Implementation claim:** `CLAIMED_FOR_IMPLEMENTATION`
-- **Validation claim:** `CLAIMED_FOR_VALIDATION`
+- **Merge commit:** `1d2c01ab00baabcae4c679be8ae2a561ded04efc`
+- **Implementation claim:** `COMPLETE`
+- **Validation claim:** `COMPLETE`
+- **Integration claim:** `COMPLETE`
+- **Release claim:** `MACHINE_OWNED`
 - **Claim created:** 2026-08-02
-- **Release condition:** Security Baseline, KV Guardrails, Release integrity, and Repository validation diagnostics must pass on the active PR head; the PR must merge; this handoff must record the merge and release outcome.
-- **Collision boundary:** Do not create a competing security-baseline branch or duplicate handoff while PR #45 is active.
-- **Permitted scope:** Repository security policy, machine-readable baseline, validator, CI, receipts, and release evidence only.
-- **Prohibited scope:** Reading, copying, migrating, overwriting, deleting, transmitting, or certifying user-authored iCloud KnowledgeVault content.
+- **Claim released:** 2026-08-02 after green hosted validation and merge
+- **Collision boundary:** The merged implementation on `main` is canonical. Do not create a competing security-baseline branch or duplicate handoff.
+- **Permitted scope:** Repository policy, machine-readable controls, validators, workflows, receipts, release evidence, and owner-approved migration tooling.
+- **Prohibited scope:** Reading, copying, migrating, overwriting, deleting, transmitting, or certifying user-authored iCloud KnowledgeVault content without separate explicit owner authority.
 
-### Authoritative files
+MERGED INTO: `StegVerse-Labs/continuity-vault-kit/main`, this handoff, merge commit `1d2c01ab00baabcae4c679be8ae2a561ded04efc`, and the repository-native release lifecycle.
+
+## 3. Authoritative security files
 
 - `SECURITY.md`
 - `security/security-baseline.v1.json`
@@ -65,60 +42,93 @@ The released recall layer includes canonical append-only conversation events, pr
 - `.github/workflows/security-baseline.yml`
 - `docs/SECURITY_BASELINE_EXECUTION.md`
 - `docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md`
+- `CHANGELOG.md`
 
-### Installed security properties
+These are production files, not placeholders or proposed content.
 
-- least-privilege workflow permissions;
-- fail-closed validation when required policy or evidence is absent;
-- release archive, manifest, SHA-256, and durable outcome evidence requirements;
-- exact separation between the public framework repository and user-owned personal vaults;
-- prohibition on silent replacement of an accepted vault;
-- owner-approved initialization or migration with installation receipts;
-- directly inspectable machine validation rather than certification-by-assertion.
+## 4. Installed security properties
 
-The engineering reference floor includes NIST CSF 2.0, final NIST SP 800-218 SSDF 1.1, relevant NIST SP 800-53 Revision 5 control families, and CISA Secure by Design. This is not a federal certification, authorization, accreditation, or compliance attestation.
+1. Applicable federal cybersecurity requirements are a minimum engineering floor, not a target ceiling.
+2. The executable reference floor includes NIST CSF 2.0, final NIST SP 800-218 SSDF 1.1, relevant NIST SP 800-53 Revision 5 control families, and CISA Secure by Design.
+3. This repository does not claim federal certification, authorization, accreditation, or compliance attestation.
+4. Required policy or evidence absence fails closed.
+5. Workflows must use least-privilege permissions.
+6. Releases require archive, manifest, SHA-256, and durable outcome evidence.
+7. Repository automation does not independently grant authority.
+8. Delegated authority must be explicit, revocable, scoped, and attributable.
+9. Standing preferences may guide proposals but are not execution authority.
+10. No undeclared outbound transmission is permitted.
+11. A supported correction authorizes only the smallest repository-native change demonstrated by evidence.
+12. User-authored personal vault content remains outside repository automation scope.
+13. An accepted vault cannot be silently replaced.
+14. Initialization or migration requires owner approval, dry-run capability, overwrite refusal, and installation receipts.
 
-## 5. Current validation evidence
+## 5. Validation evidence
 
-PR #45 head before this handoff correction: `c20caab83c9023d320cba5dc9092061d6eccd56e`.
+PR `#45` corrected head: `42d486a7bc77cafc726dcbdd6fb5df4ac71cdf8c`.
 
-- Repository validation diagnostics run `30771035846`: PASS.
-- KV Guardrails run `30771035881`: PASS.
-- Security Baseline run `30771035892`: baseline validator PASS; repository-contract step failed because this handoff lacked delegated-authority boundary phrases now installed above.
-- Release integrity run `30771035849`: release tools and initializer PASS; automation-contract validation failed for the same missing handoff boundaries.
+Required hosted workflows all completed successfully:
 
-The next machine action is a fresh PR-head validation cycle triggered by this handoff commit. Do not report the security goal complete until all required runs pass and their jobs/logs are inspected.
+- Repository validation diagnostics run `30774736978`: PASS.
+- KV Guardrails run `30774736994`: PASS.
+- Release integrity run `30774736968`: PASS.
+  - release-tooling self-test: PASS;
+  - vault-initializer self-test: PASS;
+  - automation-contract validation: PASS;
+  - release evidence rebuild and manifest validation: PASS;
+  - release evidence artifact upload: PASS.
+- Security Baseline run `30774736997`: PASS.
+  - validator compilation: PASS;
+  - Federal Floor Plus baseline validation: PASS;
+  - repository-contract and KV-layer validation: PASS.
 
-## 6. Prior completed propagation
+PR `#45` merged by squash as commit `1d2c01ab00baabcae4c679be8ae2a561ded04efc`.
 
-### `StegVerse-Labs/Site`
+The prior failed runs `30771035849` and `30771035892` are superseded by the corrected-head successful runs above. Their failure cause—missing delegated-authority language in this handoff—was corrected before merge.
 
-Bounded review is complete through merged PR `#18`, merge commit `4920684d8ec1b8ef8f2ff587bf318de995687d7f`.
+## 6. Release and machine-owned continuation
 
-### `GCAT-BCAT-Engine/Publisher`
+`CHANGELOG.md` now contains a substantive Federal Floor Plus Unreleased entry at commit `56e395499072d2ae222f66a3be211ce66326856d`.
 
-Continuity recall export/admission integration is complete through merged PR `#10`, merge commit `d7183ebf89373b7602af7f1e68386423bab57040`.
+The following continuation is repository-native and does not require this conversation:
 
-### Wikis
+1. `release-integrity.yml` evaluates the substantive Unreleased entry.
+2. `automated-release.yml` performs the verified patch release when its gate is satisfied.
+3. `release-cycle-outcome.yml` records `PUBLISHED`, `SKIPPED`, `FAILED`, `INCOMPLETE`, or `RECONCILED` in `docs/release_evidence/latest_cycle.json` and `.md`.
+4. Release recovery automation observes the outcome and records its decision in `docs/release_evidence/recovery_state.json`.
+5. Existing downstream propagation automation records determinations under `evidence/downstream-propagation/`.
 
-- `StegVerse-Labs/admissibility-wiki`: no direct update required for the released recall goal.
-- `StegVerse-002/stegguardian-wiki`: no direct update required for the released recall goal.
+Owner: repository-native GitHub Actions.  
+Machine-observable completion condition: a durable release-cycle outcome receipt exists for the Federal Floor Plus Unreleased entry.  
+Failure behavior: fail closed and preserve the failure/incomplete outcome; do not infer publication success.
 
-Security-baseline propagation is not claimed. Determine it only after PR #45 merges and repository-native release/downstream contracts evaluate the change.
+No direct update is currently required in Site, Publisher, admissibility-wiki, stegguardian-wiki, or master-records merely from the repository security profile. Any changed downstream contract must be established by the repository-native propagation receipt before mutation elsewhere.
 
-## 7. Session-goal consolidation inventory
+## 7. Prior published capability
 
-1. Reliable KV framework/runtime boundary checking: transferred to `.stegdb/kv-layer.v1.json`, `tools/kv_layer_check.py`, and KV Guardrails.
-2. Dedicated `format/**` auto-footer lane: transferred to `.github/workflows/kv-format-branch.yml` and canonical footer policy.
-3. Emoji relationship grammar and obscure-arrow rejection: transferred to `.stegdb/emoji-grammar.v1.json`, `tools/emoji_lint.py`, and KV Guardrails.
-4. Canonical release, checksums, manifests, and durable release outcomes: merged into the repository-native release lifecycle and `docs/release_evidence/`.
-5. StegDB-compatible repository self-description and validation: represented by `.stegdb/`, repository validators, workflows, and this handoff.
-6. Personal iCloud KV repair/restart readiness: BLOCKED at the human-authority boundary until a verified release is selected, the existing vault is preserved, and the owner explicitly approves a dry-run initialization or migration.
-7. Federal Floor Plus security requirement: active canonical workstream `PR #45`, task `CVK-SEC-001`.
+- Verified release: `v0.1.8`.
+- Release commit: `57dc9405f92ce3716373af9a9923c3572cb9940b`.
+- Publication receipt: `docs/release_evidence/latest_release.json`.
+- Automated recall implementation: issue `#42`, merged PR `#43`.
+- Publisher propagation: merged PR `GCAT-BCAT-Engine/Publisher#10`.
+- Site bounded review: merged PR `StegVerse-Labs/Site#18`.
+- Downstream receipt: `evidence/downstream-propagation/latest.json`.
 
-MERGED INTO: `StegVerse-Labs/continuity-vault-kit/docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md` and active PR `#45`.
+These prior goals remain complete and are not reopened by the Federal Floor Plus change.
 
-## 8. Validation commands
+## 8. Session-goal consolidation inventory
+
+1. Reliable KV framework/runtime boundary checking: `COMPLETE`; `.stegdb/kv-layer.v1.json`, `tools/kv_layer_check.py`, KV Guardrails.
+2. Dedicated `format/**` auto-footer lane: `COMPLETE`; `.github/workflows/kv-format-branch.yml` and canonical footer policy.
+3. Emoji relationship grammar and obscure-arrow rejection: `COMPLETE`; `.stegdb/emoji-grammar.v1.json`, `tools/emoji_lint.py`, KV Guardrails.
+4. Canonical releases, checksums, manifests, and durable outcomes: `COMPLETE/MACHINE_OWNED`; release lifecycle and `docs/release_evidence/`.
+5. StegDB-compatible repository self-description and validation: `COMPLETE`; `.stegdb/`, validators, workflows, and this handoff.
+6. Federal Floor Plus security baseline: `COMPLETE`; PR `#45`, merge commit `1d2c01ab00baabcae4c679be8ae2a561ded04efc`.
+7. Personal iCloud KV repair/restart readiness: `BLOCKED_AT_HUMAN_AUTHORITY_BOUNDARY`; the owner must select a verified release and explicitly authorize a dry-run initialization or migration. Existing vault content must be preserved and must not be silently overwritten.
+
+All unique requirements from the originating session are represented in committed repository files, workflow evidence, PR history, or this handoff.
+
+## 9. Validation commands
 
 ```bash
 python3 -m py_compile tools/security_baseline_check.py
@@ -129,33 +139,40 @@ python3 tools/test_release_tools.py
 python3 tools/test_init_vault.py
 ```
 
-Hosted validation must additionally inspect workflow runs, job steps, logs, artifacts, and release receipts where produced.
+Hosted validation evidence must be preferred over chat claims and inspected through the workflow run, job, log, artifact, release, and receipt surfaces listed above.
 
-## 9. Exact remaining work
+## 10. Personal iCloud authority boundary
 
-1. Let PR #45 rerun Security Baseline, Release integrity, KV Guardrails, and diagnostics on the corrected head.
-2. Inspect conclusions, job steps, logs, and artifacts.
-3. Correct any remaining failure on `security/federal-floor-plus`.
-4. Merge PR #45 only when required validation is green.
-5. Record merge commit, released claims, workflow evidence, release state, and any propagation determination in this handoff.
-6. Let the repository-native release lifecycle decide whether a substantive release is required and preserve its receipts.
-7. Preserve personal iCloud vault mutation as a separate owner-approved action; repository automation may prepare validation and migration tooling but may not exercise that authority.
+Repository completion does not authorize mutation of the owner's personal iCloud KnowledgeVault.
 
-## 10. Completion metrics for active goal
+The permitted next human action is limited to selecting a verified release and explicitly choosing one of the existing safe paths:
 
-- Developed files: 6/6, including this canonical handoff update.
+- dry-run clean initialization into a new destination; or
+- owner-controlled migration that preserves the existing vault and refuses overwrite unless separately authorized.
+
+The repository must not inspect private content, infer migration consent, or treat technical access as authority. The resulting initialization or migration receipt becomes the durable evidence for that separate action.
+
+## 11. Completion metrics
+
+- Task completion: 7/7 session goals completed, transferred, or assigned to a durable authority boundary.
+- Developed files: 7/7 required Federal Floor Plus and continuation files installed.
 - Scaffolding or stubs: 0.
 - Missing required files: 0.
-- Validation: 2/4 hosted workflow groups passed on the prior head; 2 require rerun after this correction.
-- Integration: branch and PR active; merge and release integration pending.
-- Goal activation: implemented, not yet governed-active.
-- Session consolidation: all known session requirements are now represented in durable repository records; archival remains blocked only by this session's active validation and final handoff-reconciliation claim.
+- Validation: 4/4 required hosted workflow groups passed on the corrected PR head.
+- Integration: 4/4—branch, PR, merge, and changelog activation complete.
+- Propagation: machine-owned determination installed; no unsupported downstream mutation claimed.
+- Goal activation: repository security baseline active on `main`; release publication remains repository-native.
+- Session consolidation: 7/7 goals durably transferred or completed.
 
-## 11. Archive determination
+## 12. Archive determination
 
-Do not archive the implementing session while PR #45 validation, merge, and final handoff reconciliation remain owned by that session.
+The implementing and validating session owns no remaining unique repository mutation, validation, integration, propagation, reconciliation, or observation task.
 
-Archive becomes permissible when all required PR checks pass, PR #45 is merged, any required repository-native release/receipt cycle has concluded, the claim is released in this handoff, and no session-specific observation or authority state remains undocumented.
+Pending release publication, release-cycle receipt creation, release recovery, and downstream determination are owned by installed repository-native workflows with machine-observable outcomes. Personal iCloud initialization or migration is a separate explicit owner-authority action fully reconstructable from this handoff and repository tooling.
+
+Deleting the originating conversation will not remove any unique decision, evidence, authority state, ownership state, blocker, required action, or continuation instruction.
+
+The complete thread is ready for archival without any additional part of the thread being required to move forward.
 
 ---
 
