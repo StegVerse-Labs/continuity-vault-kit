@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "journal_id": "journal-facebook-good-times-001",
+  "envelope_id": "exec-facebook-good-times-001",
+  "envelope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "idempotency_key": "facebook-good-times-001",
+  "state": "DISPATCHED",
+  "revision": 1,
+  "lease": {
+    "owner": "auri-worker-01",
+    "acquired_at": "2026-07-15T21:55:00Z",
+    "expires_at": "2026-07-15T21:56:00Z"
+  },
+  "events": [
+    {
+      "sequence": 0,
+      "event": "ATTEMPT_STARTED",
+      "recorded_at": "2026-07-15T21:55:00Z",
+      "actor": "auri:primary",
+      "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "sequence": 1,
+      "event": "DISPATCH_RECORDED",
+      "recorded_at": "2026-07-15T21:55:10Z",
+      "actor": "connector:facebook-neutral-adapter",
+      "receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+    }
+  ],
+  "terminal_receipt_ref": null,
+  "authority_note": "Recovery restores execution state only; it does not grant or expand authority."
+}

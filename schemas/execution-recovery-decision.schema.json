@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/execution-recovery-decision.schema.json",
+  "title": "Governed Execution Recovery Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "journal_id",
+    "journal_revision",
+    "envelope_sha256",
+    "decision",
+    "reason",
+    "decided_at",
+    "receipt_required"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "decision_id": {"type": "string", "minLength": 1},
+    "journal_id": {"type": "string", "minLength": 1},
+    "journal_revision": {"type": "integer", "minimum": 0},
+    "envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "decision": {"enum": ["RESUME_OBSERVATION", "VERIFY_EXTERNALLY", "RETRY_EXACT", "ASK", "STOP"]},
+    "reason": {"type": "string", "minLength": 1},
+    "decided_at": {"type": "string", "format": "date-time"},
+    "verification_ref": {"type": ["string", "null"]},
+    "receipt_required": {"const": true},
+    "authority_note": {"const": "Recovery cannot create authority or alter the authorized execution envelope."}
+  }
+}
