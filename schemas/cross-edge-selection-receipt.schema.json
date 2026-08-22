@@ -1,0 +1,28 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/cross-edge-selection-receipt.schema.json",
+  "title":"KnowledgeVault Cross-Edge Selection Receipt",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema_version","receipt_type","attempt_id","policy_version","posture","recipient_state","candidate_set_sha256","selected_edge_id","selected_bearer","primary_score","primary_score_components","fallback_order","excluded_paths","selected_advertisement_sha256","decided_at","multipath_authorized","remote_edge_execution_authorized","selection_sha256"],
+  "properties":{
+    "schema_version":{"const":"0.1"},
+    "receipt_type":{"const":"CROSS_EDGE_SELECTION"},
+    "attempt_id":{"type":"string","minLength":1},
+    "policy_version":{"type":"string","minLength":1},
+    "posture":{"enum":["AUTO","MOST_PRIVATE","FASTEST","LOWEST_COST","LOWEST_ENERGY","LOCAL_ONLY","EMERGENCY_RESILIENT"]},
+    "recipient_state":{"enum":["KNOWN","UNKNOWN","UNREACHABLE"]},
+    "candidate_set_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "selected_edge_id":{"type":"string","minLength":1},
+    "selected_bearer":{"type":"string","minLength":1},
+    "primary_score":{"type":"number"},
+    "primary_score_components":{"type":"object","additionalProperties":{"type":"number"}},
+    "fallback_order":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["edge_id","score","bearer"],"properties":{"edge_id":{"type":"string","minLength":1},"score":{"type":"number"},"bearer":{"type":"string","minLength":1}}}},
+    "excluded_paths":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["edge_id","reasons"],"properties":{"edge_id":{"type":["string","null"]},"reasons":{"type":"array","minItems":1,"items":{"type":"string"}}}}},
+    "selected_advertisement_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "decided_at":{"type":"string","format":"date-time"},
+    "multipath_authorized":{"type":"boolean"},
+    "remote_edge_execution_authorized":{"type":"boolean"},
+    "selection_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"}
+  }
+}
