@@ -65,17 +65,27 @@ Previously installed usable files include:
 - `_Policy/AI_Access_Policy.md`
 - `_System/installation.receipt.json`
 
-Additional exact-source files installed during the 2026-08-22 parity pass:
+Exact-source parity files now verified installed:
 
+- `00_Inbox/Quick_Notes.md`
 - `01_Notes/README.md`
+- `01_Notes/_Templates/Note Template.md`
+- `02_Research/README.md`
 - `02_Research/_Templates/Research Template.md`
 - `03_Records/README.md`
 - `03_Records/_Templates/Records Template.md`
 - `04_Media/README.md`
 - `05_Projects/README.md`
+- `05_Projects/_Templates/Projects Template.md`
+- `05_Projects/_Events/README.md`
+- `05_Projects/_Events/_Templates/Capture_Playbook.md`
+- `05_Projects/_Events/_Templates/Consent_and_Permissions.md`
+- `05_Projects/_Events/_Templates/Event_Manifest.md`
+- `05_Projects/_Events/_Templates/Media_Index.md`
+- `05_Projects/_Events/_Templates/Participants.md`
 - `06_Archive/README.md`
 
-Additional nested destination folders created during the parity pass:
+Nested destination folders verified for these payloads:
 
 - `01_Notes/_Templates/`
 - `02_Research/_Templates/`
@@ -84,22 +94,24 @@ Additional nested destination folders created during the parity pass:
 - `05_Projects/_Events/`
 - `05_Projects/_Events/_Templates/`
 
+The `05_Projects/_Events/_Templates` destination was enumerated after installation and contains all five authoritative event-template files as unconverted `text/plain`, with Drive-reported byte sizes matching the GitHub source sizes.
+
 ## Verified Drive import method
 
-A working raw-text preservation path has now been proven end-to-end:
+A working raw-text preservation path is proven end-to-end:
 
 1. Fetch exact UTF-8 source content from the live repository.
 2. Materialize that exact content as a runtime-managed `.txt` artifact so the connector presents MIME `text/plain`.
 3. Import it to Drive with `upload_mode=keep_source_file_type` while setting the destination title to the original `.md` or `.json` filename.
 4. The resulting Drive object remains unconverted `text/plain`; no Google Docs conversion occurs.
-5. Move the resulting file from Drive root into the exact destination folder using Drive parent IDs.
-6. Verify the final parent and filename.
+5. Move the resulting file into the exact destination folder using Drive parent IDs.
+6. Verify the final parent, filename, MIME type, and available byte size.
 
-This method eliminates the prior raw-file transfer limitation. It must be used for remaining Markdown/JSON source files unless an equally fidelity-preserving path is demonstrated.
+This method eliminates the prior raw-file transfer limitation and is the required default for remaining Markdown/JSON source files unless an equally fidelity-preserving path is demonstrated.
 
 ## Current installation assessment
 
-A functional baseline KnowledgeVault is installed and the repository manifest's required folder/index contract is satisfied and verified in Drive. Recursive parity has now advanced beyond the baseline and has a proven byte-preserving transfer path.
+A functional baseline KnowledgeVault is installed and the repository manifest's required folder/index contract is satisfied and verified in Drive. Recursive parity now includes the full numbered-folder README/template layer through `06_Archive` and the complete current `05_Projects/_Events` template payload.
 
 This is **not yet initializer-equivalent full-template parity**. The release evidence identifies 131 manifest files, and the remaining recursive payload must still be installed and reconciled. Completion requires source-file-set parity rather than merely equivalent folder names or converted documents.
 
@@ -108,10 +120,8 @@ This is **not yet initializer-equivalent full-template parity**. The release evi
 Source: `StegVerse-Labs/continuity-vault-kit/vault_template/KnowledgeVault`
 Destination: connected Google Drive `/KnowledgeVault`
 
-Continue exact-source installation for the remaining payload, including:
+Continue exact-source installation for the remaining payload, primarily:
 
-- `00_Inbox/Quick_Notes.md`;
-- remaining numbered-folder templates/content under `01_Notes/**`, `02_Research/**`, `05_Projects/**`, and `05_Projects/_Events/**`;
 - `_AI/**` consent, logs, reflections, share-card, queue/applied/rule content;
 - `_Entities/**` People, Places, Projects, Organizations, Self, and templates;
 - additional `_Index/**` content including Now, Onboarding, Relationships, Reviews, Timeline, and auxiliary indexes;
