@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/execution-recovery-decision.schema.json",
+  "title": "KnowledgeVault Execution Recovery Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "attempt_id", "envelope_sha256", "journal_sequence", "decision", "reason", "recorded_at"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "attempt_id": {"type": "string", "minLength": 1},
+    "envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "journal_sequence": {"type": "integer", "minimum": 0},
+    "decision": {"enum": ["RESUME_OBSERVATION", "VERIFY_EXTERNALLY", "RETRY_EXACT", "ASK", "STOP"]},
+    "reason": {"type": "string", "minLength": 1},
+    "exact_envelope_required": {"type": "boolean"},
+    "new_authority_granted": {"const": false},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "decision_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
