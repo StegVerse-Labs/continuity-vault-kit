@@ -1,0 +1,40 @@
+name: KnowledgeVault Execution Recovery
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "execution/recovery.py"
+      - "execution/extensions.py"
+      - "schemas/execution-attempt-journal.schema.json"
+      - "schemas/execution-recovery-decision.schema.json"
+      - "schemas/communication-extension.schema.json"
+      - "tests/test_execution_recovery.py"
+      - ".github/workflows/execution-recovery.yml"
+      - "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md"
+  pull_request:
+    paths:
+      - "execution/recovery.py"
+      - "execution/extensions.py"
+      - "schemas/execution-attempt-journal.schema.json"
+      - "schemas/execution-recovery-decision.schema.json"
+      - "schemas/communication-extension.schema.json"
+      - "tests/test_execution_recovery.py"
+      - ".github/workflows/execution-recovery.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-recovery-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile recovery and extension host
+        run: python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py tests/test_execution_recovery.py
+      - name: Run recoverable execution tests
+        run: python -m unittest tests.test_execution_recovery -v
