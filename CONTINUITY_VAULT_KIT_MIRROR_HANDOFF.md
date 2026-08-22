@@ -84,6 +84,9 @@ Exact-source parity files now verified installed:
 - `05_Projects/_Events/_Templates/Media_Index.md`
 - `05_Projects/_Events/_Templates/Participants.md`
 - `06_Archive/README.md`
+- `_Meta/FORMAT_VERSION.md`
+- `_Meta/link_integrity.md`
+- `_Meta/places.txt`
 
 Nested destination folders verified for these payloads:
 
@@ -95,6 +98,13 @@ Nested destination folders verified for these payloads:
 - `05_Projects/_Events/_Templates/`
 
 The `05_Projects/_Events/_Templates` destination was enumerated after installation and contains all five authoritative event-template files as unconverted `text/plain`, with Drive-reported byte sizes matching the GitHub source sizes.
+
+The `_Meta` destination is now fully populated relative to the live template directory and was enumerated after installation. It contains:
+
+- `FORMAT_VERSION.md` — 96 bytes;
+- `link_integrity.md` — 385 bytes;
+- `places.txt` — 45 bytes;
+- `vault.manifest.json` — installed earlier as the mutable installation manifest.
 
 ## Verified Drive import method
 
@@ -111,7 +121,7 @@ This method eliminates the prior raw-file transfer limitation and is the require
 
 ## Current installation assessment
 
-A functional baseline KnowledgeVault is installed and the repository manifest's required folder/index contract is satisfied and verified in Drive. Recursive parity now includes the full numbered-folder README/template layer through `06_Archive` and the complete current `05_Projects/_Events` template payload.
+A functional baseline KnowledgeVault is installed and the repository manifest's required folder/index contract is satisfied and verified in Drive. Recursive parity now includes the full numbered-folder README/template layer through `06_Archive`, the complete current `05_Projects/_Events` template payload, and full `_Meta` directory parity apart from the intentionally installation-mutated manifest timestamp/content.
 
 This is **not yet initializer-equivalent full-template parity**. The release evidence identifies 131 manifest files, and the remaining recursive payload must still be installed and reconciled. Completion requires source-file-set parity rather than merely equivalent folder names or converted documents.
 
@@ -126,7 +136,6 @@ Continue exact-source installation for the remaining payload, primarily:
 - `_Entities/**` People, Places, Projects, Organizations, Self, and templates;
 - additional `_Index/**` content including Now, Onboarding, Relationships, Reviews, Timeline, and auxiliary indexes;
 - `_LightMode/**`;
-- remaining `_Meta/*` files;
 - remaining `_Policy/*` files;
 - `_System/Guides/**`;
 - `_Templates/**`;
