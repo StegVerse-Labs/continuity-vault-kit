@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/communication-extension.schema.json",
+  "title": "KnowledgeVault Communication Extension Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "extension_id", "extension_type", "vault_subject_ref", "operation", "destination", "payload_ref", "authority_ref", "idempotency_key", "device_role", "receipt_required"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "extension_id": {"type": "string", "minLength": 1},
+    "extension_type": {"enum": ["StegTalk", "StegWhisper"]},
+    "vault_subject_ref": {"type": "string", "minLength": 1},
+    "operation": {"enum": ["SEND_MESSAGE", "RECEIVE_MESSAGE", "PRESENT_AUDIO", "CAPTURE_RESPONSE"]},
+    "destination": {"type": "string", "minLength": 1},
+    "payload_ref": {"type": "string", "minLength": 1},
+    "payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "authority_ref": {"type": "string", "minLength": 1},
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "device_role": {"const": "EPHEMERAL_TRANSPORT_EDGE"},
+    "device_authority": {"const": false},
+    "device_continuity_authority": {"const": false},
+    "vault_continuity_authority": {"const": true},
+    "receipt_required": {"const": true},
+    "credential_material": {"const": null}
+  }
+}
