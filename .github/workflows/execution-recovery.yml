@@ -6,20 +6,24 @@ on:
     paths:
       - "execution/recovery.py"
       - "execution/extensions.py"
+      - "execution/vault_store.py"
       - "schemas/execution-attempt-journal.schema.json"
       - "schemas/execution-recovery-decision.schema.json"
       - "schemas/communication-extension.schema.json"
       - "tests/test_execution_recovery.py"
+      - "tests/test_vault_store.py"
       - ".github/workflows/execution-recovery.yml"
       - "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md"
   pull_request:
     paths:
       - "execution/recovery.py"
       - "execution/extensions.py"
+      - "execution/vault_store.py"
       - "schemas/execution-attempt-journal.schema.json"
       - "schemas/execution-recovery-decision.schema.json"
       - "schemas/communication-extension.schema.json"
       - "tests/test_execution_recovery.py"
+      - "tests/test_vault_store.py"
       - ".github/workflows/execution-recovery.yml"
 
 permissions:
@@ -34,7 +38,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile recovery and extension host
-        run: python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py tests/test_execution_recovery.py
-      - name: Run recoverable execution tests
-        run: python -m unittest tests.test_execution_recovery -v
+      - name: Compile recovery, extension host, and portable backing store
+        run: python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py execution/vault_store.py tests/test_execution_recovery.py tests/test_vault_store.py
+      - name: Run recoverable execution and backing-store tests
+        run: python -m unittest tests.test_execution_recovery tests.test_vault_store -v
