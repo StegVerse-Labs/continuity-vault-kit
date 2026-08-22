@@ -10,10 +10,13 @@ on:
       - "schemas/execution-attempt-journal.schema.json"
       - "schemas/execution-recovery-decision.schema.json"
       - "schemas/communication-extension.schema.json"
+      - "schemas/cross-edge-selection-receipt.schema.json"
       - "tests/test_execution_recovery.py"
       - "tests/test_vault_store.py"
+      - "tests/test_cross_edge_selection_receipt.py"
       - ".github/workflows/execution-recovery.yml"
       - "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md"
+      - "CROSS_EDGE_SELECTION_MIRROR_HANDOFF.md"
   pull_request:
     paths:
       - "execution/recovery.py"
@@ -22,8 +25,10 @@ on:
       - "schemas/execution-attempt-journal.schema.json"
       - "schemas/execution-recovery-decision.schema.json"
       - "schemas/communication-extension.schema.json"
+      - "schemas/cross-edge-selection-receipt.schema.json"
       - "tests/test_execution_recovery.py"
       - "tests/test_vault_store.py"
+      - "tests/test_cross_edge_selection_receipt.py"
       - ".github/workflows/execution-recovery.yml"
 
 permissions:
@@ -38,7 +43,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile recovery, extension host, and portable backing store
-        run: python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py execution/vault_store.py tests/test_execution_recovery.py tests/test_vault_store.py
-      - name: Run recoverable execution and backing-store tests
-        run: python -m unittest tests.test_execution_recovery tests.test_vault_store -v
+      - name: Compile recovery, extension host, backing store, and cross-edge receipt tests
+        run: python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py execution/vault_store.py tests/test_execution_recovery.py tests/test_vault_store.py tests/test_cross_edge_selection_receipt.py
+      - name: Run recoverable execution, backing-store, and cross-edge receipt tests
+        run: python -m unittest tests.test_execution_recovery tests.test_vault_store tests.test_cross_edge_selection_receipt -v
