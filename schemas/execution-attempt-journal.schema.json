@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/execution-attempt-journal.schema.json",
+  "title": "KnowledgeVault Recoverable Execution Attempt Journal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "attempt_id", "envelope_id", "envelope_sha256", "idempotency_key", "state", "sequence", "recorded_at", "receipt_refs", "lease"],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "attempt_id": {"type": "string", "minLength": 1},
+    "envelope_id": {"type": "string", "minLength": 1},
+    "envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "state": {"enum": ["STARTED", "DISPATCHED", "OBSERVING", "TERMINAL", "ABANDONED"]},
+    "sequence": {"type": "integer", "minimum": 0},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "result": {"enum": ["EXECUTED", "FAILED", "INDETERMINATE", null]},
+    "side_effect_absence_confirmed": {"type": "boolean"},
+    "receipt_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "lease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "epoch", "expires_at"],
+      "properties": {
+        "owner": {"type": ["string", "null"]},
+        "epoch": {"type": "integer", "minimum": 0},
+        "expires_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "previous_record_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
