@@ -160,11 +160,70 @@ After all source files are installed:
 5. Do not call the install initializer-equivalent until the complete recursive source file set has been mirrored and reconciled.
 6. Keep the installation receipt truthful about the distinction between manifest-complete baseline and full-template parity.
 
+## Recoverable execution and communication-extension host
+
+Issue #39 has advanced from issue-only definition to an implemented source slice. KnowledgeVault now has connector-neutral execution-recovery and communication-extension primitives:
+
+- `schemas/execution-attempt-journal.schema.json`
+- `schemas/execution-recovery-decision.schema.json`
+- `schemas/communication-extension.schema.json`
+- `execution/recovery.py`
+- `execution/extensions.py`
+- `tests/test_execution_recovery.py`
+- `.github/workflows/execution-recovery.yml`
+
+Implemented recovery invariants:
+
+```text
+STARTED -> DISPATCHED -> OBSERVING -> TERMINAL
+                         |              |
+                         +-> ABANDONED  +-> EXECUTED / FAILED / INDETERMINATE
+```
+
+- journal records remain hash-bound to the exact execution envelope and idempotency key;
+- state transitions are monotonic;
+- lease epochs prevent stale/concurrent workers from silently taking over an attempt;
+- EXECUTED is terminal and suppresses duplicate dispatch;
+- INDETERMINATE produces VERIFY_EXTERNALLY rather than retry;
+- confirmed side-effect absence may produce RETRY_EXACT, never a widened action;
+- recovery never grants new authority;
+- credentials are not stored in the journal.
+
+KnowledgeVault is also now an explicit communication-extension host. The host contract supports `StegTalk` and `StegWhisper` while preserving their specialized responsibilities. The durable topology is:
+
+```text
+individual KnowledgeVault / cloud account
+    |
+    +--> durable identity/authority refs
+    +--> payload refs + hashes
+    +--> idempotency + execution attempt journal
+    +--> replay/reconstruction/recovery truth
+    |
+    v
+communication extension
+    |
+    +--> StegTalk: secure envelope / routing / bearer / delivery truth
+    +--> StegWhisper: presentation intent / consent / interruption / capture boundary
+    |
+    v
+EPHEMERAL_TRANSPORT_EDGE
+(handset, modem, speaker, radio, or other device)
+    |
+    v
+recipient / external network
+```
+
+The edge device has `device_authority=false` and `device_continuity_authority=false`; KnowledgeVault remains the continuity host. The extension request contains references/hashes rather than credential material. This allows device replacement or restart without moving the personal continuity authority with the hardware.
+
+Cross-repository bindings now exist in `StegVerse-Labs/StegTalk` and `StegVerse-Labs/StegWhisper`. Those bindings are source implementation, not runtime/cloud activation proof.
+
 ## Other known incomplete repository work
 
-- Issue #39 recoverable execution orchestration: OPEN.
+- Issue #39 recoverable execution orchestration: SOURCE SLICE IMPLEMENTED; observed CI, durable backing-store binding, restart fixtures beyond current unit coverage, and live extension integration remain OPEN.
 - Issue #16 external provider activation: OPEN / external activation gate.
 
 ## Completion boundary for this task
 
 The baseline installation milestone is satisfied because the actual KnowledgeVault structure and core usable content exist and have been verified in Drive. The full-parity installation goal remains ACTIVE until the complete recursive template payload is present and reconciled against the authoritative release/template source.
+
+The communication-extension host is not activated merely because its schemas/source/tests/workflow now exist. Activation requires observed validation plus a real durable KnowledgeVault backing instance receiving and reconstructing governed StegTalk/StegWhisper execution state across an actual edge-device transition.
