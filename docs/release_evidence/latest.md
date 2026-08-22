@@ -2,15 +2,15 @@
 
 - **Result:** PASS
 - **Repository:** `StegVerse-Labs/continuity-vault-kit`
-- **Tested commit:** `8d65e48674e63f5656ce60d2bc1703b9fe72b5b4`
-- **Workflow run:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/32601555914
-- **Uploaded artifact:** `continuity-vault-release-integrity-8d65e48674e63f5656ce60d2bc1703b9fe72b5b4`
+- **Tested commit:** `f9f1f2fcf8b3870e8a1d645d572fe43c64418687`
+- **Workflow run:** https://github.com/StegVerse-Labs/continuity-vault-kit/actions/runs/32602144881
+- **Uploaded artifact:** `continuity-vault-release-integrity-f9f1f2fcf8b3870e8a1d645d572fe43c64418687`
 - **Current version:** `0.1.9`
 - **Release required:** `false`
-- **Release SHA-256:** `23f1f145520f4a164806bcf95f4bfa9fc1631e5f61a88b9f7f58df083775dbb3`
+- **Release SHA-256:** `4b07918895b4e06deb2a52b9c73017b0c4b40bebd2e579c491a8ce76e52ee500`
 - **Verified file count:** `131`
 - **Initializer self-test:** `PASS`
 - **Automation contract test:** `PASS`
-- **Generated UTC:** `2026-08-22T22:07:38Z`
+- **Generated UTC:** `2026-08-22T22:20:16Z`
 
 The workflow completed release tooling tests, safe initialization tests, automation contract validation, a clean rebuild, manifest validation, and full archive verification. Automated publication is determined from the Unreleased changelog section rather than historical issue state.
