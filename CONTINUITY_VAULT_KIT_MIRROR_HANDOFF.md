@@ -162,14 +162,16 @@ After all source files are installed:
 
 ## Recoverable execution and communication-extension host
 
-Issue #39 has advanced from issue-only definition to an implemented source slice. KnowledgeVault now has connector-neutral execution-recovery and communication-extension primitives:
+Issue #39 has advanced from issue-only definition to an implemented source slice. KnowledgeVault now has connector-neutral execution-recovery, communication-extension, and portable backing-store primitives:
 
 - `schemas/execution-attempt-journal.schema.json`
 - `schemas/execution-recovery-decision.schema.json`
 - `schemas/communication-extension.schema.json`
 - `execution/recovery.py`
 - `execution/extensions.py`
+- `execution/vault_store.py`
 - `tests/test_execution_recovery.py`
+- `tests/test_vault_store.py`
 - `.github/workflows/execution-recovery.yml`
 
 Implemented recovery invariants:
@@ -189,7 +191,21 @@ STARTED -> DISPATCHED -> OBSERVING -> TERMINAL
 - recovery never grants new authority;
 - credentials are not stored in the journal.
 
-KnowledgeVault is also now an explicit communication-extension host. The host contract supports `StegTalk` and `StegWhisper` while preserving their specialized responsibilities. The durable topology is:
+`execution/vault_store.py` now gives KnowledgeVault a portable durable layout under the vault itself:
+
+```text
+_System/Execution/
+    Attempts/
+    Extensions/
+    Receipts/
+    Recovery/
+```
+
+The store initializes those paths, appends canonical JSONL records, fsyncs each append, hashes every stored record, verifies hashes on read, and rejects unsafe stream identifiers. It is designed so the KnowledgeVault root may be synchronized by the individual's own cloud account while the edge device remains replaceable.
+
+The connected Drive KnowledgeVault now also contains the same live directory structure under `_System/Execution/`. This proves the durable backing location exists in the actual personal vault. It does **not** yet prove that a live communication attempt has been persisted/recovered through those folders.
+
+KnowledgeVault is an explicit communication-extension host. The host contract supports `StegTalk` and `StegWhisper` while preserving their specialized responsibilities. The durable topology is:
 
 ```text
 individual KnowledgeVault / cloud account
@@ -219,11 +235,11 @@ Cross-repository bindings now exist in `StegVerse-Labs/StegTalk` and `StegVerse-
 
 ## Other known incomplete repository work
 
-- Issue #39 recoverable execution orchestration: SOURCE SLICE IMPLEMENTED; observed CI, durable backing-store binding, restart fixtures beyond current unit coverage, and live extension integration remain OPEN.
+- Issue #39 recoverable execution orchestration: schemas, recovery module, extension host, portable backing store, tests, and dedicated CI are IMPLEMENTED IN SOURCE; observed CI and a real persisted/recovered communication attempt remain OPEN.
 - Issue #16 external provider activation: OPEN / external activation gate.
 
 ## Completion boundary for this task
 
 The baseline installation milestone is satisfied because the actual KnowledgeVault structure and core usable content exist and have been verified in Drive. The full-parity installation goal remains ACTIVE until the complete recursive template payload is present and reconciled against the authoritative release/template source.
 
-The communication-extension host is not activated merely because its schemas/source/tests/workflow now exist. Activation requires observed validation plus a real durable KnowledgeVault backing instance receiving and reconstructing governed StegTalk/StegWhisper execution state across an actual edge-device transition.
+The communication-extension host is not activated merely because its schemas/source/tests/workflow and backing folders exist. Activation requires observed validation plus a real durable KnowledgeVault-backed StegTalk/StegWhisper attempt whose state survives and reconstructs across an actual edge-device interruption/restart or replacement.
