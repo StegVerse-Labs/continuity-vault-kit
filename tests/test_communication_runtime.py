@@ -6,29 +6,32 @@ from execution.communication_runtime import (
     CommunicationRuntimeJournal,
     CommunicationRuntimeJournalError,
     stegtalk_communication_sha256,
+    stegtalk_selection_sha256,
 )
 from execution.vault_store import KnowledgeVaultExecutionStore
 
 
 def selection():
     value = {
+        "schema_version": "0.1",
+        "receipt_type": "CROSS_EDGE_SELECTION",
         "attempt_id": "attempt:runtime:1",
         "policy_version": "stegtalk.cross-edge.v0.1",
         "posture": "AUTO",
         "recipient_state": "KNOWN",
-        "candidate_set_sha256": "sha256:" + "1" * 64,
+        "candidate_set_sha256": "1" * 64,
         "selected_edge_id": "edge:gateway",
         "selected_bearer": "stegtalk-ip",
         "primary_score": 10.0,
         "primary_score_components": {},
         "fallback_order": [{"edge_id": "edge:phone", "bearer": "sms", "score": 5.0}],
         "excluded_paths": [],
-        "selected_advertisement_sha256": "sha256:" + "2" * 64,
-        "decision_time": "2026-08-22T22:35:00Z",
+        "selected_advertisement_sha256": "2" * 64,
+        "decided_at": "2026-08-22T22:35:00Z",
         "multipath_authorized": False,
         "remote_edge_execution_authorized": True,
     }
-    value["selection_sha256"] = stegtalk_communication_sha256(value)
+    value["selection_sha256"] = stegtalk_selection_sha256(value)
     return value
 
 
@@ -70,11 +73,12 @@ class CommunicationRuntimeJournalTests(unittest.TestCase):
     def journal(self):
         return CommunicationRuntimeJournal(KnowledgeVaultExecutionStore(self.root))
 
-    def test_hash_profile_is_prefixed_and_preserves_unicode(self):
-        first = stegtalk_communication_sha256({"text": "mañana"})
-        escaped_text = stegtalk_communication_sha256({"text": "ma\u00f1ana"})
-        self.assertTrue(first.startswith("sha256:"))
-        self.assertEqual(first, escaped_text)
+    def test_distinct_hash_profiles_preserve_same_canonical_utf8(self):
+        selection_hash = stegtalk_selection_sha256({"text": "mañana"})
+        execution_hash = stegtalk_communication_sha256({"text": "mañana"})
+        self.assertEqual(len(selection_hash), 64)
+        self.assertFalse(selection_hash.startswith("sha256:"))
+        self.assertEqual(execution_hash, "sha256:" + selection_hash)
 
     def test_begin_persists_selection_and_lease_and_reconstructs(self):
         j = self.journal()
@@ -111,9 +115,9 @@ class CommunicationRuntimeJournalTests(unittest.TestCase):
         with self.assertRaisesRegex(CommunicationRuntimeJournalError, "idempotency key already bound"):
             j.record_execution(selection=selection(), lease=lease(), receipt=different)
 
-    def test_wrong_selection_hash_is_rejected(self):
+    def test_prefixed_selection_hash_is_rejected(self):
         bad = selection()
-        bad["selection_sha256"] = "sha256:" + "f" * 64
+        bad["selection_sha256"] = "sha256:" + bad["selection_sha256"]
         with self.assertRaisesRegex(CommunicationRuntimeJournalError, "selection receipt hash mismatch"):
             self.journal().begin(selection=bad, lease=lease())
 

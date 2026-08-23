@@ -30,15 +30,24 @@ class RecoveredCommunicationAttempt:
     recovery_records: list[Dict[str, Any]]
 
 
-def stegtalk_communication_sha256(value: Any) -> str:
-    """Return the hash profile used by StegTalk ST-031/ST-032 receipts.
-
-    This is intentionally separate from the generic KnowledgeVault action-envelope
-    hash profile. Cross-repository evidence must be verified using the producer's
-    declared canonicalization instead of silently re-hashing under a local profile.
-    """
+def _stegtalk_digest(value: Any) -> str:
     payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def stegtalk_selection_sha256(value: Any) -> str:
+    """Return the raw 64-hex profile emitted by ST-031 portable *_sha256 fields."""
+    return _stegtalk_digest(value)
+
+
+def stegtalk_communication_sha256(value: Any) -> str:
+    """Return the prefixed stable-hash profile emitted by ST-032 receipts.
+
+    ST-031 and ST-032 deliberately expose different representations at their
+    existing schema boundaries. KnowledgeVault verifies each producer contract
+    exactly rather than rewriting either representation into a local form.
+    """
+    return "sha256:" + _stegtalk_digest(value)
 
 
 def _require(record: Dict[str, Any], *keys: str) -> None:
@@ -48,17 +57,11 @@ def _require(record: Dict[str, Any], *keys: str) -> None:
 
 
 def _selection_binding(selection: Dict[str, Any]) -> None:
-    _require(
-        selection,
-        "attempt_id",
-        "selection_sha256",
-        "selected_edge_id",
-        "selected_bearer",
-    )
+    _require(selection, "attempt_id", "selection_sha256", "selected_edge_id", "selected_bearer")
     claimed = str(selection["selection_sha256"])
     body = dict(selection)
     body.pop("selection_sha256", None)
-    calculated = stegtalk_communication_sha256(body)
+    calculated = stegtalk_selection_sha256(body)
     if claimed != calculated:
         raise CommunicationRuntimeJournalError("selection receipt hash mismatch")
 
