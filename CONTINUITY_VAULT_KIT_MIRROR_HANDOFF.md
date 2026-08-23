@@ -74,22 +74,27 @@ Numbered/template payload verified installed:
 - `_Meta/places.txt` — 45 bytes
 - `_Meta/vault.manifest.json`
 
-`_Policy` files verified installed in Drive:
+`_Policy` is now fully populated relative to the live template directory. Drive enumeration after the latest installation pass confirms all 12 policy files are present as unconverted `text/plain`, with the newly installed source sizes matching GitHub:
 
 - `AI_Access_Policy.md` — 546 bytes
-- `Naming_Standard.md` — 298 bytes
 - `AI_Ingestion_Behavior.md` — 4034 bytes
-- `Retention_and_Preservation.md` — 296 bytes
+- `AI_Review_Prompt_Behavior.md` — 3288 bytes
+- `AI_Suggestion_Approval_Mechanism.md` — 3384 bytes
+- `Data_Sharing_Policy.md` — 2666 bytes
 - `Intake_Workflow.md` — 619 bytes
+- `Legacy_and_Export.md` — 1590 bytes
+- `Naming_Standard.md` — 298 bytes
+- `Retention_and_Preservation.md` — 296 bytes
+- `Tag_Dictionary.md` — 2430 bytes
+- `Vault_Evolution_Vault_Migration.md` — 2906 bytes
 - `Vault_Health_Check.md` — 460 bytes
 
-The last four were installed during the latest parity pass. Drive enumeration confirms their byte sizes match the GitHub source sizes.
+The six policy files completed in the latest pass are `AI_Review_Prompt_Behavior.md`, `AI_Suggestion_Approval_Mechanism.md`, `Data_Sharing_Policy.md`, `Legacy_and_Export.md`, `Tag_Dictionary.md`, and `Vault_Evolution_Vault_Migration.md`.
 
 ## Remaining installation parity work
 
 Continue exact-source installation for:
 
-- remaining `_Policy/*`: `AI_Review_Prompt_Behavior.md`, `AI_Suggestion_Approval_Mechanism.md`, `Data_Sharing_Policy.md`, `Legacy_and_Export.md`, `Tag_Dictionary.md`, `Vault_Evolution_Vault_Migration.md`;
 - additional `_Index/**` content including Now, Onboarding, Relationships, Reviews, Timeline, and auxiliary indexes;
 - `_AI/**` consent, logs, reflections, share-card, queue/applied/rule content;
 - `_Entities/**` People, Places, Projects, Organizations, Self, and templates;
