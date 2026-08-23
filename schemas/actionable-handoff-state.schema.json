@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/actionable-handoff-state.schema.json",
+  "title": "KnowledgeVault Actionable Handoff State",
+  "description": "Machine-readable companion state for an actionable HANDOFF. It carries incident references and freshness metadata without embedding source PII/PHI.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "handoff_id",
+    "workstream",
+    "updated_at",
+    "incident_ids",
+    "active_incident_ids",
+    "source_index_ref"
+  ],
+  "properties": {
+    "schema_version": {"const": "kv.actionable-handoff-state.v1"},
+    "handoff_id": {"type": "string", "minLength": 1},
+    "workstream": {"type": "string", "minLength": 1},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "incident_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "active_incident_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "source_index_ref": {"type": "string", "minLength": 1},
+    "index_updated_at": {"type": ["string", "null"], "format": "date-time"},
+    "open_actions": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "conflict_state": {
+      "type": "string",
+      "enum": ["CLEAR", "HANDOFF_STALE", "INDEX_STALE", "HANDOFF_CONFLICT", "RECORD_CONFLICT"]
+    }
+  }
+}
