@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/actionable-incident.schema.json",
+  "title": "KnowledgeVault Actionable Incident",
+  "description": "Machine-readable index object for an actionable personal incident. Source records remain in owner-controlled KnowledgeVault custody; this object characterizes and links them for retrieval, continuity, claims preparation, review, and optional governed publication derivatives.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "incident_id",
+    "incident_class",
+    "title",
+    "occurred",
+    "status",
+    "summary",
+    "evidence_refs",
+    "action_state",
+    "handoff_ref"
+  ],
+  "properties": {
+    "schema_version": {"const": "kv.actionable-incident.v1"},
+    "incident_id": {"type": "string", "minLength": 1},
+    "incident_class": {
+      "type": "string",
+      "enum": [
+        "VA_CLAIM",
+        "VA_INTERACTION",
+        "VA_COMMUNITY_CARE",
+        "PROVIDER_INTERACTION",
+        "INSURER_INTERACTION",
+        "PHARMACY_INTERACTION",
+        "BENEFITS_INTERACTION",
+        "MEDICAL_RECORD_DISCONTINUITY",
+        "CARE_COORDINATION",
+        "OTHER_ACTIONABLE"
+      ]
+    },
+    "title": {"type": "string", "minLength": 1},
+    "occurred": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start"],
+      "properties": {
+        "start": {"type": "string"},
+        "end": {"type": ["string", "null"]},
+        "precision": {"type": "string", "enum": ["EXACT", "DATE", "APPROXIMATE", "RANGE"]}
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["OPEN", "PENDING_EXTERNAL", "PENDING_OWNER", "RESOLVED", "CLOSED_UNRESOLVED", "SUPERSEDED"]
+    },
+    "summary": {"type": "string", "minLength": 1},
+    "organizations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "people_refs": {
+      "type": "array",
+      "description": "Opaque or owner-approved entity references; avoid embedding unnecessary PII.",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["statement", "basis"],
+        "properties": {
+          "statement": {"type": "string"},
+          "basis": {"type": "string", "enum": ["DOCUMENTED", "FIRSTHAND", "REPORTED_STATEMENT", "INFERENCE", "OPINION"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        }
+      }
+    },
+    "discontinuity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "present": {"type": "boolean"},
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "REFERRAL_AUTHORIZATION_MISMATCH",
+              "COMMUNICATION_PATH_FAILURE",
+              "DUPLICATE_PRIOR_INSTRUCTION",
+              "STATE_NOT_PROPAGATED",
+              "OWNERSHIP_UNCLEAR",
+              "RECORD_CONFLICT",
+              "SCHEDULING_FAILURE",
+              "FOLLOWUP_FAILURE",
+              "ADMINISTRATIVE_CANCELLATION_RISK",
+              "OTHER"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "description": {"type": ["string", "null"]}
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "description": "Opaque KnowledgeVault object IDs, hashes, receipts, or governed references. Raw personal records should not be copied into this index object unless owner policy explicitly permits it.",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "related_incident_ids": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "claim_relevance": {
+      "type": "array",
+      "description": "Owner- or reviewer-supplied retrieval tags for future VA claims or other proceedings; these are indexing aids, not legal conclusions.",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "action_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["next_actions"],
+      "properties": {
+        "next_actions": {"type": "array", "items": {"type": "string"}},
+        "deadlines": {"type": "array", "items": {"type": "string"}},
+        "waiting_on": {"type": "array", "items": {"type": "string"}},
+        "owner": {"type": ["string", "null"]}
+      }
+    },
+    "handoff_ref": {"type": "string", "minLength": 1},
+    "public_derivative": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eligible": {"type": "boolean"},
+        "submission_ref": {"type": ["string", "null"]},
+        "publication_state": {"type": ["string", "null"]}
+      }
+    },
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  }
+}
