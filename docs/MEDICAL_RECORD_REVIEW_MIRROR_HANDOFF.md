@@ -32,6 +32,10 @@ A full medical-record scan is a fallback, not the default.
 - `docs/MEDICAL_RECORD_REVIEW_INDEX_PROTOCOL.md` — index/retrieval/update protocol.
 - `docs/KNOWLEDGEVAULT_ACTIONABLE_HANDOFF_PROTOCOL.md` — handoff-first cross-LLM continuity contract.
 - `docs/KNOWLEDGEVAULT_INTERLOCK_PROTOCOL.md` — governed KnowledgeVault access boundary.
+- `tools/incident_index.py` — executable JSONL validator and bounded index-level query tool.
+- `tools/test_incident_index.py` — synthetic-only fail-closed and bounded-retrieval tests.
+- `tests/fixtures/actionable_incidents.synthetic.jsonl` — two linked synthetic VA-style incidents with no real PII/PHI.
+- `.github/workflows/validate-incident-index.yml` — hosted validation lane for compile, tests, index validation, and zero-source-record bounded retrieval proof.
 
 ## Recommended live-vault structure
 
@@ -62,6 +66,36 @@ Each incident separates:
 - optional governed public-derivative state.
 
 The incident object is an index/retrieval artifact, not a legal or medical conclusion.
+
+## Executable retrieval boundary
+
+`tools/incident_index.py` validates incident-index JSONL and provides index-only filtering without opening source records. Query output deliberately returns bounded incident metadata plus opaque evidence references and reports:
+
+```text
+query_path = HANDOFF->INCIDENT_INDEX->INCIDENT->EVIDENCE_REFS
+source_records_opened = 0
+```
+
+This proves only the repository-level selection boundary against synthetic fixtures. It does not prove live KnowledgeVault access, interlock enforcement, or minimum disclosure against real records.
+
+The validator fails closed on malformed JSON, missing required incident fields, invalid evidence-basis vocabulary, duplicate incident IDs, missing evidence references, and unsupported state values.
+
+## Synthetic validation corpus
+
+The synthetic fixture contains two related incidents:
+
+1. referral/authorization mismatch plus scheduling failure;
+2. duplicate-prior-instruction / communication-loop failure.
+
+The corpus intentionally resembles the *class* of actionable continuity problems the system must retrieve, but contains no real veteran, provider, facility, referral, claim, or medical identifiers.
+
+The test suite currently checks:
+
+- schema-level structural validation of both indexed incidents;
+- bounded communication-failure retrieval without source-record access;
+- claim-relevance retrieval;
+- duplicate-ID fail-closed behavior;
+- invalid evidence-basis fail-closed behavior.
 
 ## Query examples
 
@@ -108,22 +142,30 @@ When a new interaction materially changes an active matter:
 
 ## Current implementation state
 
-Completed framework surfaces:
+Completed framework / executable surfaces:
 
 - actionable incident schema installed;
 - medical record review/index protocol installed;
-- handoff-first interlock protocol already installed;
-- KnowledgeVault interlock protocol already installed.
+- handoff-first interlock protocol installed;
+- KnowledgeVault interlock protocol installed;
+- executable incident-index validator installed;
+- executable bounded index query installed;
+- synthetic linked-incident fixture installed;
+- fail-closed and bounded-retrieval test suite installed;
+- hosted validation workflow installed.
 
-Not yet runtime-proven:
+Runtime evidence still required:
 
+- observe hosted validation result for the new lane;
 - automatic incident extraction/classification from new records;
 - governed writeback into an owner's live KnowledgeVault;
 - index staleness/conflict reconciliation;
 - live cross-LLM incident retrieval;
-- VA-claim evidence selection proof;
+- VA-claim evidence selection proof against owner-authorized records;
 - Veteran Experiences public-derivative round trip.
 
 ## Activation criteria
 
 `KV-MEDICAL-REVIEW-001` is activated only when a real owner-authorized incident can be written to the live KnowledgeVault, the live HANDOFF/index updated, and a second compatible LLM can retrieve the incident and only its necessary evidence without prior conversation history or a full-record scan.
+
+Repository synthetic validation is necessary but not sufficient for activation.
