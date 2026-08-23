@@ -4,9 +4,11 @@ on:
   push:
     branches: ["main"]
     paths:
+      - "execution/adapter.py"
       - "execution/recovery.py"
       - "execution/extensions.py"
       - "execution/vault_store.py"
+      - "execution/communication_runtime.py"
       - "schemas/execution-attempt-journal.schema.json"
       - "schemas/execution-recovery-decision.schema.json"
       - "schemas/communication-extension.schema.json"
@@ -14,14 +16,17 @@ on:
       - "tests/test_execution_recovery.py"
       - "tests/test_vault_store.py"
       - "tests/test_cross_edge_selection_receipt.py"
+      - "tests/test_communication_runtime.py"
       - ".github/workflows/execution-recovery.yml"
       - "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md"
       - "CROSS_EDGE_SELECTION_MIRROR_HANDOFF.md"
   pull_request:
     paths:
+      - "execution/adapter.py"
       - "execution/recovery.py"
       - "execution/extensions.py"
       - "execution/vault_store.py"
+      - "execution/communication_runtime.py"
       - "schemas/execution-attempt-journal.schema.json"
       - "schemas/execution-recovery-decision.schema.json"
       - "schemas/communication-extension.schema.json"
@@ -29,7 +34,10 @@ on:
       - "tests/test_execution_recovery.py"
       - "tests/test_vault_store.py"
       - "tests/test_cross_edge_selection_receipt.py"
+      - "tests/test_communication_runtime.py"
       - ".github/workflows/execution-recovery.yml"
+      - "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md"
+      - "CROSS_EDGE_SELECTION_MIRROR_HANDOFF.md"
 
 permissions:
   contents: read
@@ -43,7 +51,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile recovery, extension host, backing store, and cross-edge receipt tests
-        run: python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py execution/vault_store.py tests/test_execution_recovery.py tests/test_vault_store.py tests/test_cross_edge_selection_receipt.py
-      - name: Run recoverable execution, backing-store, and cross-edge receipt tests
-        run: python -m unittest tests.test_execution_recovery tests.test_vault_store tests.test_cross_edge_selection_receipt -v
+      - name: Compile recovery host and communication runtime journal
+        run: python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py execution/vault_store.py execution/communication_runtime.py tests/test_execution_recovery.py tests/test_vault_store.py tests/test_cross_edge_selection_receipt.py tests/test_communication_runtime.py
+      - name: Run recoverable execution and communication runtime tests
+        run: python -m unittest tests.test_execution_recovery tests.test_vault_store tests.test_cross_edge_selection_receipt tests.test_communication_runtime -v
