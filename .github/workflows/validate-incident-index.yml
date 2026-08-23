@@ -4,9 +4,13 @@ on:
   pull_request:
     paths:
       - "schemas/actionable-incident.schema.json"
+      - "schemas/actionable-handoff-state.schema.json"
       - "tools/incident_index.py"
+      - "tools/incident_reconcile.py"
       - "tools/test_incident_index.py"
+      - "tools/test_incident_reconcile.py"
       - "tests/fixtures/actionable_incidents.synthetic.jsonl"
+      - "tests/fixtures/actionable_handoff_state.synthetic.json"
       - "docs/MEDICAL_RECORD_REVIEW_INDEX_PROTOCOL.md"
       - "docs/MEDICAL_RECORD_REVIEW_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-incident-index.yml"
@@ -14,9 +18,13 @@ on:
     branches: ["main"]
     paths:
       - "schemas/actionable-incident.schema.json"
+      - "schemas/actionable-handoff-state.schema.json"
       - "tools/incident_index.py"
+      - "tools/incident_reconcile.py"
       - "tools/test_incident_index.py"
+      - "tools/test_incident_reconcile.py"
       - "tests/fixtures/actionable_incidents.synthetic.jsonl"
+      - "tests/fixtures/actionable_handoff_state.synthetic.json"
       - "docs/MEDICAL_RECORD_REVIEW_INDEX_PROTOCOL.md"
       - "docs/MEDICAL_RECORD_REVIEW_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-incident-index.yml"
@@ -36,9 +44,13 @@ jobs:
       - name: Compile incident tooling
         run: |
           python3 -m py_compile tools/incident_index.py
+          python3 -m py_compile tools/incident_reconcile.py
           python3 -m py_compile tools/test_incident_index.py
+          python3 -m py_compile tools/test_incident_reconcile.py
       - name: Run synthetic incident-index tests
         run: python3 tools/test_incident_index.py
+      - name: Run synthetic handoff reconciliation tests
+        run: python3 tools/test_incident_reconcile.py
       - name: Validate synthetic index directly
         run: python3 tools/incident_index.py validate tests/fixtures/actionable_incidents.synthetic.jsonl
       - name: Prove bounded retrieval path
@@ -51,4 +63,15 @@ jobs:
           assert data['source_records_opened'] == 0
           assert data['query_path'] == 'HANDOFF->INCIDENT_INDEX->INCIDENT->EVIDENCE_REFS'
           print('PASS bounded retrieval: source_records_opened=0')
+          PY
+      - name: Prove HANDOFF/index consistency path
+        run: |
+          python3 tools/incident_reconcile.py tests/fixtures/actionable_handoff_state.synthetic.json tests/fixtures/actionable_incidents.synthetic.jsonl > /tmp/reconcile.json
+          python3 - <<'PY'
+          import json
+          data = json.load(open('/tmp/reconcile.json', encoding='utf-8'))
+          assert data['states'] == ['CLEAR']
+          assert data['source_records_opened'] == 0
+          assert data['reconcile_path'] == 'HANDOFF_STATE->INCIDENT_INDEX->CONSISTENCY_CHECK'
+          print('PASS handoff/index reconciliation: CLEAR')
           PY
