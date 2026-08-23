@@ -8,6 +8,8 @@ select a bearer, execute a transport, or create authority.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -28,6 +30,17 @@ class RecoveredCommunicationAttempt:
     recovery_records: list[Dict[str, Any]]
 
 
+def stegtalk_communication_sha256(value: Any) -> str:
+    """Return the hash profile used by StegTalk ST-031/ST-032 receipts.
+
+    This is intentionally separate from the generic KnowledgeVault action-envelope
+    hash profile. Cross-repository evidence must be verified using the producer's
+    declared canonicalization instead of silently re-hashing under a local profile.
+    """
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
 def _require(record: Dict[str, Any], *keys: str) -> None:
     missing = [key for key in keys if record.get(key) in (None, "")]
     if missing:
@@ -45,10 +58,8 @@ def _selection_binding(selection: Dict[str, Any]) -> None:
     claimed = str(selection["selection_sha256"])
     body = dict(selection)
     body.pop("selection_sha256", None)
-    calculated = canonical_sha256(body)
-    raw_calculated = calculated.split("sha256:", 1)[-1]
-    raw_claimed = claimed.split("sha256:", 1)[-1]
-    if raw_claimed != raw_calculated:
+    calculated = stegtalk_communication_sha256(body)
+    if claimed != calculated:
         raise CommunicationRuntimeJournalError("selection receipt hash mismatch")
 
 
@@ -87,7 +98,7 @@ def _execution_binding(selection: Dict[str, Any], lease: Dict[str, Any], receipt
         raise CommunicationRuntimeJournalError("execution lease epoch mismatch")
     body = dict(receipt)
     claimed = str(body.pop("receipt_sha256"))
-    calculated = canonical_sha256(body)
+    calculated = stegtalk_communication_sha256(body)
     if claimed != calculated:
         raise CommunicationRuntimeJournalError("edge execution receipt hash mismatch")
     if receipt["outcome"] in {"INDETERMINATE", "TIMEOUT_AFTER_DISPATCH", "UNKNOWN_AFTER_DISPATCH"} and bool(receipt.get("side_effect_absence_confirmed")):
@@ -102,9 +113,7 @@ class CommunicationRuntimeJournal:
 
     @staticmethod
     def stream_id(attempt_id: str) -> str:
-        # KV stream IDs are path components. Keep a stable reversible-enough form
-        # without allowing attempt IDs to create paths.
-        return "comm-" + canonical_sha256(attempt_id).split("sha256:", 1)[-1][:32]
+        return "comm-" + canonical_sha256(attempt_id)[:32]
 
     def begin(self, *, selection: Dict[str, Any], lease: Dict[str, Any]) -> str:
         _selection_binding(selection)
