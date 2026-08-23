@@ -1,0 +1,15 @@
+{
+  "schema_version": "kv.actionable-handoff-state.v1",
+  "handoff_id": "SYNTH-HANDOFF-VA-001",
+  "workstream": "SYNTHETIC-VA-CARE",
+  "updated_at": "2026-08-23T21:00:00Z",
+  "incident_ids": ["SYNTH-VA-001", "SYNTH-VA-002"],
+  "active_incident_ids": ["SYNTH-VA-001", "SYNTH-VA-002"],
+  "source_index_ref": "tests/fixtures/actionable_incidents.synthetic.jsonl",
+  "index_updated_at": "2026-08-23T20:59:00Z",
+  "open_actions": [
+    "Resolve synthetic authorization mismatch",
+    "Resolve synthetic communication loop"
+  ],
+  "conflict_state": "CLEAR"
+}
