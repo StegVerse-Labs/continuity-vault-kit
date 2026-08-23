@@ -2,10 +2,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from execution.adapter import canonical_sha256
 from execution.communication_runtime import (
     CommunicationRuntimeJournal,
     CommunicationRuntimeJournalError,
+    stegtalk_communication_sha256,
 )
 from execution.vault_store import KnowledgeVaultExecutionStore
 
@@ -28,7 +28,7 @@ def selection():
         "multipath_authorized": False,
         "remote_edge_execution_authorized": True,
     }
-    value["selection_sha256"] = canonical_sha256(value)
+    value["selection_sha256"] = stegtalk_communication_sha256(value)
     return value
 
 
@@ -55,7 +55,7 @@ def execution_receipt(*, key="idem:runtime:1", outcome="DELIVERED", side_effect_
         "side_effect_absence_confirmed": side_effect_absence_confirmed,
         "observed_at": "2026-08-22T22:36:00Z",
     }
-    value["receipt_sha256"] = canonical_sha256(value)
+    value["receipt_sha256"] = stegtalk_communication_sha256(value)
     return value
 
 
@@ -69,6 +69,12 @@ class CommunicationRuntimeJournalTests(unittest.TestCase):
 
     def journal(self):
         return CommunicationRuntimeJournal(KnowledgeVaultExecutionStore(self.root))
+
+    def test_hash_profile_is_prefixed_and_preserves_unicode(self):
+        first = stegtalk_communication_sha256({"text": "mañana"})
+        escaped_text = stegtalk_communication_sha256({"text": "ma\u00f1ana"})
+        self.assertTrue(first.startswith("sha256:"))
+        self.assertEqual(first, escaped_text)
 
     def test_begin_persists_selection_and_lease_and_reconstructs(self):
         j = self.journal()
@@ -116,7 +122,7 @@ class CommunicationRuntimeJournalTests(unittest.TestCase):
         receipt["edge_id"] = "edge:other"
         body = dict(receipt)
         body.pop("receipt_sha256")
-        receipt["receipt_sha256"] = canonical_sha256(body)
+        receipt["receipt_sha256"] = stegtalk_communication_sha256(body)
         with self.assertRaisesRegex(CommunicationRuntimeJournalError, "execution edge does not match"):
             self.journal().record_execution(selection=selection(), lease=lease(), receipt=receipt)
 
