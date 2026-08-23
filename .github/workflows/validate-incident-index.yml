@@ -1,0 +1,54 @@
+name: Validate Actionable Incident Index
+
+on:
+  pull_request:
+    paths:
+      - "schemas/actionable-incident.schema.json"
+      - "tools/incident_index.py"
+      - "tools/test_incident_index.py"
+      - "tests/fixtures/actionable_incidents.synthetic.jsonl"
+      - "docs/MEDICAL_RECORD_REVIEW_INDEX_PROTOCOL.md"
+      - "docs/MEDICAL_RECORD_REVIEW_MIRROR_HANDOFF.md"
+      - ".github/workflows/validate-incident-index.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/actionable-incident.schema.json"
+      - "tools/incident_index.py"
+      - "tools/test_incident_index.py"
+      - "tests/fixtures/actionable_incidents.synthetic.jsonl"
+      - "docs/MEDICAL_RECORD_REVIEW_INDEX_PROTOCOL.md"
+      - "docs/MEDICAL_RECORD_REVIEW_MIRROR_HANDOFF.md"
+      - ".github/workflows/validate-incident-index.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile incident tooling
+        run: |
+          python3 -m py_compile tools/incident_index.py
+          python3 -m py_compile tools/test_incident_index.py
+      - name: Run synthetic incident-index tests
+        run: python3 tools/test_incident_index.py
+      - name: Validate synthetic index directly
+        run: python3 tools/incident_index.py validate tests/fixtures/actionable_incidents.synthetic.jsonl
+      - name: Prove bounded retrieval path
+        run: |
+          python3 tools/incident_index.py query tests/fixtures/actionable_incidents.synthetic.jsonl --term communication --term failure > /tmp/query.json
+          python3 - <<'PY'
+          import json
+          data = json.load(open('/tmp/query.json', encoding='utf-8'))
+          assert data['matched'] == 1
+          assert data['source_records_opened'] == 0
+          assert data['query_path'] == 'HANDOFF->INCIDENT_INDEX->INCIDENT->EVIDENCE_REFS'
+          print('PASS bounded retrieval: source_records_opened=0')
+          PY
