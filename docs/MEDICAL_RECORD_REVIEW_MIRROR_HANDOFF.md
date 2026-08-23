@@ -18,6 +18,7 @@ For a compatible LLM connected through the StegVerse interlock, this HANDOFF is 
 ```text
 INTERLOCK_CONNECT
  -> READ applicable HANDOFF
+ -> RECONCILE HANDOFF STATE WITH INCIDENT INDEX
  -> READ incident index
  -> SELECT relevant incident objects
  -> REQUEST minimum necessary source evidence
@@ -29,19 +30,24 @@ A full medical-record scan is a fallback, not the default.
 ## Canonical surfaces
 
 - `schemas/actionable-incident.schema.json` — machine-readable incident object (`kv.actionable-incident.v1`).
+- `schemas/actionable-handoff-state.schema.json` — machine-readable HANDOFF companion state (`kv.actionable-handoff-state.v1`).
 - `docs/MEDICAL_RECORD_REVIEW_INDEX_PROTOCOL.md` — index/retrieval/update protocol.
 - `docs/KNOWLEDGEVAULT_ACTIONABLE_HANDOFF_PROTOCOL.md` — handoff-first cross-LLM continuity contract.
 - `docs/KNOWLEDGEVAULT_INTERLOCK_PROTOCOL.md` — governed KnowledgeVault access boundary.
 - `tools/incident_index.py` — executable JSONL validator and bounded index-level query tool.
+- `tools/incident_reconcile.py` — executable HANDOFF/index freshness and consistency reconciliation.
 - `tools/test_incident_index.py` — synthetic-only fail-closed and bounded-retrieval tests.
+- `tools/test_incident_reconcile.py` — synthetic-only stale/conflict reconciliation tests.
 - `tests/fixtures/actionable_incidents.synthetic.jsonl` — two linked synthetic VA-style incidents with no real PII/PHI.
-- `.github/workflows/validate-incident-index.yml` — hosted validation lane for compile, tests, index validation, and zero-source-record bounded retrieval proof.
+- `tests/fixtures/actionable_handoff_state.synthetic.json` — synthetic HANDOFF companion state for those incidents.
+- `.github/workflows/validate-incident-index.yml` — hosted validation lane for compile, tests, index validation, zero-source-record bounded retrieval, and HANDOFF/index reconciliation.
 
 ## Recommended live-vault structure
 
 ```text
 03_Records/Health/Review/
   HANDOFF.md
+  HANDOFF_STATE.json
   INCIDENT_INDEX.jsonl
   INCIDENTS/<incident-id>.json
   CARE_HISTORY_INDEX.md
@@ -80,6 +86,25 @@ This proves only the repository-level selection boundary against synthetic fixtu
 
 The validator fails closed on malformed JSON, missing required incident fields, invalid evidence-basis vocabulary, duplicate incident IDs, missing evidence references, and unsupported state values.
 
+## HANDOFF/index reconciliation
+
+`tools/incident_reconcile.py` compares machine-readable HANDOFF state to the incident index before retrieval. It does not open source personal records and returns:
+
+```text
+reconcile_path = HANDOFF_STATE->INCIDENT_INDEX->CONSISTENCY_CHECK
+source_records_opened = 0
+```
+
+The synthetic reconciliation lane distinguishes:
+
+- `CLEAR` — HANDOFF and incident index are consistent for the tested state;
+- `HANDOFF_STALE` — index contains incidents/current active state not represented by the HANDOFF;
+- `INDEX_STALE` — HANDOFF references newer state that the index does not yet contain;
+- `HANDOFF_CONFLICT` — HANDOFF references missing/closed incidents incompatibly;
+- `RECORD_CONFLICT` — reserved for a later source-record reconciliation layer.
+
+A non-clear reconciliation result exits non-zero so a consumer cannot silently treat stale/conflicting continuity state as current.
+
 ## Synthetic validation corpus
 
 The synthetic fixture contains two related incidents:
@@ -89,13 +114,17 @@ The synthetic fixture contains two related incidents:
 
 The corpus intentionally resembles the *class* of actionable continuity problems the system must retrieve, but contains no real veteran, provider, facility, referral, claim, or medical identifiers.
 
-The test suite currently checks:
+The installed tests now check:
 
 - schema-level structural validation of both indexed incidents;
 - bounded communication-failure retrieval without source-record access;
 - claim-relevance retrieval;
 - duplicate-ID fail-closed behavior;
-- invalid evidence-basis fail-closed behavior.
+- invalid evidence-basis fail-closed behavior;
+- a consistent HANDOFF/index state returns `CLEAR`;
+- missing incident references produce `HANDOFF_STALE`;
+- unknown active incident references produce `HANDOFF_CONFLICT`;
+- invalid HANDOFF schema versions fail closed.
 
 ## Query examples
 
@@ -107,7 +136,7 @@ The test suite currently checks:
 
 `Find provider interactions that were followed by unresolved action items.`
 
-The expected path is HANDOFF -> incident index -> incident object -> minimum necessary evidence. The model should not open every medical record merely because records are available.
+The expected path is HANDOFF -> reconciliation -> incident index -> incident object -> minimum necessary evidence. The model should not open every medical record merely because records are available.
 
 ## Relationship to Veteran Experiences
 
@@ -136,36 +165,43 @@ When a new interaction materially changes an active matter:
 1. preserve/reference the source record in KnowledgeVault;
 2. create or update the incident characterization without overwriting prior history;
 3. update `INCIDENT_INDEX.jsonl` and human-readable care history;
-4. update the applicable live-vault HANDOFF;
-5. record open actions/deadlines/waiting-on state;
-6. preserve a receipt for governed writeback when runtime support exists.
+4. update the applicable live-vault HANDOFF and `HANDOFF_STATE.json`;
+5. reconcile HANDOFF state against the incident index;
+6. record open actions/deadlines/waiting-on state;
+7. preserve a receipt for governed writeback when runtime support exists.
 
 ## Current implementation state
 
 Completed framework / executable surfaces:
 
 - actionable incident schema installed;
+- actionable HANDOFF-state schema installed;
 - medical record review/index protocol installed;
 - handoff-first interlock protocol installed;
 - KnowledgeVault interlock protocol installed;
 - executable incident-index validator installed;
 - executable bounded index query installed;
+- executable HANDOFF/index reconciliation installed;
 - synthetic linked-incident fixture installed;
-- fail-closed and bounded-retrieval test suite installed;
-- hosted validation workflow installed.
+- synthetic HANDOFF-state fixture installed;
+- fail-closed and bounded-retrieval tests installed;
+- stale/conflict reconciliation tests installed;
+- hosted validation workflow updated for both retrieval and reconciliation.
+
+Repository-level staleness/conflict reconciliation is therefore implemented against synthetic state. It is not yet proven against a live owner KnowledgeVault.
 
 Runtime evidence still required:
 
-- observe hosted validation result for the new lane;
-- automatic incident extraction/classification from new records;
+- observe hosted validation result for the updated lane;
+- automatic incident extraction/classification from new owner-authorized records;
 - governed writeback into an owner's live KnowledgeVault;
-- index staleness/conflict reconciliation;
+- live HANDOFF/index reconciliation against owner-authorized state;
 - live cross-LLM incident retrieval;
 - VA-claim evidence selection proof against owner-authorized records;
 - Veteran Experiences public-derivative round trip.
 
 ## Activation criteria
 
-`KV-MEDICAL-REVIEW-001` is activated only when a real owner-authorized incident can be written to the live KnowledgeVault, the live HANDOFF/index updated, and a second compatible LLM can retrieve the incident and only its necessary evidence without prior conversation history or a full-record scan.
+`KV-MEDICAL-REVIEW-001` is activated only when a real owner-authorized incident can be written to the live KnowledgeVault, the live HANDOFF/index updated and reconciled, and a second compatible LLM can retrieve the incident and only its necessary evidence without prior conversation history or a full-record scan.
 
 Repository synthetic validation is necessary but not sufficient for activation.
