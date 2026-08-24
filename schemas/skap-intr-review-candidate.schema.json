@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/skap-intr-review-candidate.schema.json",
+  "title": "SKAP / InTr Review Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "topology_id",
+    "protocol",
+    "nodes",
+    "relationships",
+    "global_invariants",
+    "review_gates"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.skap_intr.review_candidate/v1"},
+    "status": {"const": "REVIEW_CANDIDATE"},
+    "topology_id": {"const": "SKAP<->KV<->DEVICE<->EXTERNAL_NETWORK<->ENDPOINT"},
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "abbreviation", "relationship_symbol", "bidirectional", "authority_transfer", "fail_mode"],
+      "properties": {
+        "name": {"const": "Interlock/Transport"},
+        "abbreviation": {"const": "InTr"},
+        "relationship_symbol": {"const": "<-InTr->"},
+        "bidirectional": {"const": true},
+        "authority_transfer": {"const": false},
+        "fail_mode": {"const": "FAIL_CLOSED"}
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "trust_domain", "primary_function", "may_hold_plaintext_secret", "authority_claims"],
+        "properties": {
+          "id": {"enum": ["skap", "kv", "device", "external_network", "endpoint"]},
+          "role": {"enum": ["SKAP", "KV", "DEVICE", "EXTERNAL_NETWORK", "ENDPOINT"]},
+          "trust_domain": {"type": "string", "minLength": 1},
+          "primary_function": {"type": "string", "minLength": 1},
+          "may_hold_plaintext_secret": {"type": "boolean"},
+          "authority_claims": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["identity", "continuity", "governance", "execution", "secret_custody"],
+            "properties": {
+              "identity": {"type": "boolean"},
+              "continuity": {"type": "boolean"},
+              "governance": {"type": "boolean"},
+              "execution": {"type": "boolean"},
+              "secret_custody": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "protocol", "left", "right", "bidirectional",
+          "verify_next_boundary_before_interpretation", "authority_transfer",
+          "protected_payload_sealed_in_transit", "receipt_required"
+        ],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "protocol": {"const": "InTr"},
+          "left": {"enum": ["SKAP", "KV", "DEVICE", "EXTERNAL_NETWORK"]},
+          "right": {"enum": ["KV", "DEVICE", "EXTERNAL_NETWORK", "ENDPOINT"]},
+          "bidirectional": {"const": true},
+          "verify_next_boundary_before_interpretation": {"const": true},
+          "authority_transfer": {"const": false},
+          "protected_payload_sealed_in_transit": {"const": true},
+          "receipt_required": {"const": true}
+        }
+      }
+    },
+    "global_invariants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_path",
+        "non_adjacent_direct_edges_allowed",
+        "secret_resolution_gate",
+        "return_path_uses_intr",
+        "return_path_secret_plaintext_allowed",
+        "ambiguous_transition_disposition",
+        "model_output_grants_execution_authority"
+      ],
+      "properties": {
+        "canonical_path": {"const": "SKAP <-InTr-> KV <-InTr-> Device <-InTr-> External Network <-InTr-> Endpoint"},
+        "non_adjacent_direct_edges_allowed": {"const": false},
+        "secret_resolution_gate": {"const": "VERIFIED_INTENDED_ENDPOINT_SESSION_AND_VALID_OPERATION_GRANT"},
+        "return_path_uses_intr": {"const": true},
+        "return_path_secret_plaintext_allowed": {"const": false},
+        "ambiguous_transition_disposition": {"const": "FAIL_CLOSED"},
+        "model_output_grants_execution_authority": {"const": false}
+      }
+    },
+    "review_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "state", "evidence_required"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "state": {"enum": ["OPEN", "PASS", "BLOCKED", "REVIEW"]},
+          "evidence_required": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
