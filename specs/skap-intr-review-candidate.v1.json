@@ -1,0 +1,167 @@
+{
+  "schema": "stegverse.skap_intr.review_candidate/v1",
+  "status": "REVIEW_CANDIDATE",
+  "topology_id": "SKAP<->KV<->DEVICE<->EXTERNAL_NETWORK<->ENDPOINT",
+  "protocol": {
+    "name": "Interlock/Transport",
+    "abbreviation": "InTr",
+    "relationship_symbol": "<-InTr->",
+    "bidirectional": true,
+    "authority_transfer": false,
+    "fail_mode": "FAIL_CLOSED"
+  },
+  "nodes": [
+    {
+      "id": "skap",
+      "role": "SKAP",
+      "trust_domain": "personal_secret_custody",
+      "primary_function": "sealed secrets, keys, API credentials, and password custody plus controlled release state",
+      "may_hold_plaintext_secret": false,
+      "authority_claims": {
+        "identity": false,
+        "continuity": false,
+        "governance": false,
+        "execution": false,
+        "secret_custody": true
+      }
+    },
+    {
+      "id": "kv",
+      "role": "KV",
+      "trust_domain": "personal_durable_knowledge_and_continuity",
+      "primary_function": "durable persistence, continuity, reconstruction, and custody of sealed SKAP state and related receipts",
+      "may_hold_plaintext_secret": false,
+      "authority_claims": {
+        "identity": false,
+        "continuity": false,
+        "governance": false,
+        "execution": false,
+        "secret_custody": false
+      }
+    },
+    {
+      "id": "device",
+      "role": "DEVICE",
+      "trust_domain": "ephemeral_execution_transport_edge",
+      "primary_function": "carry bounded packets, perform permitted local operations, and relay through InTr without inheriting upstream authority",
+      "may_hold_plaintext_secret": false,
+      "authority_claims": {
+        "identity": false,
+        "continuity": false,
+        "governance": false,
+        "execution": false,
+        "secret_custody": false
+      }
+    },
+    {
+      "id": "external_network",
+      "role": "EXTERNAL_NETWORK",
+      "trust_domain": "untrusted_or_partially_trusted_transport_environment",
+      "primary_function": "transport sealed packets between the device boundary and the verified destination boundary",
+      "may_hold_plaintext_secret": false,
+      "authority_claims": {
+        "identity": false,
+        "continuity": false,
+        "governance": false,
+        "execution": false,
+        "secret_custody": false
+      }
+    },
+    {
+      "id": "endpoint",
+      "role": "ENDPOINT",
+      "trust_domain": "externally_addressed_destination_service",
+      "primary_function": "native endpoint evaluation after intended endpoint/session verification and, where authorized, transient credential resolution immediately before native credential submission",
+      "may_hold_plaintext_secret": true,
+      "authority_claims": {
+        "identity": false,
+        "continuity": false,
+        "governance": false,
+        "execution": false,
+        "secret_custody": false
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "skap-kv",
+      "protocol": "InTr",
+      "left": "SKAP",
+      "right": "KV",
+      "bidirectional": true,
+      "verify_next_boundary_before_interpretation": true,
+      "authority_transfer": false,
+      "protected_payload_sealed_in_transit": true,
+      "receipt_required": true
+    },
+    {
+      "id": "kv-device",
+      "protocol": "InTr",
+      "left": "KV",
+      "right": "DEVICE",
+      "bidirectional": true,
+      "verify_next_boundary_before_interpretation": true,
+      "authority_transfer": false,
+      "protected_payload_sealed_in_transit": true,
+      "receipt_required": true
+    },
+    {
+      "id": "device-external-network",
+      "protocol": "InTr",
+      "left": "DEVICE",
+      "right": "EXTERNAL_NETWORK",
+      "bidirectional": true,
+      "verify_next_boundary_before_interpretation": true,
+      "authority_transfer": false,
+      "protected_payload_sealed_in_transit": true,
+      "receipt_required": true
+    },
+    {
+      "id": "external-network-endpoint",
+      "protocol": "InTr",
+      "left": "EXTERNAL_NETWORK",
+      "right": "ENDPOINT",
+      "bidirectional": true,
+      "verify_next_boundary_before_interpretation": true,
+      "authority_transfer": false,
+      "protected_payload_sealed_in_transit": true,
+      "receipt_required": true
+    }
+  ],
+  "global_invariants": {
+    "canonical_path": "SKAP <-InTr-> KV <-InTr-> Device <-InTr-> External Network <-InTr-> Endpoint",
+    "non_adjacent_direct_edges_allowed": false,
+    "secret_resolution_gate": "VERIFIED_INTENDED_ENDPOINT_SESSION_AND_VALID_OPERATION_GRANT",
+    "return_path_uses_intr": true,
+    "return_path_secret_plaintext_allowed": false,
+    "ambiguous_transition_disposition": "FAIL_CLOSED",
+    "model_output_grants_execution_authority": false
+  },
+  "review_gates": [
+    {
+      "id": "RC-01-SCHEMA",
+      "state": "OPEN",
+      "evidence_required": "JSON Schema validation and deterministic semantic validator pass"
+    },
+    {
+      "id": "RC-02-NEGATIVE-TOPOLOGY",
+      "state": "OPEN",
+      "evidence_required": "non-adjacent edge and missing-adjacency fixtures fail"
+    },
+    {
+      "id": "RC-03-AUTHORITY",
+      "state": "OPEN",
+      "evidence_required": "transport authority-transfer and node authority-escalation fixtures fail"
+    },
+    {
+      "id": "RC-04-ENDPOINT-RESOLUTION",
+      "state": "OPEN",
+      "evidence_required": "secret resolution before verified intended endpoint/session is rejected"
+    },
+    {
+      "id": "RC-05-RUNTIME",
+      "state": "OPEN",
+      "evidence_required": "observed InTr packet transition across each adjacent boundary with replayable non-secret receipts"
+    }
+  ]
+}
