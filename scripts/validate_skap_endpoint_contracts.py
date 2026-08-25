@@ -5,10 +5,18 @@ import argparse
 import copy
 import hashlib
 import json
-from pathlib import Path
 from typing import Any
 
 SKAP_STATES = {"SEALED", "ACTIVE", "ROTATED", "REVOKED", "RECOVERY_ONLY"}
+LIFECYCLE_TRANSITIONS = {
+    ("SEALED", "ACTIVE"),
+    ("SEALED", "RECOVERY_ONLY"),
+    ("ACTIVE", "ROTATED"),
+    ("ACTIVE", "REVOKED"),
+    ("ACTIVE", "RECOVERY_ONLY"),
+    ("RECOVERY_ONLY", "ACTIVE"),
+    ("RECOVERY_ONLY", "REVOKED"),
+}
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -52,7 +60,41 @@ def validate_skap(obj: dict[str, Any]) -> list[str]:
     return errors
 
 
-def validate_endpoint(proof: dict[str, Any]) -> list[str]:
+def validate_lifecycle_receipt(receipt: dict[str, Any], prior_receipt: dict[str, Any] | None = None) -> list[str]:
+    errors: list[str] = []
+    if receipt.get("schema") != "stegverse.skap.lifecycle_transition_receipt/v1":
+        errors.append("unsupported SKAP lifecycle receipt schema")
+    transition = (receipt.get("from_state"), receipt.get("to_state"))
+    if transition not in LIFECYCLE_TRANSITIONS:
+        errors.append("invalid SKAP lifecycle transition")
+    if receipt.get("authority_transfer") is not False:
+        errors.append("lifecycle receipt must not transfer authority")
+    if receipt.get("secret_plaintext_present") is not False:
+        errors.append("lifecycle receipt must not contain secret plaintext")
+    if receipt.get("to_state") == "ROTATED":
+        if receipt.get("outstanding_grants_invalidated") is not True:
+            errors.append("rotation must invalidate outstanding grants")
+        if receipt.get("revocation_effect") != "NO_NEW_GRANTS":
+            errors.append("rotation must block new grants for superseded version")
+        if not receipt.get("replacement_secret_ref"):
+            errors.append("rotation requires replacement secret reference")
+    if receipt.get("to_state") == "REVOKED":
+        if receipt.get("outstanding_grants_invalidated") is not True:
+            errors.append("revocation must invalidate outstanding grants")
+        if receipt.get("revocation_effect") != "BLOCK_ALL_RESOLUTION":
+            errors.append("revocation must block all resolution")
+    expected_prior = None if prior_receipt is None else prior_receipt.get("receipt_hash")
+    if receipt.get("prior_transition_receipt_hash") != expected_prior:
+        errors.append("lifecycle prior receipt hash mismatch")
+    claimed = receipt.get("receipt_hash")
+    body = dict(receipt)
+    body.pop("receipt_hash", None)
+    if claimed != sha256_uri(body):
+        errors.append("lifecycle receipt hash mismatch")
+    return errors
+
+
+def validate_endpoint(proof: dict[str, Any], *, expected_binding: dict[str, str] | None = None) -> list[str]:
     errors: list[str] = []
     if proof.get("schema") != "stegverse.intr.endpoint_session_proof/v1":
         errors.append("unsupported endpoint proof schema")
@@ -64,10 +106,19 @@ def validate_endpoint(proof: dict[str, Any]) -> list[str]:
         errors.append("redirects must be prohibited")
     if proof.get("authority_transfer") is not False:
         errors.append("endpoint proof must not transfer authority")
+    for field in ("packet_hash", "operation_hash", "credential_grant_hash", "tls_session_binding_hash"):
+        if not str(proof.get(field, "")).startswith("sha256:"):
+            errors.append(f"endpoint proof missing cryptographic binding: {field}")
+    if expected_binding:
+        for field in ("packet_id", "packet_hash", "operation_hash", "credential_grant_hash", "authorized_endpoint_ref", "tls_session_binding_hash"):
+            if proof.get(field) != expected_binding.get(field):
+                errors.append(f"endpoint proof binding mismatch: {field}")
     verified = proof.get("verification_state") == "VERIFIED"
     if verified:
         if proof.get("credential_resolution_permitted") is not True:
             errors.append("verified endpoint must explicitly gate permitted resolution")
+        if proof.get("revocation_rechecked_immediately_before_resolution") is not True:
+            errors.append("verified endpoint requires immediate revocation recheck")
         if proof.get("failure_disposition") != "NOT_APPLICABLE":
             errors.append("verified endpoint must not carry failure disposition")
     else:
@@ -111,12 +162,64 @@ def self_test() -> None:
     skap["object_hash"] = sha256_uri(skap)
     assert not validate_skap(skap), validate_skap(skap)
 
+    activation = {
+        "schema": "stegverse.skap.lifecycle_transition_receipt/v1",
+        "receipt_id": "skap-life-001",
+        "secret_ref": skap["object_id"],
+        "credential_version": 1,
+        "from_state": "SEALED",
+        "to_state": "ACTIVE",
+        "transition_reason": "owner-authorized activation",
+        "prior_transition_receipt_hash": None,
+        "sealed_object_hash_before": "sha256:" + "1" * 64,
+        "sealed_object_hash_after": skap["object_hash"],
+        "supersedes_credential_version": None,
+        "replacement_secret_ref": None,
+        "revocation_effect": "NONE",
+        "outstanding_grants_invalidated": False,
+        "authority_ref": "tvc://authority/example",
+        "authority_transfer": False,
+        "secret_plaintext_present": False,
+        "effective_at": "2026-08-24T20:01:00Z",
+    }
+    activation["receipt_hash"] = sha256_uri(activation)
+    assert not validate_lifecycle_receipt(activation), validate_lifecycle_receipt(activation)
+
+    rotation = {
+        "schema": "stegverse.skap.lifecycle_transition_receipt/v1",
+        "receipt_id": "skap-life-002",
+        "secret_ref": skap["object_id"],
+        "credential_version": 2,
+        "from_state": "ACTIVE",
+        "to_state": "ROTATED",
+        "transition_reason": "scheduled rotation",
+        "prior_transition_receipt_hash": activation["receipt_hash"],
+        "sealed_object_hash_before": skap["object_hash"],
+        "sealed_object_hash_after": "sha256:" + "2" * 64,
+        "supersedes_credential_version": 1,
+        "replacement_secret_ref": "skap://APIs/provider/example-v2",
+        "revocation_effect": "NO_NEW_GRANTS",
+        "outstanding_grants_invalidated": True,
+        "authority_ref": "tvc://authority/example",
+        "authority_transfer": False,
+        "secret_plaintext_present": False,
+        "effective_at": "2026-08-24T20:10:00Z",
+    }
+    rotation["receipt_hash"] = sha256_uri(rotation)
+    assert not validate_lifecycle_receipt(rotation, activation), validate_lifecycle_receipt(rotation, activation)
+
+    expected_binding = {
+        "packet_id": "packet-example",
+        "packet_hash": "sha256:" + "d" * 64,
+        "operation_hash": "sha256:" + "b" * 64,
+        "credential_grant_hash": "sha256:" + "e" * 64,
+        "authorized_endpoint_ref": "endpoint://example/api",
+        "tls_session_binding_hash": "sha256:" + "f" * 64,
+    }
     proof = {
         "schema": "stegverse.intr.endpoint_session_proof/v1",
         "proof_id": "endpoint-proof-example",
-        "packet_id": "packet-example",
-        "operation_hash": "sha256:" + "b" * 64,
-        "authorized_endpoint_ref": "endpoint://example/api",
+        **expected_binding,
         "resolved_host": "api.example.test",
         "scheme": "https",
         "port": 443,
@@ -129,23 +232,30 @@ def self_test() -> None:
         "same_session_required_for_resolution_and_submission": True,
         "redirect_permitted": False,
         "credential_resolution_permitted": True,
+        "revocation_rechecked_immediately_before_resolution": True,
         "authority_transfer": False,
         "failure_disposition": "NOT_APPLICABLE",
     }
     proof["proof_hash"] = sha256_uri(proof)
-    assert not validate_endpoint(proof), validate_endpoint(proof)
+    assert not validate_endpoint(proof, expected_binding=expected_binding), validate_endpoint(proof, expected_binding=expected_binding)
 
     cases = []
     bad = copy.deepcopy(skap); bad["plaintext_persisted"] = True; cases.append((validate_skap(bad), "plaintext"))
     bad = copy.deepcopy(skap); bad["lifecycle_state"] = "REVOKED"; bad["revoked_at"] = None; cases.append((validate_skap(bad), "REVOKED"))
     bad = copy.deepcopy(skap); bad["kv_decryption_authority"] = True; cases.append((validate_skap(bad), "KV"))
-    bad = copy.deepcopy(proof); bad["verification_state"] = "FAILED"; bad["credential_resolution_permitted"] = True; cases.append((validate_endpoint(bad), "failed endpoint"))
-    bad = copy.deepcopy(proof); bad["redirect_permitted"] = True; cases.append((validate_endpoint(bad), "redirects"))
-    bad = copy.deepcopy(proof); bad["same_session_required_for_resolution_and_submission"] = False; cases.append((validate_endpoint(bad), "same authenticated session"))
+    bad = copy.deepcopy(rotation); bad["outstanding_grants_invalidated"] = False; cases.append((validate_lifecycle_receipt(bad, activation), "invalidate outstanding grants"))
+    bad = copy.deepcopy(rotation); bad["prior_transition_receipt_hash"] = "sha256:" + "0" * 64; cases.append((validate_lifecycle_receipt(bad, activation), "prior receipt"))
+    bad = copy.deepcopy(proof); bad["verification_state"] = "FAILED"; bad["credential_resolution_permitted"] = True; cases.append((validate_endpoint(bad, expected_binding=expected_binding), "failed endpoint"))
+    bad = copy.deepcopy(proof); bad["redirect_permitted"] = True; cases.append((validate_endpoint(bad, expected_binding=expected_binding), "redirects"))
+    bad = copy.deepcopy(proof); bad["same_session_required_for_resolution_and_submission"] = False; cases.append((validate_endpoint(bad, expected_binding=expected_binding), "same authenticated session"))
+    bad = copy.deepcopy(proof); bad["packet_hash"] = "sha256:" + "9" * 64; cases.append((validate_endpoint(bad, expected_binding=expected_binding), "packet_hash"))
+    bad = copy.deepcopy(proof); bad["credential_grant_hash"] = "sha256:" + "8" * 64; cases.append((validate_endpoint(bad, expected_binding=expected_binding), "credential_grant_hash"))
+    bad = copy.deepcopy(proof); bad["tls_session_binding_hash"] = "sha256:" + "7" * 64; cases.append((validate_endpoint(bad, expected_binding=expected_binding), "tls_session_binding_hash"))
+    bad = copy.deepcopy(proof); bad["revocation_rechecked_immediately_before_resolution"] = False; cases.append((validate_endpoint(bad, expected_binding=expected_binding), "revocation"))
     for errors, fragment in cases:
         if not errors or not any(fragment.lower() in e.lower() for e in errors):
             raise AssertionError((fragment, errors))
-    print("SKAP_ENDPOINT_CONTRACT_SELF_TEST_PASS")
+    print("SKAP_ENDPOINT_LIFECYCLE_CONTRACT_SELF_TEST_PASS")
 
 
 def main() -> int:
