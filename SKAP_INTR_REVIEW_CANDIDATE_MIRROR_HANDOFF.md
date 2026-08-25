@@ -1,10 +1,10 @@
 # SKAP / InTr Review Candidate Mirror Handoff
 
-Status: IMPLEMENTED_PENDING_REVIEW_AND_RUNTIME_VALIDATION
+Status: IMPLEMENTED_HOSTED_VALIDATED_PENDING_EXTERNAL_RUNTIME_AND_REAL_SKAP
 Repository: StegVerse-Labs/continuity-vault-kit
 Goal ID: SV-KV-SKAP-INTR-001
 Created: 2026-08-24
-Last updated: 2026-08-24T20:34:00-05:00
+Last updated: 2026-08-24T20:50:00-05:00
 
 ## Active goal
 
@@ -16,7 +16,7 @@ SKAP <-InTr-> KV <-InTr-> Device <-InTr-> External Network <-InTr-> Endpoint
 
 `InTr` is the canonical bidirectional interlock/transport relationship between adjacent domains. Transport, packet possession, model output, receipt possession, endpoint proof possession, lifecycle receipt possession, or KV persistence does not itself confer execution, identity, continuity, governance, decryption, or secret-custody authority.
 
-## Implemented artifacts
+## Implemented machine layers
 
 ### Topology
 - `specs/skap-intr-review-candidate.v1.json` — `9ad3038fac16e34f2fc4615bc75e491b21ba311d`
@@ -28,11 +28,11 @@ SKAP <-InTr-> KV <-InTr-> Device <-InTr-> External Network <-InTr-> Endpoint
 - `schemas/intr-packet-review-candidate.schema.json` — introduced `d630e64dab7ffd3731b2622ab0a1a3837a4b6d95`; repaired `5de479f0a8569389900446bc8c6682c51b6ec185`
 - `scripts/validate_intr_packet_review_candidate.py` — `9ab2479b01db7b64d0a8852312d0d50007b9998d`
 
-### Per-hop receipts / bidirectional reconstruction
+### Bidirectional hop receipts
 - `schemas/intr-hop-receipt.schema.json` — `559795e32ba8cd4591750fc0c8e813f93ee35b2e`
 - `scripts/intr_hop_receipt.py` — `53d34e581f23bfad5b182cda4b6632a94452e9e0`
-- forward fixture `examples/intr-hop-receipt-chain.example.json` — `34298042c255a2cac5e2a9ecfb38e99549505e78`
-- return fixture `examples/intr-hop-return-receipt-chain.example.json` — `7a193bd7fb87fb3afa2ee88320753b5486b80860`
+- forward fixture — `34298042c255a2cac5e2a9ecfb38e99549505e78`
+- return fixture — `7a193bd7fb87fb3afa2ee88320753b5486b80860`
 
 Forward: `SKAP -> KV -> DEVICE -> EXTERNAL_NETWORK -> ENDPOINT`
 Return: `ENDPOINT -> EXTERNAL_NETWORK -> DEVICE -> KV -> SKAP`
@@ -42,91 +42,127 @@ Return: `ENDPOINT -> EXTERNAL_NETWORK -> DEVICE -> KV -> SKAP`
 - lifecycle: `SEALED | ACTIVE | ROTATED | REVOKED | RECOVERY_ONLY`
 - plaintext persistence, KV decryption authority, Device secret-custody authority, and model secret access are forbidden
 
-### SKAP lifecycle transition receipts
+### Lifecycle transition receipts
 - `schemas/skap-lifecycle-transition-receipt.schema.json` — `126b22c4840fe37c43d5fde5056101d5a0a19d24`
-- rotation requires outstanding grant invalidation and `NO_NEW_GRANTS` for the superseded version
-- revocation requires outstanding grant invalidation and `BLOCK_ALL_RESOLUTION`
-- transition receipts are prior-hash chained, secret-free and non-authorizing
-- semantic chain validation is implemented in `scripts/validate_skap_endpoint_contracts.py` at `0cd6ac46ff202800b0d0d157867565b19033477f`
+- rotation invalidates outstanding grants and applies `NO_NEW_GRANTS` to the superseded version
+- revocation invalidates outstanding grants and applies `BLOCK_ALL_RESOLUTION`
+- prior-hash chained, secret-free and non-authorizing
+- semantic chain validation: `scripts/validate_skap_endpoint_contracts.py` at `0cd6ac46ff202800b0d0d157867565b19033477f`
 
 ### Endpoint-session proof
-- `schemas/intr-endpoint-session-proof.schema.json` — endpoint binding hardening `25082993d6e3b70acf3fba21f8598661b231c184`
-- proof is bound to exact `packet_id`, `packet_hash`, `operation_hash`, `credential_grant_hash`, authorized endpoint and `tls_session_binding_hash`
-- redirects are not implicitly authorized
-- endpoint/session identity is verified before credential resolution
-- immediate revocation recheck is required before resolution
-- transient credential resolution and native submission require the same authenticated session
+- `schemas/intr-endpoint-session-proof.schema.json` hardening — `25082993d6e3b70acf3fba21f8598661b231c184`
+- binds exact packet id/hash, operation hash, credential-grant hash, authorized endpoint and TLS-session binding hash
+- redirect not implicitly permitted
+- endpoint/session verification before credential resolution
+- immediate revocation recheck before resolution
+- same authenticated session required for transient resolution + native submission
 - failed proof => no resolution + `FAIL_CLOSED`
-- semantic binding substitution tests are in `scripts/validate_skap_endpoint_contracts.py` — `0cd6ac46ff202800b0d0d157867565b19033477f`
+- substitution negatives in `scripts/validate_skap_endpoint_contracts.py` — `0cd6ac46ff202800b0d0d157867565b19033477f`
 
-### KV persistence binding
-- `execution/vault_store.py` — InTr binding `cb58f7baedfc23854d14076bb793ea250d6743b8`
-- `tests/test_vault_store.py` — persistence regression `a9ee0279dea395e1bda00a858e799fcf368c67bd`
+### KV persistence / reconstruction
+- `execution/vault_store.py` — `cb58f7baedfc23854d14076bb793ea250d6743b8`
+- `tests/test_vault_store.py` — `a9ee0279dea395e1bda00a858e799fcf368c67bd`
+- InTr packets persist under `_System/Execution/Extensions`
+- hop receipts persist under `_System/Execution/Receipts`
+- KV rejects protected plaintext, packet/receipt authority transfer, KV decryption authority, KV secret-resolution authority and forbidden credential material
 
-InTr packets persist as metadata under `_System/Execution/Extensions` and hop receipts under `_System/Execution/Receipts`. The store rejects protected plaintext, packet/receipt authority transfer, KV decryption authority, KV secret-resolution authority and existing forbidden credential material. Persistence is continuity/replay custody only.
+### End-to-end reconstruction
+- `tests/test_skap_intr_reconstruction.py` — `55bc977fc2ec494547bb1c72bf390dbcaccee8a0`
+- proves synthetic lifecycle activation -> KV packet persistence -> forward receipt chain -> exact endpoint proof -> return receipt chain -> KV read-back
+- proves endpoint proof cannot be reused under substituted packet hash
 
-## Hosted validation — exact location
+### Non-secret transport I/O
+- `scripts/run_intr_synthetic_runtime.py` — `c5a40bc65038b9e4b832956375bfc3016214d77c`
+- actual TCP socket I/O on loopback for all four forward and all four return adjacent boundaries
+- each frame requires sealed payload, no secret plaintext, no authority transfer
+- evidence is emitted as `LOOPBACK_TCP_SYNTHETIC_NON_SECRET`
+- `production_runtime_proof=false`
+- `third_party_endpoint_contacted=false`
+- `real_credential_used=false`
+
+## Hosted validation evidence
 
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Workflow: `KV Guardrails (Layer + Footer + Emoji + InTr)`
-File: `.github/workflows/kv-guardrails.yml`
-Initial SKAP/InTr integration: `db7a99d65f86b43f28683e06826416d25751120d`
-Lifecycle/return-path wiring: `b6d3b36e920f7b5e15957920297dc8936c71b9a7`
-KV persistence regression target: `64cd52fe94205d3b9fb801500a8da6d80b497136`
-Current validation definition including lifecycle-transition schema and endpoint binding semantics: `61baffc2b284207e7055c2d4063da15ab63df6b5`
+Workflow file: `.github/workflows/kv-guardrails.yml`
 
-The lane validates topology/packet schemas, SKAP sealed-object schema, lifecycle-transition receipt schema, endpoint-session-proof schema, hop-receipt schema, semantic negative tests, forward and return receipt chains, KV persistence regression tests, Python compilation and explicit non-authorizing workflow properties (`contents: read`, no `contents: write`, no `git push`, no `secrets.` references).
+Key workflow commits:
+- lifecycle/endpoint schema wiring: `61baffc2b284207e7055c2d4063da15ab63df6b5`
+- reconstruction wiring: `79d2ff31e56fc4155e76f87c2aa828c6324a1acc`
+- synthetic socket traversal wiring: `5b5ac5381e2b95570918bc3567d3f77723d755b1`
+- self-referential non-authorizing guard repair: `8ec29c26a901fe5b8518b5e6c817128296ae1af4`
 
-Hosted conclusion remains distinct from source implementation and must be retrieved for `61baffc2...` or a descendant before any hosted-pass claim.
+Run `32798893817` on `5b5ac538...` proved every substantive SKAP/InTr step green: schema validation, semantic boundaries, KV persistence, end-to-end reconstruction, non-secret TCP transport I/O and synthetic runtime evidence upload. The run failed only because the non-authorizing text scanner matched its own forbidden string literals.
+
+That scanner defect was repaired without weakening the rule at `8ec29c26...`.
+
+Hosted run `32798992283` on `8ec29c26a901fe5b8518b5e6c817128296ae1af4` completed `SUCCESS`.
+
+Therefore the current source/schema/semantic/persistence/reconstruction/synthetic-transport validation lane is HOSTED PASS. This does not equal external production runtime activation.
 
 ## Cross-repository credential dependency significance
 
-TVC now publishes the caller requirement that third-party credentials target InTr transport and SKAP custody. A machine-readable dependency registry exists in `StegVerse-Labs/TVC` at `contracts/third-party-credential-intr-skap-dependencies.v1.json` (`58710d6d3980b96831537e3c505f6cf54a9d98c5`). Known dependent lanes include GitHub heartbeat dispatch, Site/Cloudflare rendezvous, Coinbase governed trading, TVC private-source read/StegMusic, and portable artifact publication.
+TVC requires third-party credentials to target InTr transport and SKAP custody. Its machine-readable dependency registry is:
 
-This means SKAP/InTr runtime readiness is a shared prerequisite for multiple third-party provider workflows, not an isolated KnowledgeVault feature.
+`StegVerse-Labs/TVC/contracts/third-party-credential-intr-skap-dependencies.v1.json`
+commit `58710d6d3980b96831537e3c505f6cf54a9d98c5`
+
+Known dependent lanes:
+- GitHub heartbeat dispatch
+- Site / Cloudflare rendezvous
+- Coinbase governed trading across StegFinCo / TVC / crypto-bot / Site surfaces
+- TVC private-source read / StegMusic
+- portable artifact publication
+
+TVC hosted enforcement also passed: `Infrastructure Credential Authority` run `32798684127` on `1cafaeea89a7bf10e006915e52d1f26e4a620ecb` = SUCCESS.
 
 ## Authority and secret boundary
 
 - TV/TVC remains credential/secret/token authority and evidence.
-- SKAP owns target sealed secret custody state; custody does not create identity, continuity, governance, or execution authority.
-- KV preserves sealed SKAP metadata plus continuity/replay evidence; KV has no secret-resolution or decryption authority.
+- SKAP is target sealed secret custody; custody does not create identity, continuity, governance or execution authority.
+- KV preserves sealed SKAP metadata plus continuity/replay evidence; KV has no secret-resolution/decryption authority.
 - Device is an ephemeral execution/transport edge and does not inherit secret custody or continuity authority.
-- External Network is transport only and never receives protected plaintext merely by transit.
-- Endpoint-bound material remains sealed until intended endpoint/session verification and grant/revocation revalidation.
+- External Network is transport only and never gains protected plaintext merely by transit.
+- Endpoint-bound material stays sealed until intended endpoint/session verification and grant/revocation revalidation.
 - Resolution + native endpoint submission occur on the same authenticated session.
 - Return InTr packets/receipts never carry secret plaintext.
 - Model output grants no execution or secret authority.
 
 ## Failure dispositions
 
-- wrong boundary / expiry / replay / authority mismatch / endpoint mismatch / revoked credential / unauthorized redirect / session binding mismatch / packet binding mismatch / grant binding mismatch: `FAIL_CLOSED`
+- wrong boundary / expiry / replay / authority mismatch / endpoint mismatch / revoked credential / unauthorized redirect / session mismatch / packet mismatch / grant mismatch: `FAIL_CLOSED`
 - ambiguous post-submission state: `VERIFY_EXTERNALLY`
 
 ## Review gates
 
-- `RC-01-SCHEMA`: IMPLEMENTED / HOSTED RESULT OPEN
-- `RC-02-NEGATIVE-TOPOLOGY`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
-- `RC-03-AUTHORITY`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
-- `RC-04-ENDPOINT-RESOLUTION`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
-- `RC-05-PACKET`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
-- `RC-06-RECEIPT-CHAIN`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
-- `RC-07-SKAP-LIFECYCLE`: IMPLEMENTED / LOCAL SEMANTIC COVERAGE / HOSTED RESULT OPEN
-- `RC-08-BIDIRECTIONAL-INTR`: IMPLEMENTED / FORWARD+RETURN FIXTURES / HOSTED RESULT OPEN
-- `RC-09-KV-PERSISTENCE`: IMPLEMENTED / REGRESSION TESTS WIRED / HOSTED RESULT OPEN
-- `RC-10-LIFECYCLE-TRANSITION-RECEIPTS`: IMPLEMENTED / SEMANTIC CHAIN COVERAGE / HOSTED RESULT OPEN
-- `RC-11-ENDPOINT-PACKET-GRANT-SESSION-BINDING`: IMPLEMENTED / NEGATIVE SUBSTITUTION COVERAGE / HOSTED RESULT OPEN
-- `RC-12-END-TO-END-RECONSTRUCTION`: OPEN — requires one test spanning persisted packet + forward receipts + endpoint proof + return receipts + lifecycle evidence
-- `RC-13-RUNTIME`: OPEN — requires observed real InTr transitions across all four adjacent boundaries with replayable non-secret receipts
-- `RC-14-REAL-SKAP`: OPEN — no real password/key/API secret admitted until review acceptance plus runtime proof
+- `RC-01-SCHEMA`: HOSTED PASS
+- `RC-02-NEGATIVE-TOPOLOGY`: HOSTED PASS
+- `RC-03-AUTHORITY`: HOSTED PASS
+- `RC-04-ENDPOINT-RESOLUTION`: HOSTED PASS
+- `RC-05-PACKET`: HOSTED PASS
+- `RC-06-RECEIPT-CHAIN`: HOSTED PASS
+- `RC-07-SKAP-LIFECYCLE`: HOSTED PASS
+- `RC-08-BIDIRECTIONAL-INTR`: HOSTED PASS
+- `RC-09-KV-PERSISTENCE`: HOSTED PASS
+- `RC-10-LIFECYCLE-TRANSITION-RECEIPTS`: HOSTED PASS
+- `RC-11-ENDPOINT-PACKET-GRANT-SESSION-BINDING`: HOSTED PASS
+- `RC-12-END-TO-END-RECONSTRUCTION`: HOSTED PASS
+- `RC-13-SYNTHETIC-TRANSPORT`: HOSTED PASS / LOOPBACK TCP / NON-SECRET / NOT PRODUCTION EXTERNAL RUNTIME
+- `RC-14-EXTERNAL-RUNTIME`: OPEN — requires observed InTr traversal to an actual intended external provider endpoint with no real secret initially, then provider-specific bounded proof
+- `RC-15-REAL-SKAP`: OPEN — no real password/key/API secret admitted until external runtime review acceptance and owner authorization
+
+## Provider propagation note
+
+Site/Cloudflare was inspected. Its current deploy workflow is already heartbeat-worker owned and blocked on absent Cloudflare values; it directly consumes Actions secret environment variables. Rewriting its watched imported TVC contract now would intentionally trigger a known blocked/failing worker and collide with active ownership. The lane remains registered for migration and should be changed only through its canonical worker/claim path once the shared SKAP/InTr runtime contract is ready for provider binding.
 
 ## Next executable work
 
-1. Add end-to-end reconstruction test spanning KV persisted packet + forward receipt chain + exact endpoint proof + return receipt chain + applicable lifecycle receipt chain.
-2. Propagate the TVC InTr/SKAP receipt requirement into provider-specific consumers beginning with Site/Cloudflare and Coinbase trading lanes, without creating duplicate credential authority.
-3. Retrieve and inspect an observable hosted `KV Guardrails` conclusion for `61baffc2...` or descendant; remediate any actual failure.
-4. Prove a non-secret synthetic runtime InTr traversal across every adjacent boundary before admitting any real credential.
-5. Only after review acceptance and runtime proof, perform first owner-authorized real SKAP credential ingress.
+1. Define the first provider-neutral external endpoint probe that exercises InTr endpoint/session verification with no credential material at all.
+2. Bind a provider-specific caller through its canonical owner, beginning with a non-destructive endpoint lane before credential admission.
+3. Add real SKAP sealed-object cryptographic implementation (actual wrapping/unwrapping boundary) behind the already validated schema/authority gates; do not use production credentials for first proof.
+4. Prove key rotation/revocation against outstanding synthetic grants at runtime, not only schema/semantic level.
+5. After review acceptance, perform the first owner-authorized real SKAP credential ingress and one bounded provider operation.
 
 ## Completion boundary
 
-This goal remains open. Source, schemas, validators, fixtures, local semantic passes, workflow installation, folder existence, dependency registration, or durable handoff are not activation. Completion requires observable hosted validation, review acceptance, runtime InTr transitions across every adjacent boundary, replayable non-secret reconstruction, and an owner-authorized real SKAP credential operation with all authority and secret boundaries intact.
+This goal remains open. Hosted schema/semantic/persistence/reconstruction/synthetic-transport success is not external runtime activation. Completion requires provider-bound InTr endpoint/session proof, real sealed SKAP cryptographic custody/resolution, replayable KV evidence, and an owner-authorized real credential operation with all authority and secret boundaries intact.
