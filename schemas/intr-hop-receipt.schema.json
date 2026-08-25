@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/intr-hop-receipt.schema.json",
+  "type": "object",
+  "required": ["schema","receipt_id","packet_id","hop_index","direction","from_role","to_role","operation_hash","payload_hash","prior_receipt_hash","boundary_identity_ref","boundary_verification","transition_state","secret_plaintext_present","authority_transfer","recorded_at","receipt_hash"],
+  "properties": {
+    "schema": {"const": "stegverse.intr.hop_receipt/v1"},
+    "receipt_id": {"type": "string","minLength": 1},
+    "packet_id": {"type": "string","minLength": 1},
+    "hop_index": {"type": "integer","minimum": 0},
+    "direction": {"enum": ["FORWARD","RETURN"]},
+    "from_role": {"enum": ["SKAP","KV","DEVICE","EXTERNAL_NETWORK","ENDPOINT"]},
+    "to_role": {"enum": ["SKAP","KV","DEVICE","EXTERNAL_NETWORK","ENDPOINT"]},
+    "operation_hash": {"type": "string","pattern": "^sha256:[0-9a-f]{64}$"},
+    "payload_hash": {"type": "string","pattern": "^sha256:[0-9a-f]{64}$"},
+    "prior_receipt_hash": {"type": ["string","null"]},
+    "boundary_identity_ref": {"type": "string","minLength": 1},
+    "boundary_verification": {"enum": ["VERIFIED","FAILED"]},
+    "transition_state": {"enum": ["FORWARDED","RECEIVED","REJECTED","TERMINAL","INDETERMINATE"]},
+    "secret_plaintext_present": {"const": false},
+    "authority_transfer": {"const": false},
+    "recorded_at": {"type": "string"},
+    "receipt_hash": {"type": "string","pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}
