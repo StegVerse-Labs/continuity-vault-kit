@@ -58,7 +58,10 @@ class BrowserIngressTests(unittest.TestCase):
         envelope = self.seal()
         serialized = json.dumps(envelope, sort_keys=True)
         self.assertNotIn("synthetic-browser-coinbase-secret", serialized)
-        self.assertNotIn("private", serialized.lower())
+        self.assertNotIn("-----BEGIN PRIVATE KEY-----", serialized)
+        self.assertNotIn("-----BEGIN EC PRIVATE KEY-----", serialized)
+        self.assertNotIn("d", envelope["ephemeral_public_jwk"])
+        self.assertEqual(set(envelope["ephemeral_public_jwk"]), {"kty", "crv", "x", "y"})
         self.assertFalse(envelope["plaintext_persisted"])
         self.assertFalse(envelope["device_private_key_persisted"])
         self.assertFalse(envelope["skap_private_key_exported"])
@@ -74,7 +77,7 @@ class BrowserIngressTests(unittest.TestCase):
 
     def test_endpoint_substitution_fails_before_decrypt(self):
         envelope = self.seal()
-        with self.assertRaisesRegex(BrowserIngressError, "endpoint_ref binding mismatch"):
+        with self.assertRaisesRegex(BrowserIngressError, "exact Coinbase origin"):
             self.resolve(envelope, overrides={"expected_endpoint_ref": "https://attacker.example"})
 
     def test_recipient_key_substitution_fails_before_decrypt(self):
