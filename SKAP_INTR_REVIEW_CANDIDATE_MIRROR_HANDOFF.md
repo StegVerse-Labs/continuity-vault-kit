@@ -1,154 +1,131 @@
 # SKAP / InTr Review Candidate Mirror Handoff
 
-Status: IMPLEMENTED_HOSTED_VALIDATED_EXTERNAL_PROVIDER_SKAP_CRYPTO_TVC_KEY_PROVIDER_AND_OWNER_INGRESS_PASS_KV_PERSISTENCE_PENDING
-Repository: StegVerse-Labs/continuity-vault-kit
-Goal ID: SV-KV-SKAP-INTR-001
-Created: 2026-08-24
-Last updated: 2026-08-24T21:35:00-05:00
+Status: HOSTED_VALIDATED_THROUGH_KV_SEALED_READBACK_REAL_OWNER_PROVIDER_SESSION_PENDING
+Repository: `StegVerse-Labs/continuity-vault-kit`
+Goal ID: `SV-KV-SKAP-INTR-001`
+Last updated: 2026-08-24T21:25:00-05:00
 
 ## Active goal
 
-Define, validate, persist, reconstruct and ultimately prove:
+Prove and activate the canonical credential/transport topology:
 
 ```text
 SKAP <-InTr-> KV <-InTr-> Device <-InTr-> External Network <-InTr-> Endpoint
 ```
 
-Transport, packet/ciphertext/receipt possession, model output, KV persistence, or key-handle possession does not itself confer execution, identity, continuity, governance, decryption, credential, or secret-custody authority.
+Transport, packet/ciphertext/receipt possession, model output, KV persistence, or key-handle possession does not confer execution, identity, continuity, governance, decryption, credential, or secret-custody authority.
 
-## Hosted-proven protocol layers
+## Hosted-proven layers
 
-- canonical InTr topology and packet envelope
-- bidirectional per-hop receipt chains
-- SKAP sealed-object lifecycle and transition receipts
-- exact packet/grant/endpoint/TLS-session proof binding
-- KV metadata-only execution persistence/reconstruction
-- complete synthetic round-trip reconstruction
-- loopback TCP forward/return transport
-- real credential-free Coinbase TLS/HTTPS endpoint traversal
-- AES-256-GCM + HKDF-SHA256 SKAP sealing/resolution with synthetic non-production material
-- lifecycle/grant-bound decryption with runtime rotation/revocation/stale/consumed-grant invalidation
-- TVC-resident ephemeral root-key provider boundary
-- transient owner-authorized ingress contract with synthetic non-production bytes
+- topology, packet/envelope and bidirectional hop-receipt schemas;
+- endpoint-session proof binding packet/grant/endpoint/TLS session;
+- loopback forward/return transport and full reconstruction;
+- actual credential-free Coinbase DNS/TLS/HTTPS traversal to `https://api.coinbase.com/api/v3/brokerage/time`, with redirects denied and no Authorization header/credential material;
+- AES-256-GCM + HKDF-SHA256 SKAP cryptographic sealing using synthetic material;
+- lifecycle/grant-bound transient resolution, stale-version rejection, rotation/revocation invalidation, immediate revocation recheck and consumed-grant replay denial;
+- TVC key-provider interface code with secret bytes confined to an in-process callback;
+- owner-authorized synthetic ingress requiring `TRUSTED_INTERACTIVE_EDGE`, mutable plaintext, immediate sealing and buffer overwrite;
+- KnowledgeVault persistence of canonical SKAP ciphertext/reference state plus secret-free ingress receipt, with exact hash-verified readback and no KV decryption/resolution authority.
 
-## External provider-bound non-secret transport
-
-Provider: Coinbase  
-Endpoint: `https://api.coinbase.com/api/v3/brokerage/time`
+## External Coinbase transport evidence
 
 Implementation:
 - `scripts/run_intr_external_endpoint_probe.py` — `fba91f37312216ac8986a5f4f9ff02e8300493d1`
 - workflow binding — `8a383bfc03673b99120a4704c9073d949a338ef4`
-- hosted run `32800229287` = `SUCCESS`
+- hosted run `32800229287` — `SUCCESS`
+- artifact `9546225555`
+- artifact digest `sha256:cc0aac0e4bb92ebee2a69462c1c01ed57da7bc89add1d9abe6b34200ccb66db6`
 
-Retained evidence:
+This proves a real Coinbase external endpoint can participate in the non-secret InTr path. It does not prove credential-bearing provider authority.
 
-```text
-artifact_id: 9546225555
-name: skap-intr-coinbase-external-probe-32800229287
-digest: sha256:cc0aac0e4bb92ebee2a69462c1c01ed57da7bc89add1d9abe6b34200ccb66db6
-```
+## SKAP cryptographic/lifecycle evidence
 
-The probe performs actual DNS/TLS/HTTPS contact, verifies trusted TLS + hostname, records only non-secret peer/session/response hashes and metadata, sends no Authorization header, rejects redirects, and preserves the forward/return InTr receipt path. It proves external transport, not credential-bearing provider authority.
-
-## SKAP cryptographic boundary
-
-Implementation:
-- `skap/crypto_boundary.py` initial seal/resolve — `e7972e6040e1d9efb2c77120e57097a828889edf`
-- fail-closed crypto tests — `f8aa3698128f11729d2b179f2be4e95e08a6cc58`
-- lifecycle/grant resolution gate — `18638784df38903dd456a01498ceda6594a75eb4`
-- lifecycle runtime tests — `d0bbb00e59bb45537e89e31c09d7e6d69c78afd0`
-- provider-bound caller API — `4e8cbcc7c9b9efda0dc228f6c7c45f5d15aa80f8`
-- hosted run `32800437274` on `c7b9c9ad407308b245e3ebd8d482c90d53240c8a` = `SUCCESS`
+Canonical implementation: `skap/crypto_boundary.py`.
 
 Properties:
-- AES-256-GCM authenticated encryption
-- HKDF-SHA256 object/version/context key derivation
-- random 256-bit salt + 96-bit nonce per seal
-- AAD binds object id, credential version, wrapping policy, purpose and endpoint
-- sealed output contains ciphertext/reference metadata only
-- `plaintext_persisted=false`
-- `key_material_persisted=false`
-- `authority_transfer=false`
-- callback-only plaintext consumption with best-effort mutable-buffer wipe
-- wrong key, ciphertext tamper, AAD/endpoint/purpose/version/key-authority substitution fail closed
+- AES-256-GCM authenticated encryption;
+- HKDF-SHA256 per object/version/context key derivation;
+- AAD binds object id, credential version, wrapping policy, purpose and endpoint;
+- ciphertext-only sealed output;
+- callback-only transient plaintext use and best-effort mutable-buffer wipe;
+- `plaintext_persisted=false`;
+- `key_material_persisted=false`;
+- `authority_transfer=false`.
 
-Runtime resolution additionally requires lifecycle `ACTIVE`, exact current version, active/unrevoked/unconsumed grant, exact purpose/endpoint/object binding, and immediate revocation check PASS.
+Canonical lifecycle runtime rejects wrong key, tamper, endpoint/purpose/version/key-authority substitution, stale grants, rotated/revoked credentials, missing immediate revocation recheck and consumed-grant replay.
 
-## TVC resident root-key provider boundary
+Full guardrail run `32800446563` completed `SUCCESS` across crypto, lifecycle, KV/InTr persistence, reconstruction, synthetic transport and Coinbase external traversal.
 
-Implementation:
-- `skap/key_provider.py` — `8150c451802c68e2219f1d0fcf027217f59bbb42`
-- provider-facing crypto wrappers — `4e8cbcc7c9b9efda0dc228f6c7c45f5d15aa80f8`
-- provider tests — `15744dc7cfcead5b4ba05a6fb88d6eb381a9f32c`
-- hosted workflow binding — `77e92fd3281a02283f36aea33c48156130b5e548`
-- hosted `KV Guardrails` run `32800687645` = `SUCCESS`
+## Owner-authorized ingress evidence
 
-Production key-provider policy follows the existing TVC resident pattern:
+Canonical implementation: `skap/ingress.py`.
 
-```text
-/run/stegverse/tv-tvc-credentials/<credential-object>
-```
+Hosted synthetic proof requires owner authorization + explicit authorization reference, accepts only mutable in-memory material from `TRUSTED_INTERACTIVE_EDGE`, seals before return, wipes the supplied buffer, and returns only ciphertext plus a secret-free ingress receipt. Hosted run `32800926029` completed `SUCCESS`.
 
-The provider confines root-key lookup to that TVC ephemeral root, uses read-only/no-follow protections where available, requires a regular root-owned non-group/world-readable file with exactly 256 bits of material, exposes key bytes only to an in-process callback, wipes its mutable copy afterward, and never creates/persists/rotates/exports/logs the key. Provider authority is bound into the ciphertext envelope.
+This is not a real iPhone credential capture or production Coinbase credential ingress.
 
-This proves the code path that can consume TV/TVC-resident ephemeral root-key material without returning raw key bytes to callers. It does not prove production key provisioning.
+## RC-17 — KV sealed credential persistence/readback: HOSTED PASS
 
-## Owner-authorized credential ingress — HOSTED PASS WITH SYNTHETIC MATERIAL
+Implemented:
+- `execution/vault_store.py` commit `216a2e1e2858d62826afd057f1651a82e69a5973`;
+- `tests/test_skap_kv_persistence.py` commit `948e597347d7039cbd6fb282f82b778ae0ad677a`;
+- hosted guardrail binding `998cdfa594b32050ad19b6c5b8ed5da2c5021e99`.
 
-Implementation:
-- `skap/ingress.py` — `896e1a80b64e2fd2b51fa09b71ffaea9d4ba61e4`
-- tests `tests/test_skap_owner_ingress.py` — `9ad9753ee4ecdb975c8c39db766e48f1542a8b20`
-- hosted workflow binding — `5a5c6f6d10290ed8d09f318292ef38d3b6b44ecd`
-- hosted `KV Guardrails` run `32800926029` = `SUCCESS`
+The KV boundary now:
+- persists the exact canonical SKAP ciphertext envelope plus secret-free owner-ingress receipt;
+- validates object/version/purpose/endpoint and sealed-material hash bindings;
+- hash-verifies every stored record on readback;
+- reconstructs the exact sealed envelope;
+- rejects plaintext, root/wrapping-key material, KV decryption authority, KV secret-resolution authority, Device custody and authority-transfer claims;
+- detects stored-record tamper before readback.
 
-Ingress properties:
-- requires `owner_authorized=true` plus an explicit authorization reference before invoking the key provider
-- accepts only a mutable in-memory `bytearray` from `TRUSTED_INTERACTIVE_EDGE`
-- rejects source classes `ARGV`, `ENVIRONMENT`, `FILE`, `NETWORK` and `MODEL_OUTPUT`
-- rejects immutable `bytes`/`str` inputs because this boundary cannot wipe them
-- seals immediately through the key-provider API
-- overwrites the caller-provided mutable plaintext buffer after sealing
-- returns only sealed material and a secret-free receipt
-- receipt records `plaintext_persisted=false`, `device_durable_secret_custody=false`, `kv_decryption_authority=false`, `model_secret_access=false`, `authority_transfer=false`
-- tests prove the plaintext literal does not occur in the serialized sealed-envelope/receipt output
+Hosted `KV Guardrails` run `32801180017` completed the new `Validate SKAP ciphertext and ingress receipt KV readback` step successfully together with all prior SKAP/InTr gates.
 
-This is a real ingress implementation and hosted validation using explicitly synthetic non-production bytes. It does **not** constitute owner authorization for any real credential, real Device UI capture, or production credential ingress.
+This proves repository-local KnowledgeVault persistence semantics using synthetic sealed material. It does not yet prove a real owner-connected KnowledgeVault write.
+
+## Physical-device and production-key constraint
+
+`CURRENT_USER_IPHONE` remains the only user-operated physical surface. No second machine, shell, SSH session, Linux host or always-on external user-managed host may be required for production activation.
+
+The existing `skap/key_provider.py` `/run/stegverse/...` file provider is a validated implementation/reference boundary only. **It must not become a production requirement that forces the user to operate another machine.** Production SKAP key provisioning remains OPEN and must satisfy the iPhone/StegVerse physical-runtime contract while retaining TV/TVC-only key authority.
 
 ## Authority boundaries
 
-- TV/TVC remains credential/secret/token and production root-key authority.
-- SKAP provides sealed custody and transient cryptographic use; custody does not create execution/governance/identity/continuity authority.
-- KV preserves ciphertext/reference + non-secret lifecycle/access/continuity evidence only; KV has no decryption authority.
-- Device has no durable secret custody.
+- TV/TVC remains credential/secret/token/key authority.
+- SKAP provides sealed custody and transient resolution only.
+- KV stores ciphertext/reference + non-secret evidence only and has no decryption/resolution authority.
+- Device has no durable secret/key custody.
 - External Network is transport only.
-- Endpoint plaintext use is permitted only after exact endpoint/session/grant/lifecycle/revocation verification and must remain on that authenticated session.
-- Return InTr evidence carries no secret plaintext.
+- exact endpoint/session and current grant/revocation state are mandatory before transient resolution.
+- ambiguous native submission state => `VERIFY_EXTERNALLY`, never blind retry.
 - model output grants no authority.
 
 ## Review gates
 
-- RC-01 through RC-13 protocol/schema/reconstruction/synthetic transport: `HOSTED PASS`
-- `RC-14A-EXTERNAL-NON_SECRET-PROVIDER-PROBE`: `HOSTED PASS`
-- `RC-14B-PROVIDER_BOUND-CREDENTIAL-SESSION`: `OPEN`
-- `RC-15A-SKAP-CRYPTO-IMPLEMENTATION`: `HOSTED PASS`
-- `RC-15B-SKAP-RUNTIME-LIFECYCLE-INVALIDATION`: `HOSTED PASS`
-- `RC-15C-TVC-RESIDENT-KEY-PROVIDER-CODE`: `HOSTED PASS`
-- `RC-15D-TVC-PRODUCTION-KEY-PROVISIONING`: `OPEN`
-- `RC-16A-OWNER-INGRESS-CODE-AND-SYNTHETIC-PROOF`: `HOSTED PASS`
-- `RC-16B-REAL-OWNER-INGRESS`: `OPEN`
-- `RC-17-KV-SEALED-CREDENTIAL-PERSISTENCE-READBACK`: `OPEN`
-- `RC-18-PROVIDER-BOUND-CREDENTIAL-SESSION`: `OPEN`
-- `RC-19-FIRST-BOUNDED-PROVIDER-OPERATION`: `OPEN`
+```text
+RC-01..RC-13 protocol/schema/reconstruction/synthetic transport: HOSTED PASS
+RC-14A external non-secret Coinbase endpoint: HOSTED PASS
+RC-15A SKAP crypto implementation: HOSTED PASS
+RC-15B lifecycle/grant invalidation: HOSTED PASS
+RC-15C key-provider code boundary: HOSTED PASS
+RC-15D production key provisioning under iPhone-only contract: OPEN
+RC-16A owner-ingress code/synthetic proof: HOSTED PASS
+RC-16B real owner/iPhone ingress: OPEN
+RC-17 KV sealed credential persistence/readback: HOSTED PASS
+RC-17B actual connected KnowledgeVault synthetic sealed write/read: OPEN
+RC-18 provider-bound credential session: OPEN
+RC-19 first bounded provider operation: OPEN
+```
 
 ## Next executable work
 
-1. Implement the SKAP-specific KnowledgeVault ciphertext/reference + ingress/lifecycle receipt persistence boundary and prove read-back/reconstruction using synthetic sealed material only.
-2. Exercise that persistence against the actual connected KnowledgeVault without placing any real credential or production root key there.
-3. Bind TVC runtime provisioning to the SKAP root-key provider without introducing GitHub/Actions/KV/Device/model key authority.
-4. Bind a sealed Coinbase grant to the already-proven Coinbase TLS/session path.
-5. Only after explicit owner authorization and production TVC key provisioning, admit the first real credential and perform a read-only Coinbase permission/fee observation before any bounded effect.
+1. Build the iPhone browser-to-SKAP sealed ingress transport so credential plaintext is encrypted before leaving the current-user iPhone and the phone receives no SKAP private/root key.
+2. Reuse the existing `stegverse.org` WebAuthn participant surface for owner authorization; do not create a parallel authority surface.
+3. Exercise ciphertext-only persistence against the actual connected KnowledgeVault using synthetic material if that surface is accessible, with no real credential/root key.
+4. Bind a real sealed Coinbase grant to the already-proven Coinbase TLS/session path.
+5. Only after explicit owner authorization and valid production TVC/SKAP key provisioning, admit the first real credential and perform read-only Coinbase permission/fee observation.
+6. Then perform the max-$10 post-only maker proof, reconcile, obtain the next authenticated snapshot and repeat.
 
 ## Completion boundary
 
-This goal remains open. Hosted external transport, cryptography, lifecycle invalidation, TVC-resident key-provider code and synthetic owner-ingress proof do not equal production credential activation. Completion requires real TVC root-key provisioning, actual owner-authorized credential ingress, sealed KV persistence/reconstruction, provider-bound credential-session proof, and a bounded real credential operation with all authority/secret boundaries intact.
+Source/CI/hosted proofs do not equal production activation. Completion requires real owner-authorized iPhone ingress, production SKAP key custody compatible with the no-second-machine rule, real sealed credential state, provider-bound authenticated session proof, authentic Coinbase observation, bounded execution, reconciliation and repeat-loop evidence.
