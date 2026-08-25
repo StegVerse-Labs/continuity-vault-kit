@@ -35,6 +35,7 @@ jobs:
             scripts/intr_hop_receipt.py \
             scripts/validate_skap_endpoint_contracts.py \
             scripts/run_intr_synthetic_runtime.py \
+            scripts/run_intr_external_endpoint_probe.py \
             execution/vault_store.py \
             tests/test_vault_store.py \
             tests/test_skap_intr_reconstruction.py
@@ -108,6 +109,17 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+      - name: Exercise non-secret Coinbase external endpoint traversal
+        run: python3 scripts/run_intr_external_endpoint_probe.py
+
+      - name: Preserve external endpoint traversal evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: skap-intr-coinbase-external-probe-${{ github.run_id }}
+          path: reports/skap_intr/external-endpoint-probe-coinbase.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Prove hosted validation is non-authorizing
         run: |
           python3 - <<'PY'
@@ -131,6 +143,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
-          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, lifecycle transition integrity, bidirectional receipt-chain integrity, KV metadata-only persistence, complete reconstruction evidence, and synthetic transport I/O."
+          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, lifecycle transition integrity, bidirectional receipt-chain integrity, KV metadata-only persistence, complete reconstruction evidence, synthetic transport I/O, and non-secret external endpoint verification."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
