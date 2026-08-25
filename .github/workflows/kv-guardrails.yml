@@ -36,6 +36,7 @@ jobs:
             scripts/validate_skap_endpoint_contracts.py \
             scripts/run_intr_synthetic_runtime.py \
             scripts/run_intr_external_endpoint_probe.py \
+            scripts/run_skap_coinbase_synthetic_sealed_session.py \
             skap/crypto_boundary.py \
             skap/browser_ingress.py \
             skap/key_provider.py \
@@ -71,7 +72,6 @@ jobs:
               value=json.loads(Path(value_path).read_text(encoding='utf-8'))
               jsonschema.Draft202012Validator(schema).validate(value)
               print('SCHEMA_PASS', value_path)
-
           for schema_path in (
               'schemas/skap-sealed-object.schema.json',
               'schemas/skap-lifecycle-transition-receipt.schema.json',
@@ -81,7 +81,6 @@ jobs:
               schema=json.loads(Path(schema_path).read_text(encoding='utf-8'))
               jsonschema.Draft202012Validator.check_schema(schema)
               print('SCHEMA_DEFINITION_PASS', schema_path)
-
           receipt_schema=json.loads(Path('schemas/intr-hop-receipt.schema.json').read_text(encoding='utf-8'))
           validator=jsonschema.Draft202012Validator(receipt_schema)
           for chain_path in (
@@ -148,16 +147,23 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+      - name: Resolve synthetic SKAP material only after verified Coinbase TLS session
+        run: PYTHONPATH=. python3 scripts/run_skap_coinbase_synthetic_sealed_session.py
+
+      - name: Preserve synthetic sealed-session evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: skap-coinbase-synthetic-sealed-session-${{ github.run_id }}
+          path: reports/skap_intr/coinbase-synthetic-sealed-session.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Prove hosted validation is non-authorizing
         run: |
           python3 - <<'PY'
           from pathlib import Path
           text=Path('.github/workflows/kv-guardrails.yml').read_text(encoding='utf-8')
-          forbidden = [
-              'contents:' + ' write',
-              'git' + ' push',
-              'secrets' + '.',
-          ]
+          forbidden = ['contents:' + ' write', 'git' + ' push', 'secrets' + '.']
           assert 'contents: read' in text
           for marker in forbidden:
               assert marker not in text, marker
@@ -171,6 +177,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
-          echo "InTr/SKAP repair path: preserve authenticated cryptographic sealing, browser public-key ingress, TVC/SKAP private-key confinement, transient owner-authorized ingress, lifecycle/grant-bound resolution, rotation/revocation invalidation, canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, bidirectional receipt-chain integrity, KV metadata/ciphertext-only persistence, complete reconstruction evidence, synthetic transport I/O, and non-secret external endpoint verification."
+          echo "InTr/SKAP repair path: preserve authenticated cryptographic sealing, browser public-key ingress, TVC/SKAP private-key confinement, transient owner-authorized ingress, lifecycle/grant-bound resolution, rotation/revocation invalidation, canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, bidirectional receipt-chain integrity, KV metadata/ciphertext-only persistence, complete reconstruction evidence, synthetic transport I/O, non-secret external endpoint verification, and verified-session-before-resolution ordering."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
