@@ -1,0 +1,93 @@
+{
+  "schema": "stegverse.intr.packet.review_candidate/v1",
+  "status": "REVIEW_CANDIDATE",
+  "protocol": "InTr",
+  "topology_ref": "specs/skap-intr-review-candidate.v1.json",
+  "envelope": {
+    "packet_id": "intrpkt-example-001",
+    "packet_version": 1,
+    "direction": "FORWARD",
+    "source_role": "SKAP",
+    "next_role": "KV",
+    "final_role": "ENDPOINT",
+    "operation_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "payload_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "prior_receipt_hash": null,
+    "issued_at": "2026-08-24T19:45:00-05:00",
+    "expires_at": "2026-08-24T19:50:00-05:00",
+    "nonce": "example-nonce-001",
+    "replay": {
+      "max_uses": 1,
+      "use_index": 0,
+      "state": "ISSUED"
+    },
+    "authority": {
+      "authority_transfer": false,
+      "model_output_grants_execution_authority": false,
+      "transport_grants_execution_authority": false
+    },
+    "boundary_proof": {
+      "required": true,
+      "source_identity_ref": "identity:skap-example",
+      "next_boundary_identity_ref": "identity:kv-example",
+      "verification_state": "PENDING"
+    },
+    "protected_payload": {
+      "sealed": true,
+      "plaintext_present": false,
+      "content_class": "SKAP_CREDENTIAL_GRANT",
+      "sealed_material_ref": "sealed:example",
+      "resolution_policy": "ENDPOINT_SESSION_VERIFIED_AND_GRANT_VALID"
+    },
+    "credential_grant": {
+      "credential_ref": "skap://APIs/provider/example",
+      "credential_version": 1,
+      "purpose": "llm.inference",
+      "authorized_endpoint": {
+        "service_id": "provider-example",
+        "host": "api.example.invalid",
+        "scheme": "https",
+        "port": 443,
+        "path_prefix": "/v1/"
+      },
+      "authorized_resolver_ref": "resolver:endpoint-adapter-example",
+      "maximum_calls": 1,
+      "maximum_cost": null,
+      "revocation_check_required_immediately_before_resolution": true,
+      "same_authenticated_session_required_for_resolution_and_submission": true
+    },
+    "receipt_policy": {
+      "receipt_required_each_hop": true,
+      "receipt_contains_secret_plaintext": false,
+      "receipt_chain_required": true,
+      "ambiguous_submission_disposition": "VERIFY_EXTERNALLY"
+    }
+  },
+  "hop_state_machine": [
+    "ISSUED",
+    "BOUNDARY_VERIFIED",
+    "CLAIMED",
+    "FORWARDED",
+    "RECEIPTED",
+    "TERMINAL"
+  ],
+  "endpoint_resolution_state_machine": [
+    "ARRIVED_SEALED",
+    "ENDPOINT_SESSION_VERIFIED",
+    "GRANT_REVALIDATED",
+    "CREDENTIAL_RESOLVED_TRANSIENTLY",
+    "SUBMITTED_ON_SAME_SESSION",
+    "PLAINTEXT_DISCARDED",
+    "RECEIPTED"
+  ],
+  "failure_invariants": {
+    "wrong_boundary": "FAIL_CLOSED",
+    "expired_packet": "FAIL_CLOSED",
+    "replay_detected": "FAIL_CLOSED",
+    "authority_mismatch": "FAIL_CLOSED",
+    "endpoint_mismatch": "FAIL_CLOSED",
+    "revoked_credential": "FAIL_CLOSED",
+    "session_changed_after_verification": "FAIL_CLOSED",
+    "ambiguous_after_submission": "VERIFY_EXTERNALLY"
+  }
+}
