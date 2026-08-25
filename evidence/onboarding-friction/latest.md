@@ -1,6 +1,6 @@
 # Onboarding Friction Registry
 
-- **Generated UTC:** `2026-08-23T09:45:30Z`
+- **Generated UTC:** `2026-08-25T09:53:39Z`
 - **Reports:** `0`
 - **Automation-candidate threshold:** `3 reports with the same signature`
 
