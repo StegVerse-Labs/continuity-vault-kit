@@ -7,19 +7,23 @@
     "schema",
     "proof_id",
     "packet_id",
+    "packet_hash",
     "operation_hash",
+    "credential_grant_hash",
     "authorized_endpoint_ref",
     "resolved_host",
     "scheme",
     "port",
     "path_prefix",
     "tls_session_ref",
+    "tls_session_binding_hash",
     "peer_identity_ref",
     "verification_state",
     "verified_at",
     "same_session_required_for_resolution_and_submission",
     "redirect_permitted",
     "credential_resolution_permitted",
+    "revocation_rechecked_immediately_before_resolution",
     "authority_transfer",
     "proof_hash"
   ],
@@ -27,13 +31,16 @@
     "schema": {"const": "stegverse.intr.endpoint_session_proof/v1"},
     "proof_id": {"type": "string", "minLength": 1},
     "packet_id": {"type": "string", "minLength": 1},
+    "packet_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "operation_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "credential_grant_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "authorized_endpoint_ref": {"type": "string", "minLength": 1},
     "resolved_host": {"type": "string", "minLength": 1},
     "scheme": {"const": "https"},
     "port": {"type": "integer", "minimum": 1, "maximum": 65535},
     "path_prefix": {"type": "string", "pattern": "^/"},
     "tls_session_ref": {"type": "string", "minLength": 1},
+    "tls_session_binding_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "peer_identity_ref": {"type": "string", "minLength": 1},
     "certificate_chain_hash": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
     "verification_state": {"enum": ["VERIFIED", "FAILED"]},
@@ -41,6 +48,7 @@
     "same_session_required_for_resolution_and_submission": {"const": true},
     "redirect_permitted": {"const": false},
     "credential_resolution_permitted": {"type": "boolean"},
+    "revocation_rechecked_immediately_before_resolution": {"type": "boolean"},
     "authority_transfer": {"const": false},
     "failure_disposition": {"enum": ["FAIL_CLOSED", "NOT_APPLICABLE"]},
     "proof_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
@@ -51,6 +59,7 @@
       "then": {
         "properties": {
           "credential_resolution_permitted": {"const": true},
+          "revocation_rechecked_immediately_before_resolution": {"const": true},
           "failure_disposition": {"const": "NOT_APPLICABLE"}
         }
       }
