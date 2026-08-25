@@ -189,3 +189,60 @@ def resolve_transiently(
     finally:
         for index in range(len(mutable)):
             mutable[index] = 0
+
+
+def resolve_granted_transiently(
+    sealed: dict[str, Any],
+    *,
+    root_key: bytes | bytearray,
+    lifecycle_state: str,
+    current_credential_version: int,
+    grant: dict[str, Any],
+    revocation_check_passed: bool,
+    expected_object_id: str,
+    expected_wrapping_policy_ref: str,
+    expected_key_authority_ref: str,
+    consumer: Callable[[memoryview], T],
+) -> T:
+    """Resolve only when the current lifecycle and exact grant remain admissible.
+
+    Possession of old ciphertext or a previously issued grant is insufficient. Only an
+    ACTIVE current version with an unrevoked, unconsumed grant and an immediate
+    revocation check may reach decryption.
+    """
+    if lifecycle_state != "ACTIVE":
+        raise SKAPCryptoError(f"credential lifecycle {lifecycle_state} blocks resolution")
+    if not isinstance(current_credential_version, int) or current_credential_version < 1:
+        raise SKAPCryptoError("current credential version invalid")
+    if grant.get("credential_version") != current_credential_version:
+        raise SKAPCryptoError("grant credential version is stale or mismatched")
+    if sealed.get("credential_version") != current_credential_version:
+        raise SKAPCryptoError("sealed material is not the current credential version")
+    if grant.get("state") != "ACTIVE":
+        raise SKAPCryptoError("grant is not active")
+    if grant.get("revoked") is not False:
+        raise SKAPCryptoError("grant is revoked or revocation state is ambiguous")
+    if grant.get("consumed") is not False:
+        raise SKAPCryptoError("grant has already been consumed")
+    if revocation_check_passed is not True:
+        raise SKAPCryptoError("immediate revocation check did not pass")
+    if grant.get("object_id") != expected_object_id:
+        raise SKAPCryptoError("grant object binding mismatch")
+    purpose = grant.get("purpose")
+    endpoint_ref = grant.get("endpoint_ref")
+    if not isinstance(purpose, str) or not purpose:
+        raise SKAPCryptoError("grant purpose missing")
+    if not isinstance(endpoint_ref, str) or not endpoint_ref:
+        raise SKAPCryptoError("grant endpoint missing")
+
+    return resolve_transiently(
+        sealed,
+        root_key=root_key,
+        expected_object_id=expected_object_id,
+        expected_credential_version=current_credential_version,
+        expected_wrapping_policy_ref=expected_wrapping_policy_ref,
+        expected_purpose=purpose,
+        expected_endpoint_ref=endpoint_ref,
+        expected_key_authority_ref=expected_key_authority_ref,
+        consumer=consumer,
+    )
