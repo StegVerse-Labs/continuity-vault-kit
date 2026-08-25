@@ -24,89 +24,31 @@
         "issued_at": {"type": "string"},
         "expires_at": {"type": "string"},
         "nonce": {"type": "string","minLength": 1},
-        "replay": {
-          "type": "object",
-          "required": ["max_uses","use_index","state"],
-          "properties": {
-            "max_uses": {"type": "integer","minimum": 1},
-            "use_index": {"type": "integer","minimum": 0},
-            "state": {"enum": ["ISSUED","CLAIMED","CONSUMED","REJECTED"]}
-          },
-          "additionalProperties": false
-        },
-        "authority": {
-          "type": "object",
-          "required": ["authority_transfer","model_output_grants_execution_authority","transport_grants_execution_authority"],
-          "properties": {
-            "authority_transfer": {"const": false},
-            "model_output_grants_execution_authority": {"const": false},
-            "transport_grants_execution_authority": {"const": false}
-          },
-          "additionalProperties": false
-        },
-        "boundary_proof": {
-          "type": "object",
-          "required": ["required","source_identity_ref","next_boundary_identity_ref","verification_state"],
-          "properties": {
-            "required": {"const": true},
-            "source_identity_ref": {"type": "string","minLength": 1},
-            "next_boundary_identity_ref": {"type": "string","minLength": 1},
-            "verification_state": {"enum": ["PENDING","VERIFIED","FAILED"]}
-          },
-          "additionalProperties": false
-        },
-        "protected_payload": {
-          "type": "object",
-          "required": ["sealed","plaintext_present","content_class","sealed_material_ref","resolution_policy"],
-          "properties": {
-            "sealed": {"const": true},
-            "plaintext_present": {"const": false},
-            "content_class": {"enum": ["SKAP_CREDENTIAL_GRANT","GENERIC_SEALED_PAYLOAD"]},
-            "sealed_material_ref": {"type": "string","minLength": 1},
-            "resolution_policy": {"const": "ENDPOINT_SESSION_VERIFIED_AND_GRANT_VALID"}
-          },
-          "additionalProperties": false
-        },
-        "credential_grant": {
-          "type": "object",
-          "required": ["credential_ref","credential_version","purpose","authorized_endpoint","authorized_resolver_ref","maximum_calls","revocation_check_required_immediately_before_resolution","same_authenticated_session_required_for_resolution_and_submission"],
-          "properties": {
-            "credential_ref": {"type": "string","pattern": "^skap://"},
-            "credential_version": {"type": "integer","minimum": 1},
-            "purpose": {"type": "string","minLength": 1},
-            "authorized_endpoint": {
-              "type": "object",
-              "required": ["service_id","host","scheme","port","path_prefix"],
-              "properties": {
-                "service_id": {"type": "string","minLength": 1},
-                "host": {"type": "string","minLength": 1},
-                "scheme": {"const": "https"},
-                "port": {"type": "integer","minimum": 1,"maximum": 65535},
-                "path_prefix": {"type": "string","pattern": "^/"}
-              },
-              "additionalProperties": false
-            },
-            "authorized_resolver_ref": {"type": "string","minLength": 1},
-            "maximum_calls": {"type": "integer","minimum": 1},
-            "maximum_cost": {"type": ["number","null"],"minimum": 0},
-            "revocation_check_required_immediately_before_resolution": {"const": true},
-            "same_authenticated_session_required_for_resolution_and_submission": {"const": true}
-          },
-          "additionalProperties": false
-        },
-        "receipt_policy": {
-          "type": "object",
-          "required": ["receipt_required_each_hop","receipt_contains_secret_plaintext","receipt_chain_required","ambiguous_submission_disposition"],
-          "properties": {
-            "receipt_required_each_hop": {"const": true},
-            "receipt_contains_secret_plaintext": {"const": false},
-            "receipt_chain_required": {"const": true},
-            "ambiguous_submission_disposition": {"const": "VERIFY_EXTERNALLY"}
-          },
-          "additionalProperties": false
-        }
+        "replay": {"type":"object","required":["max_uses","use_index","state"],"properties":{"max_uses":{"type":"integer","minimum":1},"use_index":{"type":"integer","minimum":0},"state":{"enum":["ISSUED","CLAIMED","CONSUMED","REJECTED"]}},"additionalProperties":false},
+        "authority": {"type":"object","required":["authority_transfer","model_output_grants_execution_authority","transport_grants_execution_authority"],"properties":{"authority_transfer":{"const":false},"model_output_grants_execution_authority":{"const":false},"transport_grants_execution_authority":{"const":false}},"additionalProperties":false},
+        "boundary_proof": {"type":"object","required":["required","source_identity_ref","next_boundary_identity_ref","verification_state"],"properties":{"required":{"const":true},"source_identity_ref":{"type":"string","minLength":1},"next_boundary_identity_ref":{"type":"string","minLength":1},"verification_state":{"enum":["PENDING","VERIFIED","FAILED"]}},"additionalProperties":false},
+        "protected_payload": {"type":"object","required":["sealed","plaintext_present","content_class","sealed_material_ref","resolution_policy"],"properties":{"sealed":{"const":true},"plaintext_present":{"const":false},"content_class":{"enum":["SKAP_CREDENTIAL_GRANT","GENERIC_SEALED_PAYLOAD"]},"sealed_material_ref":{"type":"string","minLength":1},"resolution_policy":{"const":"ENDPOINT_SESSION_VERIFIED_AND_GRANT_VALID"}},"additionalProperties":false},
+        "credential_grant": {"type":"object","required":["credential_ref","credential_version","purpose","authorized_endpoint","authorized_resolver_ref","maximum_calls","revocation_check_required_immediately_before_resolution","same_authenticated_session_required_for_resolution_and_submission"],"properties":{"credential_ref":{"type":"string","pattern":"^skap://"},"credential_version":{"type":"integer","minimum":1},"purpose":{"type":"string","minLength":1},"authorized_endpoint":{"type":"object","required":["service_id","host","scheme","port","path_prefix"],"properties":{"service_id":{"type":"string","minLength":1},"host":{"type":"string","minLength":1},"scheme":{"const":"https"},"port":{"type":"integer","minimum":1,"maximum":65535},"path_prefix":{"type":"string","pattern":"^/"}},"additionalProperties":false},"authorized_resolver_ref":{"type":"string","minLength":1},"maximum_calls":{"type":"integer","minimum":1},"maximum_cost":{"type":["number","null"],"minimum":0},"revocation_check_required_immediately_before_resolution":{"const":true},"same_authenticated_session_required_for_resolution_and_submission":{"const":true}},"additionalProperties":false},
+        "receipt_policy": {"type":"object","required":["receipt_required_each_hop","receipt_contains_secret_plaintext","receipt_chain_required","ambiguous_submission_disposition"],"properties":{"receipt_required_each_hop":{"const":true},"receipt_contains_secret_plaintext":{"const":false},"receipt_chain_required":{"const":true},"ambiguous_submission_disposition":{"const":"VERIFY_EXTERNALLY"}},"additionalProperties":false}
       },
       "additionalProperties": false
+    },
+    "hop_state_machine": {"const":["ISSUED","BOUNDARY_VERIFIED","CLAIMED","FORWARDED","RECEIPTED","TERMINAL"]},
+    "endpoint_resolution_state_machine": {"const":["ARRIVED_SEALED","ENDPOINT_SESSION_VERIFIED","GRANT_REVALIDATED","CREDENTIAL_RESOLVED_TRANSIENTLY","SUBMITTED_ON_SAME_SESSION","PLAINTEXT_DISCARDED","RECEIPTED"]},
+    "failure_invariants": {
+      "type":"object",
+      "required":["wrong_boundary","expired_packet","replay_detected","authority_mismatch","endpoint_mismatch","revoked_credential","session_changed_after_verification","ambiguous_after_submission"],
+      "properties":{
+        "wrong_boundary":{"const":"FAIL_CLOSED"},
+        "expired_packet":{"const":"FAIL_CLOSED"},
+        "replay_detected":{"const":"FAIL_CLOSED"},
+        "authority_mismatch":{"const":"FAIL_CLOSED"},
+        "endpoint_mismatch":{"const":"FAIL_CLOSED"},
+        "revoked_credential":{"const":"FAIL_CLOSED"},
+        "session_changed_after_verification":{"const":"FAIL_CLOSED"},
+        "ambiguous_after_submission":{"const":"VERIFY_EXTERNALLY"}
+      },
+      "additionalProperties":false
     }
   },
   "additionalProperties": false
