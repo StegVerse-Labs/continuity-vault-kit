@@ -1,4 +1,4 @@
-name: KV Guardrails (Layer + Footer + Emoji)
+name: KV Guardrails (Layer + Footer + Emoji + InTr)
 
 on:
   pull_request:
@@ -22,17 +22,64 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install public schema validator
+        run: python3 -m pip install --disable-pip-version-check jsonschema
+
       - name: Compile guardrail tools
         run: |
-          python3 -m py_compile tools/kv_layer_check.py tools/emoji_lint.py
+          python3 -m py_compile \
+            tools/kv_layer_check.py \
+            tools/emoji_lint.py \
+            scripts/validate_skap_intr_review_candidate.py \
+            scripts/validate_intr_packet_review_candidate.py \
+            scripts/intr_hop_receipt.py
 
       - name: KV layer boundary + footer validation
-        run: |
-          python3 tools/kv_layer_check.py --mode validate
+        run: python3 tools/kv_layer_check.py --mode validate
 
       - name: Emoji + glyph lint
+        run: python3 tools/emoji_lint.py --strict
+
+      - name: Validate SKAP InTr topology and packet schemas
         run: |
-          python3 tools/emoji_lint.py --strict
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import jsonschema
+          pairs = [
+              ('schemas/skap-intr-review-candidate.schema.json', 'specs/skap-intr-review-candidate.v1.json'),
+              ('schemas/intr-packet-review-candidate.schema.json', 'specs/intr-packet-review-candidate.v1.json'),
+          ]
+          for schema_path, value_path in pairs:
+              schema=json.loads(Path(schema_path).read_text(encoding='utf-8'))
+              value=json.loads(Path(value_path).read_text(encoding='utf-8'))
+              jsonschema.Draft202012Validator(schema).validate(value)
+              print('SCHEMA_PASS', value_path)
+          receipt_schema=json.loads(Path('schemas/intr-hop-receipt.schema.json').read_text(encoding='utf-8'))
+          chain=json.loads(Path('examples/intr-hop-receipt-chain.example.json').read_text(encoding='utf-8'))
+          validator=jsonschema.Draft202012Validator(receipt_schema)
+          for receipt in chain:
+              validator.validate(receipt)
+          print('SCHEMA_PASS examples/intr-hop-receipt-chain.example.json')
+          PY
+
+      - name: Validate SKAP InTr semantic boundaries
+        run: |
+          python3 scripts/validate_skap_intr_review_candidate.py specs/skap-intr-review-candidate.v1.json --self-test
+          python3 scripts/validate_intr_packet_review_candidate.py specs/intr-packet-review-candidate.v1.json --self-test
+          python3 scripts/intr_hop_receipt.py verify-chain examples/intr-hop-receipt-chain.example.json
+
+      - name: Prove hosted validation is non-authorizing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('.github/workflows/kv-guardrails.yml').read_text(encoding='utf-8')
+          assert 'contents: read' in text
+          assert 'contents: write' not in text
+          assert 'git push' not in text
+          assert 'secrets.' not in text
+          print('KV_INTR_HOSTED_VALIDATION_NON_AUTHORIZING_PASS')
+          PY
 
       - name: Guardrail repair guidance
         if: failure()
@@ -41,5 +88,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
+          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, and receipt-chain integrity."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
