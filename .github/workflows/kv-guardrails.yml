@@ -39,12 +39,14 @@ jobs:
             scripts/run_skap_coinbase_synthetic_sealed_session.py \
             skap/crypto_boundary.py \
             skap/browser_ingress.py \
+            skap/browser_admission.py \
             skap/key_provider.py \
             skap/ingress.py \
             execution/vault_store.py \
             tests/test_vault_store.py \
             tests/test_skap_kv_persistence.py \
             tests/test_skap_browser_ingress.py \
+            tests/test_skap_browser_admission.py \
             tests/test_skap_intr_reconstruction.py \
             tests/test_skap_crypto_boundary.py \
             tests/test_skap_crypto_lifecycle_runtime.py \
@@ -106,6 +108,9 @@ jobs:
 
       - name: Validate browser-to-SKAP public-key ingress
         run: python3 -m unittest tests.test_skap_browser_ingress -v
+
+      - name: Validate browser ciphertext to canonical SKAP admission bridge
+        run: python3 -m unittest tests.test_skap_browser_admission -v
 
       - name: Validate SKAP runtime rotation and revocation
         run: python3 -m unittest tests.test_skap_crypto_lifecycle_runtime -v
@@ -177,6 +182,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
-          echo "InTr/SKAP repair path: preserve authenticated cryptographic sealing, browser public-key ingress, TVC/SKAP private-key confinement, transient owner-authorized ingress, lifecycle/grant-bound resolution, rotation/revocation invalidation, canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, bidirectional receipt-chain integrity, KV metadata/ciphertext-only persistence, complete reconstruction evidence, synthetic transport I/O, non-secret external endpoint verification, and verified-session-before-resolution ordering."
+          echo "InTr/SKAP repair path: preserve authenticated cryptographic sealing, browser public-key ingress, callback-only browser-to-canonical SKAP admission, TVC/SKAP private-key confinement, transient owner-authorized ingress, lifecycle/grant-bound resolution, rotation/revocation invalidation, canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, bidirectional receipt-chain integrity, KV metadata/ciphertext-only persistence, complete reconstruction evidence, synthetic transport I/O, non-secret external endpoint verification, and verified-session-before-resolution ordering."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
