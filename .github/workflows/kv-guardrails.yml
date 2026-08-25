@@ -22,8 +22,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install public schema validator
-        run: python3 -m pip install --disable-pip-version-check jsonschema
+      - name: Install public validators and cryptography
+        run: python3 -m pip install --disable-pip-version-check jsonschema cryptography
 
       - name: Compile guardrail tools
         run: |
@@ -36,9 +36,11 @@ jobs:
             scripts/validate_skap_endpoint_contracts.py \
             scripts/run_intr_synthetic_runtime.py \
             scripts/run_intr_external_endpoint_probe.py \
+            skap/crypto_boundary.py \
             execution/vault_store.py \
             tests/test_vault_store.py \
-            tests/test_skap_intr_reconstruction.py
+            tests/test_skap_intr_reconstruction.py \
+            tests/test_skap_crypto_boundary.py
 
       - name: KV layer boundary + footer validation
         run: python3 tools/kv_layer_check.py --mode validate
@@ -92,6 +94,9 @@ jobs:
           python3 scripts/intr_hop_receipt.py verify-chain examples/intr-hop-receipt-chain.example.json
           python3 scripts/intr_hop_receipt.py verify-chain examples/intr-hop-return-receipt-chain.example.json
 
+      - name: Validate real SKAP cryptographic boundary
+        run: python3 -m unittest tests.test_skap_crypto_boundary -v
+
       - name: Validate KV InTr persistence boundary
         run: python3 -m unittest tests.test_vault_store -v
 
@@ -143,6 +148,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
-          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, lifecycle transition integrity, bidirectional receipt-chain integrity, KV metadata-only persistence, complete reconstruction evidence, synthetic transport I/O, and non-secret external endpoint verification."
+          echo "InTr/SKAP repair path: preserve authenticated cryptographic sealing, canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, lifecycle transition integrity, bidirectional receipt-chain integrity, KV metadata-only persistence, complete reconstruction evidence, synthetic transport I/O, and non-secret external endpoint verification."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
