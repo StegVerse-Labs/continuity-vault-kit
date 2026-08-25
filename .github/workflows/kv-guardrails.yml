@@ -32,7 +32,8 @@ jobs:
             tools/emoji_lint.py \
             scripts/validate_skap_intr_review_candidate.py \
             scripts/validate_intr_packet_review_candidate.py \
-            scripts/intr_hop_receipt.py
+            scripts/intr_hop_receipt.py \
+            scripts/validate_skap_endpoint_contracts.py
 
       - name: KV layer boundary + footer validation
         run: python3 tools/kv_layer_check.py --mode validate
@@ -40,7 +41,7 @@ jobs:
       - name: Emoji + glyph lint
         run: python3 tools/emoji_lint.py --strict
 
-      - name: Validate SKAP InTr topology and packet schemas
+      - name: Validate SKAP InTr schemas and receipt chains
         run: |
           python3 - <<'PY'
           import json
@@ -55,19 +56,35 @@ jobs:
               value=json.loads(Path(value_path).read_text(encoding='utf-8'))
               jsonschema.Draft202012Validator(schema).validate(value)
               print('SCHEMA_PASS', value_path)
+
+          for schema_path in (
+              'schemas/skap-sealed-object.schema.json',
+              'schemas/intr-endpoint-session-proof.schema.json',
+              'schemas/intr-hop-receipt.schema.json',
+          ):
+              schema=json.loads(Path(schema_path).read_text(encoding='utf-8'))
+              jsonschema.Draft202012Validator.check_schema(schema)
+              print('SCHEMA_DEFINITION_PASS', schema_path)
+
           receipt_schema=json.loads(Path('schemas/intr-hop-receipt.schema.json').read_text(encoding='utf-8'))
-          chain=json.loads(Path('examples/intr-hop-receipt-chain.example.json').read_text(encoding='utf-8'))
           validator=jsonschema.Draft202012Validator(receipt_schema)
-          for receipt in chain:
-              validator.validate(receipt)
-          print('SCHEMA_PASS examples/intr-hop-receipt-chain.example.json')
+          for chain_path in (
+              'examples/intr-hop-receipt-chain.example.json',
+              'examples/intr-hop-return-receipt-chain.example.json',
+          ):
+              chain=json.loads(Path(chain_path).read_text(encoding='utf-8'))
+              for receipt in chain:
+                  validator.validate(receipt)
+              print('SCHEMA_PASS', chain_path)
           PY
 
       - name: Validate SKAP InTr semantic boundaries
         run: |
           python3 scripts/validate_skap_intr_review_candidate.py specs/skap-intr-review-candidate.v1.json --self-test
           python3 scripts/validate_intr_packet_review_candidate.py specs/intr-packet-review-candidate.v1.json --self-test
+          python3 scripts/validate_skap_endpoint_contracts.py --self-test
           python3 scripts/intr_hop_receipt.py verify-chain examples/intr-hop-receipt-chain.example.json
+          python3 scripts/intr_hop_receipt.py verify-chain examples/intr-hop-return-receipt-chain.example.json
 
       - name: Prove hosted validation is non-authorizing
         run: |
@@ -88,6 +105,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
-          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, and receipt-chain integrity."
+          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, lifecycle state integrity, and bidirectional receipt-chain integrity."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
