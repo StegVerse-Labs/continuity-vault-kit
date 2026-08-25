@@ -1,0 +1,77 @@
+name: SKAP Vault Double Interlock Validation
+
+on:
+  push:
+    paths:
+      - 'specs/skap-vault-double-interlock.v1.json'
+      - 'scripts/validate_skap_vault_double_interlock.py'
+      - 'SKAP_INTR_REVIEW_CANDIDATE_MIRROR_HANDOFF.md'
+      - '.github/workflows/skap-vault-double-interlock.yml'
+  pull_request:
+    paths:
+      - 'specs/skap-vault-double-interlock.v1.json'
+      - 'scripts/validate_skap_vault_double_interlock.py'
+      - 'SKAP_INTR_REVIEW_CANDIDATE_MIRROR_HANDOFF.md'
+      - '.github/workflows/skap-vault-double-interlock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile validator
+        run: python3 -m py_compile scripts/validate_skap_vault_double_interlock.py
+
+      - name: Validate contract and deterministic negative cases
+        run: python3 scripts/validate_skap_vault_double_interlock.py --self-test
+
+      - name: Assert two independent InTr boundaries and no secret authority leakage
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          contract=json.loads(Path('specs/skap-vault-double-interlock.v1.json').read_text())
+          assert contract['canonical_topology'] == ['DEVICE','INTR_DEVICE_KV','KV','INTR_KV_SKAP','SKAP_VAULT']
+          assert contract['boundaries']['device_kv']['connector'] == 'InTr'
+          assert contract['boundaries']['kv_skap']['connector'] == 'InTr'
+          assert contract['boundaries']['device_kv']['receipt_required'] is True
+          assert contract['boundaries']['kv_skap']['receipt_required'] is True
+          assert contract['boundaries']['kv_skap']['kv_decryption_authority'] is False
+          assert contract['boundaries']['device_kv']['device_durable_secret_custody'] is False
+          assert contract['storage']['credential_objects'] == '_Vault/SKAP/Credentials'
+          assert contract['access_contract']['all_credential_reads_require_both_interlocks'] is True
+          assert contract['access_contract']['all_credential_writes_require_both_interlocks'] is True
+          assert contract['transition_receipts']['second_receipt_must_bind_first_receipt_hash'] is True
+          print('SKAP_VAULT_DEVICE_KV_INTR_REQUIRED=true')
+          print('SKAP_VAULT_KV_SKAP_INTR_REQUIRED=true')
+          print('SKAP_VAULT_KV_DECRYPTION_AUTHORITY=false')
+          print('SKAP_VAULT_DEVICE_SECRET_CUSTODY=false')
+          print('SKAP_VAULT_DOUBLE_RECEIPT_CHAIN_REQUIRED=true')
+          PY
+
+      - name: Prove hosted validation is non-authorizing
+        run: |
+          python3 - <<'PY'
+          import os
+          forbidden = [
+              'COINBASE_API_KEY','COINBASE_API_SECRET','COINBASE_API_PRIVATE_KEY',
+              'SKAP_ROOT_KEY','SKAP_BROWSER_RECIPIENT_P256_PRIVATE','GITHUB_TOKEN','GH_TOKEN'
+          ]
+          exposed=[name for name in forbidden if os.environ.get(name)]
+          if exposed:
+              raise SystemExit('credential-bearing validation environment: ' + ','.join(exposed))
+          print('HOSTED_VALIDATION_CREDENTIAL_AUTHORITY=NONE')
+          PY
