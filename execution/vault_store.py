@@ -3,6 +3,10 @@
 A KnowledgeVault root may itself be synchronized by the owner's cloud account.
 This module stores only governed execution metadata/refs and never embeds credential
 material. The edge device can disappear; durable execution state remains in KV.
+
+InTr packet/receipt persistence is metadata custody only. Persisting an InTr record in
+KV never grants KV secret-resolution, decryption, execution, identity, continuity, or
+governance authority.
 """
 
 from __future__ import annotations
@@ -20,6 +24,8 @@ FORBIDDEN_KEYS = {
     "credential_material", "password", "private_key", "seed_phrase",
     "recovery_code", "access_token", "refresh_token", "secret",
 }
+INTR_PACKET_SCHEMA = "stegverse.intr.packet.review_candidate/v1"
+INTR_RECEIPT_SCHEMA = "stegverse.intr.hop_receipt/v1"
 
 
 class VaultStoreError(ExecutionEnvelopeError):
@@ -35,6 +41,45 @@ def _scan_forbidden(value: Any, path: str = "$") -> None:
     elif isinstance(value, list):
         for index, item in enumerate(value):
             _scan_forbidden(item, f"{path}[{index}]")
+
+
+def _require_false(value: Any, label: str) -> None:
+    if value is not False:
+        raise VaultStoreError(f"{label} must be false for KnowledgeVault persistence")
+
+
+def _validate_intr_packet_for_kv(record: dict[str, Any]) -> None:
+    if record.get("schema") != INTR_PACKET_SCHEMA:
+        raise VaultStoreError("unsupported InTr packet schema for KnowledgeVault persistence")
+    envelope = record.get("envelope")
+    if not isinstance(envelope, dict):
+        raise VaultStoreError("InTr packet envelope is required")
+
+    authority = envelope.get("authority")
+    if not isinstance(authority, dict):
+        raise VaultStoreError("InTr packet authority boundary is required")
+    for key in ("authority_transfer", "model_output_grants_execution_authority", "transport_grants_execution_authority"):
+        _require_false(authority.get(key), f"InTr packet {key}")
+
+    protected = envelope.get("protected_payload")
+    if not isinstance(protected, dict):
+        raise VaultStoreError("InTr protected payload metadata is required")
+    if protected.get("sealed") is not True:
+        raise VaultStoreError("InTr protected payload must remain sealed in KnowledgeVault")
+    _require_false(protected.get("plaintext_present"), "InTr protected payload plaintext_present")
+
+    # KV may preserve a sealed-material reference but never claim ability to resolve it.
+    if record.get("kv_decryption_authority") not in (None, False):
+        raise VaultStoreError("KnowledgeVault must not claim SKAP decryption authority")
+    if record.get("kv_secret_resolution_authority") not in (None, False):
+        raise VaultStoreError("KnowledgeVault must not claim SKAP secret-resolution authority")
+
+
+def _validate_intr_receipt_for_kv(record: dict[str, Any]) -> None:
+    if record.get("schema") != INTR_RECEIPT_SCHEMA:
+        raise VaultStoreError("unsupported InTr receipt schema for KnowledgeVault persistence")
+    _require_false(record.get("secret_plaintext_present"), "InTr receipt secret_plaintext_present")
+    _require_false(record.get("authority_transfer"), "InTr receipt authority_transfer")
 
 
 class KnowledgeVaultExecutionStore:
@@ -78,6 +123,16 @@ class KnowledgeVaultExecutionStore:
 
     def append_recovery(self, attempt_id: str, record: dict[str, Any]) -> Path:
         return self._append("Recovery", attempt_id, record)
+
+    def append_intr_packet(self, packet_stream_id: str, record: dict[str, Any]) -> Path:
+        """Persist a sealed InTr packet as governed execution-extension metadata."""
+        _validate_intr_packet_for_kv(record)
+        return self._append("Extensions", packet_stream_id, record)
+
+    def append_intr_receipt(self, packet_stream_id: str, record: dict[str, Any]) -> Path:
+        """Persist a non-secret InTr hop receipt in the packet receipt stream."""
+        _validate_intr_receipt_for_kv(record)
+        return self._append("Receipts", packet_stream_id, record)
 
     def read_stream(self, category: str, stream_id: str) -> list[dict[str, Any]]:
         path = self.execution_root / category / f"{stream_id}.jsonl"
