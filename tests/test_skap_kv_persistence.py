@@ -92,8 +92,13 @@ class SkapKvPersistenceTests(unittest.TestCase):
             store = KnowledgeVaultExecutionStore(tmp)
             sealed, receipt = self.make_bundle()
             extension_path, _ = store.append_skap_sealed_credential("tamper-test", sealed, receipt)
+            original = sealed["ciphertext_b64"]
+            replacement_first = "B" if original[0] == "A" else "A"
+            tampered = replacement_first + original[1:]
+            self.assertNotEqual(tampered, original)
             text = extension_path.read_text(encoding="utf-8")
-            text = text.replace(sealed["ciphertext_b64"], "A" + sealed["ciphertext_b64"][1:])
+            text = text.replace(original, tampered, 1)
+            self.assertNotEqual(text, extension_path.read_text(encoding="utf-8"))
             extension_path.write_text(text, encoding="utf-8")
             with self.assertRaisesRegex(VaultStoreError, "hash verification"):
                 store.read_skap_sealed_credential("tamper-test")
