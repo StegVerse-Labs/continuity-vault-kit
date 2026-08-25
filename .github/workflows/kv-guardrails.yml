@@ -61,6 +61,7 @@ jobs:
 
           for schema_path in (
               'schemas/skap-sealed-object.schema.json',
+              'schemas/skap-lifecycle-transition-receipt.schema.json',
               'schemas/intr-endpoint-session-proof.schema.json',
               'schemas/intr-hop-receipt.schema.json',
           ):
@@ -110,6 +111,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
-          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, lifecycle state integrity, bidirectional receipt-chain integrity, and KV metadata-only persistence."
+          echo "InTr repair path: preserve canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, lifecycle transition integrity, bidirectional receipt-chain integrity, and KV metadata-only persistence."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
