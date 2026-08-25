@@ -1,19 +1,74 @@
 # SKAP / InTr Review Candidate Mirror Handoff
 
-Status: HOSTED_VALIDATED_THROUGH_BROWSER_TO_CANONICAL_SKAP_ADMISSION_CONNECTED_KV_AND_SYNTHETIC_PROVIDER_SESSION / PRODUCTION_KEY_AND_REAL_OWNER_INGRESS_OPEN
+Status: HOSTED_VALIDATED_THROUGH_KV_HOSTED_SKAP_VAULT_DOUBLE_INTERLOCK_AND_SYNTHETIC_PROVIDER_SESSION / PHYSICAL_RUNTIME_REAL_OWNER_INGRESS_AND_PROVIDER_OBSERVATION_OPEN
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Goal ID: `SV-KV-SKAP-INTR-001`
-Last updated: 2026-08-25T04:10:00Z
+Last updated: 2026-08-25T13:42:00-05:00
 
 ## Active goal
 
-Activate and evidence:
+Activate and evidence the KV-hosted SKAP Vault with two mandatory Interlock boundaries:
 
 ```text
-SKAP <-InTr-> KV <-InTr-> Device <-InTr-> External Network <-InTr-> Endpoint
+Device <-InTr-> KV <-InTr-> SKAP Vault
 ```
 
-TV/TVC remains credential/key authority. SKAP is sealed custody and transient resolution only. KV stores ciphertext/reference + non-secret evidence only. Device has no durable secret/key custody. External Network is transport only. Model output grants no authority.
+Broader provider path:
+
+```text
+Device <-InTr-> KV <-InTr-> SKAP Vault
+                         |
+                         -> endpoint-session verification
+                         -> transient secret resolution
+                         -> External Network <-InTr-> authorized Endpoint
+```
+
+TV/TVC remains credential/key authority. `SKAP Vault` is the credential-custody boundary logically located inside the KnowledgeVault namespace at `_Vault/SKAP`. KV itself is not secret authority: outside the SKAP Vault boundary it exposes only references, ciphertext and non-secret evidence. Device has no durable secret/key custody. Model output grants no authority.
+
+## Canonical double-interlock contract
+
+Source:
+- `specs/skap-vault-double-interlock.v1.json`
+- `scripts/validate_skap_vault_double_interlock.py`
+- `.github/workflows/skap-vault-double-interlock.yml`
+
+Canonical topology state vector:
+
+```text
+DEVICE
+-> INTR_DEVICE_KV
+-> KV
+-> INTR_KV_SKAP
+-> SKAP_VAULT
+```
+
+Required credential storage namespace:
+
+```text
+_Vault/SKAP/Credentials
+```
+
+Supporting evidence namespaces remain:
+
+```text
+_Vault/SKAP/Sealed
+_Vault/SKAP/Lifecycle
+_Vault/SKAP/Receipts
+_Vault/SKAP/Revocations
+```
+
+The SKAP Vault is logically inside KV but is separated from ordinary KV access by the second InTr connector. Therefore:
+- direct Device -> SKAP Vault access is forbidden;
+- direct KV -> credential plaintext access is forbidden;
+- every credential read/write/rotation/revocation requires both interlocks;
+- Device -> KV emits a boundary transition receipt;
+- KV -> SKAP Vault emits a second boundary transition receipt;
+- the second receipt must cryptographically bind the first receipt hash plus the same credential reference and operation id;
+- either missing/broken/reordered boundary fails closed;
+- secret plaintext is forbidden in both receipts;
+- authority is never transferred across either boundary.
+
+Hosted `SKAP Vault Double Interlock Validation` run `32884444828` completed `SUCCESS` for the new contract, deterministic negative tests and zero-credential hosted-authority assertions.
 
 ## Hosted/connected proofs
 
@@ -26,80 +81,67 @@ RC-15C canonical SKAP root-key provider interface/reference implementation: HOST
 RC-16A owner-ingress synthetic proof: HOSTED PASS
 RC-17 repository-local sealed persistence/readback: HOSTED PASS
 RC-17B connected KnowledgeVault synthetic sealed persistence/readback: PASS
-RC-17C browser P-256 ciphertext -> canonical SKAP reseal bridge: HOSTED PASS
+RC-17C generic browser P-256 ciphertext -> canonical SKAP reseal primitive: HOSTED PASS
+RC-17D KV-hosted SKAP Vault double-interlock contract: HOSTED PASS
 synthetic SKAP same-session Coinbase TLS resolution ordering: HOSTED PASS
 ```
 
-External Coinbase transport run `32800229287` completed `SUCCESS`; no Authorization header or credential material is sent and redirects are denied.
+Connected KnowledgeVault synthetic evidence already exists under `_Vault/SKAP/{Sealed,Lifecycle,Receipts,Revocations}` and uses no production credential or production root key. The new `_Vault/SKAP/Credentials` lane is now canonical for credential ciphertext/custody but real production credential persistence there is not yet claimed.
 
-Connected KnowledgeVault synthetic evidence remains under `_Vault/SKAP/{Sealed,Lifecycle,Receipts,Revocations}` and uses no production credential or production root key.
+## Generic crypto primitive vs Coinbase deferred-resolution path
 
-## Browser ingress and canonical custody are distinct stages
+`skap/browser_admission.py` remains a valid generic browser-to-canonical-SKAP primitive. It can decrypt browser ciphertext callback-locally, reseal under a canonical SKAP root-key provider, and wipe mutable plaintext.
 
-Canonical browser primitive: `skap/browser_ingress.py`.
-
-The browser/device receives only a P-256 recipient public key, generates one-operation ephemeral ECDH state, derives AES-256-GCM material via HKDF-SHA256 and sends ciphertext only. Recipient private key never leaves SKAP/TVC custody.
-
-Canonical SKAP ciphertext primitive: `skap/crypto_boundary.py`.
-
-These stages are now composed by:
-
-- `skap/browser_admission.py` commit `5528bea33c8d5ab01c7bc86a0d802242d1cb231b`;
-- `tests/test_skap_browser_admission.py` commit `495b61f307bbc97bff14841b978c5b6d087605eb`;
-- hosted guardrail integration commit `0773981826daccfb7d3569f0a285dae1e041684a`.
-
-The bridge uses two callback-scoped providers:
-1. a `BrowserRecipientKeyProvider` that supplies the P-256 recipient private-key object only to the decrypt callback;
-2. the existing canonical `KeyProvider` that supplies SKAP root-key bytes only to the canonical seal callback.
-
-Transition:
+That generic primitive must not be confused with the current Coinbase activation path. Coinbase now uses a stronger deferred-resolution sequence:
 
 ```text
 browser ciphertext
--> resolve_at_skap(recipient private key callback)
--> callback-local mutable plaintext
--> seal_with_provider(canonical root-key callback)
--> canonical SKAP ciphertext
--> mutable plaintext wiped
+-> Device/KV InTr receipt
+-> KV ciphertext staging
+-> KV/SKAP InTr receipt
+-> SKAP Vault unchanged ciphertext custody
+-> exact Coinbase endpoint/session verification + current grant
+-> transient credential resolution
 ```
 
-Wrong recipient key, recipient-key authority substitution, endpoint substitution and browser-context tamper all fail before the canonical root-key provider may produce a sealed object.
-
-Hosted `KV Guardrails` run `32807856275` completed `SUCCESS`. The dedicated `Validate browser ciphertext to canonical SKAP admission bridge` step passed, as did every prior SKAP/InTr, connected persistence, external Coinbase transport, synthetic sealed-session and non-authorizing validation step.
+For Coinbase, no decrypt/rewrap occurs at Device->KV or KV->SKAP Vault admission. This prevents the earlier browser-stage/canonical-reseal model from becoming an accidental production requirement.
 
 ## Production-key boundary
 
 The earlier `/run/stegverse/tv-tvc-credentials/...` file provider remains a validated reference implementation only. It must not become a requirement for the owner to operate a second machine.
 
-Production activation still requires a StegVerse/TVC-managed key runtime satisfying both provider interfaces without exporting:
+Production activation still requires a StegVerse/TVC-managed key runtime without exporting:
 - P-256 recipient private key to Site/Device/GitHub/model;
-- canonical SKAP root key to Site/Device/KV/GitHub/model.
+- canonical SKAP root key to Site/Device/ordinary-KV/GitHub/model.
 
-A public Site projection may contain only the ACTIVE recipient public JWK/key id/fingerprint and non-secret policy metadata.
+A public Site projection may contain only the ACTIVE recipient public JWK/key id/fingerprint and non-secret lease/liveness metadata.
 
 ## Current open gates
 
 ```text
-RC-15D production TVC/SKAP private-key provisioning under iPhone-only contract: OPEN
-RC-16B real current-iPhone owner ingress: OPEN
-governed stegverse.org ciphertext receiver: OPEN
+KV/SKAP Vault double-interlock source contract: HOSTED PASS
+actual KV/SKAP Vault runtime + both boundary receipts: NOT YET OBSERVED
+production TVC/SKAP private-key provisioning under iPhone-only contract: OPEN
+real current-iPhone owner ingress: OPEN
+governed StegVerse public ciphertext route observation: OPEN
 ACTIVE public-key lease projected to Site: OPEN
-real canonical SKAP Coinbase sealed object/grant: OPEN
-RC-18 real provider-bound authenticated permission/fee observation: OPEN
-RC-19 first bounded max-$10 post-only maker operation: OPEN
+real Coinbase ciphertext stored under _Vault/SKAP/Credentials: OPEN
+real provider-bound authenticated permission/fee observation: OPEN
+first bounded max-$10 post-only maker operation: OPEN
 reconciliation + return receipts: OPEN
 second bounded repeat cycle: OPEN
 ```
 
 ## Next executable work
 
-1. Bind TVC's existing `coinbase_browser_skap_ingress_service.py` `canonical_admit` adapter to `skap.browser_admission.admit_browser_envelope`; do not duplicate crypto.
-2. Define the production P-256 recipient-private-key provider/lease contract and canonical root-key provider runtime under StegVerse/TVC authority, with no second user-operated machine.
-3. Connect the existing Site iPhone sealing surface to a governed StegVerse-native ciphertext receiver.
-4. Publish only an ACTIVE leased public key after real private-key custody exists.
-5. Perform real current-iPhone owner-authorized Coinbase ingress, then authenticated sanitized permission/fee observation.
-6. Only after that evidence, execute/reconcile the first max-$10 ETH-USD LIMIT/GTC post-only maker order and repeat once.
+1. Require both Device/KV and KV/SKAP Vault receipts in every credential-specific TVC ingress/resolution lane.
+2. Observe a real shared KV root exposing `_Vault/SKAP/Credentials` and `_Vault/SKAP/Receipts` to the authorized TVC runtime without granting KV decryption authority.
+3. Establish/observe production recipient-key custody and current lease/liveness under TV/TVC authority.
+4. Propagate only public key/lease/route evidence to Site after those runtime gates exist.
+5. Perform one real current-iPhone owner-authorized Coinbase ingress through both interlocks and retain the double-receipt chain.
+6. Obtain the first authentic permission/fee observation only after endpoint-session verification.
+7. Only after that evidence and separate bounded authorization, execute/reconcile the first max-$10 ETH-USD LIMIT/GTC post-only maker order and repeat once.
 
 ## Non-claims
 
-No production recipient private key or canonical root key was provisioned by these source/hosted proofs. No real Coinbase credential has been admitted. No authentic provider permission/fee observation through the new path has occurred. No live order was submitted. Hosted and connected synthetic evidence does not equal production activation.
+No production recipient private key or canonical root key was provisioned by these source/hosted proofs. No real Coinbase credential has been stored in the SKAP Vault. No authentic provider permission/fee observation through the new double-interlock path has occurred. No live order was submitted. Hosted and connected synthetic evidence does not equal production activation.
