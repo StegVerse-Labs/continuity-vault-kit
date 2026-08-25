@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/skap-sealed-object.schema.json",
+  "title": "SKAP Sealed Object",
+  "type": "object",
+  "required": [
+    "schema",
+    "object_id",
+    "secret_class",
+    "lifecycle_state",
+    "credential_version",
+    "sealed_material_ref",
+    "sealed_material_hash",
+    "wrapping_policy_ref",
+    "plaintext_persisted",
+    "kv_decryption_authority",
+    "device_secret_custody_authority",
+    "model_secret_access",
+    "created_at",
+    "object_hash"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.skap.sealed_object/v1"},
+    "object_id": {"type": "string", "pattern": "^skap://"},
+    "secret_class": {"enum": ["API_CREDENTIAL", "PASSWORD", "PRIVATE_KEY_REFERENCE", "RECOVERY_SECRET", "GENERIC_SECRET"]},
+    "provider": {"type": ["string", "null"]},
+    "account_ref": {"type": ["string", "null"]},
+    "lifecycle_state": {"enum": ["SEALED", "ACTIVE", "ROTATED", "REVOKED", "RECOVERY_ONLY"]},
+    "credential_version": {"type": "integer", "minimum": 1},
+    "supersedes_object_hash": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+    "sealed_material_ref": {"type": "string", "minLength": 1},
+    "sealed_material_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "wrapping_policy_ref": {"type": "string", "minLength": 1},
+    "allowed_purposes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "allowed_endpoint_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "plaintext_persisted": {"const": false},
+    "kv_decryption_authority": {"const": false},
+    "device_secret_custody_authority": {"const": false},
+    "model_secret_access": {"const": false},
+    "created_at": {"type": "string", "format": "date-time"},
+    "activated_at": {"type": ["string", "null"], "format": "date-time"},
+    "rotated_at": {"type": ["string", "null"], "format": "date-time"},
+    "revoked_at": {"type": ["string", "null"], "format": "date-time"},
+    "recovery_only_at": {"type": ["string", "null"], "format": "date-time"},
+    "object_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"lifecycle_state": {"const": "ACTIVE"}}},
+      "then": {"required": ["activated_at"]}
+    },
+    {
+      "if": {"properties": {"lifecycle_state": {"const": "ROTATED"}}},
+      "then": {"required": ["rotated_at"]}
+    },
+    {
+      "if": {"properties": {"lifecycle_state": {"const": "REVOKED"}}},
+      "then": {"required": ["revoked_at"]}
+    },
+    {
+      "if": {"properties": {"lifecycle_state": {"const": "RECOVERY_ONLY"}}},
+      "then": {"required": ["recovery_only_at"]}
+    }
+  ],
+  "additionalProperties": false
+}
