@@ -14,83 +14,82 @@ Define and validate a machine-readable review-candidate protocol for:
 SKAP <-InTr-> KV <-InTr-> Device <-InTr-> External Network <-InTr-> Endpoint
 ```
 
-`InTr` is the canonical bidirectional interlock/transport relationship between adjacent domains. Transport, packet possession, model output, or receipt possession does not itself confer execution, identity, continuity, governance, or secret-custody authority.
+`InTr` is the canonical bidirectional interlock/transport relationship between adjacent domains. Transport, packet possession, model output, receipt possession, or KV persistence does not itself confer execution, identity, continuity, governance, decryption, or secret-custody authority.
 
 ## Implemented artifacts
 
-### Topology contract
-
+### Topology
 - `specs/skap-intr-review-candidate.v1.json` — `9ad3038fac16e34f2fc4615bc75e491b21ba311d`
 - `schemas/skap-intr-review-candidate.schema.json` — `380ba768196afb391299b2eb50b032cfa4491ad7`
 - `scripts/validate_skap_intr_review_candidate.py` — `6ecd9be372fe84ffdf402277901b0e2eb3bb356d`
 
-### Packet / envelope contract
-
+### Packet / envelope
 - `specs/intr-packet-review-candidate.v1.json` — `ba83d378477d1c5058bb80094e136d225763d21f`
-- `schemas/intr-packet-review-candidate.schema.json`
-  - introduced: `d630e64dab7ffd3731b2622ab0a1a3837a4b6d95`
-  - repaired top-level state-machine/failure property definitions: `5de479f0a8569389900446bc8c6682c51b6ec185`
+- `schemas/intr-packet-review-candidate.schema.json` — introduced `d630e64dab7ffd3731b2622ab0a1a3837a4b6d95`; repaired `5de479f0a8569389900446bc8c6682c51b6ec185`
 - `scripts/validate_intr_packet_review_candidate.py` — `9ab2479b01db7b64d0a8852312d0d50007b9998d`
 
-The packet binds packet id/version, canonical adjacent source/next/final roles, operation hash, payload hash, prior receipt hash, timestamps, nonce, replay state, authority non-transfer, boundary proof, sealed protected payload, SKAP credential grant, endpoint constraints and receipt policy.
-
-### Per-hop receipt / reconstruction contract
-
+### Per-hop receipts / bidirectional reconstruction
 - `schemas/intr-hop-receipt.schema.json` — `559795e32ba8cd4591750fc0c8e813f93ee35b2e`
 - `scripts/intr_hop_receipt.py` — `53d34e581f23bfad5b182cda4b6632a94452e9e0`
-- `examples/intr-hop-receipt-chain.example.json` — `34298042c255a2cac5e2a9ecfb38e99549505e78`
+- forward fixture `examples/intr-hop-receipt-chain.example.json` — `34298042c255a2cac5e2a9ecfb38e99549505e78`
+- return fixture `examples/intr-hop-return-receipt-chain.example.json` — `7a193bd7fb87fb3afa2ee88320753b5486b80860`
 
-The example is a four-hop forward hash chain: `SKAP -> KV -> DEVICE -> EXTERNAL_NETWORK -> ENDPOINT`.
+Forward canonical path:
+`SKAP -> KV -> DEVICE -> EXTERNAL_NETWORK -> ENDPOINT`
 
-### Hosted validation integration
+Return canonical path:
+`ENDPOINT -> EXTERNAL_NETWORK -> DEVICE -> KV -> SKAP`
 
-Existing `.github/workflows/kv-guardrails.yml` was extended rather than creating another workflow.
+### SKAP sealed-object lifecycle
+- `schemas/skap-sealed-object.schema.json` — `bf819eb75bd7615bc03394dc6d58567d75d42b15`
+- lifecycle: `SEALED | ACTIVE | ROTATED | REVOKED | RECOVERY_ONLY`
+- plaintext persistence forbidden
+- KV decryption authority forbidden
+- Device secret-custody authority forbidden
+- model secret access forbidden
+- lifecycle transition evidence timestamps required by state
 
-Commit: `db7a99d65f86b43f28683e06826416d25751120d`
+### Endpoint-session proof
+- `schemas/intr-endpoint-session-proof.schema.json` — `1813a85b8ba8665931809f6e4e4b4f001c6cccbe`
+- `scripts/validate_skap_endpoint_contracts.py` — `7aec821aeeac34b7e782c387e7ef96fd375ea9b4`
+- HTTPS endpoint/session identity is verified before credential resolution
+- redirects are not implicitly authorized
+- credential resolution and native submission require the same authenticated session
+- failed endpoint proof => no resolution + `FAIL_CLOSED`
 
-The lane now performs:
+Local semantic negative tests reject persisted plaintext, missing revocation evidence, KV decryption authority, failed endpoint with resolution enabled, redirects, and disabled same-session binding.
 
-- JSON Schema validation for topology, packet and every hop receipt;
-- topology semantic validator with deterministic negative tests;
-- packet semantic validator with deterministic negative tests;
-- receipt-chain verification;
-- Python compile checks;
-- explicit non-authorizing workflow checks (`contents: read`, no `contents: write`, no `git push`, no `secrets.` references).
+## Hosted validation — exact location
 
-This is validation/control-plane behavior only and grants no production or SKAP secret authority.
+Repository: `StegVerse-Labs/continuity-vault-kit`
+Workflow: `KV Guardrails (Layer + Footer + Emoji + InTr)`
+File: `.github/workflows/kv-guardrails.yml`
+Initial SKAP/InTr integration: `db7a99d65f86b43f28683e06826416d25751120d`
+Latest validation wiring: `b6d3b36e920f7b5e15957920297dc8936c71b9a7`
+
+The existing workflow now performs:
+- topology + packet JSON Schema validation;
+- SKAP sealed-object, endpoint-session-proof and hop-receipt schema-definition checks;
+- topology and packet semantic negative tests;
+- SKAP lifecycle / endpoint proof semantic negative tests;
+- forward and return receipt-chain verification;
+- Python compilation;
+- explicit non-authorizing checks (`contents: read`, no `contents: write`, no `git push`, no `secrets.` references).
+
+The connected GitHub commit-status accessor currently returns no status records, and its workflow-run accessor exposes only PR-triggered runs. That is neither PASS nor FAIL evidence. Hosted result therefore remains OPEN. Manual inspection location, if needed, is exactly: `StegVerse-Labs/continuity-vault-kit -> Actions -> KV Guardrails (Layer + Footer + Emoji + InTr)` for commit `b6d3b36e...` or a descendant.
 
 ## Authority and secret boundary
 
-- SKAP owns secret custody state; custody does not create identity, continuity, governance, or execution authority.
-- KV preserves sealed SKAP state and continuity evidence; possession of KV does not grant secret resolution authority.
-- Device is an ephemeral execution/transport edge and must not become secret-custody or continuity authority by carrying a packet.
-- External Network is transport environment only and must never hold protected plaintext merely by transit.
-- Endpoint-bound credential material remains sealed until the intended endpoint/session is positively verified, the operation grant remains valid, and revocation is rechecked immediately before resolution.
-- Credential resolution and native endpoint credential submission must occur on the same authenticated session; changing sessions after verification fails closed.
-- Return-path communication uses InTr and must not carry secret plaintext.
-- Model output grants no execution authority.
+- SKAP owns sealed secret custody state; custody does not create identity, continuity, governance, or execution authority.
+- KV preserves sealed SKAP state and continuity/replay evidence; KV has no secret-resolution/decryption authority.
+- Device is an ephemeral execution/transport edge and does not inherit secret custody or continuity authority.
+- External Network is transport only and must never hold protected plaintext merely by transit.
+- Endpoint-bound material remains sealed until intended endpoint/session verification and grant revalidation including immediate revocation check.
+- Resolution + native endpoint submission occur on the same authenticated session.
+- Return InTr packets/receipts never carry secret plaintext.
+- Model output grants no execution or secret authority.
 
-## Packet state requirements
-
-Canonical hop sequence:
-
-```text
-ISSUED -> BOUNDARY_VERIFIED -> CLAIMED -> FORWARDED -> RECEIPTED -> TERMINAL
-```
-
-Endpoint resolution sequence:
-
-```text
-ARRIVED_SEALED
--> ENDPOINT_SESSION_VERIFIED
--> GRANT_REVALIDATED
--> CREDENTIAL_RESOLVED_TRANSIENTLY
--> SUBMITTED_ON_SAME_SESSION
--> PLAINTEXT_DISCARDED
--> RECEIPTED
-```
-
-Failure dispositions:
+## Failure dispositions
 
 - wrong boundary: `FAIL_CLOSED`
 - expired packet: `FAIL_CLOSED`
@@ -98,47 +97,31 @@ Failure dispositions:
 - authority mismatch: `FAIL_CLOSED`
 - endpoint mismatch: `FAIL_CLOSED`
 - revoked credential: `FAIL_CLOSED`
+- redirect outside explicit authorization: `FAIL_CLOSED`
 - session changed after endpoint verification: `FAIL_CLOSED`
-- ambiguous state after submission: `VERIFY_EXTERNALLY`
-
-## Validation evidence
-
-### Topology candidate
-
-Local deterministic semantic evidence passed for the baseline topology and rejected seven negative mutations: KV bypass, authority transfer, unsealed network transit, premature endpoint resolution, return secret plaintext, Device secret-custody escalation, and External Network plaintext possession.
-
-### Packet candidate
-
-Local deterministic semantic evidence passed for the baseline packet and rejected eight negative mutations: non-adjacent next hop, authority transfer, plaintext protected payload, exhausted replay count, changed authenticated session, skipped immediate revocation check, secret-bearing receipts, and automatic retry after ambiguous submission.
-
-### Receipt chain
-
-The four-hop example was locally verified for canonical order, stable packet/operation/payload hashes, contiguous hop indexes, canonical receipt hashes, prior-receipt linkage, zero secret plaintext and zero authority transfer. A deliberately broken prior link was detected.
-
-### Hosted evidence
-
-The hosted validation lane is installed at commit `db7a99d65f86b43f28683e06826416d25751120d`. The GitHub combined-status accessor returned `statuses: []`; this is neither pass nor failure evidence. Hosted results therefore remain OPEN until an observable run/job conclusion is retrieved.
+- ambiguous post-submission state: `VERIFY_EXTERNALLY`
 
 ## Review gates
 
-- `RC-01-SCHEMA`: IMPLEMENTED / HOSTED RESULT OPEN — schemas corrected and wired into KV Guardrails.
-- `RC-02-NEGATIVE-TOPOLOGY`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN.
-- `RC-03-AUTHORITY`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN.
-- `RC-04-ENDPOINT-RESOLUTION`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN.
-- `RC-05-PACKET`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN.
-- `RC-06-RECEIPT-CHAIN`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN.
-- `RC-07-RUNTIME`: OPEN — requires observed real InTr transitions across all four adjacent boundaries with replayable non-secret receipts.
-- `RC-08-REAL-SKAP`: OPEN — no real password/key/API secret may be admitted until review acceptance plus runtime proof establish the sealed credential path.
+- `RC-01-SCHEMA`: IMPLEMENTED / HOSTED RESULT OPEN
+- `RC-02-NEGATIVE-TOPOLOGY`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
+- `RC-03-AUTHORITY`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
+- `RC-04-ENDPOINT-RESOLUTION`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
+- `RC-05-PACKET`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
+- `RC-06-RECEIPT-CHAIN`: IMPLEMENTED / LOCAL PASS / HOSTED RESULT OPEN
+- `RC-07-SKAP-LIFECYCLE`: IMPLEMENTED / LOCAL SEMANTIC COVERAGE / HOSTED RESULT OPEN
+- `RC-08-BIDIRECTIONAL-INTR`: IMPLEMENTED / FORWARD+RETURN FIXTURES / HOSTED RESULT OPEN
+- `RC-09-RUNTIME`: OPEN — requires observed real InTr transitions across all four adjacent boundaries with replayable non-secret receipts
+- `RC-10-REAL-SKAP`: OPEN — no real password/key/API secret admitted until review acceptance plus runtime proof
 
 ## Next executable work
 
-1. Retrieve/inspect an observable KV Guardrails run for `db7a99d6...` or a descendant and remediate any actual failure.
-2. Define the SKAP sealed-object storage contract and lifecycle (`SEALED`, `ACTIVE`, `ROTATED`, `REVOKED`, `RECOVERY_ONLY`) without storing real credentials.
-3. Define the endpoint-session proof object consumed immediately before transient credential resolution.
-4. Add reverse/return InTr packet and receipt fixtures.
-5. Bind packet/receipt persistence into KV Continuity storage without making KV secret-resolution authority.
-6. Only after review acceptance and runtime proof, perform the first owner-authorized real SKAP credential ingress.
+1. Bind InTr packet and receipt persistence into existing KV execution/continuity storage while explicitly denying KV decryption authority.
+2. Add machine-readable SKAP lifecycle transition receipts, including rotation/revocation chain semantics.
+3. Add packet-to-endpoint-session-proof binding so the proof is not independently replayable against another packet/operation.
+4. Retrieve and inspect an observable hosted `KV Guardrails` conclusion when the connector exposes it; remediate any actual failure.
+5. Only after review acceptance and runtime proof, perform first owner-authorized real SKAP credential ingress.
 
 ## Completion boundary
 
-This goal remains open. Source, schemas, validators, fixtures, local semantic passes, workflow installation or durable handoff are not activation. Completion requires observable hosted validation evidence, review acceptance, runtime InTr transitions across every adjacent boundary, replayable non-secret receipt reconstruction, and an owner-authorized real SKAP credential operation with all authority and secret boundaries intact.
+This goal remains open. Source, schemas, validators, fixtures, local semantic passes, workflow installation, folder existence, or durable handoff are not activation. Completion requires observable hosted validation, review acceptance, runtime InTr transitions across every adjacent boundary, replayable non-secret reconstruction, and an owner-authorized real SKAP credential operation with all authority and secret boundaries intact.
