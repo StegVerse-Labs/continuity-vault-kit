@@ -1,0 +1,70 @@
+{
+  "schema": "stegverse.kv.skap-vault-double-interlock/v1",
+  "status": "ACTIVE_REVIEW_CANDIDATE",
+  "logical_location": "KV/_Vault/SKAP",
+  "credential_storage_owner": "SKAP_VAULT",
+  "credential_authority": "TV/TVC",
+  "canonical_topology": [
+    "DEVICE",
+    "INTR_DEVICE_KV",
+    "KV",
+    "INTR_KV_SKAP",
+    "SKAP_VAULT"
+  ],
+  "boundaries": {
+    "device_kv": {
+      "connector": "InTr",
+      "required": true,
+      "device_plaintext_persistence": false,
+      "device_durable_secret_custody": false,
+      "kv_direct_credential_access": false,
+      "receipt_required": true
+    },
+    "kv_skap": {
+      "connector": "InTr",
+      "required": true,
+      "kv_plaintext_persistence": false,
+      "kv_decryption_authority": false,
+      "skap_vault_only_secret_custody": true,
+      "receipt_required": true
+    }
+  },
+  "storage": {
+    "vault_root": "_Vault/SKAP",
+    "credential_objects": "_Vault/SKAP/Credentials",
+    "sealed_objects": "_Vault/SKAP/Sealed",
+    "lifecycle_receipts": "_Vault/SKAP/Lifecycle",
+    "access_receipts": "_Vault/SKAP/Receipts",
+    "revocation_state": "_Vault/SKAP/Revocations",
+    "kv_visible_material": "REFERENCE_CIPHERTEXT_AND_NON_SECRET_EVIDENCE_ONLY",
+    "credential_plaintext_location": "SKAP_VAULT_TRANSIENT_RESOLUTION_ONLY"
+  },
+  "access_contract": {
+    "direct_device_to_skap_access": false,
+    "direct_kv_to_credential_plaintext_access": false,
+    "direct_model_to_skap_access": false,
+    "all_credential_reads_require_both_interlocks": true,
+    "all_credential_writes_require_both_interlocks": true,
+    "all_credential_rotations_require_both_interlocks": true,
+    "all_credential_revocations_require_both_interlocks": true,
+    "endpoint_session_verification_required_before_transient_resolution": true,
+    "authority_transfer": false
+  },
+  "transition_receipts": {
+    "device_kv_receipt_schema": "stegverse.intr.boundary_transition_receipt/v1",
+    "kv_skap_receipt_schema": "stegverse.intr.boundary_transition_receipt/v1",
+    "chain_binding_required": true,
+    "second_receipt_must_bind_first_receipt_hash": true,
+    "secret_plaintext_allowed_in_receipts": false
+  },
+  "fail_closed": {
+    "missing_device_kv_receipt": true,
+    "missing_kv_skap_receipt": true,
+    "receipt_chain_mismatch": true,
+    "boundary_order_mismatch": true,
+    "kv_decryption_attempt": true,
+    "device_custody_attempt": true,
+    "model_secret_access_attempt": true,
+    "authority_escalation": true
+  }
+}
