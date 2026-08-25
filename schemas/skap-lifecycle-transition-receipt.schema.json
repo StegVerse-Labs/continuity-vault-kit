@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.invalid/schemas/skap-lifecycle-transition-receipt.schema.json",
+  "title": "SKAP Lifecycle Transition Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "receipt_id",
+    "secret_ref",
+    "credential_version",
+    "from_state",
+    "to_state",
+    "transition_reason",
+    "prior_transition_receipt_hash",
+    "sealed_object_hash_before",
+    "sealed_object_hash_after",
+    "authority_ref",
+    "authority_transfer",
+    "secret_plaintext_present",
+    "effective_at",
+    "receipt_hash"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.skap.lifecycle_transition_receipt/v1"},
+    "receipt_id": {"type": "string", "minLength": 1},
+    "secret_ref": {"type": "string", "pattern": "^skap://"},
+    "credential_version": {"type": "integer", "minimum": 1},
+    "from_state": {"enum": ["SEALED", "ACTIVE", "ROTATED", "REVOKED", "RECOVERY_ONLY"]},
+    "to_state": {"enum": ["ACTIVE", "ROTATED", "REVOKED", "RECOVERY_ONLY"]},
+    "transition_reason": {"type": "string", "minLength": 1},
+    "prior_transition_receipt_hash": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      ]
+    },
+    "sealed_object_hash_before": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "sealed_object_hash_after": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "supersedes_credential_version": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "integer", "minimum": 1}
+      ]
+    },
+    "replacement_secret_ref": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^skap://"}
+      ]
+    },
+    "revocation_effect": {
+      "enum": ["NONE", "NO_NEW_GRANTS", "BLOCK_ALL_RESOLUTION"]
+    },
+    "outstanding_grants_invalidated": {"type": "boolean"},
+    "authority_ref": {"type": "string", "minLength": 1},
+    "authority_transfer": {"const": false},
+    "secret_plaintext_present": {"const": false},
+    "effective_at": {"type": "string", "format": "date-time"},
+    "receipt_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"to_state": {"const": "ROTATED"}}},
+      "then": {
+        "required": ["supersedes_credential_version", "replacement_secret_ref", "outstanding_grants_invalidated"],
+        "properties": {
+          "revocation_effect": {"const": "NO_NEW_GRANTS"},
+          "outstanding_grants_invalidated": {"const": true}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"to_state": {"const": "REVOKED"}}},
+      "then": {
+        "required": ["outstanding_grants_invalidated"],
+        "properties": {
+          "revocation_effect": {"const": "BLOCK_ALL_RESOLUTION"},
+          "outstanding_grants_invalidated": {"const": true}
+        }
+      }
+    }
+  ]
+}
