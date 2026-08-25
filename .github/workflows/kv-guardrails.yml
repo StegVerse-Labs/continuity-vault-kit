@@ -37,11 +37,13 @@ jobs:
             scripts/run_intr_synthetic_runtime.py \
             scripts/run_intr_external_endpoint_probe.py \
             skap/crypto_boundary.py \
+            skap/browser_ingress.py \
             skap/key_provider.py \
             skap/ingress.py \
             execution/vault_store.py \
             tests/test_vault_store.py \
             tests/test_skap_kv_persistence.py \
+            tests/test_skap_browser_ingress.py \
             tests/test_skap_intr_reconstruction.py \
             tests/test_skap_crypto_boundary.py \
             tests/test_skap_crypto_lifecycle_runtime.py \
@@ -102,6 +104,9 @@ jobs:
 
       - name: Validate real SKAP cryptographic boundary
         run: python3 -m unittest tests.test_skap_crypto_boundary -v
+
+      - name: Validate browser-to-SKAP public-key ingress
+        run: python3 -m unittest tests.test_skap_browser_ingress -v
 
       - name: Validate SKAP runtime rotation and revocation
         run: python3 -m unittest tests.test_skap_crypto_lifecycle_runtime -v
@@ -166,6 +171,6 @@ jobs:
           echo "KV guardrails failed."
           echo "Layer/footer repair path: push a format/<name> branch so KV Format Branch can auto-label Markdown files."
           echo "Emoji repair path: replace obscure arrow glyphs with canonical relationship emoji or ASCII arrows."
-          echo "InTr/SKAP repair path: preserve authenticated cryptographic sealing, TVC-resident ephemeral key authority, transient owner-authorized ingress, lifecycle/grant-bound resolution, rotation/revocation invalidation, canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, bidirectional receipt-chain integrity, KV metadata/ciphertext-only persistence, complete reconstruction evidence, synthetic transport I/O, and non-secret external endpoint verification."
+          echo "InTr/SKAP repair path: preserve authenticated cryptographic sealing, browser public-key ingress, TVC/SKAP private-key confinement, transient owner-authorized ingress, lifecycle/grant-bound resolution, rotation/revocation invalidation, canonical adjacency, sealed transit, non-transfer of authority, endpoint-session gating, bidirectional receipt-chain integrity, KV metadata/ciphertext-only persistence, complete reconstruction evidence, synthetic transport I/O, and non-secret external endpoint verification."
           echo "No workflow may move, delete, or inspect user-authored personal vault content."
           echo ""
