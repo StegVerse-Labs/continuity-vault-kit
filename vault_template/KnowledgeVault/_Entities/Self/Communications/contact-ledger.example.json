@@ -1,19 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "attribution": {
-    "key": "organization:example",
-    "state": "ATTRIBUTED_DIRECTORY_MATCH",
-    "subject_id": "organization:example"
-  },
-  "observations": [],
-  "threshold_profile": {
-    "policy_version": "owner-policy-v1",
-    "claim_type": "owner_defined",
-    "minimum_communications": 3,
-    "window_days": 30
-  },
-  "filing_candidates": [],
-  "sealed_filings": [],
-  "notices": [],
-  "post_filing_observation_ids": []
+  "record_type": "personal_kv_contact_ledger",
+  "owner_ref": "kv://self",
+  "groups": {}
 }
