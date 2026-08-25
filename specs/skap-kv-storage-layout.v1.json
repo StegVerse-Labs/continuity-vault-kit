@@ -1,0 +1,35 @@
+{
+  "schema": "stegverse.skap.kv-storage-layout/v1",
+  "status": "REVIEW_CANDIDATE_ACTIVE",
+  "root": "_Vault",
+  "skap_root": "_Vault/SKAP",
+  "paths": {
+    "sealed_objects": "_Vault/SKAP/Sealed",
+    "lifecycle_receipts": "_Vault/SKAP/Lifecycle",
+    "access_receipts": "_Vault/SKAP/Receipts",
+    "revocation_state": "_Vault/SKAP/Revocations"
+  },
+  "storage_rules": {
+    "sealed_objects_ciphertext_only": true,
+    "plaintext_allowed": false,
+    "root_key_material_allowed": false,
+    "kv_decryption_authority": false,
+    "device_durable_secret_custody": false,
+    "model_secret_access": false,
+    "authority_transfer": false,
+    "receipt_secret_plaintext_allowed": false
+  },
+  "object_contract": {
+    "sealed_object_schema": "stegverse.skap.sealed_object/v1",
+    "sealed_material_format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+    "canonical_object_file": "<object-safe-id>.json",
+    "write_requires_owner_authorized_ingress": true,
+    "readback_verifies_ciphertext_hash_without_decryption": true
+  },
+  "relationship": "SKAP <-InTr-> KV",
+  "runtime_boundary": {
+    "kv_role": "sealed-ciphertext-and-non-secret-evidence-custody-only",
+    "skap_role": "sealed-secret-custody-and-transient-cryptographic-use",
+    "tvc_role": "credential-secret-token-and-production-root-key-authority"
+  }
+}
