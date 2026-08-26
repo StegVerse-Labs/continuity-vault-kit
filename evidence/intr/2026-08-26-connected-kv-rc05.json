@@ -1,0 +1,41 @@
+{
+  "schema": "stegverse.intr.connected_kv_rc05_evidence/v1",
+  "observed_at": "2026-08-26T15:14:15Z",
+  "goal_id": "SV-KV-SKAP-INTR-001",
+  "review_gate": "RC-05-RUNTIME",
+  "state": "PASS",
+  "runtime_class": "CONNECTED_KNOWLEDGEVAULT_NON_SECRET",
+  "operation_id": "kv-intr-rc05-connected-runtime-20260826",
+  "credential_ref": "skap://runtime/nonsecret/rc05",
+  "connected_kv": {
+    "root": "KnowledgeVault",
+    "root_folder_id": "1c8OdhJeLD6E4ALmi-aR7dXvG8PjDLSfi",
+    "skap_vault_folder_id": "1Mc3WXasLM8JLqplEl1ZLIXLIWTO4zp6O",
+    "credentials_folder_id": "1Fq7-YKv9UXX5GIkn6yhHA2LylGX4jO7Y",
+    "receipts_folder_id": "12Z-0BIxRroICYeUr2Bl8M2lHVj0P3BXU",
+    "runtime_observation_file_id": "1Oo6oOeLW2ccVcpajSw0D-m42Z3TnwDLH",
+    "runtime_observation_file_name": "kv-intr-rc05-connected-runtime-20260826.json",
+    "runtime_observation_size_bytes": 2304
+  },
+  "boundary_receipts": {
+    "device_to_kv": "sha256:e44cce9c5f58da6b7b2a5f60d5f3ad80d66ebeb22a9220821b3dc706c5815a61",
+    "kv_to_skap_vault": "sha256:572fdafc916010fab30f77ccc9028e0c43af9422f5b0eaab31300c3eaef8a800",
+    "second_receipt_binds_first": true,
+    "credential_ref_stable": true,
+    "operation_id_stable": true,
+    "secret_plaintext_present": false,
+    "authority_transfer": false
+  },
+  "readback": {
+    "observed": true,
+    "observation_sha256": "sha256:dff4be9094d3ea51d6ff12f73f2e08a5c07aabc7245ff3de908e13e37288553a",
+    "observation_hash_recomputed_after_drive_readback": true,
+    "receipt_chain_recomputed_after_drive_readback": true
+  },
+  "production_credential_used": false,
+  "production_private_key_used": false,
+  "credential_authority": "TV/TVC",
+  "model_output_authority": "NONE",
+  "authority_effect": "NONE",
+  "external_provider_activation_required": false
+}
