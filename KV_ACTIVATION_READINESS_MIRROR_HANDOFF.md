@@ -177,7 +177,15 @@ activation: NOT PERFORMED
 ```
 
 
-## TVC runtime evidence admission — issue #61
+## TVC runtime evidence admission — issue #61 / PR #62
+
+```text
+issue #61: CLOSED_COMPLETED
+PR #62 merge: 306d59241df5e413e4b5abe0a97037923d4bbc72
+KV Guardrails: 33023361067 SUCCESS
+Repository validation: 33023361056 SUCCESS
+Security Baseline: 33023361093 SUCCESS
+```
 
 Canonical TVC evidence producers already exist in `StegVerse-Labs/TVC`:
 
@@ -186,7 +194,7 @@ Canonical TVC evidence producers already exist in `StegVerse-Labs/TVC`:
 - `scripts/observe_skap_vault_runtime_boundary.py`
   - schema `stegverse.tvc.skap_vault_runtime_boundary_observation/v1`.
 
-KnowledgeVault now has a bounded adapter on the #61 branch:
+KnowledgeVault now has a merged bounded adapter from issue #61 / PR #62:
 
 - `scripts/admit_tvc_readiness_evidence.py`;
 - `schemas/kv-tvc-readiness-evidence-admission.schema.json`;
@@ -244,3 +252,18 @@ authority_effect=NONE
 ```
 
 StegFin now additionally requires `skap_vault_runtime_boundary_observed=true` before governed readiness can ever be considered.
+
+
+## StegOS consumer propagation
+
+The readiness projection is now consumed by StegOS through a merged read-only shell adapter:
+
+```text
+StegOS issue #58: CLOSED_COMPLETED
+StegOS PR #59 merge: c4ec76a85a6360f9b5e73451683c95e411cedd9f
+StegOS CI: 33023603384 SUCCESS
+source: stegos/kv_readiness_projection.py
+output schema: stegos.kv_capability_shell_projection.v1
+```
+
+StegOS validates the 46-entry KV snapshot and separates local-ready, local-blocked, and governed-action states. It has no KV mutation or activation surface. KV readiness therefore propagates to the device shell without transferring authority.
