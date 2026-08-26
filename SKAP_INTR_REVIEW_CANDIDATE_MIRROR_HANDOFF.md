@@ -166,3 +166,32 @@ synthetic SKAP same-session endpoint resolution ordering: HOSTED PASS
 ## Non-claims
 
 No production recipient private key or canonical root key was provisioned by the RC-05 proof. No production credential was stored. No authenticated provider permission/fee observation was claimed. No live financial operation was submitted. Baseline InTr runtime proof does not create provider, execution, identity, continuity, governance, or secret-custody authority.
+
+
+## 2026-08-26 archive / production-activation boundary
+
+Final coordination confirms the original InTr review goal remains complete while the remaining production goal is outside baseline/source completion.
+
+```text
+RC-01..RC-05 baseline: COMPLETE
+connected-KV non-secret InTr observation: COMPLETE
+double-Interlock contract/source: HOSTED PASS
+TVC resident activation source integration: COMPLETE / MERGED upstream
+production resident key/liveness: NOT OBSERVED
+production DEVICE -> KV receipt: NOT OBSERVED
+production KV -> SKAP_VAULT receipt: NOT OBSERVED
+production credential custody/readback: NOT OBSERVED
+provider permission/fee observation: NOT OBSERVED
+```
+
+The next transition is owned by the TVC resident Interlock/InTr activation lane, not by additional continuity-vault-kit source design:
+
+`StegVerse-Labs/TVC/docs/TVC_COINBASE_IPHONE_SKAP_ACTIVATION_MIRROR_HANDOFF.md`.
+
+The coordinating session has no connected SSH/systemd/server-control surface for the authorized TVC substrate, so it cannot manufacture the physical successor installation, current recipient-key liveness, production double-Interlock receipts, or Gateway-route observation from repository state.
+
+No owner credential/iPhone entry is due until upstream TVC proves `READY_FOR_OWNER_INGRESS` and a current public route.
+
+### Archive readiness
+
+The baseline goal, production/non-production distinction, next owner, and unresolved production receipts are durable here. This conversation can be archived without reopening RC-01..RC-05 or creating a duplicate source lane. Production activation remains explicitly open.
