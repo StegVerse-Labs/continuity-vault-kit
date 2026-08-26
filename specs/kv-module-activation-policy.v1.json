@@ -1,0 +1,103 @@
+{
+  "schema": "stegverse.kv.module-activation-policy/v1",
+  "modules": [
+    {
+      "module_id": "stegid-continuity",
+      "local_materialization": "BLOCKED_CURRENT_IDENTITY",
+      "governed_requires": [
+        "current_identity_continuity_receipt_observed",
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "governance-steggate",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "governance_runtime_admission_observed",
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "stegtalk",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "stegwhisper",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "steghealth",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "stegfin-wallet-pay",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated",
+        "tvc_resident_key_liveness_observed",
+        "ready_for_owner_ingress_observed",
+        "production_gateway_route_observed",
+        "production_double_interlock_receipts_observed",
+        "provider_session_evidence_observed"
+      ]
+    },
+    {
+      "module_id": "genealogy",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "media-playlists-reading",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "family-sharing",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "organization-context",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "auri-ecosystem-chat",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "stegteacher-onboarding",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    },
+    {
+      "module_id": "erl-research",
+      "local_materialization": "READY_FOR_LOCAL_UI",
+      "governed_requires": [
+        "production_interlock_runtime_activated"
+      ]
+    }
+  ]
+}
