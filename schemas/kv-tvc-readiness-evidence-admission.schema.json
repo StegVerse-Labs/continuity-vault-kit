@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-tvc-readiness-evidence-admission.schema.json",
+  "title": "KnowledgeVault TVC readiness evidence admission",
+  "type": "object",
+  "required": [
+    "schema",
+    "decision",
+    "facts_delta",
+    "production_interlock_runtime_activated_set_by_adapter",
+    "provider_session_evidence_set_by_adapter",
+    "activation_performed",
+    "provider_operation_authorized",
+    "execution_authority",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.tvc-readiness-evidence-admission/v1"
+    },
+    "decision": {
+      "const": "ADMIT_FACTS_DELTA"
+    },
+    "resident_state": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "boundary_state": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "facts_delta": {
+      "type": "object",
+      "required": [
+        "tvc_resident_key_liveness_observed",
+        "ready_for_owner_ingress_observed",
+        "production_gateway_route_observed",
+        "production_double_interlock_receipts_observed",
+        "skap_vault_runtime_boundary_observed"
+      ],
+      "properties": {
+        "tvc_resident_key_liveness_observed": {
+          "type": "boolean"
+        },
+        "ready_for_owner_ingress_observed": {
+          "type": "boolean"
+        },
+        "production_gateway_route_observed": {
+          "type": "boolean"
+        },
+        "production_double_interlock_receipts_observed": {
+          "type": "boolean"
+        },
+        "skap_vault_runtime_boundary_observed": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "production_interlock_runtime_activated_set_by_adapter": {
+      "const": false
+    },
+    "provider_session_evidence_set_by_adapter": {
+      "const": false
+    },
+    "activation_performed": {
+      "const": false
+    },
+    "provider_operation_authorized": {
+      "const": false
+    },
+    "execution_authority": {
+      "const": "NONE"
+    },
+    "authority_effect": {
+      "const": "NONE"
+    }
+  },
+  "additionalProperties": false
+}

@@ -12,5 +12,6 @@
   "current_identity_continuity_receipt_observed": false,
   "governance_runtime_admission_observed": false,
   "device_context_runtime_specific": true,
-  "authority_effect": "NONE"
+  "authority_effect": "NONE",
+  "skap_vault_runtime_boundary_observed": false
 }

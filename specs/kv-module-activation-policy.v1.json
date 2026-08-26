@@ -43,6 +43,7 @@
       "local_materialization": "READY_FOR_LOCAL_UI",
       "governed_requires": [
         "production_interlock_runtime_activated",
+        "skap_vault_runtime_boundary_observed",
         "tvc_resident_key_liveness_observed",
         "ready_for_owner_ingress_observed",
         "production_gateway_route_observed",
