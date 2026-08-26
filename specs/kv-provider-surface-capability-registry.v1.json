@@ -1,6 +1,6 @@
 {
   "schema": "stegverse.kv.provider-surface-capability-registry/v1",
-  "state": "PARTIALLY_VERIFIED",
+  "state": "DOCUMENTED_UNVERIFIED",
   "authority_effect": "NONE",
   "provider_families": [
     "icloud",
