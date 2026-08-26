@@ -1,104 +1,92 @@
-# KnowledgeVault Kit (continuity-vault-kit)
+# KnowledgeVault Kit
 
-KnowledgeVault is a **device-agnostic personal vault**: a folder structure + guidance you can copy onto any device to preserve notes, documents, and context over time.
+KnowledgeVault is the StegVerse continuity and knowledge layer: a portable, inspectable vault for preserving notes, records, research, projects, media references, policy, and enough context to reconstruct ongoing work across devices and sessions.
 
-This is not a productivity system.
-It is an attempt to formalize personal cognitive continuity in a replaceable, versioned, AI-compatible structure.
-
-No accounts. No services. No lock-in.
+Baseline use is file-based. No account, hosted service, SDK, or AI provider is required.
 
 ## Start here
 
-➡️ **Read:** [`WELCOME.md`](./WELCOME.md)
+### Install
 
-That file contains a 30-second start path for **iOS, Android, Windows, macOS, and Linux**.
-
-If you are reviewing the deeper architecture, read [`docs/TECHNICAL_REVIEW_PATH.md`](./docs/TECHNICAL_REVIEW_PATH.md).
-
-If your immediate problem is preserving long-running AI chats, read [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md).
-
-For small, inspectable patterns you can copy into a private vault, see [`docs/EXAMPLES.md`](./docs/EXAMPLES.md).
-
-## What this is
-
-- A portable vault template you can copy anywhere
-- A way to preserve context, intent, and memory across devices and time
-- A starting point designed to be forked, adapted, or replaced
-- **AI-compatible by design** — predictable structure for future tooling (see [`docs/AI_COMPATIBLE.md`](./docs/AI_COMPATIBLE.md))
-- **Optional data-sharing ecosystem** — if you later choose to share anonymized data, you may participate in revenue generated from its use (see [`docs/DATA_SHARING.md`](./docs/DATA_SHARING.md))
-
-## What this is not
-
-- Not a product
-- Not a platform
-- Not surveillance
-- Not identity verification
-- Not permanent authority
-- Not a financial scheme — any revenue participation is strictly opt-in and secondary to the vault's core purpose
-
-## What's in this repo
-
-### The vault template
-
-```
-vault_template/KnowledgeVault/
-├── 00_Inbox/          → Quick captures, drafts, unprocessed notes
-├── 01_Notes/          → Daily notes, events, memories
-├── 02_Research/       → Reading, learning, investigations
-├── 03_Records/        → Health, finance, legal (sensitive — see SAFETY.md)
-├── 04_Media/          → Photos, videos, audio
-├── 05_Projects/       → Active work, creative output
-├── 06_Archive/        → Completed or dormant material
-├── _AI/               → AI-generated suggestions (never auto-applied)
-├── _Entities/         → People, places, organizations you reference
-│   ├── People/
-│   ├── Places/
-│   ├── Projects/
-│   ├── Organizations/
-│   └── Self/
-├── _Index/            → Master indexes and cross-references
-├── _LightMode/        → Minimal, distraction-free view files
-├── _Meta/             → Vault metadata, places list, manifest
-├── _Policy/           → Your own rules for this vault
-├── _System/           → Integrity checks, migration logs, guides
-├── _Templates/        → Reusable note templates
-├── _migration/        → Version-to-version migration helpers
-└── docs/              → Your own documentation about this vault
-```
-
-### Framework files
-
-- `WELCOME.md` — first-contact onboarding (start here)
-- `GETTING_STARTED.md` — deeper walkthrough and recommended structure
-- `docs/CONVERSATION_CONTINUITY.md` — practical guide for preserving and reloading AI-human conversation state
-- `docs/EXAMPLES.md` — index of small continuity patterns and reload examples
-- `docs/TECHNICAL_REVIEW_PATH.md` — review path for systems thinkers inspecting the architecture
-- `SAFETY.md` — safety notes and threat-model guidance
-- `DO_NOT_STORE_HERE.md` — what not to keep in plain text
-- `STATUS.md` — current state + next steps
-- `CHANGELOG.md` + `VERSION` — change tracking
-- `tools/` — optional scripts for release building, AI ingestion, and verification
-- `docs/` — detailed guides (iOS setup, multi-device usage, backup, AI compatibility, data sharing)
-
-## Verifying your download (optional)
-
-Verification is for users who want extra confidence that a release bundle was not corrupted after packaging. You do **not** need to verify anything to use the vault.
-
-Each release includes a `.sha256` checksum file and a `.manifest.json`. To verify a release bundle:
+**Desktop, verified initializer:**
 
 ```bash
-python3 tools/verify_release.py dist/ContinuityVault_vX.Y.Z.zip
+python3 tools/init_vault.py /path/to/parent-folder
 ```
 
-If you skip this step, the vault still works the same. Verification is an integrity check, not an onboarding requirement.
+**Any device:** copy or unzip `vault_template/KnowledgeVault/` somewhere you control.
 
-## Relationship to StegVerse
+The initializer refuses to overwrite an existing vault, verifies the installed file set and immutable hashes, and writes `_System/installation.receipt.json`.
 
-This kit is part of **StegVerse**: an open framework for expectations, identity, boundaries, continuity, and replaceability — not control or permanence.
+### Use
 
-- `canon/` inside the vault template is synced from StegDB (authoritative doctrine + contract templates)
-- All other vault content is user-facing and evolves for usability
-- StegVerse SDK, StegDB, and TVC can validate or index this vault later — but baseline use requires none of them
+1. Capture something in `00_Inbox/` or `01_Notes/`.
+2. Add the date, why it matters, and what should be remembered next.
+3. Organize only when useful.
+4. Index important material in `_Index/` so it can be found and reconstructed later.
+
+For the complete operating guide, including iPhone/iPad, Android, desktop, AI continuity, backup, SKAP Vault, HANDOFF/receipt boundaries, sharing, and troubleshooting, read **[`USER_GUIDE.md`](./USER_GUIDE.md)**.
+
+## Core vault structure
+
+```text
+KnowledgeVault/
+├── 00_Inbox/      quick capture
+├── 01_Notes/      notes and observations
+├── 02_Research/   research and evidence
+├── 03_Records/    durable records
+├── 04_Media/      media and references
+├── 05_Projects/   active work
+├── 06_Archive/    completed/dormant material
+├── _AI/           AI suggestions and review state
+├── _Entities/     people, places, organizations, projects, self
+├── _Index/        indexes and cross-references
+├── _Meta/         manifest and integrity metadata
+├── _Policy/       vault policy
+├── _System/       receipts, execution state, guides, migrations
+├── _Templates/    reusable templates
+└── docs/          vault-local documentation
+```
+
+## StegVerse boundary model
+
+KnowledgeVault is not the secret store, device runtime, or network itself. The intended governed topology is:
+
+```text
+SKAP Vault ←InTr→ KnowledgeVault ←InTr→ Device/StegOS Node ←InTr→ External Network ←InTr→ Endpoint
+```
+
+Each independently governed ingress boundary evaluates its own HANDOFF and, when admitted, produces its own HANDOFF_RECEIPT. Success at one boundary does not automatically authorize the next.
+
+- **KnowledgeVault** preserves continuity and knowledge state.
+- **SKAP Vault** is the secret-custody boundary for credentials, keys, recovery material, and equivalent secrets.
+- **Device / StegOS Node** is an execution and interaction boundary.
+- **External Network** is a separately governed transport boundary.
+- **Endpoint** independently admits or rejects the requested operation.
+
+The full runtime Interlock/InTr integration is an activation lane separate from baseline file-only KnowledgeVault use.
+
+## Safety
+
+KnowledgeVault's baseline file structure is not itself encryption. Do not place passwords, private keys, seed phrases, authentication recovery codes, or equivalent secrets into ordinary plaintext KV files. In the StegVerse architecture, those belong behind the SKAP Vault boundary.
+
+For repository and deployment security posture, see [`SECURITY.md`](./SECURITY.md).
+
+## AI continuity
+
+KnowledgeVault can preserve reloadable conversation and project state without making an AI system canonical authority over the vault.
+
+See:
+
+- [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md)
+- [`docs/EXAMPLES.md`](./docs/EXAMPLES.md)
+- [`docs/AI_COMPATIBLE.md`](./docs/AI_COMPATIBLE.md)
+
+## Technical review
+
+Developers and reviewers should start with [`docs/TECHNICAL_REVIEW_PATH.md`](./docs/TECHNICAL_REVIEW_PATH.md), [`SECURITY.md`](./SECURITY.md), and [`stegverse.architecture.json`](./stegverse.architecture.json).
+
+Release history and integrity remain in [`CHANGELOG.md`](./CHANGELOG.md), `VERSION`, and release evidence under `docs/`.
 
 ## License
 
