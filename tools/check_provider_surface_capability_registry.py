@@ -64,6 +64,16 @@ def main():
         if obs["knowledge_state"] == "VERIFIED":
             if ev.get("source_type") in (None, "unknown") or not ev.get("source_ref") or not ev.get("observed_at"):
                 fail(f"observation[{i}].verified_without_evidence")
+    verified_count = sum(1 for obs in observations if obs.get("knowledge_state") == "VERIFIED")
+    state = data.get("state")
+    if state == "INSTALLED_UNVERIFIED" and observations:
+        fail("installed_unverified_with_observations")
+    if state == "DOCUMENTED_UNVERIFIED" and verified_count:
+        fail("documented_unverified_contains_verified_observation")
+    if state == "PARTIALLY_VERIFIED" and verified_count == 0:
+        fail("partially_verified_without_verified_observation")
+    if state == "VERIFIED" and (not observations or verified_count != len(observations)):
+        fail("verified_registry_contains_nonverified_observation")
     print("KV_PROVIDER_SURFACE_CAPABILITY_REGISTRY=PASS")
 
 if __name__ == "__main__":
