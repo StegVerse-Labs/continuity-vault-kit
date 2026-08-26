@@ -8,6 +8,12 @@
   "production_interlock_runtime_activated": false,
   "activation_performed": false,
   "authority_effect": "NONE",
+  "summary": {
+    "local_ready": 45,
+    "local_blocked": 1,
+    "governed_ready": 0,
+    "governed_blocked": 46
+  },
   "entries": [
     {
       "entry_type": "MODULE",
@@ -192,8 +198,10 @@
       "service_class": "KV_DEVICE",
       "install_state": "INSTALLED_INACTIVE",
       "local_materialization": "READY_FOR_DEVICE_MATERIALIZATION",
-      "governed_action_readiness": "READY_FOR_GOVERNED_ACTION",
-      "governed_blockers": [],
+      "governed_action_readiness": "BLOCKED",
+      "governed_blockers": [
+        "production_interlock_runtime_activated"
+      ],
       "activation_performed": false,
       "authority_effect": "NONE"
     },
@@ -427,8 +435,10 @@
       "service_class": "KV_NATIVE",
       "install_state": "INSTALLED_INACTIVE",
       "local_materialization": "READY_FOR_LOCAL_MATERIALIZATION",
-      "governed_action_readiness": "READY_FOR_GOVERNED_ACTION",
-      "governed_blockers": [],
+      "governed_action_readiness": "BLOCKED",
+      "governed_blockers": [
+        "production_interlock_runtime_activated"
+      ],
       "activation_performed": false,
       "authority_effect": "NONE"
     },
@@ -438,8 +448,10 @@
       "service_class": "KV_NATIVE",
       "install_state": "INSTALLED_INACTIVE",
       "local_materialization": "READY_FOR_LOCAL_MATERIALIZATION",
-      "governed_action_readiness": "READY_FOR_GOVERNED_ACTION",
-      "governed_blockers": [],
+      "governed_action_readiness": "BLOCKED",
+      "governed_blockers": [
+        "production_interlock_runtime_activated"
+      ],
       "activation_performed": false,
       "authority_effect": "NONE"
     },
@@ -477,8 +489,10 @@
       "service_class": "KV_DEVICE",
       "install_state": "INSTALLED_INACTIVE",
       "local_materialization": "READY_FOR_DEVICE_MATERIALIZATION",
-      "governed_action_readiness": "READY_FOR_GOVERNED_ACTION",
-      "governed_blockers": [],
+      "governed_action_readiness": "BLOCKED",
+      "governed_blockers": [
+        "production_interlock_runtime_activated"
+      ],
       "activation_performed": false,
       "authority_effect": "NONE"
     },
@@ -516,8 +530,10 @@
       "service_class": "KV_DEVICE",
       "install_state": "INSTALLED_INACTIVE",
       "local_materialization": "READY_FOR_DEVICE_MATERIALIZATION",
-      "governed_action_readiness": "READY_FOR_GOVERNED_ACTION",
-      "governed_blockers": [],
+      "governed_action_readiness": "BLOCKED",
+      "governed_blockers": [
+        "production_interlock_runtime_activated"
+      ],
       "activation_performed": false,
       "authority_effect": "NONE"
     },
@@ -619,11 +635,5 @@
       "activation_performed": false,
       "authority_effect": "NONE"
     }
-  ],
-  "summary": {
-    "local_ready": 45,
-    "local_blocked": 1,
-    "governed_ready": 5,
-    "governed_blocked": 41
-  }
+  ]
 }
