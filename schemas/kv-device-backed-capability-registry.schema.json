@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-device-backed-capability-registry.schema.json",
+  "title": "KnowledgeVault device-backed capability registry",
+  "type": "object",
+  "required": ["schema","state","interlock_activation_required_for_install","authority_effect","modules"],
+  "properties": {
+    "schema": {"const":"stegverse.kv.device-backed-capability-registry/v1"},
+    "state": {"enum":["INSTALLED_INACTIVE","ACTIVE"]},
+    "interlock_activation_required_for_install": {"const":false},
+    "authority_effect": {"const":"NONE"},
+    "modules": {
+      "type":"array",
+      "minItems":1,
+      "items":{
+        "type":"object",
+        "required":["module_id","install_state","kv_surfaces","device_activity","activation_requires","authority_effect"],
+        "properties":{
+          "module_id":{"type":"string","minLength":1},
+          "install_state":{"const":"INSTALLED_INACTIVE"},
+          "kv_surfaces":{"type":"array","minItems":1,"items":{"type":"string"}},
+          "device_activity":{"type":"array","minItems":1,"items":{"type":"string"}},
+          "activation_requires":{"type":"array","items":{"type":"string"}},
+          "authority_effect":{"const":"NONE"}
+        },
+        "additionalProperties":true
+      }
+    }
+  },
+  "additionalProperties":false
+}
