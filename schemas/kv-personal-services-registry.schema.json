@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-personal-services-registry.schema.json",
+  "title": "KnowledgeVault personal services registry",
+  "type": "object",
+  "required": [
+    "schema",
+    "state",
+    "interlock_activation_required_for_install",
+    "authority_effect",
+    "services"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.personal-services-registry/v1"
+    },
+    "state": {
+      "const": "INSTALLED_INACTIVE"
+    },
+    "interlock_activation_required_for_install": {
+      "const": false
+    },
+    "authority_effect": {
+      "const": "NONE"
+    },
+    "services": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "service_id",
+          "service_class",
+          "install_state",
+          "kv_surfaces",
+          "device_activity",
+          "provider_dependency",
+          "activation_requires",
+          "authority_effect"
+        ],
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "service_class": {
+            "enum": [
+              "KV_NATIVE",
+              "KV_DEVICE",
+              "KV_DEVICE_PROVIDER"
+            ]
+          },
+          "install_state": {
+            "const": "INSTALLED_INACTIVE"
+          },
+          "kv_surfaces": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "device_activity": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "provider_dependency": {
+            "type": "string"
+          },
+          "activation_requires": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authority_effect": {
+            "const": "NONE"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}
