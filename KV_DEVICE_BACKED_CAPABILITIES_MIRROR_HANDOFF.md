@@ -101,3 +101,29 @@ connected registry readback: PASS
 Interlock/InTr activation: NOT CLAIMED / SEPARATE
 module runtime activation: NOT CLAIMED / SEPARATE
 ```
+
+
+## Personal Services extension
+
+A separate Personal Services registry now extends this module layer without converting services into app-owned data silos.
+
+Canonical handoff:
+
+`KV_PERSONAL_SERVICES_MIRROR_HANDOFF.md`
+
+Canonical source:
+
+`specs/kv-personal-services-registry.v1.json`
+
+Connected KV surface:
+
+`/KnowledgeVault/_System/Services/`
+
+The service layer follows the same installation boundary as this capability registry:
+
+```text
+service installation may occur before Interlock/InTr activation
+service installation does not grant authority
+service data remains in existing semantic KV surfaces
+device/StegOS supplies activity
+```
