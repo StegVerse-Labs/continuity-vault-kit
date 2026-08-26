@@ -42,6 +42,7 @@ TVC resident recipient-key liveness observed: false
 READY_FOR_OWNER_INGRESS observed: false
 production Gateway route observed: false
 production double-Interlock receipts observed: false
+SKAP Vault runtime boundary observed: false
 provider session evidence observed: false
 current identity-continuity receipt observed: false
 governance runtime admission observed: false
@@ -108,7 +109,7 @@ Snapshot projection:
 
 Drive file:
 
-`1ZmaI21dpCpDGZ_g6pbZNsE-Bn87S_8km6ehcHa3lRc4`
+`1xn5eD2NSgB9n9AKIHxP_ggp81cipa-U666bMUdIWgwQ`
 
 Direct Drive readback verified:
 
@@ -174,3 +175,72 @@ CI: PASS
 merge: COMPLETE
 activation: NOT PERFORMED
 ```
+
+
+## TVC runtime evidence admission — issue #61
+
+Canonical TVC evidence producers already exist in `StegVerse-Labs/TVC`:
+
+- `scripts/observe_coinbase_intr_resident_readiness.py`
+  - schema `stegverse.tvc.coinbase_intr_resident_readiness/v3`;
+- `scripts/observe_skap_vault_runtime_boundary.py`
+  - schema `stegverse.tvc.skap_vault_runtime_boundary_observation/v1`.
+
+KnowledgeVault now has a bounded adapter on the #61 branch:
+
+- `scripts/admit_tvc_readiness_evidence.py`;
+- `schemas/kv-tvc-readiness-evidence-admission.schema.json`;
+- `tests/test_admit_tvc_readiness_evidence.py`.
+
+The adapter may emit only the following evidence-derived facts:
+
+```text
+tvc_resident_key_liveness_observed
+ready_for_owner_ingress_observed
+production_gateway_route_observed
+production_double_interlock_receipts_observed
+skap_vault_runtime_boundary_observed
+```
+
+It explicitly may not set:
+
+```text
+production_interlock_runtime_activated
+provider_session_evidence_observed
+module/service activation
+provider-operation authority
+execution authority
+```
+
+The broader production-Interlock fact remains owned by the appropriate cross-module/runtime admission, not by one Coinbase-specific TVC observation.
+
+Evidence fails closed if any of the following are violated:
+
+```text
+credential_authority != TV/TVC
+credential_custody_target mismatch
+transport_protocol != InTr
+authority_transfer != false
+provider_operation_authorized != false
+provider_operation_started != false
+credential_plaintext_observed != false
+SKAP storage connector != KV_SKAP_INTR_ONLY
+KV decryption authority != false
+execution_authority != NONE
+secret/private-key/plaintext-bearing material present
+```
+
+A legitimate blocked TVC observation is admissible as evidence but produces false readiness facts. A ready observation advances only the exact booleans it proves.
+
+Current connected-KV snapshot remains fail-closed:
+
+```text
+local_ready=45
+local_blocked=1
+governed_ready=0
+governed_blocked=46
+activation_performed=false
+authority_effect=NONE
+```
+
+StegFin now additionally requires `skap_vault_runtime_boundary_observed=true` before governed readiness can ever be considered.
