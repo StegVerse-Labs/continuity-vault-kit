@@ -1,0 +1,288 @@
+{
+  "schema": "stegverse.kv.device-backed-capability-registry/v1",
+  "state": "INSTALLED_INACTIVE",
+  "installed_at": "2026-08-26T20:35:00Z",
+  "interlock_activation_required_for_install": false,
+  "runtime_activation_claimed": false,
+  "network_activation_claimed": false,
+  "credential_activation_claimed": false,
+  "provider_activation_claimed": false,
+  "authority_effect": "NONE",
+  "device_role": "EPHEMERAL_ACTIVITY_EDGE",
+  "kv_role": "DURABLE_STATE_CONTINUITY_AND_RECONSTRUCTION",
+  "modules": [
+    {
+      "module_id": "stegid-continuity",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_System/Identity/Continuity",
+        "_Entities/Self/StegID/Continuity"
+      ],
+      "device_activity": [
+        "user_presence",
+        "device_local_key_use",
+        "attestation_when_available",
+        "challenge_response"
+      ],
+      "activation_requires": [
+        "verified_current_identity_continuity_receipt",
+        "Interlock policy evaluation"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "governance-steggate",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_System/Governance/Decisions",
+        "_Policy"
+      ],
+      "device_activity": [
+        "intent_capture",
+        "approval_ui",
+        "bounded_action_handoff"
+      ],
+      "activation_requires": [
+        "current governance validator PASS",
+        "Interlock admission"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "stegtalk",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_System/Execution/Extensions",
+        "_System/Execution/Attempts",
+        "_System/Execution/Receipts",
+        "_System/Execution/Recovery",
+        "_Entities/People"
+      ],
+      "device_activity": [
+        "text_input",
+        "display",
+        "notifications",
+        "network_transport",
+        "local_crypto"
+      ],
+      "activation_requires": [
+        "Interlock transport admission",
+        "recipient/session resolution when required"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "stegwhisper",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_System/Execution/Extensions",
+        "_System/Execution/Attempts",
+        "_System/Execution/Receipts",
+        "_System/Execution/Recovery",
+        "04_Media"
+      ],
+      "device_activity": [
+        "microphone",
+        "speaker",
+        "audio_route",
+        "capture",
+        "playback",
+        "network_transport"
+      ],
+      "activation_requires": [
+        "Interlock transport admission",
+        "recipient/session resolution when required"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "steghealth",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Self",
+        "_Entities/Organizations",
+        "_System/Execution/Receipts"
+      ],
+      "device_activity": [
+        "health_sensor_ingest",
+        "document_capture",
+        "portal_interaction",
+        "notifications",
+        "user_confirmation"
+      ],
+      "activation_requires": [
+        "KV-INTERLOCK-v1 bounded disclosure",
+        "minimum-necessary policy decision"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "stegfin-wallet-pay",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/Self",
+        "03_Records",
+        "_System/Execution",
+        "_Vault/SKAP"
+      ],
+      "device_activity": [
+        "biometric_authorization",
+        "provider_session",
+        "payment_presentation",
+        "network_transport",
+        "transaction_confirmation"
+      ],
+      "activation_requires": [
+        "Interlock admission",
+        "SKAP credential resolution",
+        "provider/session verification"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "genealogy",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/People",
+        "_Entities/Places",
+        "_Entities/Organizations",
+        "_Index/Relationships",
+        "04_Media"
+      ],
+      "device_activity": [
+        "photo_capture",
+        "document_scan",
+        "relative_interaction",
+        "location_observation",
+        "peer_sharing"
+      ],
+      "activation_requires": [
+        "sharing policy when data leaves owner KV"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "media-playlists-reading",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "04_Media",
+        "_Entities/People",
+        "_Entities/Projects"
+      ],
+      "device_activity": [
+        "provider_playback",
+        "media_capture",
+        "provider_sync",
+        "share_ui"
+      ],
+      "activation_requires": [
+        "provider/session admission when external playback or sync is used"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "family-sharing",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/People",
+        "_Index/Relationships",
+        "04_Media",
+        "05_Projects"
+      ],
+      "device_activity": [
+        "recipient_selection",
+        "share_ui",
+        "local_projection",
+        "transport"
+      ],
+      "activation_requires": [
+        "explicit disclosure policy",
+        "Interlock recipient/scope admission"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "organization-context",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/Organizations",
+        "_Entities/People",
+        "_Entities/Projects",
+        "_System/Governance"
+      ],
+      "device_activity": [
+        "context_selection",
+        "role_ui",
+        "bounded_projection",
+        "external_interaction"
+      ],
+      "activation_requires": [
+        "organizational authority reference",
+        "Interlock minimum projection"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "auri-ecosystem-chat",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_AI",
+        "_System/Execution",
+        "_Entities",
+        "_Index"
+      ],
+      "device_activity": [
+        "conversation_ui",
+        "local_or_admitted_inference",
+        "network_transport_when_needed",
+        "user_confirmation"
+      ],
+      "activation_requires": [
+        "actionable-handoff-first policy",
+        "minimum-necessary record admission"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "stegteacher-onboarding",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Index/Onboarding",
+        "_Entities/Self",
+        "_Entities/Organizations",
+        "05_Projects"
+      ],
+      "device_activity": [
+        "lesson_ui",
+        "assessment_input",
+        "camera_microphone_when_needed",
+        "user_confirmation"
+      ],
+      "activation_requires": [
+        "training/onboarding policy when capability changes"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "module_id": "erl-research",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "02_Research",
+        "_Index",
+        "_AI",
+        "05_Projects"
+      ],
+      "device_activity": [
+        "browser_research",
+        "source_capture",
+        "report_ui",
+        "user_review"
+      ],
+      "activation_requires": [
+        "source/disclosure policy for external sharing or governed action"
+      ],
+      "authority_effect": "NONE"
+    }
+  ]
+}
