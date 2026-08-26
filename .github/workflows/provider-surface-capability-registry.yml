@@ -1,0 +1,38 @@
+name: KV Provider Surface Capability Registry
+
+on:
+  pull_request:
+    paths:
+      - "schemas/kv-provider-surface-capability-registry.schema.json"
+      - "specs/kv-provider-surface-capability-registry.v1.json"
+      - "tools/check_provider_surface_capability_registry.py"
+      - "tests/test_provider_surface_capability_registry.py"
+      - "KV_PROVIDER_SURFACE_CAPABILITIES_MIRROR_HANDOFF.md"
+      - ".github/workflows/provider-surface-capability-registry.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/kv-provider-surface-capability-registry.schema.json"
+      - "specs/kv-provider-surface-capability-registry.v1.json"
+      - "tools/check_provider_surface_capability_registry.py"
+      - "tests/test_provider_surface_capability_registry.py"
+      - "KV_PROVIDER_SURFACE_CAPABILITIES_MIRROR_HANDOFF.md"
+      - ".github/workflows/provider-surface-capability-registry.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile validator and tests
+        run: python3 -m compileall -q tools/check_provider_surface_capability_registry.py tests/test_provider_surface_capability_registry.py
+      - name: Validate canonical provider/surface registry
+        run: python3 tools/check_provider_surface_capability_registry.py
+      - name: Run provider/surface registry tests
+        run: python3 -m unittest tests.test_provider_surface_capability_registry

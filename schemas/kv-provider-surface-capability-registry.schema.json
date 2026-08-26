@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-provider-surface-capability-registry.schema.json",
+  "title": "KnowledgeVault provider/access-surface capability registry",
+  "type": "object",
+  "required": ["schema","state","authority_effect","provider_families","observations"],
+  "properties": {
+    "schema": {"const":"stegverse.kv.provider-surface-capability-registry/v1"},
+    "state": {"enum":["INSTALLED_UNVERIFIED","PARTIALLY_VERIFIED","VERIFIED"]},
+    "authority_effect": {"const":"NONE"},
+    "provider_families": {
+      "type":"array","minItems":1,"uniqueItems":true,
+      "items":{"enum":["icloud","google_drive","microsoft_onedrive","aws_object_storage","self_hosted_private_cloud","stegcloud"]}
+    },
+    "observations": {
+      "type":"array",
+      "items":{
+        "type":"object",
+        "required":["provider","device_class","platform","access_surface","knowledge_state","capabilities","preferred_route","fallback_route","evidence"],
+        "properties":{
+          "provider":{"type":"string","minLength":1},
+          "device_class":{"type":"string","minLength":1},
+          "device_model_profile":{"type":["string","null"]},
+          "platform":{"type":"string","minLength":1},
+          "platform_version":{"type":["string","null"]},
+          "access_surface":{"enum":["native_provider_app","os_file_provider","browser","direct_api","sync_client","self_hosted_endpoint","stegverse_native"]},
+          "browser":{"type":["object","null"],"properties":{"name":{"type":"string"},"engine":{"type":"string"},"version":{"type":["string","null"]}},"additionalProperties":false},
+          "knowledge_state":{"enum":["UNKNOWN","DOCUMENTED","OBSERVED","VERIFIED","CONTRADICTED"]},
+          "capabilities":{
+            "type":"object",
+            "required":["read","write","background_sync","offline_access","local_cache","atomic_update","conflict_handling","folder_creation","metadata_fidelity","change_notifications","direct_api","native_file_provider","authentication_persistence","resumable_upload","file_size_limits","latency_performance","recovery_export"],
+            "additionalProperties":false,
+            "properties":{
+              "read":{"$ref":"#/$defs/capability"},
+              "write":{"$ref":"#/$defs/capability"},
+              "background_sync":{"$ref":"#/$defs/capability"},
+              "offline_access":{"$ref":"#/$defs/capability"},
+              "local_cache":{"$ref":"#/$defs/capability"},
+              "atomic_update":{"$ref":"#/$defs/capability"},
+              "conflict_handling":{"$ref":"#/$defs/capability"},
+              "folder_creation":{"$ref":"#/$defs/capability"},
+              "metadata_fidelity":{"$ref":"#/$defs/capability"},
+              "change_notifications":{"$ref":"#/$defs/capability"},
+              "direct_api":{"$ref":"#/$defs/capability"},
+              "native_file_provider":{"$ref":"#/$defs/capability"},
+              "authentication_persistence":{"$ref":"#/$defs/capability"},
+              "resumable_upload":{"$ref":"#/$defs/capability"},
+              "file_size_limits":{"$ref":"#/$defs/capability"},
+              "latency_performance":{"$ref":"#/$defs/capability"},
+              "recovery_export":{"$ref":"#/$defs/capability"}
+            }
+          },
+          "preferred_route":{"type":["string","null"]},
+          "fallback_route":{"type":["string","null"]},
+          "limitations":{"type":"array","items":{"type":"string"}},
+          "evidence":{
+            "type":"object",
+            "required":["source_type","source_ref","observed_at","version"],
+            "properties":{
+              "source_type":{"enum":["provider_documentation","stegverse_observation","conformance_test","unknown"]},
+              "source_ref":{"type":["string","null"]},
+              "observed_at":{"type":["string","null"]},
+              "version":{"type":"string","minLength":1}
+            },
+            "additionalProperties":false
+          }
+        },
+        "additionalProperties":false
+      }
+    }
+  },
+  "$defs":{
+    "capability":{"enum":["YES","NO","PARTIAL","UNKNOWN","NOT_APPLICABLE"]}
+  },
+  "additionalProperties":false
+}

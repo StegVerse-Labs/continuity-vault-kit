@@ -1,0 +1,14 @@
+{
+  "schema": "stegverse.kv.provider-surface-capability-registry/v1",
+  "state": "INSTALLED_UNVERIFIED",
+  "authority_effect": "NONE",
+  "provider_families": [
+    "icloud",
+    "google_drive",
+    "microsoft_onedrive",
+    "aws_object_storage",
+    "self_hosted_private_cloud",
+    "stegcloud"
+  ],
+  "observations": []
+}
