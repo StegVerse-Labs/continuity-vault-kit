@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-activation-readiness-snapshot.schema.json",
+  "title": "KnowledgeVault activation readiness snapshot",
+  "type": "object",
+  "required": [
+    "schema",
+    "entry_count",
+    "module_count",
+    "service_count",
+    "activation_performed",
+    "authority_effect",
+    "entries"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.activation-readiness-snapshot/v1"
+    },
+    "entry_count": {
+      "const": 46
+    },
+    "module_count": {
+      "const": 13
+    },
+    "service_count": {
+      "const": 33
+    },
+    "activation_performed": {
+      "const": false
+    },
+    "authority_effect": {
+      "const": "NONE"
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 46,
+      "maxItems": 46,
+      "items": {
+        "type": "object",
+        "required": [
+          "entry_type",
+          "entry_id",
+          "install_state",
+          "local_materialization",
+          "governed_action_readiness",
+          "governed_blockers",
+          "activation_performed",
+          "authority_effect"
+        ],
+        "properties": {
+          "entry_type": {
+            "enum": [
+              "MODULE",
+              "SERVICE"
+            ]
+          },
+          "entry_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "install_state": {
+            "const": "INSTALLED_INACTIVE"
+          },
+          "local_materialization": {
+            "type": "string",
+            "minLength": 1
+          },
+          "governed_action_readiness": {
+            "enum": [
+              "READY_FOR_GOVERNED_ACTION",
+              "BLOCKED"
+            ]
+          },
+          "governed_blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "activation_performed": {
+            "const": false
+          },
+          "authority_effect": {
+            "const": "NONE"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
