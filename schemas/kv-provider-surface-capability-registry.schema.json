@@ -6,7 +6,7 @@
   "required": ["schema","state","authority_effect","provider_families","observations"],
   "properties": {
     "schema": {"const":"stegverse.kv.provider-surface-capability-registry/v1"},
-    "state": {"enum":["INSTALLED_UNVERIFIED","PARTIALLY_VERIFIED","VERIFIED"]},
+    "state": {"enum":["INSTALLED_UNVERIFIED","DOCUMENTED_UNVERIFIED","PARTIALLY_VERIFIED","VERIFIED"]},
     "authority_effect": {"const":"NONE"},
     "provider_families": {
       "type":"array","minItems":1,"uniqueItems":true,
