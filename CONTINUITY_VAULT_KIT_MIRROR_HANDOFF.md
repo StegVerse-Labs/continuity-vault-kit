@@ -4,7 +4,7 @@ Status: ACTIVE
 Repository: StegVerse-Labs/continuity-vault-kit
 Default branch: main
 Created: 2026-08-22
-Last updated: 2026-08-22
+Last updated: 2026-08-26
 
 ## Live source of truth
 
@@ -16,6 +16,20 @@ Last updated: 2026-08-22
 - Template root tree SHA used for this installation: `13ac73d64bb96bf80cb790d205b29962b6913310`.
 - Issue #39 has advanced from issue-only definition into implemented recoverable-execution / communication-extension source, but runtime proof remains open.
 - Issue #16 remains a separate external activation gate and is not a baseline KnowledgeVault installation requirement.
+- Root user-operation documentation is now consolidated into `README.md` plus `USER_GUIDE.md`; `SECURITY.md` remains the separate repository/deployment security policy.
+
+## Root user-document consolidation completed
+
+Completed 2026-08-26:
+
+- rewrote `README.md` as the concise KnowledgeVault front door;
+- added `USER_GUIDE.md` as the complete user-operation guide;
+- folded first-use material from `WELCOME.md` and `GETTING_STARTED.md` into the two-document user path;
+- folded user safety / plaintext-secret guidance from `SAFETY.md` and `DO_NOT_STORE_HERE.md` into `USER_GUIDE.md` while preserving `SECURITY.md` as the repository/deployment security authority;
+- removed obsolete duplicate `PATCH_README.md` / `Patch_README.md` root artifacts;
+- documented the evolving StegVerse topology as `SKAP Vault ←InTr→ KnowledgeVault ←InTr→ Device/StegOS Node ←InTr→ External Network ←InTr→ Endpoint`, with separate independently governed ingress HANDOFF / HANDOFF_RECEIPT boundaries and explicit language that runtime Interlock/InTr activation remains separate from baseline file-only KV use.
+
+Follow-up validation remains required for any stale internal links in historical/developer documentation that referenced the removed root onboarding files. Do not treat documentation consolidation as runtime activation.
 
 ## Claimed installation task
 
@@ -146,7 +160,8 @@ KnowledgeVault is an explicit communication-extension host for StegTalk and Steg
 ## Open completion boundaries
 
 - Full-template Drive parity remains ACTIVE until the complete recursive template payload is present and reconciled against the authoritative release/template source.
+- Root documentation consolidation is implemented, but stale-link validation across historical/developer docs remains OPEN until checked against current `main`.
 - Issue #39 runtime validation remains OPEN until observed CI plus a real durable KnowledgeVault-backed StegTalk/StegWhisper attempt survives and reconstructs across an actual edge-device interruption/restart or replacement.
 - Issue #16 external provider activation remains OPEN / externally gated.
 
-Durable handoff, task assignment, folder presence, source implementation, or workflow existence does not by itself satisfy activation or completion.
+Durable handoff, task assignment, folder presence, source implementation, documentation cleanup, or workflow existence does not by itself satisfy activation or completion.
