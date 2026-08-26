@@ -14,7 +14,7 @@ Last updated: 2026-08-26
 - Latest release evidence records v0.1.9 as PUBLISHED with `release_required_after_run=false`.
 - Latest integrity evidence records a 131-file release manifest and PASS initializer / automation-contract self-tests.
 - Template root tree SHA used for this installation: `13ac73d64bb96bf80cb790d205b29962b6913310`.
-- Issue #39 has advanced from issue-only definition into implemented recoverable-execution / communication-extension source, but runtime proof remains open.
+- Issue #39 recoverable-execution / communication-extension source is implemented. A real connected-KV StegTalk + StegWhisper pre-dispatch interruption/reconstruction proof is now present; actual bearer delivery and post-dispatch edge replacement/reconciliation remain open.
 - Issue #16 remains a separate external activation gate and is not a baseline KnowledgeVault installation requirement.
 - Root user-operation documentation is now consolidated into `README.md` plus `USER_GUIDE.md`; `SECURITY.md` remains the separate repository/deployment security policy.
 
@@ -153,15 +153,97 @@ _System/Execution/
     Recovery/
 ```
 
-The connected Drive KnowledgeVault contains that live directory structure. This proves the durable backing location exists in the actual personal vault. It does not yet prove that a real communication attempt has been persisted and recovered through it.
+The connected Drive KnowledgeVault contains that live directory structure and now contains real connected-KV StegTalk/StegWhisper interruption/reconstruction evidence.
 
-KnowledgeVault is an explicit communication-extension host for StegTalk and StegWhisper. The device remains an ephemeral transport edge: `device_authority=false` and `device_continuity_authority=false`; KnowledgeVault remains the continuity host. Cross-repository source bindings exist in `StegVerse-Labs/StegTalk` and `StegVerse-Labs/StegWhisper`, but source implementation is not runtime/cloud activation proof.
+Observed 2026-08-26 connected-KV evidence:
+
+```text
+_System/Execution/Attempts/
+  stegtalk-connected-kv-envelope-20260826.json
+  stegtalk-connected-kv-attempt-20260826.json
+  stegwhisper-connected-kv-envelope-20260826.json
+  stegwhisper-connected-kv-attempt-20260826.json
+
+_System/Execution/Extensions/
+  stegtalk-connected-kv-recovery-request-20260826.json
+  stegtalk-connected-kv-hosted-20260826.json
+  stegwhisper-connected-kv-recovery-request-20260826.json
+  stegwhisper-connected-kv-hosted-20260826.json
+
+_System/Execution/Recovery/
+  stegtalk-connected-kv-recovery-20260826.json
+  stegwhisper-connected-kv-recovery-20260826.json
+  communication-connected-kv-interruption-reconstruction-20260826.json
+```
+
+Combined recovery manifest Drive id:
+
+`19PyBsA7bpdkaADv0efsyQdTUavW8h6pc`
+
+Manifest schema:
+
+`stegverse.kv.communication_interruption_reconstruction/v1`
+
+Observed facts:
+
+```text
+StegTalk operation: SEND_MESSAGE
+StegTalk interruption: AFTER_START_BEFORE_DISPATCH
+StegTalk reconstruction: RETRY_EXACT
+
+StegWhisper operation: PRESENT_AUDIO
+StegWhisper interruption: AFTER_START_BEFORE_DISPATCH
+StegWhisper reconstruction: RETRY_EXACT
+
+production_credential_used: false
+external_side_effect_performed: false
+new_authority_granted: false
+test authority scope: LOCAL_NON_SECRET_KV_COMMUNICATION_INTERRUPTION_RECONSTRUCTION_ONLY
+```
+
+This proves durable connected-KV persistence plus reconstruction for real StegTalk/StegWhisper extension records when interruption occurs after STARTED but before DISPATCH. It does **not** prove actual bearer transmission, delivery acknowledgement, post-dispatch ambiguity resolution against an external bearer, or physical edge replacement after an external side effect.
+
+KnowledgeVault remains the continuity host. The device remains an ephemeral transport edge: `device_authority=false` and `device_continuity_authority=false`. StegTalk/StegWhisper source integration plus this connected-KV recovery proof do not create bearer, provider, or execution authority.
 
 ## Open completion boundaries
 
 - Full-template Drive parity remains ACTIVE until the complete recursive template payload is present and reconciled against the authoritative release/template source.
 - Root documentation consolidation is implemented, but stale-link validation across historical/developer docs remains OPEN until checked against current `main`.
-- Issue #39 runtime validation remains OPEN until observed CI plus a real durable KnowledgeVault-backed StegTalk/StegWhisper attempt survives and reconstructs across an actual edge-device interruption/restart or replacement.
+- Issue #39 connected-KV pre-dispatch interruption/reconstruction is COMPLETE. Remaining runtime proof is narrowed to actual bearer/delivery evidence plus post-dispatch interruption or edge replacement/reconstruction without duplicate dispatch.
 - Issue #16 external provider activation remains OPEN / externally gated.
 
 Durable handoff, task assignment, folder presence, source implementation, documentation cleanup, or workflow existence does not by itself satisfy activation or completion.
+
+
+## Installed capability/service readiness convergence
+
+The pre-Interlock capability environment is now installed and connected to a fail-closed readiness control plane:
+
+```text
+13 device-backed module slots: INSTALLED_INACTIVE / CONNECTED_KV
+33 personal-service slots: INSTALLED_INACTIVE / CONNECTED_KV
+total readiness entries: 46
+local-ready: 45
+local-blocked: 1
+governed-ready: 0
+governed-blocked: 46
+activation_performed: false
+authority_effect: NONE
+```
+
+Canonical handoffs:
+
+- `KV_DEVICE_BACKED_CAPABILITIES_MIRROR_HANDOFF.md`;
+- `KV_PERSONAL_SERVICES_MIRROR_HANDOFF.md`;
+- `KV_ACTIVATION_READINESS_MIRROR_HANDOFF.md`.
+
+Current connected-KV readiness projection:
+
+```text
+/KnowledgeVault/_System/Readiness/
+Drive folder: 1YOOI4eFsuCK50LnmgdiPuMxHrucUvTwh
+activation-readiness-snapshot:
+1xn5eD2NSgB9n9AKIHxP_ggp81cipa-U666bMUdIWgwQ
+```
+
+Baseline InTr RC-01..RC-05 is complete. Production Interlock/TVC resident runtime activation remains separate and unobserved. TVC runtime readiness evidence can now be admitted through the merged fail-closed adapter without manually editing readiness facts or activating a capability.
