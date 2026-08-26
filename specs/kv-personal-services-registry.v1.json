@@ -1,0 +1,690 @@
+{
+  "schema": "stegverse.kv.personal-services-registry/v1",
+  "state": "INSTALLED_INACTIVE",
+  "installed_at": "2026-08-26T21:08:00Z",
+  "interlock_activation_required_for_install": false,
+  "runtime_activation_claimed": false,
+  "network_activation_claimed": false,
+  "credential_activation_claimed": false,
+  "provider_activation_claimed": false,
+  "authority_effect": "NONE",
+  "data_model": "REFERENCE_EXISTING_SEMANTIC_KV_SURFACES_NO_APP_SILOS",
+  "service_count": 33,
+  "services": [
+    {
+      "service_id": "calendar-scheduling",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Index/Timeline",
+        "05_Projects",
+        "_Entities/People",
+        "_Entities/Organizations"
+      ],
+      "device_activity": [
+        "calendar_ui",
+        "notifications",
+        "time_zone_context"
+      ],
+      "provider_dependency": "OPTIONAL_EXTERNAL_CALENDAR_PROVIDER",
+      "activation_requires": [
+        "Interlock schedule disclosure/write admission when external provider used"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "tasks-reminders",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "05_Projects",
+        "_Index/Now",
+        "_System/Execution/Receipts"
+      ],
+      "device_activity": [
+        "task_ui",
+        "notifications",
+        "user_confirmation"
+      ],
+      "provider_dependency": "NONE",
+      "activation_requires": [
+        "Interlock admission only for governed external actions"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "contacts",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/People",
+        "_Entities/Organizations",
+        "_Index/Relationships"
+      ],
+      "device_activity": [
+        "contact_ui",
+        "capture",
+        "import_export"
+      ],
+      "provider_dependency": "OPTIONAL_CONTACT_PROVIDER",
+      "activation_requires": [
+        "sharing/import policy for external synchronization"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "email-continuity",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/People",
+        "_Entities/Organizations",
+        "03_Records",
+        "_System/Execution"
+      ],
+      "device_activity": [
+        "mail_ui",
+        "notifications",
+        "network_transport"
+      ],
+      "provider_dependency": "EXTERNAL_MAIL_PROVIDER",
+      "activation_requires": [
+        "verified provider session",
+        "Interlock minimum-disclosure/send admission"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "benefits-claims",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "05_Projects",
+        "_Entities/Organizations",
+        "_System/Execution/Receipts"
+      ],
+      "device_activity": [
+        "document_capture",
+        "portal_interaction",
+        "notifications",
+        "user_confirmation"
+      ],
+      "provider_dependency": "OPTIONAL_GOVERNMENT_OR_BENEFITS_PROVIDER",
+      "activation_requires": [
+        "Interlock disclosure/action admission"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "legal-records",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/People",
+        "_Entities/Organizations",
+        "05_Projects"
+      ],
+      "device_activity": [
+        "document_capture",
+        "review_ui",
+        "signature_intent"
+      ],
+      "provider_dependency": "OPTIONAL_LEGAL_OR_SIGNATURE_PROVIDER",
+      "activation_requires": [
+        "explicit disclosure/signature authority when external action used"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "insurance",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Organizations",
+        "05_Projects",
+        "_System/Execution/Receipts"
+      ],
+      "device_activity": [
+        "document_capture",
+        "portal_session",
+        "notifications"
+      ],
+      "provider_dependency": "EXTERNAL_INSURANCE_PROVIDER",
+      "activation_requires": [
+        "verified provider session",
+        "minimum-necessary disclosure"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "home-household",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/Places",
+        "03_Records",
+        "05_Projects",
+        "_Entities/People"
+      ],
+      "device_activity": [
+        "camera_capture",
+        "local_inventory_ui",
+        "notifications"
+      ],
+      "provider_dependency": "OPTIONAL_HOME_PROVIDER",
+      "activation_requires": [
+        "sharing/device-control admission when external"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "vehicles",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Places",
+        "05_Projects"
+      ],
+      "device_activity": [
+        "camera_capture",
+        "location_context",
+        "vehicle_ui"
+      ],
+      "provider_dependency": "OPTIONAL_VEHICLE_PROVIDER",
+      "activation_requires": [
+        "provider/session admission when telemetry or remote control used"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "travel",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/Places",
+        "_Entities/People",
+        "05_Projects",
+        "03_Records"
+      ],
+      "device_activity": [
+        "location_context",
+        "ticket_wallet_ui",
+        "notifications",
+        "camera_capture"
+      ],
+      "provider_dependency": "OPTIONAL_TRAVEL_PROVIDER",
+      "activation_requires": [
+        "provider/session admission",
+        "disclosure policy"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "education-records",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Organizations",
+        "_Entities/People",
+        "05_Projects"
+      ],
+      "device_activity": [
+        "document_capture",
+        "course_ui",
+        "notifications"
+      ],
+      "provider_dependency": "OPTIONAL_EDUCATION_PROVIDER",
+      "activation_requires": [
+        "provider/session admission for external records"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "employment-history",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/Organizations",
+        "_Entities/People",
+        "03_Records",
+        "05_Projects"
+      ],
+      "device_activity": [
+        "document_capture",
+        "profile_ui"
+      ],
+      "provider_dependency": "OPTIONAL_EMPLOYMENT_PROVIDER",
+      "activation_requires": [
+        "disclosure policy for external use"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "credentials-certifications",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Self",
+        "_System/Identity/Continuity"
+      ],
+      "device_activity": [
+        "presentation_ui",
+        "camera_capture",
+        "local_verification"
+      ],
+      "provider_dependency": "OPTIONAL_ISSUER_PROVIDER",
+      "activation_requires": [
+        "verification/presentation admission when external"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "property-assets",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Places",
+        "_Entities/Organizations"
+      ],
+      "device_activity": [
+        "capture",
+        "valuation_ui"
+      ],
+      "provider_dependency": "OPTIONAL_ASSET_PROVIDER",
+      "activation_requires": [
+        "provider admission for external valuation/registry"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "taxes",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Organizations",
+        "_System/Execution/Receipts"
+      ],
+      "device_activity": [
+        "document_capture",
+        "review_ui",
+        "user_confirmation"
+      ],
+      "provider_dependency": "OPTIONAL_TAX_PROVIDER",
+      "activation_requires": [
+        "verified provider session",
+        "explicit filing/payment authority"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "subscriptions",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Organizations",
+        "_System/Execution/Receipts"
+      ],
+      "device_activity": [
+        "subscription_ui",
+        "notifications"
+      ],
+      "provider_dependency": "OPTIONAL_BILLING_PROVIDER",
+      "activation_requires": [
+        "provider/session admission for cancellation/change"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "purchases-warranties",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Organizations",
+        "04_Media"
+      ],
+      "device_activity": [
+        "receipt_capture",
+        "barcode_or_camera_capture",
+        "warranty_ui"
+      ],
+      "provider_dependency": "OPTIONAL_MERCHANT_PROVIDER",
+      "activation_requires": [
+        "provider admission for claims/returns"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "photos-memories",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "04_Media",
+        "_Entities/People",
+        "_Entities/Places",
+        "_Index/Timeline"
+      ],
+      "device_activity": [
+        "camera_capture",
+        "photo_picker",
+        "local_editing",
+        "share_ui"
+      ],
+      "provider_dependency": "OPTIONAL_MEDIA_PROVIDER",
+      "activation_requires": [
+        "disclosure policy for sharing/sync"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "personal-journal",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "01_Notes",
+        "_Index/Timeline",
+        "_Entities/Self"
+      ],
+      "device_activity": [
+        "writing_ui",
+        "voice_capture_optional"
+      ],
+      "provider_dependency": "NONE",
+      "activation_requires": [
+        "none for local use"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "goals-plans",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "05_Projects",
+        "_Index/Now",
+        "01_Notes"
+      ],
+      "device_activity": [
+        "planning_ui",
+        "notifications_optional"
+      ],
+      "provider_dependency": "NONE",
+      "activation_requires": [
+        "Interlock only for external actions"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "recipes-food",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "01_Notes",
+        "04_Media",
+        "_Entities/Places"
+      ],
+      "device_activity": [
+        "camera_capture",
+        "kitchen_ui",
+        "shopping_ui"
+      ],
+      "provider_dependency": "OPTIONAL_GROCERY_PROVIDER",
+      "activation_requires": [
+        "provider admission for external orders"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "fitness",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Self",
+        "_Index/Timeline"
+      ],
+      "device_activity": [
+        "sensor_ingest",
+        "workout_ui",
+        "notifications"
+      ],
+      "provider_dependency": "OPTIONAL_HEALTH_PROVIDER",
+      "activation_requires": [
+        "health-data disclosure policy"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "device-inventory",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_System/Identity/Continuity"
+      ],
+      "device_activity": [
+        "device_observation",
+        "local_attestation_when_available",
+        "scan_ui"
+      ],
+      "provider_dependency": "NONE",
+      "activation_requires": [
+        "device registration/continuity verification"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "software-licenses",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/Organizations"
+      ],
+      "device_activity": [
+        "license_ui",
+        "device_inventory_link"
+      ],
+      "provider_dependency": "OPTIONAL_VENDOR_PROVIDER",
+      "activation_requires": [
+        "provider admission for activation/deactivation"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "digital-inheritance",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/People",
+        "_Policy",
+        "_System/Governance"
+      ],
+      "device_activity": [
+        "review_ui",
+        "beneficiary_selection"
+      ],
+      "provider_dependency": "OPTIONAL_ESTATE_PROVIDER",
+      "activation_requires": [
+        "explicit governance/disclosure authority"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "emergency-information",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/Self",
+        "_Entities/People",
+        "03_Records"
+      ],
+      "device_activity": [
+        "emergency_ui",
+        "local_offline_projection",
+        "share_ui"
+      ],
+      "provider_dependency": "NONE",
+      "activation_requires": [
+        "explicit emergency disclosure policy"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "estate-planning",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/People",
+        "_Entities/Organizations",
+        "_System/Governance"
+      ],
+      "device_activity": [
+        "document_review",
+        "signature_intent"
+      ],
+      "provider_dependency": "OPTIONAL_LEGAL_PROVIDER",
+      "activation_requires": [
+        "explicit legal/signature authority"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "contracts",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "03_Records",
+        "_Entities/People",
+        "_Entities/Organizations",
+        "_System/Governance"
+      ],
+      "device_activity": [
+        "document_review",
+        "signature_intent",
+        "notifications"
+      ],
+      "provider_dependency": "OPTIONAL_SIGNATURE_OR_COUNTERPARTY_PROVIDER",
+      "activation_requires": [
+        "explicit signing authority",
+        "verified counterparty/session"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "professional-portfolio",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "05_Projects",
+        "03_Records",
+        "04_Media",
+        "_Entities/Organizations"
+      ],
+      "device_activity": [
+        "portfolio_ui",
+        "export_share_ui"
+      ],
+      "provider_dependency": "OPTIONAL_PROFILE_PROVIDER",
+      "activation_requires": [
+        "disclosure policy for publication"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "creative-works",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "04_Media",
+        "05_Projects",
+        "01_Notes"
+      ],
+      "device_activity": [
+        "capture",
+        "editing",
+        "playback_preview"
+      ],
+      "provider_dependency": "OPTIONAL_CREATIVE_PROVIDER",
+      "activation_requires": [
+        "provider admission for publication/collaboration"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "music-projects",
+      "service_class": "KV_DEVICE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "04_Media",
+        "05_Projects",
+        "_Entities/People"
+      ],
+      "device_activity": [
+        "audio_capture",
+        "playback",
+        "midi_or_daw_bridge",
+        "share_ui"
+      ],
+      "provider_dependency": "OPTIONAL_MUSIC_PROVIDER",
+      "activation_requires": [
+        "provider admission for collaboration/publication"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "family-history",
+      "service_class": "KV_NATIVE",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "_Entities/People",
+        "_Entities/Places",
+        "_Index/Relationships",
+        "_Index/Timeline",
+        "04_Media"
+      ],
+      "device_activity": [
+        "capture",
+        "relationship_editor",
+        "share_ui"
+      ],
+      "provider_dependency": "OPTIONAL_GENEALOGY_PROVIDER",
+      "activation_requires": [
+        "sharing policy"
+      ],
+      "authority_effect": "NONE"
+    },
+    {
+      "service_id": "research-libraries",
+      "service_class": "KV_DEVICE_PROVIDER",
+      "install_state": "INSTALLED_INACTIVE",
+      "kv_surfaces": [
+        "02_Research",
+        "_Index",
+        "_AI",
+        "03_Records"
+      ],
+      "device_activity": [
+        "browser_research",
+        "source_capture",
+        "annotation_ui"
+      ],
+      "provider_dependency": "OPTIONAL_RESEARCH_PROVIDER",
+      "activation_requires": [
+        "source/disclosure policy for external sharing"
+      ],
+      "authority_effect": "NONE"
+    }
+  ]
+}
