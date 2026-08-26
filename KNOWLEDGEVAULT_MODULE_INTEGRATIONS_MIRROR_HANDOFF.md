@@ -204,3 +204,20 @@ The `_Entities` root category folders plus `README.md` and `Entity_File_Template
 `_System/Identity/**`, `_System/Governance/**`, and `_System/Execution/**` remain runtime extension surfaces unless/until their paths are explicitly added to authoritative template source.
 
 Do not count dynamic runtime records as static template parity merely because their directories exist.
+
+
+## Incoming communications / contact-ledger binding
+
+Canonical producer: `StegVerse-Labs/Comms-Gateway`.
+
+Template-backed personal custody surfaces:
+
+- `_Entities/Self/Communications/PersonalInformationDirectory/`;
+- `_Entities/Self/Communications/ContactLedger/`;
+- `_Entities/Self/Communications/contact-ledger.example.json` (schema-aligned empty ledger).
+
+Comms-Gateway normalizes inbound events, resolves endpoints against every installed directory communication mode, groups evidence references by attributed subject, and emits hash-bound `COMMIT_CANDIDATE` packages. KnowledgeVault remains the durable custody owner and accepts changes only through the Interlock.
+
+A threshold-qualified composition is a candidate, not filing authority. Sealing requires evidence-bound owner authorization scoped to the attribution key, claim type, and filing ID. A candidate containing communications after its filing cutoff fails closed. Sealed observation IDs, cutoff, and composition hash are immutable; later events are preserved in an append-only post-filing list, and notice events are separately evidence-bound.
+
+Activation remains unproven until a real provider observation is resolved against the live personal directory, committed and read back through the KV Interlock, and receipt/hash verification succeeds. No synthetic caller evidence may be installed as a live personal record.

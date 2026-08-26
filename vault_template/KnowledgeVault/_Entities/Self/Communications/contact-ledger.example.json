@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.0.0",
+  "record_type": "personal_kv_contact_ledger",
+  "owner_ref": "kv://self",
+  "groups": {}
+}
