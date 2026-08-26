@@ -47,9 +47,8 @@ def evaluate():
         else:
             local = "READY_FOR_LOCAL_UI"
 
-        governed_requires = []
+        governed_requires = ["production_interlock_runtime_activated"]
         if cls == "KV_DEVICE_PROVIDER" or provider != "NONE":
-            governed_requires.append("production_interlock_runtime_activated")
             governed_requires.append("provider_session_evidence_observed")
         blockers = missing_requirements(governed_requires, facts)
         entries.append({
@@ -74,6 +73,12 @@ def evaluate():
         "production_interlock_runtime_activated":facts["production_interlock_runtime_activated"],
         "activation_performed":False,
         "authority_effect":"NONE",
+        "summary":{
+            "local_ready":sum(1 for e in entries if e["local_materialization"].startswith("READY")),
+            "local_blocked":sum(1 for e in entries if not e["local_materialization"].startswith("READY")),
+            "governed_ready":sum(1 for e in entries if e["governed_action_readiness"]=="READY_FOR_GOVERNED_ACTION"),
+            "governed_blocked":sum(1 for e in entries if e["governed_action_readiness"]=="BLOCKED"),
+        },
         "entries":entries,
     }
     return snapshot
