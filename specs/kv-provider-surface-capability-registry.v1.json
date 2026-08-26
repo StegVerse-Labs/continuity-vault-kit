@@ -1,6 +1,6 @@
 {
   "schema": "stegverse.kv.provider-surface-capability-registry/v1",
-  "state": "INSTALLED_UNVERIFIED",
+  "state": "PARTIALLY_VERIFIED",
   "authority_effect": "NONE",
   "provider_families": [
     "icloud",
@@ -10,5 +10,330 @@
     "self_hosted_private_cloud",
     "stegcloud"
   ],
-  "observations": []
+  "observations": [
+    {
+      "provider": "icloud",
+      "device_class": "iphone",
+      "device_model_profile": null,
+      "platform": "ios",
+      "platform_version": "26",
+      "access_surface": "os_file_provider",
+      "browser": null,
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "YES",
+        "background_sync": "UNKNOWN",
+        "offline_access": "YES",
+        "local_cache": "YES",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "YES",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Offline access depends on keeping the selected file downloaded; offline changes synchronize after connectivity returns."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.apple.com/en-kg/guide/iphone/iphe9aff429a/ios",
+        "observed_at": "2026-08-26",
+        "version": "apple-support-2026-08-26"
+      }
+    },
+    {
+      "provider": "icloud",
+      "device_class": "ipad",
+      "device_model_profile": null,
+      "platform": "ipados",
+      "platform_version": "26",
+      "access_surface": "os_file_provider",
+      "browser": null,
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "YES",
+        "background_sync": "UNKNOWN",
+        "offline_access": "YES",
+        "local_cache": "YES",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "YES",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Files/iCloud Drive is the documented native file surface; selected files can be kept downloaded for offline use."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.apple.com/en-ae/102570",
+        "observed_at": "2026-08-26",
+        "version": "apple-support-2026-04-02"
+      }
+    },
+    {
+      "provider": "google_drive",
+      "device_class": "iphone",
+      "device_model_profile": null,
+      "platform": "ios",
+      "platform_version": null,
+      "access_surface": "native_provider_app",
+      "browser": null,
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "PARTIAL",
+        "background_sync": "UNKNOWN",
+        "offline_access": "YES",
+        "local_cache": "YES",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "UNKNOWN",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Offline preview requires marking a file Available offline; editing Docs, Sheets, or Slides offline uses the corresponding Google editor app."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.google.com/drive/answer/2375012?co=GENIE.Platform%3DiOS&hl=en",
+        "observed_at": "2026-08-26",
+        "version": "google-drive-help-2026-08-26"
+      }
+    },
+    {
+      "provider": "google_drive",
+      "device_class": "ipad",
+      "device_model_profile": null,
+      "platform": "ipados",
+      "platform_version": null,
+      "access_surface": "native_provider_app",
+      "browser": null,
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "PARTIAL",
+        "background_sync": "UNKNOWN",
+        "offline_access": "YES",
+        "local_cache": "YES",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "UNKNOWN",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Offline preview requires marking a file Available offline; editing Docs, Sheets, or Slides offline uses the corresponding Google editor app."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.google.com/drive/answer/2375012?co=GENIE.Platform%3DiOS&hl=en",
+        "observed_at": "2026-08-26",
+        "version": "google-drive-help-2026-08-26"
+      }
+    },
+    {
+      "provider": "google_drive",
+      "device_class": "desktop_or_laptop",
+      "device_model_profile": null,
+      "platform": "desktop",
+      "platform_version": null,
+      "access_surface": "browser",
+      "browser": {
+        "name": "Chrome_or_Edge",
+        "engine": "Chromium",
+        "version": null
+      },
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "YES",
+        "background_sync": "UNKNOWN",
+        "offline_access": "PARTIAL",
+        "local_cache": "PARTIAL",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "UNKNOWN",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Documented browser offline mode is limited to Chrome or Microsoft Edge, requires the Google Docs Offline extension, cannot use private browsing, and applies to supported Google Docs/Sheets/Slides workflows rather than arbitrary Drive objects."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.google.com/a/users/answer/13005112?hl=en",
+        "observed_at": "2026-08-26",
+        "version": "google-workspace-help-2026-08-26"
+      }
+    },
+    {
+      "provider": "microsoft_onedrive",
+      "device_class": "iphone",
+      "device_model_profile": null,
+      "platform": "ios",
+      "platform_version": null,
+      "access_surface": "native_provider_app",
+      "browser": null,
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "PARTIAL",
+        "background_sync": "UNKNOWN",
+        "offline_access": "YES",
+        "local_cache": "YES",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "UNKNOWN",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Files or folders must be marked offline; offline edits to Office files occur in associated Office apps and synchronize after reconnection; offline folders require eligible Microsoft 365/Premium capability."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.microsoft.com/en-US/onedrive/read-files-or-folders-offline-in-onedrive-for-ios",
+        "observed_at": "2026-08-26",
+        "version": "microsoft-support-2026-08-26"
+      }
+    },
+    {
+      "provider": "microsoft_onedrive",
+      "device_class": "ipad",
+      "device_model_profile": null,
+      "platform": "ipados",
+      "platform_version": null,
+      "access_surface": "native_provider_app",
+      "browser": null,
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "PARTIAL",
+        "background_sync": "UNKNOWN",
+        "offline_access": "YES",
+        "local_cache": "YES",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "UNKNOWN",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Files or folders must be marked offline; offline edits to Office files occur in associated Office apps and synchronize after reconnection; offline folders require eligible Microsoft 365/Premium capability."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.microsoft.com/en-US/onedrive/read-files-or-folders-offline-in-onedrive-for-ios",
+        "observed_at": "2026-08-26",
+        "version": "microsoft-support-2026-08-26"
+      }
+    },
+    {
+      "provider": "microsoft_onedrive",
+      "device_class": "windows_pc",
+      "device_model_profile": null,
+      "platform": "windows",
+      "platform_version": "10_22H2_or_11",
+      "access_surface": "sync_client",
+      "browser": null,
+      "knowledge_state": "DOCUMENTED",
+      "capabilities": {
+        "read": "YES",
+        "write": "YES",
+        "background_sync": "PARTIAL",
+        "offline_access": "PARTIAL",
+        "local_cache": "YES",
+        "atomic_update": "UNKNOWN",
+        "conflict_handling": "UNKNOWN",
+        "folder_creation": "UNKNOWN",
+        "metadata_fidelity": "UNKNOWN",
+        "change_notifications": "UNKNOWN",
+        "direct_api": "UNKNOWN",
+        "native_file_provider": "UNKNOWN",
+        "authentication_persistence": "UNKNOWN",
+        "resumable_upload": "UNKNOWN",
+        "file_size_limits": "UNKNOWN",
+        "latency_performance": "UNKNOWN",
+        "recovery_export": "UNKNOWN"
+      },
+      "preferred_route": null,
+      "fallback_route": null,
+      "limitations": [
+        "Online-only files cannot be opened without internet access; locally available or Always keep on this device files can be opened offline."
+      ],
+      "evidence": {
+        "source_type": "provider_documentation",
+        "source_ref": "https://support.microsoft.com/en-US/onedrive/save-disk-space-with-onedrive-files-on-demand-for-windows",
+        "observed_at": "2026-08-26",
+        "version": "microsoft-support-2026-08-26"
+      }
+    }
+  ]
 }
