@@ -333,9 +333,9 @@ The endpoint core accepts only already-verified DEVICE->KV InTr admission eviden
 Lifecycle distinction:
 
 ```text
-runtime endpoint source: IMPLEMENTED_ON_BRANCH
-hosted validation: PENDING
-merge: PENDING
+runtime endpoint source: MERGED
+hosted validation: PASS
+merge: 4381edb086928d61615c99c0a0ba56e3a5d1c667
 production endpoint deployed: false
 live boundary identity/sealing: NOT OBSERVED
 canonical Site readback: NOT OBSERVED
