@@ -576,3 +576,24 @@ Canonical scoped handoff: `RELEASE_INTEGRITY_HOSTED_AUTHORITY_RETIREMENT_MIRROR_
 The Unreleased changelog now records #78, #80, and this residual authority repair. `VERSION` remains 0.1.9 until a real admitted TV/TVC release publication transition occurs.
 
 No source repair, hosted PASS, or candidate artifact is a release/tag/deployment/activation claim.
+
+
+### Residual hosted release authority retirement — completion
+
+Issue #81 / PR #82 is now merged and post-merge observed.
+
+```text
+PR #82 validated head: 28bf473fc353ab6e9b80bdbcc53fcaf2fa4fda72
+merge: f2deeb4ade6f522ea9284dc2a1748b9749064502
+post-merge Release integrity: 33119620345 SUCCESS
+post-merge Automated release readiness: 33119637686 SUCCESS
+candidate: 0.1.10 EPHEMERAL_VALIDATED_ONLY
+readiness: TVC_ADMITTED_RELEASE_CONTINUATION_REQUIRED
+persistent VERSION: 0.1.9
+repository mutation by hosted readiness: false
+tag mutation: false
+release publication: false
+authority_effect: NONE
+```
+
+This closes the residual `release-integrity.yml` and `automated-release.yml` hosted mutation/publication contradiction. The previous v0.1.9 publication remains the latest canonical release. Any successor release is now explicitly gated on admitted TV/TVC release runtime evidence.
