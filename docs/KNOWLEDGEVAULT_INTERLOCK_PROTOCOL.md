@@ -144,6 +144,27 @@ Existing direct-AI rules remain valid: AI tools do not directly access `03_Recor
 6. writeback is demonstrated as candidate-only until separately authorized;
 7. no PII/PHI is persisted in StegHealth repository artifacts or public runtime logs.
 
+
+## Runtime endpoint core — issue #79
+
+The repository now contains a dependency-light runtime endpoint core at `runtime/kv_interlock_endpoint.py`.
+
+It does not establish boundary identity or authority by itself. The caller must provide an already-verified DEVICE->KV InTr envelope plus an opaque durable InTr receipt reference. Authority validation, policy evaluation, candidate persistence, and receipt persistence remain injected governed boundaries.
+
+The core enforces:
+- canonical `kv.interlock.request.v1` request shape and operation vocabulary;
+- exact DEVICE->KV InTr request/envelope binding and payload hash;
+- verified boundary proof plus fail-closed receipt policy;
+- no transport/model credential or execution authority transfer;
+- authority validation before policy execution;
+- granted scope never wider than requested scope;
+- bounded context fields limited to granted scope and secret-like field names rejected;
+- candidate-only `COMMIT_CANDIDATE` with `canonical_state_changed=false`;
+- deterministic response hashing and injected secret-free receipt persistence;
+- no direct filesystem, credential, SKAP, provider, or execution authority.
+
+This source implementation is not production activation. A live boundary identity/sealing service, actual runtime deployment, canonical owner/device readback, and real InTr receipts remain separate evidence gates.
+
 ---
 
 🔒 Layer: Framework | KV
