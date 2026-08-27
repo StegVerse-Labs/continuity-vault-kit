@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #79
 Branch: `feat/kv-interlock-runtime-endpoint-79`
-State: CLAIMED_FOR_IMPLEMENTATION
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Goal
 
@@ -65,7 +65,7 @@ Do not modify or depend on PR #78 hosted release-authority retirement. Do not cr
 ## Current non-claims
 
 ```text
-source implementation: PENDING
+source implementation: IMPLEMENTED_ON_BRANCH
 hosted validation: PENDING
 merge: PENDING
 production endpoint deployed: false
@@ -78,4 +78,4 @@ activation: false
 
 ## Next executable boundary
 
-Implement the dependency-light runtime core and deterministic negative/positive tests, wire them into the existing KV Interlock validation workflow, validate the exact branch head, and merge only after green evidence.
+Run exact-head hosted validation through the existing KV Interlock workflow, repair any defects without weakening authority boundaries, then merge only after green evidence. Production runtime deployment remains separate.
