@@ -168,6 +168,37 @@ INTERLOCK_CONNECT
 
 StegVerse Ecosystem Chat is the preferred primary LLM interlock client when available, but compatible clients may connect if they honor the same interlock, privacy, continuity, and authority contracts.
 
+## KV-INTERLOCK-v1 canonical machine contract
+
+The model-neutral KnowledgeVault interlock now has canonical machine-readable request/response contracts in this repository:
+
+- `schemas/kv-interlock-request.schema.json` — `kv.interlock.request.v1`;
+- `schemas/kv-interlock-response.schema.json` — `kv.interlock.response.v1`;
+- `tools/validate_kv_interlock_contract.py`;
+- `tests/test_kv_interlock_contract.py`;
+- `.github/workflows/validate-kv-interlock-contract.yml`.
+
+Canonical operation vocabulary:
+
+```text
+DISCOVER
+REQUEST
+COMMIT_CANDIDATE
+```
+
+Canonical response decisions:
+
+```text
+ALLOW_BOUNDED_CONTEXT
+REVIEW_REQUIRED
+DENY
+FAIL_CLOSED
+```
+
+No direct `COMMIT` operation is exposed to ordinary module/LLM requesters. A module specialization may narrow the contract but must not widen these authority or disclosure semantics.
+
+StegHealth currently has the first concrete specialization/client implementation and has independently hosted-validated its local denial/minimum-disclosure/receipt boundaries. Cross-repository compatibility against these canonical shared schemas is the next integration slice.
+
 ## Validation posture
 
 StegID includes direct receipt-binding and target/hash-drift tests. Continuity includes executable paired persistence and authority/integrity-boundary validation. Governance includes positive persistence verification plus negative authority-escalation testing.
