@@ -317,3 +317,27 @@ Hosted evidence:
 - durable evidence: `evidence/kv/2026-08-26-generic-kv-interlock-intr-envelope-validation.json`.
 
 This closes the missing generic transport-envelope contract for non-credential personal-record consumers such as StegHealth. It does **not** activate a production endpoint or provide a live boundary identity/sealing service. Consumers may now pin this contract and implement adapter fixtures without reusing the credential-specific `credential_grant` packet shape.
+
+
+## KV Interlock runtime endpoint core — issue #79
+
+The missing source seam between the validated KV-INTERLOCK-v1 contract and production consumers is now implemented on the #79 lane:
+
+- `runtime/kv_interlock_endpoint.py`;
+- `tests/test_kv_interlock_runtime_endpoint.py`;
+- `KV_INTERLOCK_RUNTIME_ENDPOINT_MIRROR_HANDOFF.md`;
+- existing `Validate KV Interlock Contract` workflow extended to compile/test the runtime core.
+
+The endpoint core accepts only already-verified DEVICE->KV InTr admission evidence and injected authority/policy/storage callbacks. It cannot create identity, mint authority, read credentials, bypass TV/TVC, directly mutate canonical KV state, activate SKAP, or authorize provider execution. `COMMIT_CANDIDATE` remains candidate-only until a separate governed commit/readback path exists.
+
+Lifecycle distinction:
+
+```text
+runtime endpoint source: IMPLEMENTED_ON_BRANCH
+hosted validation: PENDING
+merge: PENDING
+production endpoint deployed: false
+live boundary identity/sealing: NOT OBSERVED
+canonical Site readback: NOT OBSERVED
+activation: false
+```
