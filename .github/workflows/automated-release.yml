@@ -1,4 +1,4 @@
-name: Automated verified release
+name: Automated release readiness - Validation Only
 
 on:
   workflow_run:
@@ -6,30 +6,31 @@ on:
     types: [completed]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: automated-verified-release
+  group: automated-release-readiness-validation
   cancel-in-progress: false
 
 jobs:
-  release:
+  validate_release_readiness:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: Check out current main
+      - name: Check out current main without credential persistence
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Determine whether a release is required
+      - name: Determine whether a release candidate is required
         id: gate
         env:
           SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
@@ -39,17 +40,11 @@ jobs:
           import os
           import subprocess
           from pathlib import Path
-
           conclusion = os.environ.get("SOURCE_CONCLUSION", "")
           source_sha = os.environ.get("SOURCE_HEAD_SHA", "")
           source_on_main = False
           if source_sha:
-              result = subprocess.run(
-                  ["git", "merge-base", "--is-ancestor", source_sha, "HEAD"],
-                  check=False,
-              )
-              source_on_main = result.returncode == 0
-
+              source_on_main = subprocess.run(["git", "merge-base", "--is-ancestor", source_sha, "HEAD"], check=False).returncode == 0
           text = Path("CHANGELOG.md").read_text(encoding="utf-8")
           marker = "## [Unreleased]"
           if text.count(marker) != 1:
@@ -59,9 +54,8 @@ jobs:
           substantive = normalized not in {"", "_no unreleased changes._", "no unreleased changes."}
           eligible_source = conclusion == "success" and source_on_main
           enabled = eligible_source and substantive
-
           reason = (
-              "release required"
+              "release required; TVC-admitted publication continuation required"
               if enabled
               else "source integrity SHA is not contained in main or did not succeed"
               if not eligible_source
@@ -76,13 +70,13 @@ jobs:
           print(reason)
           PY
 
-      - name: Select backward-compatible patch version
+      - name: Prepare ephemeral patch release candidate
         if: steps.gate.outputs.enabled == 'true'
         id: version
         run: |
           python3 - <<'PY'
+          from datetime import date
           from pathlib import Path
-
           current = Path("VERSION").read_text(encoding="utf-8").strip()
           parts = current.split(".")
           if len(parts) != 3 or not all(part.isdigit() for part in parts):
@@ -90,140 +84,75 @@ jobs:
           major, minor, patch = map(int, parts)
           next_version = f"{major}.{minor}.{patch + 1}"
           Path("VERSION").write_text(next_version + "\n", encoding="utf-8")
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text(encoding="utf-8")
+          marker = "## [Unreleased]"
+          replacement = "## [Unreleased]\n\n_No unreleased changes._\n\n---\n\n" + f"## [{next_version}] – {date.today().isoformat()}"
+          changelog.write_text(text.replace(marker, replacement, 1), encoding="utf-8")
           Path(".next-version").write_text(next_version + "\n", encoding="utf-8")
           print(next_version)
           PY
           echo "value=$(cat .next-version)" >> "$GITHUB_OUTPUT"
 
-      - name: Finalize changelog entry
-        if: steps.gate.outputs.enabled == 'true'
-        env:
-          NEXT_VERSION: ${{ steps.version.outputs.value }}
-        run: |
-          python3 - <<'PY'
-          import os
-          from datetime import date
-          from pathlib import Path
-
-          path = Path("CHANGELOG.md")
-          text = path.read_text(encoding="utf-8")
-          marker = "## [Unreleased]"
-          replacement = (
-              "## [Unreleased]\n\n_No unreleased changes._\n\n---\n\n"
-              f"## [{os.environ['NEXT_VERSION']}] – {date.today().isoformat()}"
-          )
-          path.write_text(text.replace(marker, replacement, 1), encoding="utf-8")
-          PY
-
-      - name: Verify release candidate
+      - name: Verify ephemeral release candidate
         if: steps.gate.outputs.enabled == 'true'
         run: |
           rm -rf dist
           python3 tools/test_release_tools.py
           python3 tools/test_init_vault.py
           python3 tools/test_automation_contracts.py
+          python3 -m unittest tests.test_hosted_release_authority_retirement -v
           rm -rf dist
           python3 tools/build_release.py
           python3 tools/verify_release.py "dist/ContinuityVault_v${{ steps.version.outputs.value }}.zip"
 
-      - name: Commit verified candidate
-        if: steps.gate.outputs.enabled == 'true'
-        id: commit
-        run: |
-          rm -f .next-version
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add VERSION CHANGELOG.md
-          git commit -m "release: v${{ steps.version.outputs.value }}"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Tag and push verified candidate
-        if: steps.gate.outputs.enabled == 'true'
-        run: |
-          tag="v${{ steps.version.outputs.value }}"
-          if git rev-parse "$tag" >/dev/null 2>&1; then
-            echo "Tag $tag already exists"
-            exit 1
-          fi
-          git tag -a "$tag" -m "Continuity Vault Kit $tag"
-          git push origin HEAD:main
-          git push origin "$tag"
-
-      - name: Publish release assets
-        if: steps.gate.outputs.enabled == 'true'
+      - name: Emit non-authorizing release-readiness observation
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          version="${{ steps.version.outputs.value }}"
-          tag="v${version}"
-          zip="dist/ContinuityVault_v${version}.zip"
-          gh release create "$tag" "$zip" "${zip}.sha256" "${zip}.manifest.json" \
-            --title "Continuity Vault Kit ${tag}" \
-            --notes "Automated verified patch release. Release, initializer, and automation-contract tests passed before tagging commit ${{ steps.commit.outputs.sha }}. This release verifies package integrity and installer copy behavior only."
-
-      - name: Create durable final release receipt
-        if: steps.gate.outputs.enabled == 'true'
-        env:
-          VERSION_VALUE: ${{ steps.version.outputs.value }}
-          RELEASE_COMMIT: ${{ steps.commit.outputs.sha }}
-          RUN_ID: ${{ github.run_id }}
-          REPOSITORY: ${{ github.repository }}
+          SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          ELIGIBLE_SOURCE: ${{ steps.gate.outputs.eligible_source }}
+          RELEASE_REQUIRED: ${{ steps.gate.outputs.enabled }}
+          REASON: ${{ steps.gate.outputs.reason }}
+          CANDIDATE_VERSION: ${{ steps.version.outputs.value }}
         run: |
           python3 - <<'PY'
           import json
           import os
           from datetime import datetime, timezone
           from pathlib import Path
-
-          version = os.environ["VERSION_VALUE"]
-          zip_path = Path("dist") / f"ContinuityVault_v{version}.zip"
-          checksum = zip_path.with_suffix(zip_path.suffix + ".sha256").read_text(encoding="utf-8").split()[0]
-          manifest = json.loads(zip_path.with_suffix(zip_path.suffix + ".manifest.json").read_text(encoding="utf-8"))
-          generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-          receipt = {
-              "schema_version": "1.1",
-              "result": "PUBLISHED",
-              "repository": os.environ["REPOSITORY"],
-              "version": version,
-              "tag": f"v{version}",
-              "release_commit": os.environ["RELEASE_COMMIT"],
-              "workflow_run_url": f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}",
-              "release_url": f"https://github.com/{os.environ['REPOSITORY']}/releases/tag/v{version}",
-              "release_artifact": zip_path.name,
-              "release_sha256": checksum,
-              "manifest_schema_version": manifest["schema_version"],
-              "manifest_file_count": manifest["file_count"],
-              "release_assets": [zip_path.name, zip_path.name + ".sha256", zip_path.name + ".manifest.json"],
-              "builder_verifier_self_test": "PASS",
-              "initializer_self_test": "PASS",
-              "automation_contract_test": "PASS",
-              "published_utc": generated,
-              "scope": "package integrity and installer copy verification only",
+          release_required = os.environ.get("RELEASE_REQUIRED") == "true"
+          eligible = os.environ.get("ELIGIBLE_SOURCE") == "true"
+          state = "TVC_ADMITTED_RELEASE_CONTINUATION_REQUIRED" if release_required else "NO_RELEASE_REQUIRED" if eligible else "SOURCE_NOT_ELIGIBLE"
+          out = Path("reports/release_readiness")
+          out.mkdir(parents=True, exist_ok=True)
+          payload = {
+              "schema": "stegverse.kv.release-readiness-hosted-observation/v1",
+              "state": state,
+              "reason": os.environ.get("REASON", ""),
+              "source_workflow_conclusion": os.environ.get("SOURCE_CONCLUSION", ""),
+              "source_head_sha": os.environ.get("SOURCE_HEAD_SHA", ""),
+              "candidate_version": os.environ.get("CANDIDATE_VERSION") or None,
+              "release_required": release_required,
+              "credential_authority": "TV/TVC",
+              "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
+              "repository_mutation_performed": False,
+              "version_mutation_persisted": False,
+              "changelog_mutation_persisted": False,
+              "tag_mutation_performed": False,
+              "release_publication_performed": False,
+              "authority_effect": "NONE",
+              "generated_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
           }
-          evidence = Path("docs/release_evidence")
-          evidence.mkdir(parents=True, exist_ok=True)
-          (evidence / "latest_release.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
-          (evidence / "latest_release.md").write_text(
-              "# Latest Published Release\n\n"
-              f"- **Result:** PUBLISHED\n"
-              f"- **Version:** `{receipt['version']}`\n"
-              f"- **Tag:** `{receipt['tag']}`\n"
-              f"- **Release commit:** `{receipt['release_commit']}`\n"
-              f"- **Workflow:** {receipt['workflow_run_url']}\n"
-              f"- **Release:** {receipt['release_url']}\n"
-              f"- **Artifact:** `{receipt['release_artifact']}`\n"
-              f"- **SHA-256:** `{receipt['release_sha256']}`\n"
-              f"- **Manifest files:** `{receipt['manifest_file_count']}`\n"
-              f"- **Published UTC:** `{receipt['published_utc']}`\n\n"
-              "Release, initializer, and automation-contract tests passed before tagging. This receipt verifies package integrity and installer copy behavior only.\n",
-              encoding="utf-8",
-          )
+          (out / "release-readiness-observation.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(payload, sort_keys=True))
           PY
 
-      - name: Commit final release receipt
-        if: steps.gate.outputs.enabled == 'true'
-        run: |
-          git add docs/release_evidence/latest_release.md docs/release_evidence/latest_release.json
-          git commit -m "evidence: record published release v${{ steps.version.outputs.value }} [skip ci]"
-          git pull --rebase origin main
-          git push origin HEAD:main
+      - name: Upload non-secret release-readiness evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: continuity-vault-release-readiness-${{ github.run_id }}
+          path: |
+            reports/release_readiness/release-readiness-observation.json
+            dist/
+          if-no-files-found: warn
+          retention-days: 30
