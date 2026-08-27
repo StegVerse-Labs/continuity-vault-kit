@@ -1,0 +1,43 @@
+name: Validate KV Interlock Contract
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/kv-interlock-request.schema.json"
+      - "schemas/kv-interlock-response.schema.json"
+      - "docs/KNOWLEDGEVAULT_INTERLOCK_PROTOCOL.md"
+      - "tools/validate_kv_interlock_contract.py"
+      - "tests/test_kv_interlock_contract.py"
+      - "KNOWLEDGEVAULT_MODULE_INTEGRATIONS_MIRROR_HANDOFF.md"
+      - ".github/workflows/validate-kv-interlock-contract.yml"
+  pull_request:
+    paths:
+      - "schemas/kv-interlock-request.schema.json"
+      - "schemas/kv-interlock-response.schema.json"
+      - "docs/KNOWLEDGEVAULT_INTERLOCK_PROTOCOL.md"
+      - "tools/validate_kv_interlock_contract.py"
+      - "tests/test_kv_interlock_contract.py"
+      - "KNOWLEDGEVAULT_MODULE_INTEGRATIONS_MIRROR_HANDOFF.md"
+      - ".github/workflows/validate-kv-interlock-contract.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile canonical contract tooling
+        run: |
+          python -m py_compile tools/validate_kv_interlock_contract.py
+          python -m py_compile tests/test_kv_interlock_contract.py
+      - name: Validate canonical contract
+        run: python tools/validate_kv_interlock_contract.py
+      - name: Run canonical contract tests
+        run: python -m unittest discover -s tests -p 'test_kv_interlock_contract.py' -v
