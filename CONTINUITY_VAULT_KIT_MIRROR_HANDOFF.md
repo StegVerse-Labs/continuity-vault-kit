@@ -377,3 +377,18 @@ StegVerse AI
 A provider loss or migration must therefore be survivable by reconstructing the StegVerse execution entity from admitted Machine-KV state and protected SKAP capability references without transferring authority to the provider.
 
 This hierarchy is an architectural extension of the existing KnowledgeVault/SKAP/InTr primitives. It does not retroactively claim implementation or runtime activation of Organizational KV or StegVerse/Machine KV classes. Required follow-on source work is: formal KV-class schema, scope/authority invariants, Machine-KV layout, Organizational-KV layout, class-specific AI persistence semantics, reconstruction proof, and negative tests preventing cross-class authority/state leakage.
+
+
+### Implementation status — KV AI persistence classes
+
+Canonical implementation handoff: `KV_AI_PERSISTENCE_CLASSES_MIRROR_HANDOFF.md`.
+
+Implemented on `main`:
+- KV class schema/spec for `PERSONAL_KV`, `ORGANIZATIONAL_KV`, `STEGVERSE_KV`, and `MACHINE_KV`;
+- deterministic validator and negative tests for authority-domain isolation;
+- fail-closed cross-class InTr transition schema/spec/validator;
+- GitHub validation workflow source.
+
+In-session deterministic validation rejects context-share authority transfer, direct cross-class state mutation, provider/model authority, and MACHINE_KV impersonation of PERSONAL_KV authority. Hosted GitHub workflow completion remains NOT OBSERVED for the direct-to-main commits and must not be inferred.
+
+Next implementation state is concrete Organizational-KV, StegVerse-KV, and Machine-KV layouts plus provider-to-provider Machine-KV reconstruction proof.
