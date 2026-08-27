@@ -1,6 +1,6 @@
 # Packageable User KnowledgeVault Mirror Handoff
 
-Status: ACTIVE / CLEAN_ROOM_PROOF_IMPLEMENTATION
+Status: VALIDATED / CLEAN_ROOM_PACKAGEABILITY_PROVEN / PRODUCTION_ONBOARDING_SEPARATE
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Goal ID: `SV-KV-PACKAGEABLE-USER-001`
 Created: 2026-08-27
@@ -40,16 +40,39 @@ A clean-room test must prove:
 
 ```text
 current connected Drive recursive parity: VALIDATED / COMPLETE
-portable release tooling: IMPLEMENTED
-safe initializer: IMPLEMENTED
-existing initializer self-test: HOSTED VALIDATION LANE EXISTS
-clean-room creator-independence proof: ACTIVE
+portable release tooling: IMPLEMENTED / HOSTED PASS
+safe initializer: IMPLEMENTED / HOSTED PASS
+clean-room creator-independence proof: VALIDATED / HOSTED PASS
+release manifest current file count: 132
 production InTr/SKAP activation: SEPARATE / NOT CLAIMED
 ```
 
+## Hosted proof
+
+Exact validation evidence:
+
+```text
+repository: StegVerse-Labs/continuity-vault-kit
+workflow: Release integrity
+commit: 3fd928144fa4cee39def4f9ae743cd27349db074
+run: 33036858310
+conclusion: SUCCESS
+step: Run clean-room Packageable User KV proof — SUCCESS
+manifest_file_count: 132
+clean_room_user_kv_test: PASS
+release_required: false
+release_sha256: 99602e527b7f9ee162b9cbf7904d28f371c73e2c13226ba9c98c1612b7f65e27
+```
+
+Durable machine receipt: `docs/release_evidence/latest.json`.
+
+The clean-room proof executes with a deliberately minimal environment, builds the portable release, verifies all packaged paths/hashes, extracts the archive into a fresh temporary location, initializes a second fresh KnowledgeVault, verifies immutable hashes and overwrite refusal, and rejects creator/provider-specific infrastructure markers. It also proves a fresh vault does not inherit connected-user runtime state such as `_Vault/**`, execution/identity/governance/readiness state, health records, project data, or live continuity receipts.
+
+This is package/file initialization proof, not production KV ownership or SKAP activation.
+
 ## Next executable boundary
 
-Add a deterministic clean-room packaging/install test to the existing release-integrity lane, run it hosted, preserve the exact run evidence, and only then promote this goal to VALIDATED.
+The packageability goal is validated. The next product boundary is the Site/StegOS onboarding successor: prove a new user can acquire the package through the public user flow, bind ownership/device state, and install it using canonical InTr/KV receipts without introducing creator-specific infrastructure authority. Production InTr/SKAP activation remains separately gated by TVC resident runtime.
 
 ## User action
 
