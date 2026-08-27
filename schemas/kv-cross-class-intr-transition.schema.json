@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-cross-class-intr-transition.schema.json",
+  "title": "StegVerse cross-KV-class InTr transition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "transition_id", "source", "target", "transport", "authority", "receipt"],
+  "properties": {
+    "schema": {"const": "stegverse.kv.cross-class-intr-transition/v1"},
+    "transition_id": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kv_class", "authority_domain", "state_ref"],
+      "properties": {
+        "kv_class": {"enum": ["PERSONAL_KV", "ORGANIZATIONAL_KV", "STEGVERSE_KV", "MACHINE_KV"]},
+        "authority_domain": {"enum": ["PERSON", "ORGANIZATION", "STEGVERSE_ECOSYSTEM", "MACHINE_EXECUTION_ENTITY"]},
+        "state_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kv_class", "authority_domain", "admission_ref"],
+      "properties": {
+        "kv_class": {"enum": ["PERSONAL_KV", "ORGANIZATIONAL_KV", "STEGVERSE_KV", "MACHINE_KV"]},
+        "authority_domain": {"enum": ["PERSON", "ORGANIZATION", "STEGVERSE_ECOSYSTEM", "MACHINE_EXECUTION_ENTITY"]},
+        "admission_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "interlock_required", "direct_state_mutation"],
+      "properties": {
+        "protocol": {"const": "InTr"},
+        "interlock_required": {"const": true},
+        "direct_state_mutation": {"const": false}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_transfer", "context_share_grants_authority", "model_output_grants_authority", "provider_grants_authority"],
+      "properties": {
+        "authority_transfer": {"const": false},
+        "context_share_grants_authority": {"const": false},
+        "model_output_grants_authority": {"const": false},
+        "provider_grants_authority": {"const": false}
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "source_state_hash", "target_admission_hash", "contains_secret_plaintext"],
+      "properties": {
+        "required": {"const": true},
+        "source_state_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "target_admission_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "contains_secret_plaintext": {"const": false}
+      }
+    }
+  }
+}
