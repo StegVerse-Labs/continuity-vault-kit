@@ -450,3 +450,54 @@ Current ancestry:
 - exact-head validation and current-main reconciliation are both required before merge.
 
 The prior connector-write blocker on release-assets.yml is superseded by this newer live branch state. Do not create another repair lane. Continue only with PR #78.
+
+
+## Hosted release/control-plane retirement closure — 2026-08-27
+
+CMC-022 / CMC-023 source retirement is now IMPLEMENTED, VALIDATED, and MERGED.
+
+```text
+continuation PR: #78
+validated source head: 18857322d4f2b211e97306323029bf885ebdeafb
+merge: b1d12e67783de6cefe0d3332f3901db4c9a02b74
+
+Release Integrity run 33118551268: SUCCESS
+Security Baseline run 33118551217: SUCCESS
+Repository validation diagnostics run 33118551252: SUCCESS
+KV Guardrails run 33118551215:
+  initial attempt: transient SKAP ciphertext-tamper test failure
+  rerun job 98679640341: SUCCESS
+  hosted release authority retirement regression: SUCCESS
+```
+
+Retired current hosted surfaces:
+
+```text
+.github/workflows/one_button_release.yml
+.github/workflows/release-assets.yml
+.github/workflows/build-and-attach-release.yml
+.github/workflows/release-cycle-outcome.yml
+.github/workflows/release-cycle-recovery.yml
+```
+
+Current authority result:
+
+```text
+GitHub Actions release authority: NONE
+GitHub Actions repository/control-plane mutation authority in these surfaces: NONE
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+credential/release authority: TV/TVC
+consumer GITHUB_TOKEN / secrets.GITHUB_TOKEN publication: RETIRED
+hosted git push / tag mutation: RETIRED
+hosted workflow-dispatch recovery authority: RETIRED
+replacement release publication runtime: NOT OBSERVED
+deployment effect: NONE
+activation effect: NONE
+release effect: NONE
+```
+
+The first KV Guardrails attempt on the final repaired head failed only at `test_ciphertext_tamper_fails_closed`; the bounded rerun passed that test and the complete guardrail job. This was not treated as proof of runtime activation.
+
+PR #77 remains historical/auto-closed during zero-diff branch reconciliation and is not the completion record. PR #78 is the completing source-integration lane.
+
+Remaining KnowledgeVault/SKAP production work is separate from this source retirement: authentic TV/TVC-admitted credential-bearing execution, owner ingress, provider execution, external bearer/delivery evidence, post-dispatch reconstruction, and production Interlock/InTr activation remain governed by their existing canonical lanes and are not satisfied by this merge.
