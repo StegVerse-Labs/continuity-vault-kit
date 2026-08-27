@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #81
 Branch: `fix/residual-hosted-release-authority-81`
-State: CLAIMED_FOR_IMPLEMENTATION
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Purpose
 
@@ -68,6 +68,40 @@ Hosted workflows may rebuild, validate, derive candidate readiness, and upload n
 
 No release, tag, deployment, publication, resident TVC capability, or activation is produced by this source repair.
 
+## Implemented source state
+
+```text
+release-integrity.yml:
+  contents: read
+  checkout credential persistence: false
+  release build/verify: retained
+  durable main writeback: removed
+  hosted observation: short-lived artifact only
+
+automated-release.yml:
+  state: Automated release readiness - Validation Only
+  contents: read
+  checkout credential persistence: false
+  ephemeral patch candidate build: allowed for validation
+  persistent VERSION mutation: false
+  persistent CHANGELOG mutation: false
+  commit/tag/push: removed
+  github.token / GH_TOKEN: removed
+  GitHub release publication: removed
+  TVC_ADMITTED_RELEASE_CONTINUATION_REQUIRED: explicit
+
+release-cycle-outcome.yml:
+  observes renamed validation-only readiness workflow
+
+regression:
+  release-integrity + automated-release included in hosted-authority retirement tests
+  automation contract rejects hosted mutation/publication tokens on all four release-cycle validation surfaces
+```
+
+## Release metadata correction
+
+`CHANGELOG.md#Unreleased` now records the merged KV Interlock endpoint and hosted release-authority retirements. `VERSION` intentionally remains `0.1.9`; successor version mutation/tag/publication is reserved for admitted TV/TVC release execution.
+
 ## Next executable boundary
 
-Implement validation-only workflow behavior, extend regression enforcement, run exact-head validation, merge only after all applicable checks pass, then reconcile TVC credential-model consistency source so the hosted-authority claim matches live CVK state.
+Run exact-head hosted validation, repair any source/test defect without reintroducing hosted authority, merge only after green evidence, then reconcile TVC credential-model consistency and the global project handoff. A successor release remains blocked until the TVC-admitted release runtime is actually observed.
