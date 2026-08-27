@@ -11,6 +11,9 @@ on:
       - "docs/KNOWLEDGEVAULT_INTERLOCK_PROTOCOL.md"
       - "tools/validate_kv_interlock_contract.py"
       - "tools/validate_kv_interlock_intr_envelope.py"
+      - "runtime/kv_interlock_endpoint.py"
+      - "tests/test_kv_interlock_runtime_endpoint.py"
+      - "KV_INTERLOCK_RUNTIME_ENDPOINT_MIRROR_HANDOFF.md"
       - "tests/test_kv_interlock_contract.py"
       - "tests/test_kv_interlock_intr_envelope.py"
       - "KNOWLEDGEVAULT_MODULE_INTEGRATIONS_MIRROR_HANDOFF.md"
@@ -45,6 +48,8 @@ jobs:
         run: |
           python -m py_compile tools/validate_kv_interlock_contract.py
           python -m py_compile tools/validate_kv_interlock_intr_envelope.py
+          python -m py_compile runtime/kv_interlock_endpoint.py
+          python -m py_compile tests/test_kv_interlock_runtime_endpoint.py
           python -m py_compile tests/test_kv_interlock_contract.py
           python -m py_compile tests/test_kv_interlock_intr_envelope.py
       - name: Validate canonical contract
@@ -55,3 +60,5 @@ jobs:
         run: python tools/validate_kv_interlock_intr_envelope.py
       - name: Run generic KV Interlock InTr envelope tests
         run: python -m unittest discover -s tests -p 'test_kv_interlock_intr_envelope.py' -v
+      - name: Run KV Interlock runtime endpoint tests
+        run: python -m unittest discover -s tests -p 'test_kv_interlock_runtime_endpoint.py' -v
