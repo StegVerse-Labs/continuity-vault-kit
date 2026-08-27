@@ -501,3 +501,28 @@ The first KV Guardrails attempt on the final repaired head failed only at `test_
 PR #77 remains historical/auto-closed during zero-diff branch reconciliation and is not the completion record. PR #78 is the completing source-integration lane.
 
 Remaining KnowledgeVault/SKAP production work is separate from this source retirement: authentic TV/TVC-admitted credential-bearing execution, owner ingress, provider execution, external bearer/delivery evidence, post-dispatch reconstruction, and production Interlock/InTr activation remain governed by their existing canonical lanes and are not satisfied by this merge.
+
+
+### Hosted release authority retirement recovery — exact-head validation closure 2026-08-27
+
+PR #78 exact head `18857322d4f2b211e97306323029bf885ebdeafb` is now fully validated for the current branch content:
+
+- Repository validation diagnostics 33118551252: SUCCESS
+- Release Integrity 33118551268: SUCCESS
+- Security Baseline 33118551217: SUCCESS
+- KV Guardrails 33118551215: SUCCESS
+- Automation candidate implementation 33118679915: SUCCESS
+
+All five targeted hosted release/control-plane authority surfaces are source-retired on the branch and the retirement regression is green.
+
+State distinction:
+- IMPLEMENTED_ON_BRANCH: YES
+- VALIDATED_EXACT_HEAD: YES
+- MERGED: NO
+- RELEASED: NO
+- DEPLOYED: NO
+- ACTIVATED: NO
+- OBSERVED runtime publication through TVC: NO
+- COMPLETE CMC-022/023: NO
+
+Remaining merge gate: current-main reconciliation. Main advanced independently after the branch base. Do not infer merge readiness from green exact-head checks alone; preserve the five retirement changes while reconciling with current main and revalidate if the head changes.
