@@ -1,4 +1,4 @@
-name: Release cycle outcome
+name: Release cycle outcome - Validation Only
 
 on:
   workflow_run:
@@ -8,26 +8,25 @@ on:
 
 permissions:
   actions: read
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-cycle-outcome
+  group: release-cycle-outcome-validation
   cancel-in-progress: false
 
 jobs:
-  preserve-outcome:
+  observe-outcome:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
-      - name: Check out current main
+      - name: Check out current source without credential persistence
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Derive durable release-cycle outcome
-        id: derive
+      - name: Derive non-authorizing release-cycle observation
         env:
           EVENT_NAME: ${{ github.event_name }}
           SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
@@ -42,102 +41,53 @@ jobs:
           from datetime import datetime, timezone
           from pathlib import Path
 
-          changelog = Path('CHANGELOG.md').read_text(encoding='utf-8')
-          marker = '## [Unreleased]'
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          marker = "## [Unreleased]"
           start = changelog.index(marker) + len(marker)
-          end = changelog.find('\n---', start)
+          end = changelog.find("\n---", start)
           if end == -1:
-              raise SystemExit('CHANGELOG Unreleased section terminator not found')
+              raise SystemExit("CHANGELOG Unreleased section terminator not found")
           section = changelog[start:end].strip()
-          release_required = bool(section and section != '_No unreleased changes._')
+          release_required = bool(section and section != "_No unreleased changes._")
 
-          event_name = os.environ.get('EVENT_NAME', '')
-          conclusion = os.environ.get('SOURCE_CONCLUSION') or 'manual-dispatch'
-          source_run_id = os.environ.get('SOURCE_RUN_ID') or os.environ['CURRENT_RUN_ID']
-          source_sha = os.environ.get('SOURCE_HEAD_SHA') or ''
-          version = Path('VERSION').read_text(encoding='utf-8').strip()
-
-          if event_name == 'workflow_dispatch':
-              outcome = 'RECONCILED'
-              reason = 'Manual reconciliation of repository release-cycle state.'
-          elif conclusion == 'skipped':
-              if release_required:
-                  outcome = 'INCOMPLETE'
-                  reason = 'Automated verified release was skipped while substantive Unreleased changes remained.'
-              else:
-                  outcome = 'SKIPPED'
-                  reason = 'Automated verified release was skipped and no substantive Unreleased changes remained.'
-          elif conclusion != 'success':
-              outcome = 'FAILED'
-              reason = f'Automated verified release concluded with {conclusion}.'
+          conclusion = os.environ.get("SOURCE_CONCLUSION") or "manual-dispatch"
+          source_run_id = os.environ.get("SOURCE_RUN_ID") or os.environ["CURRENT_RUN_ID"]
+          source_sha = os.environ.get("SOURCE_HEAD_SHA") or ""
+          version = Path("VERSION").read_text(encoding="utf-8").strip()
+          state = "SOURCE_OBSERVED"
+          if conclusion not in {"success", "skipped", "manual-dispatch"}:
+              state = "SOURCE_FAILURE_OBSERVED"
           elif release_required:
-              outcome = 'INCOMPLETE'
-              reason = 'Automated release succeeded but substantive Unreleased changes remain.'
-          else:
-              latest_release_path = Path('docs/release_evidence/latest_release.json')
-              if latest_release_path.exists():
-                  latest_release = json.loads(latest_release_path.read_text(encoding='utf-8'))
-                  published_version = str(latest_release.get('version', ''))
-              else:
-                  published_version = ''
-              if published_version == version:
-                  outcome = 'PUBLISHED'
-                  reason = f'Version {version} is represented by the latest publication receipt.'
-              else:
-                  outcome = 'SKIPPED'
-                  reason = 'No substantive Unreleased changes required publication.'
+              state = "RELEASE_CANDIDATE_REQUIRES_TVC_ADMISSION"
 
-          generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
-          source_run_url = f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{source_run_id}"
+          out = Path("reports/release_cycle")
+          out.mkdir(parents=True, exist_ok=True)
           payload = {
-              'schema_version': '1.0',
-              'outcome': outcome,
-              'reason': reason,
-              'repository': os.environ['REPOSITORY'],
-              'source_workflow': 'Automated verified release',
-              'source_workflow_conclusion': conclusion,
-              'source_workflow_run_id': str(source_run_id),
-              'source_workflow_run_url': source_run_url,
-              'source_head_sha': source_sha,
-              'current_version': version,
-              'release_required_after_run': release_required,
-              'generated_utc': generated,
-              'scope': 'repository release-cycle outcome only; no certification of user-authored content',
+              "schema": "stegverse.kv.release-cycle-hosted-observation/v1",
+              "state": state,
+              "source_workflow_conclusion": conclusion,
+              "source_workflow_run_id": str(source_run_id),
+              "source_head_sha": source_sha,
+              "current_version": version,
+              "release_required": release_required,
+              "generated_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+              "credential_authority": "TV/TVC",
+              "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
+              "repository_mutation_performed": False,
+              "canonical_evidence_transition_performed": False,
+              "release_publication_performed": False,
+              "authority_effect": "NONE",
           }
-
-          evidence = Path('docs/release_evidence')
-          evidence.mkdir(parents=True, exist_ok=True)
-          (evidence / 'latest_cycle.json').write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
-          (evidence / 'latest_cycle.md').write_text(
-              '# Latest Release-Cycle Outcome\n\n'
-              f"- **Outcome:** `{outcome}`\n"
-              f"- **Reason:** {reason}\n"
-              f"- **Version:** `{version}`\n"
-              f"- **Release required after run:** `{str(release_required).lower()}`\n"
-              f"- **Source conclusion:** `{conclusion}`\n"
-              f"- **Source workflow:** {source_run_url}\n"
-              f"- **Source head SHA:** `{source_sha or 'not available'}`\n"
-              f"- **Generated UTC:** `{generated}`\n\n"
-              'This receipt records repository release-cycle state only. It does not certify user-authored content.\n',
-              encoding='utf-8',
+          (out / "hosted-release-cycle-observation.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
           )
-          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as handle:
-              handle.write(f'outcome={outcome}\n')
-          print(f'release cycle outcome: {outcome}')
           PY
 
-      - name: Commit durable outcome receipt
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/release_evidence/latest_cycle.md docs/release_evidence/latest_cycle.json
-          if git diff --cached --quiet; then
-            echo "Release-cycle outcome receipt unchanged"
-          else
-            git commit -m "evidence: preserve release-cycle outcome [skip ci]"
-            git push origin HEAD:main
-          fi
-
-      - name: Fail after preserving an unresolved outcome
-        if: steps.derive.outputs.outcome == 'FAILED' || steps.derive.outputs.outcome == 'INCOMPLETE'
-        run: exit 1
+      - name: Upload non-secret release-cycle observation
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-cycle-observation-${{ github.run_id }}
+          path: reports/release_cycle/hosted-release-cycle-observation.json
+          if-no-files-found: error
+          retention-days: 30

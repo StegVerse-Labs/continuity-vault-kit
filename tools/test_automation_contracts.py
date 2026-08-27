@@ -27,14 +27,20 @@ WORKFLOWS = {
         "gh release create",
     },
     "release-cycle-outcome.yml": {
-        "name: Release cycle outcome",
+        "name: Release cycle outcome - Validation Only",
         'workflows: ["Automated verified release"]',
-        "latest_cycle.json",
-        "latest_cycle.md",
-        "PUBLISHED",
-        "SKIPPED",
-        "FAILED",
-        "INCOMPLETE",
+        "VALIDATION_TRANSPORT_ONLY",
+        "repository_mutation_performed",
+        "canonical_evidence_transition_performed",
+        "actions/upload-artifact@v4",
+    },
+    "release-cycle-recovery.yml": {
+        "name: Release cycle recovery - Validation Only",
+        'workflows: ["Release cycle outcome - Validation Only"]',
+        "TVC_ADMITTED_RELEASE_CONTINUATION_REQUIRED",
+        "VALIDATION_TRANSPORT_ONLY",
+        "workflow_dispatch_performed",
+        "actions/upload-artifact@v4",
     },
     "downstream-propagation.yml": {"release:", "evidence/downstream-propagation"},
     "onboarding-friction-bootstrap.yml": {"workflow_dispatch:", "onboarding-friction"},
@@ -126,6 +132,33 @@ def validate_release_cycle() -> None:
         fail("release cycle missing issue-free gate tokens: " + ", ".join(missing))
     if "issues: write" in release:
         fail("automated release must not require issue-write permission")
+
+
+def validate_hosted_release_cycle_boundary() -> None:
+    workflow_root = REPO_ROOT / ".github" / "workflows"
+    for filename in ("release-cycle-outcome.yml", "release-cycle-recovery.yml"):
+        text = read_text(workflow_root / filename)
+        forbidden = {
+            "contents: write",
+            "actions: write",
+            "git push",
+            "github.token",
+            "GH_TOKEN:",
+            "gh workflow run",
+        }
+        present = sorted(token for token in forbidden if token in text)
+        if present:
+            fail(f"{filename} reintroduces hosted release-cycle authority: {', '.join(present)}")
+        required = {
+            "contents: read",
+            "persist-credentials: false",
+            "VALIDATION_TRANSPORT_ONLY",
+            "authority_effect",
+            "NONE",
+        }
+        missing = sorted(token for token in required if token not in text)
+        if missing:
+            fail(f"{filename} missing validation-only boundary tokens: {', '.join(missing)}")
 
 
 def validate_release_cycle_outcome() -> None:
@@ -282,6 +315,7 @@ def main() -> int:
     checks = [
         validate_workflows,
         validate_release_cycle,
+        validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
         validate_candidate_release_bridge,
         validate_friction_registry,

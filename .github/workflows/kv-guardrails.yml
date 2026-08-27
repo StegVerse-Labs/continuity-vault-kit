@@ -51,7 +51,11 @@ jobs:
             tests/test_skap_crypto_boundary.py \
             tests/test_skap_crypto_lifecycle_runtime.py \
             tests/test_skap_tvc_key_provider.py \
-            tests/test_skap_owner_ingress.py
+            tests/test_skap_owner_ingress.py \
+            tests/test_hosted_release_authority_retirement.py
+
+      - name: Validate hosted release authority retirement
+        run: python3 -m unittest tests.test_hosted_release_authority_retirement -v
 
       - name: KV layer boundary + footer validation
         run: python3 tools/kv_layer_check.py --mode validate
