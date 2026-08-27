@@ -526,3 +526,26 @@ State distinction:
 - COMPLETE CMC-022/023: NO
 
 Remaining merge gate: current-main reconciliation. Main advanced independently after the branch base. Do not infer merge readiness from green exact-head checks alone; preserve the five retirement changes while reconciling with current main and revalidate if the head changes.
+
+
+### Hosted release/control-plane retirement — final live reconciliation 2026-08-27
+
+This section is the final same-day authority for CMC-022 / CMC-023 and supersedes any earlier same-day snapshot that says PR #78 is unmerged or still awaiting current-main reconciliation.
+
+Final verified source state:
+- completing PR: #78
+- validated exact head: `18857322d4f2b211e97306323029bf885ebdeafb`
+- merge commit: `b1d12e67783de6cefe0d3332f3901db4c9a02b74`
+- Release Integrity 33118551268: SUCCESS
+- Security Baseline 33118551217: SUCCESS
+- Repository validation diagnostics 33118551252: SUCCESS
+- KV Guardrails 33118551215: SUCCESS after bounded rerun job 98679640341
+- all five targeted hosted release/control-plane authority surfaces: RETIRED
+- source retirement state: IMPLEMENTED + VALIDATED + MERGED
+- replacement TVC release publication runtime: NOT OBSERVED
+- RELEASED: NO new release claimed by this retirement
+- DEPLOYED: NO deployment effect
+- ACTIVATED: NO activation effect
+- COMPLETE: YES for CMC-022/CMC-023 source-retirement goal only
+
+The KnowledgeVault production activation, owner ingress, provider execution, runtime Interlock/InTr, bearer/delivery, and reconstruction goals remain separate canonical lanes and are not satisfied by this source-retirement merge.
