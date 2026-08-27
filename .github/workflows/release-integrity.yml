@@ -9,6 +9,7 @@ on:
       - "tools/test_release_tools.py"
       - "tools/init_vault.py"
       - "tools/test_init_vault.py"
+      - "tools/test_clean_room_user_kv.py"
       - "tools/test_automation_contracts.py"
       - "vault_template/**"
       - "automation/**"
@@ -24,6 +25,7 @@ on:
       - "tools/test_release_tools.py"
       - "tools/init_vault.py"
       - "tools/test_init_vault.py"
+      - "tools/test_clean_room_user_kv.py"
       - "tools/test_automation_contracts.py"
       - "vault_template/**"
       - "automation/**"
@@ -62,6 +64,9 @@ jobs:
 
       - name: Run vault initializer self-test
         run: python3 tools/test_init_vault.py
+
+      - name: Run clean-room Packageable User KV proof
+        run: python3 tools/test_clean_room_user_kv.py
 
       - name: Validate automation contracts
         run: python3 tools/test_automation_contracts.py
@@ -134,6 +139,7 @@ jobs:
               "manifest_schema_version": manifest["schema_version"],
               "manifest_file_count": manifest["file_count"],
               "initializer_self_test": "PASS",
+              "clean_room_user_kv_test": "PASS",
               "automation_contract_test": "PASS",
               "generated_utc": generated_utc,
               "scope": "package integrity, installer copy verification, and repository automation contract consistency only",
