@@ -2,7 +2,7 @@
 
 Repository: `StegVerse-Labs/continuity-vault-kit`  
 Issue: #56  
-State: IMPLEMENTED_VALIDATED_MERGED / DOCUMENTED_FACT_POPULATION_ON_BRANCH  
+State: IMPLEMENTED_VALIDATED_MERGED / DOCUMENTED_FACT_POPULATION_MERGED  
 Authority effect: NONE
 
 ## Purpose
@@ -36,7 +36,7 @@ Exact-head validation:
 
 ## Current fact state
 
-The canonical registry foundation is merged. On branch `feat/provider-surface-documented-facts-56`, the first provider-documentation fact set is populated with state `DOCUMENTED_UNVERIFIED`.
+The canonical registry foundation and the first provider-documentation fact set are merged on `main`. The fact set remains `DOCUMENTED_UNVERIFIED`.
 
 Eight observations are represented across:
 - iCloud Files on iPhone / iOS;
@@ -81,12 +81,11 @@ A `VERIFIED` observation must carry a non-unknown evidence type, source referenc
 
 ## Remaining work
 
-1. Validate and merge the first eight provider-documentation observations.
-2. Continue provider-documentation population for AWS/object storage, self-hosted/private cloud, and future StegCloud only when authoritative public sources exist.
-3. Add StegVerse-observed/conformance-tested records separately; documentation evidence alone never becomes `VERIFIED`.
-4. Merge and release the LLM-adapter#140 canonical-registry consumer.
-5. Project resolved provider-route explanations into Site#239 after Site machine admission.
-6. Keep actual user-specific route selection separate from generic provider capability facts.
+1. Continue provider-documentation population for AWS/object storage, self-hosted/private cloud, and future StegCloud only when authoritative public sources exist.
+2. Add StegVerse-observed/conformance-tested records separately; documentation evidence alone never becomes `VERIFIED`.
+3. Merge and release the LLM-adapter#140 canonical-registry consumer.
+4. Project resolved provider-route explanations into Site#239 after Site machine admission.
+5. Keep actual user-specific route selection separate from generic provider capability facts.
 
 ## Boundary
 
@@ -107,3 +106,17 @@ The validator now enforces:
 - `VERIFIED` requires every observation to be verified.
 
 Negative tests exercise documented-without-evidence and partially-verified-without-verified-observation failures.
+
+## First documented-fact merge evidence
+
+Documented-fact PR: `#66`  
+Documented-fact head: `4fa0af1666302b741cba123e3fc5b92bbab18cd5`  
+Merge commit: `acd48758f1d94154e75fcf37d73ec934091d3e87`
+
+Exact-head validation:
+- KV Provider Surface Capability Registry run `33025414574`: PASS
+- Security Baseline run `33025414618`: PASS
+- Repository validation diagnostics run `33025414625`: PASS
+- KV Guardrails run `33025414597`: PASS
+
+This merge advances documented knowledge only. It does not establish StegVerse-observed or verified provider conformance.
