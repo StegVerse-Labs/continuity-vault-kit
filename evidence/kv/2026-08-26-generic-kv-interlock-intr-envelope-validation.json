@@ -1,0 +1,47 @@
+{
+  "schema_version": "stegverse.kv-interlock.intr-envelope-validation-evidence.v1",
+  "observed_at": "2026-08-26T22:10:00-05:00",
+  "pull_request": 72,
+  "validation_head": "bc3f1dc381143957055eba9e1631db5564e152ff",
+  "merge_sha": "4848325b5476f2229b1225c265b264e692b338a9",
+  "workflows": [
+    {
+      "name": "Validate KV Interlock Contract",
+      "run_id": 33035524355,
+      "conclusion": "success"
+    },
+    {
+      "name": "Security Baseline",
+      "run_id": 33035524328,
+      "conclusion": "success"
+    },
+    {
+      "name": "Repository validation diagnostics",
+      "run_id": 33035524385,
+      "conclusion": "success"
+    },
+    {
+      "name": "KV Guardrails (Layer + Footer + Emoji + InTr)",
+      "run_id": 33035524346,
+      "conclusion": "success"
+    }
+  ],
+  "contract": {
+    "schema": "stegverse.kv-interlock.intr-envelope/v1",
+    "request_path": "DEVICE->KV",
+    "response_path": "KV->DEVICE",
+    "request_payload_schema": "kv.interlock.request.v1",
+    "response_payload_schema": "kv.interlock.response.v1",
+    "sealed_material_required": true,
+    "boundary_proof_required": true,
+    "receipt_required": true,
+    "receipt_chain_required": true,
+    "receipt_plaintext_allowed": false,
+    "ambiguous_disposition": "FAIL_CLOSED",
+    "credential_grant_required": false,
+    "credential_specific": false,
+    "authority_effect": "NONE"
+  },
+  "production_endpoint_activation": false,
+  "owner_data_access": false
+}
