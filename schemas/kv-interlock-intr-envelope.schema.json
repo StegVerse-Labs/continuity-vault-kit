@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-interlock-intr-envelope.schema.json",
+  "title": "KV-INTERLOCK-v1 Generic InTr Envelope",
+  "description": "Generic non-credential-specific adjacent DEVICE<->KV transport envelope for bounded KV-INTERLOCK-v1 request/response traffic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "protocol",
+    "packet_id",
+    "direction",
+    "source_role",
+    "next_role",
+    "request_id",
+    "operation",
+    "payload_schema_version",
+    "payload_hash",
+    "sealed_material_ref",
+    "authority",
+    "boundary_proof",
+    "receipt_policy"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv-interlock.intr-envelope/v1"
+    },
+    "protocol": {
+      "const": "InTr"
+    },
+    "packet_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "direction": {
+      "enum": ["REQUEST", "RESPONSE"]
+    },
+    "source_role": {
+      "enum": ["DEVICE", "KV"]
+    },
+    "next_role": {
+      "enum": ["DEVICE", "KV"]
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation": {
+      "enum": ["DISCOVER", "REQUEST", "COMMIT_CANDIDATE"]
+    },
+    "payload_schema_version": {
+      "enum": ["kv.interlock.request.v1", "kv.interlock.response.v1"]
+    },
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "sealed_material_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prior_receipt_hash": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "issued_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expires_at": {
+      "type": ["string", "null"]
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_transfer",
+        "transport_grants_execution_authority",
+        "model_output_grants_execution_authority",
+        "credential_authority_effect"
+      ],
+      "properties": {
+        "authority_transfer": {
+          "const": false
+        },
+        "transport_grants_execution_authority": {
+          "const": false
+        },
+        "model_output_grants_execution_authority": {
+          "const": false
+        },
+        "credential_authority_effect": {
+          "const": "NONE"
+        }
+      }
+    },
+    "boundary_proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "source_identity_ref",
+        "next_boundary_identity_ref",
+        "verification_state"
+      ],
+      "properties": {
+        "required": {
+          "const": true
+        },
+        "source_identity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_boundary_identity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_state": {
+          "enum": ["PENDING", "VERIFIED", "FAILED"]
+        }
+      }
+    },
+    "receipt_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_required",
+        "receipt_contains_payload_plaintext",
+        "receipt_chain_required",
+        "ambiguous_disposition"
+      ],
+      "properties": {
+        "receipt_required": {
+          "const": true
+        },
+        "receipt_contains_payload_plaintext": {
+          "const": false
+        },
+        "receipt_chain_required": {
+          "const": true
+        },
+        "ambiguous_disposition": {
+          "const": "FAIL_CLOSED"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "direction": {
+            "const": "REQUEST"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_role": {
+            "const": "DEVICE"
+          },
+          "next_role": {
+            "const": "KV"
+          },
+          "payload_schema_version": {
+            "const": "kv.interlock.request.v1"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "direction": {
+            "const": "RESPONSE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_role": {
+            "const": "KV"
+          },
+          "next_role": {
+            "const": "DEVICE"
+          },
+          "payload_schema_version": {
+            "const": "kv.interlock.response.v1"
+          }
+        }
+      }
+    }
+  ]
+}
