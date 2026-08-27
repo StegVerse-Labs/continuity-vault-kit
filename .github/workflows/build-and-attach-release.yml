@@ -1,34 +1,56 @@
-name: Build and Attach Release Assets
+name: Published Release Source Reconstruction - Validation Only
 
 on:
   release:
     types: [published]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository without credential persistence
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Build release bundle
+      - name: Rebuild release bundle for comparison
         run: python3 tools/build_release.py
 
-      - name: Generate SHA256 checksum
+      - name: Generate local SHA256 reconstruction evidence
         run: sha256sum dist/*.zip > dist/KnowledgeVault_SHA256.txt
 
-      - name: Upload ZIP to release
-        uses: softprops/action-gh-release@v2
+      - name: Emit validation-only observation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          observation = {
+              "schema": "stegverse.kv.published-release-reconstruction/v1",
+              "state": "SOURCE_RECONSTRUCTED_RELEASE_NOT_MUTATED",
+              "credential_authority": "TV/TVC",
+              "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
+              "release_asset_mutation_performed": False,
+              "release_publication_performed": False,
+              "authority_effect": "NONE",
+          }
+          Path("dist/HOSTED_RELEASE_OBSERVATION.json").write_text(
+              json.dumps(observation, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload reconstruction evidence
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/*.zip
-            dist/KnowledgeVault_SHA256.txt
-            dist/*.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: knowledgevault-published-release-reconstruction
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
