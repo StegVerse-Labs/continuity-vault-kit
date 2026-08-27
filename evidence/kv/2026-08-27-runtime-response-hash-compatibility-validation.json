@@ -1,0 +1,29 @@
+{
+  "schema": "stegverse.kv-interlock.runtime-response-hash-compatibility-evidence/v1",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "issue": 79,
+  "pull_request": 86,
+  "validation_head": "e48bcc53e93c0f059a3e557a146e35dbe49097ce",
+  "merge": "1cb64044e9e10364f7ddb4b0ff514c1f06c3eac5",
+  "runs": {
+    "repository_validation_diagnostics": 33121047732,
+    "kv_interlock_contract": 33121047747,
+    "kv_guardrails": 33121047902,
+    "security_baseline": 33121047899
+  },
+  "blobs": {
+    "runtime": "9c1de93e373fbfc6f7a6e9d1c7b7eaa61ac689a5",
+    "protocol": "d4b07228d5d5f128e8c6b901344e22f6d4b3b360"
+  },
+  "canonical_response_hash_projection": [
+    "schema_version",
+    "request_id",
+    "decision",
+    "granted_scope",
+    "context",
+    "source_refs"
+  ],
+  "state": "HOSTED_VALIDATED_MERGED",
+  "production_endpoint_deployed": false,
+  "authority_effect": "NONE"
+}
