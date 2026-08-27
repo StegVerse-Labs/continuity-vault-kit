@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-interlock-request.schema.json",
+  "title": "KnowledgeVault Interlock Request",
+  "description": "Canonical model-neutral request contract for KV-INTERLOCK-v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation",
+    "request_id",
+    "requester",
+    "purpose",
+    "record_class",
+    "requested_scope",
+    "minimum_necessary_justification",
+    "authority_ref",
+    "disclosure_mode"
+  ],
+  "properties": {
+    "schema_version": {"const": "kv.interlock.request.v1"},
+    "operation": {"enum": ["DISCOVER", "REQUEST", "COMMIT_CANDIDATE"]},
+    "request_id": {"type": "string", "minLength": 1},
+    "requester": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "component"],
+      "properties": {
+        "module": {"type": "string", "minLength": 1},
+        "component": {"type": "string", "minLength": 1}
+      }
+    },
+    "purpose": {"type": "string", "minLength": 1},
+    "record_class": {"type": "string", "minLength": 1},
+    "requested_scope": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "time_scope": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "start": {"type": ["string", "null"]},
+        "end": {"type": ["string", "null"]}
+      }
+    },
+    "minimum_necessary_justification": {"type": "string", "minLength": 1},
+    "authority_ref": {"type": "string", "minLength": 1},
+    "disclosure_mode": {
+      "enum": ["BOUNDED_CONTEXT", "SOURCE_REFERENCE_ONLY", "ORIGINAL_ARTIFACT_REVIEW"]
+    },
+    "candidate_writeback": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["candidate_type", "payload_ref"],
+      "properties": {
+        "candidate_type": {"type": "string", "minLength": 1},
+        "payload_ref": {"type": "string", "minLength": 1},
+        "requested_destination": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
