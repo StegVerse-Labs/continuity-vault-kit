@@ -144,10 +144,6 @@ Existing direct-AI rules remain valid: AI tools do not directly access `03_Recor
 6. writeback is demonstrated as candidate-only until separately authorized;
 7. no PII/PHI is persisted in StegHealth repository artifacts or public runtime logs.
 
----
-
-🔒 Layer: Framework | KV
-
 
 ## Runtime endpoint core — issue #79
 
@@ -168,3 +164,7 @@ The core enforces:
 - no direct filesystem, credential, SKAP, provider, or execution authority.
 
 This source implementation is not production activation. A live boundary identity/sealing service, actual runtime deployment, canonical owner/device readback, and real InTr receipts remain separate evidence gates.
+
+---
+
+🔒 Layer: Framework | KV
