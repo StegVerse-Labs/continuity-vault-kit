@@ -272,7 +272,7 @@ output schema: stegos.kv_capability_shell_projection.v1
 StegOS validates the 46-entry KV snapshot and separates local-ready, local-blocked, and governed-action states. It has no KV mutation or activation surface. KV readiness therefore propagates to the device shell without transferring authority.
 
 
-## Universal Interlock adoption-readiness admission — issue #74
+## Universal Interlock adoption-readiness admission — issue #74 / PR #75
 
 StegOS now owns a separate non-authorizing adoption-eligibility assessment for
 `SV-INTERLOCK-v0.4-candidate`:
@@ -328,3 +328,16 @@ Readiness surface retains one current projection.
 This does not reduce the Universal Interlock runtime/adoption gates. It gives the
 device shell a machine-readable explanation for why all governed controls remain
 disabled.
+
+
+### #74 merge evidence
+
+```text
+issue #74: CLOSED_COMPLETED
+PR #75 merge: 4e8657d117cad62cf7345d18f81550e927022c56
+KV Guardrails: 33038600152 SUCCESS
+Repository validation: 33038600151 SUCCESS
+Security Baseline: 33038600120 SUCCESS
+connected readiness projection: PASS
+production Interlock activation: NOT PERFORMED
+```
