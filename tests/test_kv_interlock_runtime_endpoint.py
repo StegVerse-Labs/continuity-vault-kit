@@ -130,6 +130,15 @@ class KVInterlockRuntimeTests(unittest.TestCase):
         self.assertEqual(response["decision"], "ALLOW_BOUNDED_CONTEXT")
         self.assertEqual(set(response["context"]), set(response["granted_scope"]))
         self.assertEqual(response["receipt"]["authority_ref"], "owner-assertion-1")
+        projection = {
+            "schema_version": response["schema_version"],
+            "request_id": response["request_id"],
+            "decision": response["decision"],
+            "granted_scope": response["granted_scope"],
+            "context": response["context"],
+            "source_refs": response["source_refs"],
+        }
+        self.assertEqual(response["receipt"]["response_hash"], self.m.sha256_hex(projection))
         self.assertEqual(response["receipt"]["response_hash"], self.m.response_hash(response))
         self.assertEqual(len(self.receipts), 1)
         self.assertNotIn("password", self.m.canonical_json(response).lower())
