@@ -255,3 +255,21 @@ Do not count dynamic runtime records as static template parity merely because th
 Validation branch: `kv-interlock-contract-validation`.
 
 PR `#71` completed the evidence-only validation probe and was merged after all four hosted lanes passed. This proves repository-level contract validity only; production Interlock/InTr and personal-record authority remain separately gated.
+
+
+## Generic KV Interlock InTr envelope hosted validation probe
+
+Branch: `kv-interlock-generic-intr-envelope-validation`.
+
+Purpose: trigger hosted proof for a non-credential-specific `DEVICE <-> KV` InTr transport envelope carrying sealed `KV-INTERLOCK-v1` request/response payloads.
+
+The generic envelope:
+
+- uses `kv.interlock.request.v1` / `kv.interlock.response.v1`;
+- requires boundary proof and receipt chaining;
+- prohibits payload plaintext in receipts;
+- transfers no authority;
+- introduces no `credential_grant` or SKAP credential semantics;
+- fails closed on ambiguous bounded-context transport.
+
+PASS is a repository-level transport-contract proof only. It does not activate a production Interlock endpoint, owner data access, or any credential path.
