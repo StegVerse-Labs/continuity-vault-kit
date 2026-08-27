@@ -110,3 +110,15 @@ authority_effect: NONE
 ```
 
 Existing runtime ownership remains upstream/downstream coordinated through the sovereign resident execution lane and TV/TVC authority boundaries. No new resident worker, credential broker, or Site endpoint is authorized by this handoff.
+
+
+## 2026-08-27 response-hash compatibility repair
+
+Cross-repository inspection against the hosted-validated StegHealth `KV-INTERLOCK-v1` specialization exposed a source-level runtime compatibility defect: issue #79 computed `receipt.response_hash` over the full response including receipt metadata (with only `response_hash` removed), while the established StegHealth client verifies the canonical response payload projection.
+
+The runtime core is corrected to hash exactly:
+`schema_version`, `request_id`, `decision`, `granted_scope`, `context`, and `source_refs`.
+
+The protocol now states this projection explicitly, and the runtime test independently constructs the projection before comparing the digest. This is a compatibility repair only. It does not deploy the endpoint, establish boundary identity/sealing, grant credential or execution authority, mutate canonical KV state, or activate production runtime.
+
+State until hosted validation/merge: `IMPLEMENTED_AWAITING_HOSTED_VALIDATION`.
