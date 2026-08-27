@@ -616,3 +616,25 @@ gh workflow run automation-candidate-lifecycle.yml
 Issue #83 / branch `fix/automation-candidate-hosted-authority-83` is the sole bounded continuation for that surface. The branch preserves deterministic merged-PR candidate-reference parsing but converts output to a non-authorizing artifact and defers canonical lifecycle reconciliation to a non-hosted owner.
 
 This source repair is not candidate implementation, candidate lifecycle mutation, release publication, deployment, or activation.
+
+
+### Automation-candidate implementation hosted authority retirement — completion
+
+Issue #83 / PR #84 is merged and validated.
+
+```text
+validated head: de37f5f20934cae84fcb9c6650a90650fd502747
+merge: 8f3b82e49253ae8d534b1780005fe70bc3069667
+Release integrity: 33120022672 SUCCESS
+Repository diagnostics: 33120022649 SUCCESS
+Execution Recovery: 33120022682 SUCCESS
+Security Baseline: 33120022687 SUCCESS
+KV Guardrails: 33120022656 SUCCESS
+hosted issue mutation: false
+hosted repository mutation: false
+hosted workflow dispatch: false
+GitHub token authority: NONE
+authority_effect: NONE
+```
+
+Candidate references from merged PR metadata are now observation-only. Canonical candidate reconciliation remains a separate non-hosted transition.
