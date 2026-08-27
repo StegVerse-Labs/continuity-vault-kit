@@ -235,3 +235,12 @@ The `_Entities` root category folders plus `README.md` and `Entity_File_Template
 `_System/Identity/**`, `_System/Governance/**`, and `_System/Execution/**` remain runtime extension surfaces unless/until their paths are explicitly added to authoritative template source.
 
 Do not count dynamic runtime records as static template parity merely because their directories exist.
+
+
+## KV interlock contract hosted validation probe
+
+Branch: `kv-interlock-contract-validation`.
+
+Purpose: trigger pull-request-hosted validation of the canonical model-neutral `KV-INTERLOCK-v1` request/response schemas, validator, and contract tests.
+
+PASS establishes repository-level contract validity only. It does not activate production Interlock/InTr or grant personal-record access.
