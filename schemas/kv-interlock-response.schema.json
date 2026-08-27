@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-interlock-response.schema.json",
+  "title": "KnowledgeVault Interlock Response",
+  "description": "Canonical model-neutral response contract for KV-INTERLOCK-v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "decision",
+    "granted_scope",
+    "context",
+    "source_refs",
+    "receipt"
+  ],
+  "properties": {
+    "schema_version": {"const": "kv.interlock.response.v1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "decision": {"enum": ["ALLOW_BOUNDED_CONTEXT", "REVIEW_REQUIRED", "DENY", "FAIL_CLOSED"]},
+    "granted_scope": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "context": {
+      "type": "object",
+      "description": "Bounded context only. A consumer must reject fields outside granted_scope."
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "policy_profile",
+        "authority_ref",
+        "requested_scope",
+        "granted_scope",
+        "decision",
+        "timestamp",
+        "response_hash"
+      ],
+      "properties": {
+        "receipt_id": {"type": "string", "minLength": 1},
+        "policy_profile": {"type": "string", "minLength": 1},
+        "authority_ref": {"type": "string", "minLength": 1},
+        "requested_scope": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "granted_scope": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "redaction_profile": {"type": ["string", "null"]},
+        "decision": {"enum": ["ALLOW_BOUNDED_CONTEXT", "REVIEW_REQUIRED", "DENY", "FAIL_CLOSED"]},
+        "timestamp": {"type": "string", "minLength": 1},
+        "response_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "writeback_candidate_ref": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
