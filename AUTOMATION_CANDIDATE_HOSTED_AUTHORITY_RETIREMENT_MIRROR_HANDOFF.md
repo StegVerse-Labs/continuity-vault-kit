@@ -3,8 +3,8 @@
 Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #83
-Branch: `fix/automation-candidate-hosted-authority-83`
-State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
+Branch: `main`
+State: MERGED_VALIDATED_HOSTED_MUTATION_RETIRED
 
 ## Goal
 
@@ -92,3 +92,24 @@ regression:
 ## Next executable boundary
 
 Run exact-head hosted validation, repair any source/test defects without restoring hosted mutation authority, merge only after green evidence, then inspect adjacent candidate-lifecycle workflows separately. Candidate lifecycle state itself remains outside this hosted observer.
+
+
+## Merge and validation evidence
+
+```text
+PR: #84
+validated head: de37f5f20934cae84fcb9c6650a90650fd502747
+merge: 8f3b82e49253ae8d534b1780005fe70bc3069667
+
+Release integrity: 33120022672 SUCCESS
+Repository validation diagnostics: 33120022649 SUCCESS
+KnowledgeVault Execution Recovery: 33120022682 SUCCESS
+Security Baseline: 33120022687 SUCCESS
+KV Guardrails: 33120022656 SUCCESS
+```
+
+The hosted observer now has read-only permissions, no credential persistence, no issue mutation, no repository mutation, no workflow dispatch, and no credential/token consumption. Candidate-reference parsing is retained only as non-authorizing observation evidence.
+
+## Current next boundary
+
+Issue #83 source-retirement goal is COMPLETE. Adjacent candidate lifecycle/reconciliation workflows must be inspected separately for equivalent hosted mutation authority. No candidate lifecycle state was changed by this repair.
