@@ -165,6 +165,21 @@ The core enforces:
 
 This source implementation is not production activation. A live boundary identity/sealing service, actual runtime deployment, canonical owner/device readback, and real InTr receipts remain separate evidence gates.
 
+## Canonical response-hash projection
+
+For `kv.interlock.response.v1`, `receipt.response_hash` is the lowercase SHA-256 hex digest of canonical JSON over exactly this response projection:
+
+```text
+schema_version
+request_id
+decision
+granted_scope
+context
+source_refs
+```
+
+Receipt metadata is not part of the hashed response projection. This keeps the response hash deterministic, non-circular, and compatible with existing consumers such as the StegHealth specialization. Receipt identity, policy, authority, timestamp, and writeback-candidate references remain separately validated receipt fields.
+
 ---
 
 🔒 Layer: Framework | KV
