@@ -416,3 +416,37 @@ Current exact state:
 PR #77 was auto-closed only because its branch was temporarily reset to current main during reconciliation; that closure is not completion. PR #78 is the sole continuation lane. Do not create a duplicate lane. Do not merge until release-assets is retired through an authorized repository write path and fresh exact-head validation is green.
 
 Cross-repository coordination is durably recorded on StegVerse-Labs/TVC main in tasks/TVC-CREDENTIAL-MODEL-CONSISTENCY-20260826.json via merged PR #171, merge 52f2a6a2a15d9d2c586ebbffc1f613552be9f8d9.
+
+
+### Hosted release authority retirement recovery — live-state correction 2026-08-27
+
+This section supersedes the earlier same-day blocker snapshot above.
+
+Concurrent work advanced the sole continuation lane after the earlier snapshot.
+
+Current PR #78 exact head:
+`18857322d4f2b211e97306323029bf885ebdeafb`
+
+Current branch source state:
+- build-and-attach release authority retirement: IMPLEMENTED_ON_BRANCH
+- one-button release authority retirement: IMPLEMENTED_ON_BRANCH
+- release-assets authority retirement: IMPLEMENTED_ON_BRANCH
+- release-cycle outcome main-mutation retirement: IMPLEMENTED_ON_BRANCH
+- release-cycle recovery dispatch/main-mutation retirement: IMPLEMENTED_ON_BRANCH
+- regression coverage: IMPLEMENTED_ON_BRANCH
+- all five targeted hosted authority surfaces are now source-retired on the branch
+- merge: NOT_MERGED
+- deployment/activation/release effect: NONE
+
+Exact-head validation at the time of this correction:
+- Repository validation diagnostics 33118551252: SUCCESS
+- Release Integrity 33118551268: SUCCESS
+- Security Baseline 33118551217: SUCCESS
+- KV Guardrails 33118551215: IN_PROGRESS
+
+Current ancestry:
+- PR #78 is open.
+- main advanced independently after the branch reconciliation, so the branch is not currently zero-behind.
+- exact-head validation and current-main reconciliation are both required before merge.
+
+The prior connector-write blocker on release-assets.yml is superseded by this newer live branch state. Do not create another repair lane. Continue only with PR #78.
