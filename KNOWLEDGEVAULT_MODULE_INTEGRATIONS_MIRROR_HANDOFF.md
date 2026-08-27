@@ -197,7 +197,20 @@ FAIL_CLOSED
 
 No direct `COMMIT` operation is exposed to ordinary module/LLM requesters. A module specialization may narrow the contract but must not widen these authority or disclosure semantics.
 
-StegHealth currently has the first concrete specialization/client implementation and has independently hosted-validated its local denial/minimum-disclosure/receipt boundaries. Cross-repository compatibility against these canonical shared schemas is the next integration slice.
+StegHealth currently has the first concrete specialization/client implementation and has independently hosted-validated its local denial/minimum-disclosure/receipt boundaries.
+
+The canonical contract itself is now hosted PASS:
+
+- PR `#71`;
+- validation head `87f0c210f80c340b85e9981d18c91e2939202c74`;
+- merge `3734e13a0c91854caea6a50ce7e886b4aebc4e7f`;
+- `Validate KV Interlock Contract` run `33034255158`: PASS;
+- `Security Baseline` run `33034255177`: PASS;
+- `Repository validation diagnostics` run `33034255131`: PASS;
+- `KV Guardrails` run `33034255219`: PASS;
+- durable evidence: `evidence/kv/2026-08-26-kv-interlock-contract-validation.json`.
+
+Cross-repository compatibility against these canonical shared schemas is the next integration slice.
 
 ## Validation posture
 
@@ -237,10 +250,8 @@ The `_Entities` root category folders plus `README.md` and `Entity_File_Template
 Do not count dynamic runtime records as static template parity merely because their directories exist.
 
 
-## KV interlock contract hosted validation probe
+## KV interlock contract hosted validation proof
 
-Branch: `kv-interlock-contract-validation`.
+Validation branch: `kv-interlock-contract-validation`.
 
-Purpose: trigger pull-request-hosted validation of the canonical model-neutral `KV-INTERLOCK-v1` request/response schemas, validator, and contract tests.
-
-PASS establishes repository-level contract validity only. It does not activate production Interlock/InTr or grant personal-record access.
+PR `#71` completed the evidence-only validation probe and was merged after all four hosted lanes passed. This proves repository-level contract validity only; production Interlock/InTr and personal-record authority remain separately gated.
