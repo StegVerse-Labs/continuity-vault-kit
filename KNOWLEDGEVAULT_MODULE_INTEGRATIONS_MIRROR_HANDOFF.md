@@ -210,7 +210,7 @@ The canonical contract itself is now hosted PASS:
 - `KV Guardrails` run `33034255219`: PASS;
 - durable evidence: `evidence/kv/2026-08-26-kv-interlock-contract-validation.json`.
 
-Cross-repository compatibility against these canonical shared schemas is the next integration slice.
+Cross-repository compatibility against these canonical shared schemas is hosted PASS for StegHealth, and the generic non-credential InTr transport envelope is now also hosted PASS.
 
 ## Validation posture
 
@@ -273,3 +273,47 @@ The generic envelope:
 - fails closed on ambiguous bounded-context transport.
 
 PASS is a repository-level transport-contract proof only. It does not activate a production Interlock endpoint, owner data access, or any credential path.
+
+
+## Generic non-credential KV Interlock InTr envelope
+
+A generic transport contract now exists for bounded `KV-INTERLOCK-v1` traffic over the adjacent `DEVICE <-> KV` InTr boundary without importing credential-specific SKAP semantics.
+
+Canonical surfaces:
+
+- `schemas/kv-interlock-intr-envelope.schema.json`;
+- `specs/kv-interlock-intr-envelope.v1.json`;
+- `tools/validate_kv_interlock_intr_envelope.py`;
+- `tests/test_kv_interlock_intr_envelope.py`;
+- `.github/workflows/validate-kv-interlock-contract.yml`.
+
+Contract:
+
+```text
+REQUEST:  DEVICE -> KV
+RESPONSE: KV -> DEVICE
+request payload:  kv.interlock.request.v1
+response payload: kv.interlock.response.v1
+sealed material: required
+boundary proof: required
+receipt: required
+receipt chain: required
+receipt plaintext: prohibited
+credential_grant: absent / not required
+authority transfer: false
+credential authority effect: NONE
+ambiguous disposition: FAIL_CLOSED
+```
+
+Hosted evidence:
+
+- PR `#72`;
+- validation head `bc3f1dc381143957055eba9e1631db5564e152ff`;
+- merge `4848325b5476f2229b1225c265b264e692b338a9`;
+- `Validate KV Interlock Contract` run `33035524355`: PASS;
+- `Security Baseline` run `33035524328`: PASS;
+- `Repository validation diagnostics` run `33035524385`: PASS;
+- `KV Guardrails` run `33035524346`: PASS;
+- durable evidence: `evidence/kv/2026-08-26-generic-kv-interlock-intr-envelope-validation.json`.
+
+This closes the missing generic transport-envelope contract for non-credential personal-record consumers such as StegHealth. It does **not** activate a production endpoint or provide a live boundary identity/sealing service. Consumers may now pin this contract and implement adapter fixtures without reusing the credential-specific `credential_grant` packet shape.
