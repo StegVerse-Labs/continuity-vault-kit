@@ -27,6 +27,7 @@ class RecoveredCommunicationAttempt:
     selection: Dict[str, Any]
     lease: Dict[str, Any]
     execution_receipt: Optional[Dict[str, Any]]
+    receive_records: list[Dict[str, Any]]
     recovery_records: list[Dict[str, Any]]
 
 
@@ -106,6 +107,35 @@ def _execution_binding(selection: Dict[str, Any], lease: Dict[str, Any], receipt
         raise CommunicationRuntimeJournalError("edge execution receipt hash mismatch")
     if receipt["outcome"] in {"INDETERMINATE", "TIMEOUT_AFTER_DISPATCH", "UNKNOWN_AFTER_DISPATCH"} and bool(receipt.get("side_effect_absence_confirmed")):
         raise CommunicationRuntimeJournalError("ambiguous dispatch cannot confirm side-effect absence")
+
+
+def _receive_binding(selection: Dict[str, Any], lease: Dict[str, Any], evidence: Dict[str, Any]) -> None:
+    _require(
+        evidence,
+        "attempt_id",
+        "selection_sha256",
+        "edge_id",
+        "bearer",
+        "idempotency_key",
+        "request_sha256",
+        "ack_protocol",
+        "accepted",
+        "received_at",
+    )
+    if evidence["attempt_id"] != selection["attempt_id"]:
+        raise CommunicationRuntimeJournalError("receive attempt does not match selection")
+    if evidence["selection_sha256"] != selection["selection_sha256"]:
+        raise CommunicationRuntimeJournalError("receive selection hash mismatch")
+    if evidence["edge_id"] != selection["selected_edge_id"]:
+        raise CommunicationRuntimeJournalError("receive edge does not match selection")
+    if evidence["bearer"] != selection["selected_bearer"]:
+        raise CommunicationRuntimeJournalError("receive bearer does not match selection")
+    if evidence["ack_protocol"] != "stegtalk.edge-tls-ack.v0.1":
+        raise CommunicationRuntimeJournalError("unsupported receive acknowledgement protocol")
+    if evidence["accepted"] is not True:
+        raise CommunicationRuntimeJournalError("only positively accepted receive evidence can enter the communication attempt stream")
+    if bool(evidence.get("authority_created", False)):
+        raise CommunicationRuntimeJournalError("receive evidence cannot create authority")
 
 
 class CommunicationRuntimeJournal:
@@ -192,6 +222,52 @@ class CommunicationRuntimeJournal:
         )
         return stream_id
 
+
+    def record_receive(self, *, selection: Dict[str, Any], lease: Dict[str, Any], evidence: Dict[str, Any]) -> str:
+        _selection_binding(selection)
+        _lease_binding(selection, lease)
+        _receive_binding(selection, lease, evidence)
+        stream_id = self.begin(selection=selection, lease=lease)
+
+        attempts = self.store.read_stream("Attempts", stream_id)
+        for row in attempts:
+            if row.get("record_type") != "EDGE_RECEIVE_ACCEPTED":
+                continue
+            same_idempotency = row.get("idempotency_key") == evidence["idempotency_key"]
+            same_request = row.get("request_sha256") == evidence["request_sha256"]
+            if same_idempotency and same_request:
+                if (
+                    row.get("selection_sha256") != evidence["selection_sha256"]
+                    or row.get("selected_edge_id") != evidence["edge_id"]
+                    or row.get("selected_bearer") != evidence["bearer"]
+                ):
+                    raise CommunicationRuntimeJournalError("receive evidence binding conflict")
+                return stream_id
+            if same_idempotency:
+                raise CommunicationRuntimeJournalError("receive idempotency key already bound to different request")
+            if same_request:
+                raise CommunicationRuntimeJournalError("receive request hash already bound to different idempotency key")
+
+        self.store.append_attempt(
+            stream_id,
+            {
+                "record_type": "EDGE_RECEIVE_ACCEPTED",
+                "attempt_id": evidence["attempt_id"],
+                "selection_sha256": evidence["selection_sha256"],
+                "selected_edge_id": evidence["edge_id"],
+                "selected_bearer": evidence["bearer"],
+                "lease_epoch": int(lease["lease_epoch"]),
+                "idempotency_key": evidence["idempotency_key"],
+                "request_sha256": evidence["request_sha256"],
+                "ack_protocol": evidence["ack_protocol"],
+                "accepted": True,
+                "received_at": evidence["received_at"],
+                "final_delivery_claimed": False,
+                "authority_created": False,
+            },
+        )
+        return stream_id
+
     def record_recovery(self, *, attempt_id: str, decision: Dict[str, Any]) -> str:
         _require(decision, "action", "reason")
         if bool(decision.get("new_authority_granted", False)):
@@ -230,10 +306,14 @@ class CommunicationRuntimeJournal:
         execution_receipt = receipts[-1] if len(receipts) > 1 else None
         if execution_receipt is not None:
             _execution_binding(selection, lease, execution_receipt)
+        receive_records = [
+            row for row in attempts if row.get("record_type") == "EDGE_RECEIVE_ACCEPTED"
+        ]
         return RecoveredCommunicationAttempt(
             attempt_id=attempt_id,
             selection=selection,
             lease=lease,
             execution_receipt=execution_receipt,
+            receive_records=receive_records,
             recovery_records=recovery,
         )

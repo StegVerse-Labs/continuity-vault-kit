@@ -62,6 +62,21 @@ def execution_receipt(*, key="idem:runtime:1", outcome="DELIVERED", side_effect_
     return value
 
 
+def receive_evidence(*, key="idem:runtime:receive:1", request_sha256="sha256:" + "e" * 64, accepted=True):
+    return {
+        "attempt_id": "attempt:runtime:1",
+        "selection_sha256": selection()["selection_sha256"],
+        "edge_id": "edge:gateway",
+        "bearer": "stegtalk-ip",
+        "idempotency_key": key,
+        "request_sha256": request_sha256,
+        "ack_protocol": "stegtalk.edge-tls-ack.v0.1",
+        "accepted": accepted,
+        "received_at": "2026-08-22T22:36:30Z",
+        "authority_created": False,
+    }
+
+
 class CommunicationRuntimeJournalTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -134,6 +149,47 @@ class CommunicationRuntimeJournalTests(unittest.TestCase):
         receipt = execution_receipt(outcome="TIMEOUT_AFTER_DISPATCH", side_effect_absence_confirmed=True)
         with self.assertRaisesRegex(CommunicationRuntimeJournalError, "ambiguous dispatch"):
             self.journal().record_execution(selection=selection(), lease=lease(), receipt=receipt)
+
+
+    def test_receive_evidence_reconstructs_after_new_store_instance(self):
+        first = self.journal()
+        first.record_receive(selection=selection(), lease=lease(), evidence=receive_evidence())
+        restarted = CommunicationRuntimeJournal(KnowledgeVaultExecutionStore(self.root))
+        recovered = restarted.recover("attempt:runtime:1")
+        self.assertEqual(len(recovered.receive_records), 1)
+        self.assertEqual(recovered.receive_records[0]["request_sha256"], receive_evidence()["request_sha256"])
+        self.assertTrue(recovered.receive_records[0]["accepted"])
+        self.assertFalse(recovered.receive_records[0]["final_delivery_claimed"])
+        self.assertFalse(recovered.receive_records[0]["authority_created"])
+
+    def test_same_receive_evidence_is_durably_idempotent(self):
+        j = self.journal()
+        stream_id = j.record_receive(selection=selection(), lease=lease(), evidence=receive_evidence())
+        j.record_receive(selection=selection(), lease=lease(), evidence=receive_evidence())
+        attempts = j.store.read_stream("Attempts", stream_id)
+        received = [row for row in attempts if row.get("record_type") == "EDGE_RECEIVE_ACCEPTED"]
+        self.assertEqual(len(received), 1)
+
+    def test_receive_idempotency_key_cannot_rebind_to_different_request(self):
+        j = self.journal()
+        j.record_receive(selection=selection(), lease=lease(), evidence=receive_evidence())
+        conflict = receive_evidence(request_sha256="sha256:" + "f" * 64)
+        with self.assertRaisesRegex(CommunicationRuntimeJournalError, "receive idempotency key already bound"):
+            j.record_receive(selection=selection(), lease=lease(), evidence=conflict)
+
+    def test_negative_receiver_ack_is_not_persisted_as_acceptance(self):
+        with self.assertRaisesRegex(CommunicationRuntimeJournalError, "positively accepted"):
+            self.journal().record_receive(
+                selection=selection(),
+                lease=lease(),
+                evidence=receive_evidence(accepted=False),
+            )
+
+    def test_receive_evidence_cannot_create_authority(self):
+        evidence = receive_evidence()
+        evidence["authority_created"] = True
+        with self.assertRaisesRegex(CommunicationRuntimeJournalError, "cannot create authority"):
+            self.journal().record_receive(selection=selection(), lease=lease(), evidence=evidence)
 
     def test_recovery_record_cannot_grant_authority(self):
         j = self.journal()

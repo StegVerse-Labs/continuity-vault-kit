@@ -15,6 +15,7 @@ Last updated: 2026-08-26
 - Latest integrity evidence records a 131-file release manifest and PASS initializer / automation-contract self-tests.
 - Template root tree SHA used for this installation: `13ac73d64bb96bf80cb790d205b29962b6913310`.
 - Issue #39 recoverable-execution / communication-extension source is implemented. A real connected-KV StegTalk + StegWhisper pre-dispatch interruption/reconstruction proof is now present; actual bearer delivery and post-dispatch edge replacement/reconciliation remain open.
+- Issue #68 adds transport-neutral receiver-acceptance persistence to `CommunicationRuntimeJournal`; source implementation is in progress and connected-Drive live receive evidence remains separately unproven.
 - Issue #16 remains a separate external activation gate and is not a baseline KnowledgeVault installation requirement.
 - Root user-operation documentation is now consolidated into `README.md` plus `USER_GUIDE.md`; `SECURITY.md` remains the separate repository/deployment security policy.
 
