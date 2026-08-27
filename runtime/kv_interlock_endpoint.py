@@ -91,12 +91,15 @@ def _parse_time(value: str) -> datetime:
 
 
 def response_hash(response: dict[str, Any]) -> str:
-    value = copy.deepcopy(response)
-    receipt = value.get("receipt")
-    if not isinstance(receipt, dict):
-        raise KVInterlockRuntimeError("response receipt missing")
-    receipt.pop("response_hash", None)
-    return sha256_hex(value)
+    projection = {
+        "schema_version": response.get("schema_version"),
+        "request_id": response.get("request_id"),
+        "decision": response.get("decision"),
+        "granted_scope": response.get("granted_scope"),
+        "context": response.get("context"),
+        "source_refs": response.get("source_refs"),
+    }
+    return sha256_hex(projection)
 
 
 class KVInterlockRuntime:
