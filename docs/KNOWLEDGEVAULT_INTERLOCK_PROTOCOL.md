@@ -3,6 +3,8 @@
 Status: `ACTIVE_IMPLEMENTATION`
 Protocol id: `KV-INTERLOCK-v1`
 Repository: `StegVerse-Labs/continuity-vault-kit`
+Canonical request schema: `schemas/kv-interlock-request.schema.json`
+Canonical response schema: `schemas/kv-interlock-response.schema.json`
 
 ## Purpose
 
@@ -31,6 +33,18 @@ Canonical personal records remain in the owner's KnowledgeVault. Repositories su
 - public or explicitly disclosed derivatives.
 
 They MUST NOT become the canonical store for health records, legal records, financial records, identity records, or other restricted personal records.
+
+## Canonical machine-readable contract
+
+The model-neutral protocol contract is now represented by:
+
+- `schemas/kv-interlock-request.schema.json` — `kv.interlock.request.v1`;
+- `schemas/kv-interlock-response.schema.json` — `kv.interlock.response.v1`;
+- `tools/validate_kv_interlock_contract.py`;
+- `tests/test_kv_interlock_contract.py`;
+- `.github/workflows/validate-kv-interlock-contract.yml`.
+
+A module may add stricter local constraints, such as requiring `requester.module=StegHealth`, but it must not widen the canonical operation/decision vocabulary, bypass required authority/purpose/scope fields, or weaken receipt/minimum-disclosure semantics.
 
 ## Operations
 
@@ -122,7 +136,7 @@ Existing direct-AI rules remain valid: AI tools do not directly access `03_Recor
 
 `KV-INTERLOCK-v1` is not considered runtime-active until:
 
-1. request and response schemas are validated;
+1. canonical request and response schemas are validated;
 2. a policy evaluator enforces restricted-path denial by default;
 3. a StegHealth request obtains only bounded test context through the connector;
 4. a negative test proves direct StegHealth access to restricted records is unavailable;
