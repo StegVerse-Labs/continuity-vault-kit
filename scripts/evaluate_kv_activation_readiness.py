@@ -71,6 +71,14 @@ def evaluate():
         "service_count":sum(1 for e in entries if e["entry_type"]=="SERVICE"),
         "baseline_intr_complete":facts["baseline_intr_rc01_rc05_complete"],
         "production_interlock_runtime_activated":facts["production_interlock_runtime_activated"],
+        "interlock_adoption_review":{
+            "ready":facts.get("universal_interlock_adoption_review_ready") is True,
+            "state":facts.get("universal_interlock_adoption_review_state","BLOCKED"),
+            "blockers":list(facts.get("universal_interlock_adoption_review_blockers",[])),
+            "canonical_protocol_adopted":False,
+            "runtime_activation":False,
+            "authority_effect":"NONE",
+        },
         "activation_performed":False,
         "authority_effect":"NONE",
         "summary":{

@@ -1,6 +1,6 @@
 {
   "schema": "stegverse.kv.activation-readiness-facts/v1",
-  "observed_at": "2026-08-26T23:16:00Z",
+  "observed_at": "2026-08-27T04:08:00Z",
   "baseline_intr_rc01_rc05_complete": true,
   "connected_kv_baseline_runtime_observed": true,
   "production_interlock_runtime_activated": false,
@@ -13,5 +13,12 @@
   "governance_runtime_admission_observed": false,
   "device_context_runtime_specific": true,
   "authority_effect": "NONE",
-  "skap_vault_runtime_boundary_observed": false
+  "skap_vault_runtime_boundary_observed": false,
+  "universal_interlock_adoption_review_ready": false,
+  "universal_interlock_adoption_review_state": "BLOCKED",
+  "universal_interlock_adoption_review_blockers": [
+    "AUTHENTIC_RUNTIME_BINDING_MISSING",
+    "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING",
+    "MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED"
+  ]
 }

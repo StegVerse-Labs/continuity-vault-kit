@@ -1,6 +1,6 @@
 {
   "schema": "stegverse.kv.activation-readiness-snapshot/v1",
-  "facts_observed_at": "2026-08-26T23:16:00Z",
+  "facts_observed_at": "2026-08-27T04:08:00Z",
   "entry_count": 46,
   "module_count": 13,
   "service_count": 33,
@@ -636,5 +636,17 @@
       "activation_performed": false,
       "authority_effect": "NONE"
     }
-  ]
+  ],
+  "interlock_adoption_review": {
+    "ready": false,
+    "state": "BLOCKED",
+    "blockers": [
+      "AUTHENTIC_RUNTIME_BINDING_MISSING",
+      "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING",
+      "MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED"
+    ],
+    "canonical_protocol_adopted": false,
+    "runtime_activation": false,
+    "authority_effect": "NONE"
+  }
 }
