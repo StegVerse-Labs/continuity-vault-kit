@@ -3,8 +3,8 @@
 Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #81
-Branch: `fix/residual-hosted-release-authority-81`
-State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
+Branch: `main`
+State: MERGED_VALIDATED_HOSTED_AUTHORITY_RETIRED_TVC_PUBLICATION_PENDING
 
 ## Purpose
 
@@ -105,3 +105,52 @@ regression:
 ## Next executable boundary
 
 Run exact-head hosted validation, repair any source/test defect without reintroducing hosted authority, merge only after green evidence, then reconcile TVC credential-model consistency and the global project handoff. A successor release remains blocked until the TVC-admitted release runtime is actually observed.
+
+
+## Merge and post-merge evidence
+
+```text
+PR: #82
+validated head: 28bf473fc353ab6e9b80bdbcc53fcaf2fa4fda72
+merge: f2deeb4ade6f522ea9284dc2a1748b9749064502
+
+exact-head:
+  Release integrity 33119477875 SUCCESS
+  Repository validation diagnostics 33119477843 SUCCESS
+  Security Baseline 33119477790 SUCCESS
+  KnowledgeVault Execution Recovery 33119477819 SUCCESS
+  KV Guardrails 33119477814 SUCCESS
+
+post-merge main:
+  Release integrity 33119620345 SUCCESS
+  KV Guardrails 33119620346 SUCCESS
+  Security Baseline 33119620381 SUCCESS
+  KnowledgeVault Execution Recovery 33119620306 SUCCESS
+  Automated release readiness - Validation Only 33119637686 SUCCESS
+  readiness artifact: 9665916881
+  artifact digest: sha256:99ca14953f4cf21ad958c3ae86d2b6e03788d98cdcf21f1272f82a56493ec67a
+```
+
+Post-merge readiness observation:
+
+```text
+source_head_sha: f2deeb4ade6f522ea9284dc2a1748b9749064502
+release_required: true
+candidate_version: 0.1.10
+state: TVC_ADMITTED_RELEASE_CONTINUATION_REQUIRED
+credential_authority: TV/TVC
+github_actions_role: VALIDATION_TRANSPORT_ONLY
+repository_mutation_performed: false
+version_mutation_persisted: false
+changelog_mutation_persisted: false
+tag_mutation_performed: false
+release_publication_performed: false
+authority_effect: NONE
+persistent VERSION on main: 0.1.9
+```
+
+The ephemeral 0.1.10 candidate is validation evidence only. It is not a release, tag, or canonical version transition.
+
+## Current next boundary
+
+The source-retirement goal of issue #81 is COMPLETE. The next release transition is separate: an admitted TV/TVC release capability must consume the validated Unreleased candidate and perform any canonical VERSION/changelog/tag/publication transition. Until that runtime is observed, v0.1.9 remains the latest published release.
