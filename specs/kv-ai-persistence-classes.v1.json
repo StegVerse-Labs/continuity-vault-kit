@@ -1,0 +1,52 @@
+{
+  "schema": "stegverse.kv.ai-persistence-classes/v1",
+  "classes": [
+    {
+      "kv_class": "PERSONAL_KV",
+      "authority_domain": "PERSON",
+      "ai_role": "PERSONAL_ASSISTANT_AI",
+      "persistent_state": ["continuity", "preferences", "personal_resources", "personal_modules", "history", "receipts"],
+      "skap_required": true,
+      "intr_required": true,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    },
+    {
+      "kv_class": "ORGANIZATIONAL_KV",
+      "authority_domain": "ORGANIZATION",
+      "ai_role": "ORGANIZATIONAL_AI",
+      "persistent_state": ["policy", "roles", "shared_resources", "delegations", "workflows", "institutional_memory", "receipts"],
+      "skap_required": true,
+      "intr_required": true,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    },
+    {
+      "kv_class": "STEGVERSE_KV",
+      "authority_domain": "STEGVERSE_ECOSYSTEM",
+      "ai_role": "STEGVERSE_AI",
+      "persistent_state": ["ecosystem_state", "service_registry", "governance_state", "worker_state", "evidence", "receipts", "recovery"],
+      "skap_required": true,
+      "intr_required": true,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    },
+    {
+      "kv_class": "MACHINE_KV",
+      "authority_domain": "MACHINE_EXECUTION_ENTITY",
+      "ai_role": "EXECUTION_AGENT",
+      "persistent_state": ["node_identity", "workloads", "assignments", "execution_state", "liveness", "receipts", "checkpoints", "reconstruction"],
+      "skap_required": true,
+      "intr_required": true,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    }
+  ],
+  "cross_class_invariants": {
+    "authority_transfer_on_context_share": false,
+    "direct_cross_class_state_mutation": false,
+    "intr_receipt_required": true,
+    "least_authority": true,
+    "fail_closed_on_ambiguous_scope": true
+  }
+}
