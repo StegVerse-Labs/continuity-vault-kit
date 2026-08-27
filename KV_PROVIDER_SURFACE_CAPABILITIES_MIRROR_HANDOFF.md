@@ -83,7 +83,7 @@ A `VERIFIED` observation must carry a non-unknown evidence type, source referenc
 
 1. Continue provider-documentation population for AWS/object storage, self-hosted/private cloud, and future StegCloud only when authoritative public sources exist.
 2. Add StegVerse-observed/conformance-tested records separately; documentation evidence alone never becomes `VERIFIED`.
-3. Merge and release the LLM-adapter#140 canonical-registry consumer.
+3. LLM-adapter#140 canonical-registry consumer is MERGED / VALIDATED / RELEASED; retain it as downstream evidence, not remaining work.
 4. Project resolved provider-route explanations into Site#239 after Site machine admission.
 5. Keep actual user-specific route selection separate from generic provider capability facts.
 
@@ -120,3 +120,12 @@ Exact-head validation:
 - KV Guardrails run `33025414597`: PASS
 
 This merge advances documented knowledge only. It does not establish StegVerse-observed or verified provider conformance.
+
+## Global consolidation update — 2026-08-26
+
+Downstream consumer status is no longer open:
+- LLM-adapter PR #201 merged as `da2c73497c73f955c4273f5e6a980d00ce454f03`.
+- Exact-head validate run `33025386939` passed 67/67 substantive steps, including workflow parity and canonical Goal 4.
+- LLM-adapter task `LLMA-PROVIDER-SURFACE-KNOWLEDGE-057` was released and orchestration sequence 0004 closed by PR #202, merge `41dcffd199c8e3e3fca687d72af64a93b3dcd9e1`.
+
+Remaining provider-surface work is therefore limited to additional authoritative provider documentation, separate StegVerse observation/conformance evidence, and Site projection after Site-native admission. The current eight observations remain `DOCUMENTED_UNVERIFIED`; no conformance verification is claimed.
