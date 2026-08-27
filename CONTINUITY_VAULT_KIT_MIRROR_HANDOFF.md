@@ -597,3 +597,22 @@ authority_effect: NONE
 ```
 
 This closes the residual `release-integrity.yml` and `automated-release.yml` hosted mutation/publication contradiction. The previous v0.1.9 publication remains the latest canonical release. Any successor release is now explicitly gated on admitted TV/TVC release runtime evidence.
+
+
+### Automation candidate hosted control-plane retirement — issue #83
+
+Live main inspection after CVK release-authority closure found `.github/workflows/automation-candidate-implementation.yml` still carrying hosted control-plane authority:
+
+```text
+actions: write
+contents: write
+issues: write
+github.token -> GH_TOKEN
+gh issue edit/comment
+CHANGELOG commit/push
+gh workflow run automation-candidate-lifecycle.yml
+```
+
+Issue #83 / branch `fix/automation-candidate-hosted-authority-83` is the sole bounded continuation for that surface. The branch preserves deterministic merged-PR candidate-reference parsing but converts output to a non-authorizing artifact and defers canonical lifecycle reconciliation to a non-hosted owner.
+
+This source repair is not candidate implementation, candidate lifecycle mutation, release publication, deployment, or activation.
