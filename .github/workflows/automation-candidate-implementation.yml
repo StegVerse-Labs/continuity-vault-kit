@@ -1,150 +1,85 @@
-name: Automation candidate implementation
+name: Automation candidate implementation - Validation Only
 
 on:
   pull_request:
     types: [closed]
 
 permissions:
-  actions: write
-  contents: write
-  issues: write
+  contents: read
   pull-requests: read
 
 concurrency:
-  group: automation-candidate-implementation
+  group: automation-candidate-implementation-validation
   cancel-in-progress: false
 
 jobs:
-  complete:
+  observe:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Check out current main
+      - name: Check out current main without credential persistence
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Resolve referenced candidates
-        id: candidates
+      - name: Observe referenced candidate identifiers
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          python3 - <<'PY'
-          import os
-          import re
-          from pathlib import Path
-
-          text = os.environ.get('PR_TITLE', '') + '\n' + os.environ.get('PR_BODY', '')
-          patterns = [
-              r'(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)',
-              r'(?i)\bautomation[- ]candidate\s+#(\d+)',
-          ]
-          numbers = sorted({int(value) for pattern in patterns for value in re.findall(pattern, text)})
-          Path('/tmp/candidate-numbers.txt').write_text(
-              '\n'.join(map(str, numbers)) + ('\n' if numbers else ''), encoding='utf-8'
-          )
-          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as handle:
-              handle.write(f"count={len(numbers)}\n")
-          PY
-
-      - name: Mark supported candidates implemented
-        if: steps.candidates.outputs.count != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
-          : > /tmp/implemented-candidates.tsv
-          while IFS= read -r issue; do
-            [ -n "$issue" ] || continue
-            issue_json=$(gh issue view "$issue" --json labels,title 2>/dev/null || true)
-            [ -n "$issue_json" ] || continue
-            labels=$(printf '%s' "$issue_json" | jq -r '[.labels[].name] | join(",")')
-            case ",$labels," in
-              *,automation-candidate,*) ;;
-              *) continue ;;
-            esac
-            case ",$labels," in
-              *,candidate-supported,*)
-                signature=$(printf '%s' "$issue_json" | jq -r '.title | sub("^\\[Automation candidate\\]\\s+"; "")')
-                gh issue edit "$issue" --add-label candidate-implemented --remove-label candidate-supported 2>/dev/null || true
-                gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} completed this supported automation candidate. PR: ${{ github.event.pull_request.html_url }}. Merge commit: \`${MERGE_SHA}\`. Lifecycle reconciliation will preserve the implementation receipt and close the candidate automatically."
-                printf '%s\t%s\n' "$issue" "$signature" >> /tmp/implemented-candidates.tsv
-                ;;
-              *)
-                gh issue comment "$issue" --body "Merged PR #${PR_NUMBER} referenced this candidate, but the current registry does not mark it supported. No implementation authority was inferred; candidate lifecycle reconciliation will retain the evidence state."
-                ;;
-            esac
-          done < /tmp/candidate-numbers.txt
-
-      - name: Record implemented corrections in Unreleased changelog
-        if: steps.candidates.outputs.count != '0'
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          if [ ! -s /tmp/implemented-candidates.tsv ]; then
-            echo "No supported candidate was implemented; changelog remains unchanged."
-            exit 0
-          fi
           python3 - <<'PY'
+          import json
           import os
+          import re
+          from datetime import datetime, timezone
           from pathlib import Path
 
-          path = Path('CHANGELOG.md')
-          text = path.read_text(encoding='utf-8')
-          marker = '## [Unreleased]'
-          if text.count(marker) != 1:
-              raise SystemExit('CHANGELOG must contain exactly one Unreleased section')
-
-          issue_rows = []
-          for line in Path('/tmp/implemented-candidates.tsv').read_text(encoding='utf-8').splitlines():
-              issue, signature = line.split('\t', 1)
-              issue_rows.append((issue, signature))
-
-          entries = []
-          for issue, signature in issue_rows:
-              entry = (
-                  f"- Automated onboarding correction for `{signature}` from supported candidate "
-                  f"#{issue}, implemented by PR #{os.environ['PR_NUMBER']} (`{os.environ['PR_TITLE']}`)."
-              )
-              if entry not in text:
-                  entries.append(entry)
-          if not entries:
-              print('Changelog entries already present')
-              raise SystemExit(0)
-
-          start = text.index(marker) + len(marker)
-          next_release = text.find('\n---', start)
-          if next_release == -1:
-              raise SystemExit('CHANGELOG Unreleased section terminator not found')
-          section = text[start:next_release]
-          section = section.replace('_No unreleased changes._', '').rstrip()
-          heading = '### Improved'
-          if heading in section:
-              section = section.rstrip() + '\n' + '\n'.join(entries) + '\n\n'
-          else:
-              section = section.rstrip() + f"\n\n{heading}\n" + '\n'.join(entries) + '\n\n'
-          path.write_text(text[:start] + section + text[next_release:], encoding='utf-8')
+          text = os.environ.get("PR_TITLE", "") + "\n" + os.environ.get("PR_BODY", "")
+          patterns = [
+              r"(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)",
+              r"(?i)\bautomation[- ]candidate\s+#(\d+)",
+          ]
+          numbers = sorted({int(value) for pattern in patterns for value in re.findall(pattern, text)})
+          out = Path("reports/automation_candidates")
+          out.mkdir(parents=True, exist_ok=True)
+          payload = {
+              "schema": "stegverse.kv.automation-candidate-implementation-observation/v1",
+              "state": "MERGED_PR_REFERENCES_OBSERVED" if numbers else "NO_CANDIDATE_REFERENCES_OBSERVED",
+              "pull_request_number": int(os.environ["PR_NUMBER"]),
+              "pull_request_url": os.environ["PR_URL"],
+              "merge_sha": os.environ["MERGE_SHA"],
+              "referenced_candidate_numbers": numbers,
+              "candidate_support_state_resolved": False,
+              "candidate_lifecycle_mutation_performed": False,
+              "issue_mutation_performed": False,
+              "changelog_mutation_performed": False,
+              "repository_mutation_performed": False,
+              "workflow_dispatch_performed": False,
+              "release_authority": "NONE",
+              "credential_authority": "TV/TVC",
+              "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
+              "canonical_next_transition": "NON_HOSTED_CANDIDATE_RECONCILIATION" if numbers else "NONE",
+              "authority_effect": "NONE",
+              "observed_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+          }
+          (out / "candidate-implementation-observation.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(payload, sort_keys=True))
           PY
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          if git diff --cached --quiet; then
-            echo "Changelog unchanged"
-          else
-            git commit -m "chore: record implemented automation candidate"
-            git push origin HEAD:main
-          fi
-
-      - name: Trigger candidate reconciliation
-        if: steps.candidates.outputs.count != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run automation-candidate-lifecycle.yml
+      - name: Upload non-authorizing candidate observation
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-candidate-implementation-observation-${{ github.run_id }}
+          path: reports/automation_candidates/candidate-implementation-observation.json
+          if-no-files-found: error
+          retention-days: 30
