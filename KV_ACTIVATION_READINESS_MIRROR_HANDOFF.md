@@ -153,6 +153,101 @@ the readiness facts file may advance and a new snapshot may be generated.
 
 No capability should be activated solely because a readiness fact changes; the actual service/module activation transition remains separately governed and receipted.
 
+
+## End-state definition — origin thesis
+
+The convergence target for KnowledgeVault, Interlock/InTr, and StegOS is:
+
+> **The user owns the durable state; capabilities materialize around that state; StegOS is the governed operating surface through which the user's digital existence becomes usable, explainable, reconstructable, and actionable.**
+
+This is the end-state architectural definition.
+
+KnowledgeVault is not merely a file vault and StegOS is not merely a conventional resident operating system.
+
+The intended operating model is:
+
+```text
+USER / ORGANIZATION
+        |
+        v
+KnowledgeVault
+  durable semantic state
+  identity continuity
+  history / provenance
+  policies / consent
+  receipts / reconstruction
+  capability + service definitions
+        |
+        v
+Interlock
+  validates exact state transition
+  enforces authority / scope / disclosure
+        |
+        v
+InTr
+  transports only across explicit adjacent governed boundaries
+  preserves receiptable continuity
+  transfers no authority
+        |
+        v
+StegOS
+  reconstructs the currently admissible operating environment
+  materializes local capabilities only when state + readiness permit
+  presents governed actions only when their prerequisites are proven
+        |
+        v
+DEVICE / ENDPOINT / EXTERNAL SYSTEM
+  ephemeral sensing, UI, transport, secure local execution, provider interaction
+        |
+        v
+HANDOFF_RECEIPT / state transition
+        |
+        +-----------------------> KnowledgeVault
+```
+
+Canonical ownership inversion:
+
+```text
+conventional model:
+  app owns state
+  user visits app
+
+StegVerse end state:
+  user owns state
+  capability visits governed state
+```
+
+The stable thing is therefore not a particular device, cloud provider, application, AI model, or external service account.
+
+The stable thing is:
+
+```text
+person / organization
++ KnowledgeVault continuity
++ StegID identity continuity
++ governed transition receipts
+```
+
+A device is a Node capable of reconstructing the bounded operating projection appropriate to that context.
+
+The StegOS shell should therefore increasingly behave as a semantic state browser and intent surface rather than an app launcher. Named modules and Personal Services remain capability definitions over shared semantic KV state; they must not become isolated app-owned data silos.
+
+The resulting target is:
+
+> **StegOS becomes the interface to the user's governed digital existence.**
+
+And, operationally:
+
+```text
+KV holds what persists.
+Device/StegOS supplies what happens.
+Interlock governs whether a transition is admissible.
+InTr carries the transition across explicit boundaries.
+Receipts preserve why and how state changed.
+```
+
+This end-state definition does not itself activate Interlock/InTr, any module/service, provider access, identity authority, governance authority, or execution authority. It defines the architecture toward which the current installed-inactive/readiness system is converging.
+
 ## Non-claims
 
 No module/service activation is claimed.
