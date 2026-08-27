@@ -2,7 +2,7 @@ name: Release cycle outcome - Validation Only
 
 on:
   workflow_run:
-    workflows: ["Automated verified release"]
+    workflows: ["Automated release readiness - Validation Only"]
     types: [completed]
   workflow_dispatch:
 
