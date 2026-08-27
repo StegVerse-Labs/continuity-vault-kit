@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #83
 Branch: `fix/automation-candidate-hosted-authority-83`
-State: CLAIMED_FOR_IMPLEMENTATION
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Goal
 
@@ -64,6 +64,31 @@ The hosted workflow may deterministically parse candidate references from a merg
 
 No candidate is implemented, reconciled, labeled, closed, released, deployed, or activated by this source repair.
 
+## Implemented source state
+
+```text
+automation-candidate-implementation.yml:
+  name: Automation candidate implementation - Validation Only
+  contents: read
+  pull-requests: read
+  persist-credentials: false
+  candidate ID parsing: retained
+  issue status/label resolution: deferred
+  issue mutation: removed
+  CHANGELOG mutation: removed
+  git commit/push: removed
+  workflow dispatch: removed
+  github.token / GH_TOKEN: removed
+  artifact: candidate-implementation-observation.json
+  canonical_next_transition: NON_HOSTED_CANDIDATE_RECONCILIATION
+  authority_effect: NONE
+
+regression:
+  tools/test_automation_contracts.py rejects hosted mutation tokens
+  tests/test_hosted_candidate_authority_retirement.py enforces read-only validation boundary
+  release-integrity workflow executes the dedicated regression
+```
+
 ## Next executable boundary
 
-Replace hosted mutation with deterministic observation artifact generation, install fail-closed regression coverage, validate exact head, merge on green evidence, then continue audit of adjacent candidate lifecycle surfaces without duplicating ownership.
+Run exact-head hosted validation, repair any source/test defects without restoring hosted mutation authority, merge only after green evidence, then inspect adjacent candidate-lifecycle workflows separately. Candidate lifecycle state itself remains outside this hosted observer.
