@@ -332,3 +332,48 @@ activation-readiness-snapshot:
 ```
 
 Baseline InTr RC-01..RC-05 is complete. Production Interlock/TVC resident runtime activation remains separate and unobserved. TVC runtime readiness evidence can now be admitted through the merged fail-closed adapter without manually editing readiness facts or activating a capability.
+
+
+## AI persistence hierarchy — 2026-08-27
+
+A new architectural distinction is now canonical for KnowledgeVault-derived persistence surfaces. The KV class must match the authority domain of the AI ecosystem it persists; a digital-human/personal KV is not to be reused unchanged as the execution-state root for organizational or StegVerse ecosystem AI.
+
+Canonical hierarchy:
+
+```text
+Personal KV
+  -> persistent ecosystem for Personal Assistant AI
+  -> human continuity, preferences, personal resources, personal modules, user-governed history
+
+Organizational KV
+  -> persistent ecosystem for Organizational AI
+  -> organization policy, roles, shared state, governed resources, organizational modules, delegated work and receipts
+
+StegVerse / Machine KV
+  -> persistent ecosystem for StegVerse AI and machine-execution surfaces
+  -> service/node identity, workloads, assignments, execution state, receipts, liveness, recovery/reconstruction, provider-independent machine continuity
+```
+
+Shared invariant:
+
+```text
+AI process/model/runtime is ephemeral or replaceable.
+The applicable KV is the persistent state ecosystem.
+SKAP Vault protects bounded capabilities/secrets.
+Interlock/InTr is the admitted communication path.
+TV/TVC remains credential/key authority.
+HeartBeat may observe verified transitions but does not become state authority.
+```
+
+For machine execution, Google Cloud or any other provider is an instantiation substrate, not the persistent identity/state authority:
+
+```text
+StegVerse AI
+   <-InTr-> StegVerse/Machine KV
+                 <-InTr-> SKAP Vault
+                 <-InTr-> governed execution node/provider
+```
+
+A provider loss or migration must therefore be survivable by reconstructing the StegVerse execution entity from admitted Machine-KV state and protected SKAP capability references without transferring authority to the provider.
+
+This hierarchy is an architectural extension of the existing KnowledgeVault/SKAP/InTr primitives. It does not retroactively claim implementation or runtime activation of Organizational KV or StegVerse/Machine KV classes. Required follow-on source work is: formal KV-class schema, scope/authority invariants, Machine-KV layout, Organizational-KV layout, class-specific AI persistence semantics, reconstruction proof, and negative tests preventing cross-class authority/state leakage.
