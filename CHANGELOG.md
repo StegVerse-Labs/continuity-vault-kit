@@ -8,7 +8,17 @@ The format is based on [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- fail-closed `KV-INTERLOCK-v1` runtime endpoint core with exact DEVICE→KV InTr admission binding, injected authority/policy/storage boundaries, bounded-context enforcement, deterministic receipts, and candidate-only `COMMIT_CANDIDATE` semantics
+- deterministic runtime endpoint tests and canonical runtime handoff for the Site/KV production backend seam
+
+### Security
+- retired GitHub-hosted release/publication and release-control-plane mutation authority from the CMC-022/CMC-023 workflow set
+- retired residual `release-integrity.yml` evidence writeback and `automated-release.yml` VERSION/changelog/tag/GitHub-release mutation authority; hosted release workflows now validate and transport non-secret evidence only
+- preserved TV/TVC as the only credential/release authority; no successor release is claimed until an admitted TVC publication path actually runs
+
+### Notes
+- production KV endpoint deployment, live InTr boundary identity/sealing, canonical Site readback, SKAP owner ingress, provider execution, and TVC release publication remain separate runtime evidence gates
 
 ---
 

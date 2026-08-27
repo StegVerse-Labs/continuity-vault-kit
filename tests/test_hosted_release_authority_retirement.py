@@ -7,6 +7,8 @@ WORKFLOWS = [
     ".github/workflows/one_button_release.yml",
     ".github/workflows/release-assets.yml",
     ".github/workflows/build-and-attach-release.yml",
+    ".github/workflows/release-integrity.yml",
+    ".github/workflows/automated-release.yml",
     ".github/workflows/release-cycle-outcome.yml",
     ".github/workflows/release-cycle-recovery.yml",
 ]

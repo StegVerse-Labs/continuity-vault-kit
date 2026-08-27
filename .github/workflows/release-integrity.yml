@@ -11,6 +11,7 @@ on:
       - "tools/test_init_vault.py"
       - "tools/test_clean_room_user_kv.py"
       - "tools/test_automation_contracts.py"
+      - "tests/test_hosted_release_authority_retirement.py"
       - "vault_template/**"
       - "automation/**"
       - "evidence/onboarding-friction/**"
@@ -27,6 +28,7 @@ on:
       - "tools/test_init_vault.py"
       - "tools/test_clean_room_user_kv.py"
       - "tools/test_automation_contracts.py"
+      - "tests/test_hosted_release_authority_retirement.py"
       - "vault_template/**"
       - "automation/**"
       - "evidence/onboarding-friction/**"
@@ -37,7 +39,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-integrity-${{ github.ref }}
@@ -49,10 +51,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Check out repository
+      - name: Check out repository without credential persistence
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -71,6 +74,9 @@ jobs:
       - name: Validate automation contracts
         run: python3 tools/test_automation_contracts.py
 
+      - name: Validate hosted release authority retirement
+        run: python3 -m unittest tests.test_hosted_release_authority_retirement -v
+
       - name: Rebuild release evidence
         run: |
           rm -rf dist
@@ -82,7 +88,6 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-
           version = Path("VERSION").read_text(encoding="utf-8").strip()
           manifest_path = Path("dist") / f"ContinuityVault_v{version}.zip.manifest.json"
           manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -97,8 +102,7 @@ jobs:
           print(f"manifest validated: {manifest['file_count']} files")
           PY
 
-      - name: Create durable evidence receipt
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Create non-authorizing release-integrity observation
         env:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -110,28 +114,23 @@ jobs:
           import os
           from datetime import datetime, timezone
           from pathlib import Path
-
           version = Path("VERSION").read_text(encoding="utf-8").strip()
           zip_name = f"ContinuityVault_v{version}.zip"
           manifest = json.loads((Path("dist") / f"{zip_name}.manifest.json").read_text(encoding="utf-8"))
           checksum = (Path("dist") / f"{zip_name}.sha256").read_text(encoding="utf-8").split()[0]
-          run_url = f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}"
-          artifact_name = f"continuity-vault-release-integrity-{os.environ['COMMIT_SHA']}"
-          generated_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
           changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
           section = changelog.split("## [Unreleased]", 1)[1].split("\n---", 1)[0]
           normalized = " ".join(section.split()).lower()
           release_required = normalized not in {"", "_no unreleased changes._", "no unreleased changes."}
-
+          out = Path("reports/release_integrity")
+          out.mkdir(parents=True, exist_ok=True)
           receipt = {
-              "schema_version": "1.3",
+              "schema": "stegverse.kv.release-integrity-hosted-observation/v1",
               "result": "PASS",
               "repository": os.environ["REPOSITORY"],
               "commit_sha": os.environ["COMMIT_SHA"],
               "workflow_run_id": os.environ["RUN_ID"],
               "workflow_run_attempt": os.environ["RUN_ATTEMPT"],
-              "workflow_run_url": run_url,
-              "artifact_name": artifact_name,
               "version": version,
               "release_required": release_required,
               "release_artifact": zip_name,
@@ -141,49 +140,25 @@ jobs:
               "initializer_self_test": "PASS",
               "clean_room_user_kv_test": "PASS",
               "automation_contract_test": "PASS",
-              "generated_utc": generated_utc,
-              "scope": "package integrity, installer copy verification, and repository automation contract consistency only",
+              "credential_authority": "TV/TVC",
+              "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
+              "repository_mutation_performed": False,
+              "tag_mutation_performed": False,
+              "release_publication_performed": False,
+              "canonical_evidence_transition_performed": False,
+              "authority_effect": "NONE",
+              "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
           }
-
-          evidence_dir = Path("docs/release_evidence")
-          evidence_dir.mkdir(parents=True, exist_ok=True)
-          (evidence_dir / "latest.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
-          (evidence_dir / "latest.md").write_text(
-              "# Latest Release-Integrity Evidence\n\n"
-              f"- **Result:** PASS\n"
-              f"- **Repository:** `{receipt['repository']}`\n"
-              f"- **Tested commit:** `{receipt['commit_sha']}`\n"
-              f"- **Workflow run:** {receipt['workflow_run_url']}\n"
-              f"- **Uploaded artifact:** `{receipt['artifact_name']}`\n"
-              f"- **Current version:** `{receipt['version']}`\n"
-              f"- **Release required:** `{str(receipt['release_required']).lower()}`\n"
-              f"- **Release SHA-256:** `{receipt['release_sha256']}`\n"
-              f"- **Verified file count:** `{receipt['manifest_file_count']}`\n"
-              f"- **Initializer self-test:** `{receipt['initializer_self_test']}`\n"
-              f"- **Automation contract test:** `{receipt['automation_contract_test']}`\n"
-              f"- **Generated UTC:** `{receipt['generated_utc']}`\n\n"
-              "The workflow completed release tooling tests, safe initialization tests, automation contract validation, a clean rebuild, manifest validation, and full archive verification. Automated publication is determined from the Unreleased changelog section rather than historical issue state.\n",
-              encoding="utf-8",
-          )
+          (out / "release-integrity-observation.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(receipt, sort_keys=True))
           PY
 
-      - name: Upload release evidence
+      - name: Upload release validation evidence
         uses: actions/upload-artifact@v4
         with:
           name: continuity-vault-release-integrity-${{ github.sha }}
-          path: dist/
+          path: |
+            dist/
+            reports/release_integrity/release-integrity-observation.json
           if-no-files-found: error
           retention-days: 30
-
-      - name: Commit durable evidence receipt
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/release_evidence/latest.md docs/release_evidence/latest.json
-          if git diff --cached --quiet; then
-            echo "Evidence receipt unchanged"
-          else
-            git commit -m "ci: preserve release-integrity evidence [skip ci]"
-            git push
-          fi

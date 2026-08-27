@@ -1,8 +1,10 @@
 state: active
 works_today: yes — use the verified initializer or copy the template directly; no accounts, services, or lock-in
 current_version: 0.1.9
-current_focus: preserve verified v0.1.9 release-cycle health while completing active recoverable-execution orchestration, maintaining portable KnowledgeVault installation fidelity, and validating the consolidated root user-document path
+current_focus: preserve verified v0.1.9 as the last published release while validating the next Unreleased candidate under TV/TVC-only publication authority, deploying the merged KV Interlock runtime endpoint on the sovereign runtime, and completing remaining recoverable-execution evidence
 known_gaps:
+  - Replacement TVC-admitted KnowledgeVault release publication runtime is not yet observed; hosted GitHub workflows are validation/evidence transport only
+  - Merged KV Interlock runtime endpoint core is not yet deployed behind a live verified DEVICE-to-KV InTr boundary identity/sealing service and durable receipt store
   - Internal historical/developer references to removed root onboarding documents still need stale-link validation against current main
   - Data-sharing revenue behavior is documented but not implemented
   - No real onboarding-friction reports have yet crossed the automation-candidate threshold
@@ -23,11 +25,11 @@ completed_recently:
   - Added bounded release-cycle recovery state to suppress duplicate recovery loops
 next_steps:
   - Validate current-main internal links for stale references to removed root onboarding files and redirect active references to README.md or USER_GUIDE.md
-  - Treat docs/release_evidence/latest.json as the machine-readable integrity and release-required gate
-  - Treat docs/release_evidence/latest_release.json as the latest successful publication receipt
-  - Treat docs/release_evidence/latest_cycle.json as the authoritative latest release-cycle outcome
-  - Treat docs/release_evidence/recovery_state.json as the bounded recovery source of truth
+  - Treat docs/release_evidence/latest_release.json as the immutable latest successful publication receipt for v0.1.9
+  - Treat docs/release_evidence/latest.json, latest_cycle.json, and recovery_state.json as retained historical pre-retirement hosted writeback evidence, not current mutation authority
+  - Use the Unreleased changelog plus validation-only hosted artifacts to determine candidate readiness; persistent VERSION/changelog/tag/release transitions require admitted TV/TVC release authority
+  - Bind the merged KV Interlock runtime endpoint to the existing sovereign runtime with authentic InTr boundary verification and durable receipt persistence before Site production readback
   - Complete issue #39 recoverable execution orchestration without creating new authority during recovery
   - Keep issue #16 external provider activation separate from baseline KnowledgeVault usability and fail closed until live evidence exists
   - Keep first-contact use independent of accounts, hosted services, mandatory SDKs, and vault telemetry
-last_reviewed_utc: 2026-08-26T19:32:00Z
+last_reviewed_utc: 2026-08-27T21:42:00Z

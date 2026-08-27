@@ -549,3 +549,30 @@ Final verified source state:
 - COMPLETE: YES for CMC-022/CMC-023 source-retirement goal only
 
 The KnowledgeVault production activation, owner ingress, provider execution, runtime Interlock/InTr, bearer/delivery, and reconstruction goals remain separate canonical lanes and are not satisfied by this source-retirement merge.
+
+
+## Residual hosted release-integrity authority correction — issue #81
+
+Post-PR #78 inspection found two hosted authority surfaces outside the five-workflow retirement set:
+
+```text
+.github/workflows/release-integrity.yml:
+  contents: write
+  durable docs/release_evidence/latest.* commit/push
+
+.github/workflows/automated-release.yml:
+  contents: write
+  persistent VERSION/CHANGELOG mutation
+  commit/tag/push
+  github.token via GH_TOKEN
+  gh release create
+  durable release-receipt commit/push
+```
+
+Issue #81 / branch `fix/residual-hosted-release-authority-81` is the sole continuation for this exact residual. The branch converts both surfaces to read-only validation/evidence transport, preserves release-integrity and ephemeral candidate verification, and routes any substantive candidate to `TVC_ADMITTED_RELEASE_CONTINUATION_REQUIRED` without persistent mutation or publication.
+
+Canonical scoped handoff: `RELEASE_INTEGRITY_HOSTED_AUTHORITY_RETIREMENT_MIRROR_HANDOFF.md`.
+
+The Unreleased changelog now records #78, #80, and this residual authority repair. `VERSION` remains 0.1.9 until a real admitted TV/TVC release publication transition occurs.
+
+No source repair, hosted PASS, or candidate artifact is a release/tag/deployment/activation claim.
