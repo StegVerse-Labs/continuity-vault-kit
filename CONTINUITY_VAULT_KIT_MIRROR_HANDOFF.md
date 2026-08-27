@@ -30,7 +30,7 @@ Completed 2026-08-26:
 - removed obsolete duplicate `PATCH_README.md` / `Patch_README.md` root artifacts;
 - documented the evolving StegVerse topology as `SKAP Vault ←InTr→ KnowledgeVault ←InTr→ Device/StegOS Node ←InTr→ External Network ←InTr→ Endpoint`, with separate independently governed ingress HANDOFF / HANDOFF_RECEIPT boundaries and explicit language that runtime Interlock/InTr activation remains separate from baseline file-only KV use.
 
-Follow-up validation remains required for any stale internal links in historical/developer documentation that referenced the removed root onboarding files. Do not treat documentation consolidation as runtime activation.
+Follow-up stale-link validation is complete on current `main`: repository search found no remaining references to removed `WELCOME.md`, `GETTING_STARTED.md`, `SAFETY.md`, `DO_NOT_STORE_HERE.md`, `PATCH_README.md`, or `Patch_README.md`. Documentation consolidation remains a source/documentation accomplishment and does not by itself activate runtime authority.
 
 ## Claimed installation task
 
@@ -293,7 +293,7 @@ KnowledgeVault remains the continuity host. The device remains an ephemeral tran
 ## Open completion boundaries
 
 - Full-template Drive parity is VALIDATED / COMPLETE against current `main` tree `f37978fcde3c7622ceef33d92c6aa19c8171b4ef`; the final installation receipt is refreshed in place. Future template changes create a new parity delta but do not reopen this completed census retroactively.
-- Root documentation consolidation is implemented, but stale-link validation across historical/developer docs remains OPEN until checked against current `main`.
+- Root documentation consolidation and stale-link validation are COMPLETE on current `main`; no references to the removed onboarding/safety/patch files remain.
 - Issue #39 connected-KV pre-dispatch interruption/reconstruction is COMPLETE. Remaining runtime proof is narrowed to actual bearer/delivery evidence plus post-dispatch interruption or edge replacement/reconstruction without duplicate dispatch.
 - Issue #16 external provider activation remains OPEN / externally gated.
 
