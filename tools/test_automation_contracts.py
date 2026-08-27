@@ -20,15 +20,17 @@ WORKFLOWS = {
         '"release_required": release_required',
     },
     "automated-release.yml": {
-        "name: Automated verified release",
+        "name: Automated release readiness - Validation Only",
         "workflow_run:",
-        "Determine whether a release is required",
+        "Determine whether a release candidate is required",
         "## [Unreleased]",
-        "gh release create",
+        "TVC_ADMITTED_RELEASE_CONTINUATION_REQUIRED",
+        "VALIDATION_TRANSPORT_ONLY",
+        "actions/upload-artifact@v4",
     },
     "release-cycle-outcome.yml": {
         "name: Release cycle outcome - Validation Only",
-        'workflows: ["Automated verified release"]',
+        'workflows: ["Automated release readiness - Validation Only"]',
         "VALIDATION_TRANSPORT_ONLY",
         "repository_mutation_performed",
         "canonical_evidence_transition_performed",
@@ -136,7 +138,12 @@ def validate_release_cycle() -> None:
 
 def validate_hosted_release_cycle_boundary() -> None:
     workflow_root = REPO_ROOT / ".github" / "workflows"
-    for filename in ("release-cycle-outcome.yml", "release-cycle-recovery.yml"):
+    for filename in (
+        "release-integrity.yml",
+        "automated-release.yml",
+        "release-cycle-outcome.yml",
+        "release-cycle-recovery.yml",
+    ):
         text = read_text(workflow_root / filename)
         forbidden = {
             "contents: write",
@@ -145,6 +152,10 @@ def validate_hosted_release_cycle_boundary() -> None:
             "github.token",
             "GH_TOKEN:",
             "gh workflow run",
+            "gh release create",
+            "git commit",
+            "git tag",
+            "git pull",
         }
         present = sorted(token for token in forbidden if token in text)
         if present:
@@ -155,6 +166,7 @@ def validate_hosted_release_cycle_boundary() -> None:
             "VALIDATION_TRANSPORT_ONLY",
             "authority_effect",
             "NONE",
+            "actions/upload-artifact@v4",
         }
         missing = sorted(token for token in required if token not in text)
         if missing:
