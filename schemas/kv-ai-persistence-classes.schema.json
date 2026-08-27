@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-ai-persistence-classes.schema.json",
+  "title": "StegVerse KV AI persistence classes",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "classes", "cross_class_invariants"],
+  "properties": {
+    "schema": {"const": "stegverse.kv.ai-persistence-classes/v1"},
+    "classes": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kv_class", "authority_domain", "ai_role", "persistent_state", "skap_required", "intr_required", "provider_is_authority", "model_is_authority"],
+        "properties": {
+          "kv_class": {"enum": ["PERSONAL_KV", "ORGANIZATIONAL_KV", "STEGVERSE_KV", "MACHINE_KV"]},
+          "authority_domain": {"enum": ["PERSON", "ORGANIZATION", "STEGVERSE_ECOSYSTEM", "MACHINE_EXECUTION_ENTITY"]},
+          "ai_role": {"enum": ["PERSONAL_ASSISTANT_AI", "ORGANIZATIONAL_AI", "STEGVERSE_AI", "EXECUTION_AGENT"]},
+          "persistent_state": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "skap_required": {"const": true},
+          "intr_required": {"const": true},
+          "provider_is_authority": {"const": false},
+          "model_is_authority": {"const": false}
+        }
+      }
+    },
+    "cross_class_invariants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_transfer_on_context_share", "direct_cross_class_state_mutation", "intr_receipt_required", "least_authority", "fail_closed_on_ambiguous_scope"],
+      "properties": {
+        "authority_transfer_on_context_share": {"const": false},
+        "direct_cross_class_state_mutation": {"const": false},
+        "intr_receipt_required": {"const": true},
+        "least_authority": {"const": true},
+        "fail_closed_on_ambiguous_scope": {"const": true}
+      }
+    }
+  }
+}
