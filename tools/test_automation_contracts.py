@@ -60,13 +60,15 @@ WORKFLOWS = {
         "evidence/onboarding-friction/candidates",
     },
     "automation-candidate-implementation.yml": {
+        "name: Automation candidate implementation - Validation Only",
         "pull_request:",
         "types: [closed]",
-        "candidate-supported",
-        "contents: write",
-        "Record implemented corrections in Unreleased changelog",
-        "CHANGELOG.md",
-        'git commit -m "chore: record implemented automation candidate"',
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_CANDIDATE_RECONCILIATION",
+        "candidate_lifecycle_mutation_performed",
+        "repository_mutation_performed",
+        "actions/upload-artifact@v4",
     },
 }
 
@@ -215,23 +217,43 @@ def validate_release_cycle_outcome() -> None:
     read_text(REPO_ROOT / "docs" / "release_evidence" / "latest_cycle.md")
 
 
-def validate_candidate_release_bridge() -> None:
+def validate_candidate_implementation_boundary() -> None:
     workflow = read_text(
         REPO_ROOT / ".github" / "workflows" / "automation-candidate-implementation.yml"
     )
-    required = {
-        "candidate-supported",
-        "candidate-implemented",
+    forbidden = {
+        "contents: write",
+        "actions: write",
+        "issues: write",
+        "git push",
+        "git commit",
+        "gh issue ",
+        "gh workflow run",
+        "github.token",
+        "GH_TOKEN:",
         "CHANGELOG.md",
-        "## [Unreleased]",
-        "Automated onboarding correction",
-        "git push origin HEAD:main",
+    }
+    present = sorted(token for token in forbidden if token in workflow)
+    if present:
+        fail("candidate implementation reintroduces hosted mutation authority: " + ", ".join(present))
+    required = {
+        "contents: read",
+        "pull-requests: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_CANDIDATE_RECONCILIATION",
+        "candidate_lifecycle_mutation_performed",
+        "issue_mutation_performed",
+        "changelog_mutation_performed",
+        "repository_mutation_performed",
+        "workflow_dispatch_performed",
+        "actions/upload-artifact@v4",
+        "authority_effect",
+        "NONE",
     }
     missing = sorted(token for token in required if token not in workflow)
     if missing:
-        fail("candidate implementation is not connected to release activation: " + ", ".join(missing))
-    if "[skip ci]" in workflow:
-        fail("candidate changelog commit must not suppress release-integrity validation")
+        fail("candidate implementation missing validation-only boundary tokens: " + ", ".join(missing))
 
 
 def validate_friction_registry() -> None:
@@ -329,7 +351,7 @@ def main() -> int:
         validate_release_cycle,
         validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
-        validate_candidate_release_bridge,
+        validate_candidate_implementation_boundary,
         validate_friction_registry,
         validate_issue_form,
         validate_threshold_consistency,
