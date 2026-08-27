@@ -121,4 +121,16 @@ The runtime core is corrected to hash exactly:
 
 The protocol now states this projection explicitly, and the runtime test independently constructs the projection before comparing the digest. This is a compatibility repair only. It does not deploy the endpoint, establish boundary identity/sealing, grant credential or execution authority, mutate canonical KV state, or activate production runtime.
 
-State until hosted validation/merge: `IMPLEMENTED_AWAITING_HOSTED_VALIDATION`.
+State: `HOSTED_VALIDATED_MERGED`.
+
+Validation evidence:
+- PR `#86`;
+- exact head `e48bcc53e93c0f059a3e557a146e35dbe49097ce`;
+- Repository validation diagnostics run `33121047732`: PASS;
+- Validate KV Interlock Contract run `33121047747`: PASS;
+- KV Guardrails run `33121047902`: PASS;
+- Security Baseline run `33121047899`: PASS;
+- merge `1cb64044e9e10364f7ddb4b0ff514c1f06c3eac5`;
+- durable evidence `evidence/kv/2026-08-27-runtime-response-hash-compatibility-validation.json`.
+
+Production endpoint deployment and live boundary identity/sealing remain unobserved.

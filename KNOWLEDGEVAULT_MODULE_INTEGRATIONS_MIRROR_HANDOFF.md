@@ -341,3 +341,10 @@ live boundary identity/sealing: NOT OBSERVED
 canonical Site readback: NOT OBSERVED
 activation: false
 ```
+
+
+## KV runtime response-hash compatibility closure — 2026-08-27
+
+Issue #79 runtime response hashing is now explicitly aligned with the canonical consumer projection after PR `#86`, merge `1cb64044e9e10364f7ddb4b0ff514c1f06c3eac5`. The canonical projection is `schema_version`, `request_id`, `decision`, `granted_scope`, `context`, and `source_refs`.
+
+Source compatibility is **HOSTED_VALIDATED_MERGED**. Production endpoint deployment, verified live DEVICE→KV identity/sealing, durable production receipt-store binding, and owner/device activation remain separate open runtime gates.
