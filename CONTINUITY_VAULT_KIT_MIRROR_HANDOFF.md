@@ -13,7 +13,7 @@ Last updated: 2026-08-27
 - `STATUS.md` is reconciled to v0.1.9 and current release-cycle state.
 - Latest release evidence records v0.1.9 as PUBLISHED with `release_required_after_run=false`.
 - Latest integrity evidence records a 131-file release manifest and PASS initializer / automation-contract self-tests.
-- Template root tree SHA used for this installation: `13ac73d64bb96bf80cb790d205b29962b6913310`.
+- Original installation template tree SHA: `13ac73d64bb96bf80cb790d205b29962b6913310`. Current `main` template tree SHA verified by the final recursive parity pass: `f37978fcde3c7622ceef33d92c6aa19c8171b4ef` (132 source files, 53 source directories, 96,957 source bytes).
 - Issue #39 recoverable-execution / communication-extension source is implemented. A real connected-KV StegTalk + StegWhisper pre-dispatch interruption/reconstruction proof is now present; actual bearer delivery and post-dispatch edge replacement/reconciliation remain open.
 - Issue #68 transport-neutral receiver-acceptance persistence is IMPLEMENTED, VALIDATED, and MERGED through PR #69 at merge `08011eea59ad2b7613102c032f6fe25035b8f765`; actual bearer-generated receiver acceptance in the connected Drive-backed vault remains separately unproven.
 - Issue #16 remains a separate external activation gate and is not a baseline KnowledgeVault installation requirement.
@@ -108,11 +108,15 @@ The six policy files completed in the latest pass are `AI_Review_Prompt_Behavior
 
 ## Latest connected-Drive installation reconciliation — 2026-08-27
 
-Authoritative source template root SHA remains:
+Original installation baseline and current authoritative `main` template are now distinguished:
 
 ```text
-13ac73d64bb96bf80cb790d205b29962b6913310
+original installation tree: 13ac73d64bb96bf80cb790d205b29962b6913310
+current main template tree:  f37978fcde3c7622ceef33d92c6aa19c8171b4ef
+current source census:       132 files / 53 directories / 96,957 bytes
 ```
+
+The only source-file addition from the original installation tree to current `main` is `_Entities/Self/StegID/Continuity/README.md`; that file is present in the connected Drive at the exact 1,520-byte source size.
 
 Connected destination remains:
 
@@ -149,9 +153,22 @@ _Templates/Notes/Note Template.md                      104 bytes
 _Templates/Projects/Project Log Template.md            112 bytes
 _Templates/Records/Record Summary Template.md           197 bytes
 _System/Guides/KNOWLEDGEVAULT_BACKUP_EXPORT_GUIDE.md  2412 bytes
+_Entities/Organizations/README.md                       399 bytes
+_Entities/Organizations/_Backfill_Orgs.md               163 bytes
+_Entities/Organizations/_Template.md                    1333 bytes
+_Entities/People/README.md                               394 bytes
+_Entities/People/_Backfill_Key_People.md                 283 bytes
+_Entities/People/_Template.md                            995 bytes
+_Entities/Places/README.md                               369 bytes
+_Entities/Places/_Template.md                           1199 bytes
+_Entities/Places/Places/_Backfill_Key_Places.md          198 bytes
+_Entities/Projects/README.md                             301 bytes
+_Entities/Projects/_Backfill_Projects.md                 144 bytes
+_Entities/Projects/_Template.md                         1353 bytes
+_Templates/Research/Research Note Template.md            134 bytes
 ```
 
-The missing `_System/Guides` directory was created in the connected Drive and the exact backup/export guide installed there. The four nested `_Templates/{ChatGPT,Notes,Projects,Records}` folders were re-enumerated after upload and each now contains its expected source file at the expected byte size.
+The missing `_System/Guides` directory was created in the connected Drive and the exact backup/export guide installed there. The previously verified `_Templates/{ChatGPT,Notes,Projects,Records}` folders remain present; the final recursive pass also detected and repaired the missing `_Templates/Research/Research Note Template.md` path. `_Entities/{Organizations,People,Places,Projects}` were found as empty destination folders during the final live census and were populated with the exact source files; `_Entities/Places/Places` was created and its exact backfill file installed.
 
 Additional direct-folder observations during this reconciliation:
 
@@ -160,23 +177,40 @@ _AI root: direct source files + Consent/Logs/Reflections/Share/_Applied/_Queue/_
 _LightMode root: 5/5 direct source files present with source sizes
 _Policy root: 12/12 direct source files present with source sizes
 _migration root: 4/4 direct source files present with source sizes
-_Templates root: 18/18 expected top-level source files + 4 expected child folders present
+_Templates root: 18/18 expected top-level source files + all 5 expected child folders (`ChatGPT`, `Notes`, `Projects`, `Records`, `Research`) present
 _System/Guides: expected backup/export guide present
 ```
 
-These observations materially narrow the installation gap, but **full recursive source-template parity is not yet VALIDATED** because this consolidation did not complete an exhaustive path-by-path traversal of every nested `_Index/**`, `_AI/**`, `_Entities/**`, `_System/**`, `docs/**`, and other nested subtree against the authoritative recursive Git tree.
+### Final recursive parity closure — 2026-08-27
 
-Remaining parity validation gate:
+The remaining parity gate is now satisfied.
 
-1. enumerate the complete authoritative recursive Git tree;
-2. enumerate the complete connected Drive tree recursively;
-3. compare exact relative paths;
-4. compare raw byte sizes/hashes wherever Drive exposes enough evidence;
-5. classify unexpected Drive-only runtime/user files separately from source-template parity;
-6. refresh `_System/installation.receipt.json` with the final verified census;
-7. only then set full-template parity to VALIDATED/COMPLETE.
+The complete current `main` KnowledgeVault template tree was enumerated from Git and compared against the connected Drive by source-defined subtree. All 132 source files and all 53 source-defined directories are present after repairing the final live gaps.
 
-Current user action for file-parity work: **NONE**. No iPhone-only step, credential entry, WebAuthn, provider activation, or external service configuration is required for the remaining recursive census.
+Verification summary:
+
+```text
+current main template tree: f37978fcde3c7622ceef33d92c6aa19c8171b4ef
+source files:               132
+source directories:         53
+source bytes:               96,957
+source-defined paths present: YES
+raw source payload conversion to native Google Workspace files: NO
+exact source-size matches:   131
+intentional size exception:  _Meta/vault.manifest.json
+```
+
+`_Meta/vault.manifest.json` is the single accepted size exception: source is 373 bytes and the installed manifest is 414 bytes because the installation process intentionally mutates the manifest. This exception was already part of the installation contract and is not an unresolved parity miss.
+
+Drive-only runtime/user state is preserved and excluded from source-template parity, including `_Vault/**`, `_System/{Execution,Identity,Governance,Modules,Services,Readiness}/**`, `03_Records/Health/**`, `05_Projects/OWV/**`, and runtime continuity JSON under `_Entities/Self/StegID/Continuity/`.
+
+The connected receipt `_System/installation.receipt.json` (Drive id `1475U1vTyKKvo0l5F3YOgZqZttHMXAh_i`) was replaced in place with schema v1.1 and now records the current tree SHA, 132/53 census, accepted manifest exception, repaired paths, Drive-only exclusions, `full_template_parity=VALIDATED`, `authority_effect=NONE`, and `activation_effect=false`.
+
+**Full recursive KnowledgeVault source-template parity is therefore VALIDATED / COMPLETE.**
+
+This completion is file/template parity only. It does not activate InTr, SKAP provider credentials, identity authority, device authority, governance authority, or provider execution.
+
+Current user action for file-parity work: **NONE**.
 
 ## Recoverable execution and communication-extension host
 
@@ -258,7 +292,7 @@ KnowledgeVault remains the continuity host. The device remains an ephemeral tran
 
 ## Open completion boundaries
 
-- Full-template Drive parity remains ACTIVE. All session-discovered `_Templates` and `_System/Guides` gaps are repaired, but exhaustive recursive source-vs-Drive validation and final installation-receipt refresh remain OPEN.
+- Full-template Drive parity is VALIDATED / COMPLETE against current `main` tree `f37978fcde3c7622ceef33d92c6aa19c8171b4ef`; the final installation receipt is refreshed in place. Future template changes create a new parity delta but do not reopen this completed census retroactively.
 - Root documentation consolidation is implemented, but stale-link validation across historical/developer docs remains OPEN until checked against current `main`.
 - Issue #39 connected-KV pre-dispatch interruption/reconstruction is COMPLETE. Remaining runtime proof is narrowed to actual bearer/delivery evidence plus post-dispatch interruption or edge replacement/reconstruction without duplicate dispatch.
 - Issue #16 external provider activation remains OPEN / externally gated.
