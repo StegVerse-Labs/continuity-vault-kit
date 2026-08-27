@@ -6,18 +6,26 @@ on:
     paths:
       - "schemas/kv-interlock-request.schema.json"
       - "schemas/kv-interlock-response.schema.json"
+      - "schemas/kv-interlock-intr-envelope.schema.json"
+      - "specs/kv-interlock-intr-envelope.v1.json"
       - "docs/KNOWLEDGEVAULT_INTERLOCK_PROTOCOL.md"
       - "tools/validate_kv_interlock_contract.py"
+      - "tools/validate_kv_interlock_intr_envelope.py"
       - "tests/test_kv_interlock_contract.py"
+      - "tests/test_kv_interlock_intr_envelope.py"
       - "KNOWLEDGEVAULT_MODULE_INTEGRATIONS_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-kv-interlock-contract.yml"
   pull_request:
     paths:
       - "schemas/kv-interlock-request.schema.json"
       - "schemas/kv-interlock-response.schema.json"
+      - "schemas/kv-interlock-intr-envelope.schema.json"
+      - "specs/kv-interlock-intr-envelope.v1.json"
       - "docs/KNOWLEDGEVAULT_INTERLOCK_PROTOCOL.md"
       - "tools/validate_kv_interlock_contract.py"
+      - "tools/validate_kv_interlock_intr_envelope.py"
       - "tests/test_kv_interlock_contract.py"
+      - "tests/test_kv_interlock_intr_envelope.py"
       - "KNOWLEDGEVAULT_MODULE_INTEGRATIONS_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-kv-interlock-contract.yml"
   workflow_dispatch: {}
@@ -36,8 +44,14 @@ jobs:
       - name: Compile canonical contract tooling
         run: |
           python -m py_compile tools/validate_kv_interlock_contract.py
+          python -m py_compile tools/validate_kv_interlock_intr_envelope.py
           python -m py_compile tests/test_kv_interlock_contract.py
+          python -m py_compile tests/test_kv_interlock_intr_envelope.py
       - name: Validate canonical contract
         run: python tools/validate_kv_interlock_contract.py
       - name: Run canonical contract tests
         run: python -m unittest discover -s tests -p 'test_kv_interlock_contract.py' -v
+      - name: Validate generic KV Interlock InTr envelope
+        run: python tools/validate_kv_interlock_intr_envelope.py
+      - name: Run generic KV Interlock InTr envelope tests
+        run: python -m unittest discover -s tests -p 'test_kv_interlock_intr_envelope.py' -v
