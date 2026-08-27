@@ -1,0 +1,41 @@
+{
+  "schema_version": "stegverse.kv-interlock.contract-validation-evidence.v1",
+  "protocol": "KV-INTERLOCK-v1",
+  "observed_at": "2026-08-26T21:46:00-05:00",
+  "pull_request": 71,
+  "validation_branch": "kv-interlock-contract-validation",
+  "head_sha": "87f0c210f80c340b85e9981d18c91e2939202c74",
+  "merge_sha": "3734e13a0c91854caea6a50ce7e886b4aebc4e7f",
+  "workflows": [
+    {
+      "name": "Validate KV Interlock Contract",
+      "run_id": 33034255158,
+      "conclusion": "success"
+    },
+    {
+      "name": "Security Baseline",
+      "run_id": 33034255177,
+      "conclusion": "success"
+    },
+    {
+      "name": "Repository validation diagnostics",
+      "run_id": 33034255131,
+      "conclusion": "success"
+    },
+    {
+      "name": "KV Guardrails (Layer + Footer + Emoji + InTr)",
+      "run_id": 33034255219,
+      "conclusion": "success"
+    }
+  ],
+  "claims": {
+    "canonical_request_schema": "kv.interlock.request.v1",
+    "canonical_response_schema": "kv.interlock.response.v1",
+    "repository_contract_validation": "PASS",
+    "security_baseline": "PASS",
+    "kv_guardrails": "PASS",
+    "production_interlock_activation": false,
+    "personal_record_authority": false,
+    "authority_effect": "NONE"
+  }
+}
