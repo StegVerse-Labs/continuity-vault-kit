@@ -1,0 +1,30 @@
+name: Validate KV AI Persistence Classes
+
+on:
+  push:
+    paths:
+      - "schemas/kv-ai-persistence-classes.schema.json"
+      - "specs/kv-ai-persistence-classes.v1.json"
+      - "scripts/validate_kv_ai_persistence_classes.py"
+      - "tests/test_kv_ai_persistence_classes.py"
+      - ".github/workflows/validate-kv-ai-persistence-classes.yml"
+  pull_request:
+    paths:
+      - "schemas/kv-ai-persistence-classes.schema.json"
+      - "specs/kv-ai-persistence-classes.v1.json"
+      - "scripts/validate_kv_ai_persistence_classes.py"
+      - "tests/test_kv_ai_persistence_classes.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/validate_kv_ai_persistence_classes.py
+      - run: python tests/test_kv_ai_persistence_classes.py
