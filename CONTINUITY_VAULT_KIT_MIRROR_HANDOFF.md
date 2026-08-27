@@ -392,3 +392,27 @@ Implemented on `main`:
 In-session deterministic validation rejects context-share authority transfer, direct cross-class state mutation, provider/model authority, and MACHINE_KV impersonation of PERSONAL_KV authority. Hosted GitHub workflow completion remains NOT OBSERVED for the direct-to-main commits and must not be inferred.
 
 Next implementation state is concrete Organizational-KV, StegVerse-KV, and Machine-KV layouts plus provider-to-provider Machine-KV reconstruction proof.
+
+
+## Hosted release authority retirement recovery — 2026-08-27
+
+Canonical continuation lane: pull request #78 on branch fix/hosted-release-retirement-20260827.
+
+Current exact state:
+- reconciliation base main: 8dec7a290d8452179459b96432a7049defd64d8d
+- continuation head: 3c03252b004dece5f65bedfe0a8a1d28d012f198
+- build-and-attach release authority retirement: IMPLEMENTED_ON_BRANCH
+- one-button release authority retirement: IMPLEMENTED_ON_BRANCH
+- release-cycle outcome main-mutation retirement: IMPLEMENTED_ON_BRANCH
+- release-cycle recovery dispatch/main-mutation retirement: IMPLEMENTED_ON_BRANCH
+- release-assets retirement: BLOCKED; current branch still contains hosted release publication authority
+- Release Integrity 33097637213: SUCCESS
+- Security Baseline 33097637187: SUCCESS
+- Repository validation diagnostics 33097637216: SUCCESS
+- KV Guardrails 33097637118: FAIL_CLOSED on the remaining release-assets contradiction
+- merge: NOT_MERGED
+- deployment/activation/release effect: NONE
+
+PR #77 was auto-closed only because its branch was temporarily reset to current main during reconciliation; that closure is not completion. PR #78 is the sole continuation lane. Do not create a duplicate lane. Do not merge until release-assets is retired through an authorized repository write path and fresh exact-head validation is green.
+
+Cross-repository coordination is durably recorded on StegVerse-Labs/TVC main in tasks/TVC-CREDENTIAL-MODEL-CONSISTENCY-20260826.json via merged PR #171, merge 52f2a6a2a15d9d2c586ebbffc1f613552be9f8d9.
