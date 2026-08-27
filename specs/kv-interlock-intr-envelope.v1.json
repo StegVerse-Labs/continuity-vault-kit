@@ -1,0 +1,35 @@
+{
+  "schema": "stegverse.kv-interlock.intr-envelope/v1",
+  "protocol": "InTr",
+  "packet_id": "kv-intr-synthetic-001",
+  "direction": "REQUEST",
+  "source_role": "DEVICE",
+  "next_role": "KV",
+  "request_id": "kv-request-synthetic-001",
+  "operation": "REQUEST",
+  "payload_schema_version": "kv.interlock.request.v1",
+  "payload_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "sealed_material_ref": "sealed://synthetic/kv-interlock/request-001",
+  "prior_receipt_hash": null,
+  "issued_at": "2026-08-26T22:15:00Z",
+  "expires_at": "2026-08-26T22:20:00Z",
+  "nonce": "synthetic-kv-intr-nonce-001",
+  "authority": {
+    "authority_transfer": false,
+    "transport_grants_execution_authority": false,
+    "model_output_grants_execution_authority": false,
+    "credential_authority_effect": "NONE"
+  },
+  "boundary_proof": {
+    "required": true,
+    "source_identity_ref": "identity://synthetic/device",
+    "next_boundary_identity_ref": "identity://synthetic/kv",
+    "verification_state": "PENDING"
+  },
+  "receipt_policy": {
+    "receipt_required": true,
+    "receipt_contains_payload_plaintext": false,
+    "receipt_chain_required": true,
+    "ambiguous_disposition": "FAIL_CLOSED"
+  }
+}
