@@ -1,0 +1,31 @@
+{
+  "schema": "stegverse.kv.cross-class-intr-transition/v1",
+  "transition_id": "example-personal-to-organizational-context",
+  "source": {
+    "kv_class": "PERSONAL_KV",
+    "authority_domain": "PERSON",
+    "state_ref": "kv://personal/share/example"
+  },
+  "target": {
+    "kv_class": "ORGANIZATIONAL_KV",
+    "authority_domain": "ORGANIZATION",
+    "admission_ref": "kv://organization/admission/example"
+  },
+  "transport": {
+    "protocol": "InTr",
+    "interlock_required": true,
+    "direct_state_mutation": false
+  },
+  "authority": {
+    "authority_transfer": false,
+    "context_share_grants_authority": false,
+    "model_output_grants_authority": false,
+    "provider_grants_authority": false
+  },
+  "receipt": {
+    "required": true,
+    "source_state_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "target_admission_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "contains_secret_plaintext": false
+  }
+}
