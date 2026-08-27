@@ -46,6 +46,9 @@ SKAP Vault runtime boundary observed: false
 provider session evidence observed: false
 current identity-continuity receipt observed: false
 governance runtime admission observed: false
+Universal Interlock adoption review ready: false
+Universal Interlock adoption review state: BLOCKED
+Universal Interlock blockers: AUTHENTIC_RUNTIME_BINDING_MISSING; MASTER_RECORDS_CUSTODY_RECEIPT_MISSING; MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED
 authority_effect: NONE
 ```
 
@@ -109,7 +112,7 @@ Snapshot projection:
 
 Drive file:
 
-`1xn5eD2NSgB9n9AKIHxP_ggp81cipa-U666bMUdIWgwQ`
+`1F-kXN_KaPZpTzP1RpK7QzpeAs46IOFq7MWIZD9-s_M4`
 
 Direct Drive readback verified:
 
@@ -267,3 +270,61 @@ output schema: stegos.kv_capability_shell_projection.v1
 ```
 
 StegOS validates the 46-entry KV snapshot and separates local-ready, local-blocked, and governed-action states. It has no KV mutation or activation surface. KV readiness therefore propagates to the device shell without transferring authority.
+
+
+## Universal Interlock adoption-readiness admission — issue #74
+
+StegOS now owns a separate non-authorizing adoption-eligibility assessment for
+`SV-INTERLOCK-v0.4-candidate`:
+
+`stegos.universal_interlock_adoption_readiness.v1`
+
+KnowledgeVault issue #74 adds a bounded explanatory adapter:
+
+- `scripts/admit_interlock_adoption_readiness.py`;
+- `tests/test_interlock_adoption_readiness_admission.py`.
+
+It may set only:
+
+```text
+universal_interlock_adoption_review_ready
+universal_interlock_adoption_review_state
+universal_interlock_adoption_review_blockers
+```
+
+It explicitly cannot set:
+
+```text
+production_interlock_runtime_activated
+canonical protocol adoption
+module/service activation
+provider/session evidence
+authority
+```
+
+Current admitted state:
+
+```text
+universal_interlock_adoption_review_ready=false
+universal_interlock_adoption_review_state=BLOCKED
+blockers:
+  AUTHENTIC_RUNTIME_BINDING_MISSING
+  MASTER_RECORDS_CUSTODY_RECEIPT_MISSING
+  MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED
+production_interlock_runtime_activated=false
+```
+
+The connected readiness projection was replaced and directly read back at:
+
+`/KnowledgeVault/_System/Readiness/activation-readiness-snapshot`
+
+Drive file:
+
+`1F-kXN_KaPZpTzP1RpK7QzpeAs46IOFq7MWIZD9-s_M4`
+
+The prior snapshot file was deleted after successful readback so the connected
+Readiness surface retains one current projection.
+
+This does not reduce the Universal Interlock runtime/adoption gates. It gives the
+device shell a machine-readable explanation for why all governed controls remain
+disabled.
