@@ -1,8 +1,8 @@
 # KV Governed Email Ingress Mirror Handoff
 
-Status: SOURCE_READY_VALIDATED_MERGED_RUNTIME_EXTENSION_ACTIVE  
+Status: SOURCE_READY_VALIDATED_MERGED / LIVE_ACTIVATION_PENDING  
 Repository: StegVerse-Labs/continuity-vault-kit  
-Branch: `kv-email-ingress-runtime-v2`  
+Branch: `main`  
 Updated: 2026-08-27
 
 ## Purpose
@@ -220,3 +220,36 @@ When this lane becomes validated and release-worthy, verify pertinent contract/s
 - stegguardian-wiki.
 
 Do not propagate an activation claim before live provider and KV evidence exists.
+
+
+## Runtime-extension merge evidence
+
+- PR: `#91`
+- exact validated head: `9f685e0480a039c53c29a7e74cadc5722b756d7a`
+- merge: `ef285d5ed03bd92657e23c085734ea8c41b9bf6a`
+
+Exact-head validation:
+- Validate KV Email Ingress Policy run `33136048073`: PASS
+- Security Baseline run `33136048069`: PASS
+- Repository validation diagnostics run `33136048085`: PASS
+- KV Guardrails run `33136048087`: PASS
+- Release integrity run `33136048075`: PASS
+
+Release state:
+- persistent VERSION remains `0.1.9`;
+- successor release/tag/publication remains TV/TVC-admitted only;
+- issue `#90` tracks downstream propagation verification after the next admitted release.
+
+## Current remaining boundary
+
+Machine-executable source for provider-neutral discovery, SKAP completion guidance, staged admission, receipts/replay, and KV Interlock specialization is merged.
+
+Remaining work that is not yet proven:
+1. register one or more concrete mail-provider adapters using current provider-specific authorization/session facts;
+2. execute a real owner-authorized mailbox mapping;
+3. complete the prompted SKAP Vault credential setup;
+4. verify the provider session using SKAP-backed resolution;
+5. observe one real inbound staged message before trust;
+6. observe at least one real ADMIT and one real governed non-admit outcome;
+7. verify KV projection/readback, receipt chains, duplicate reconciliation, revocation, and interruption recovery;
+8. only then consider `email-continuity` ACTIVE.
