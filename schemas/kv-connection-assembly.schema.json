@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-connection-assembly.schema.json",
+  "title": "KnowledgeVault connection assembly",
+  "type": "object",
+  "required": ["schema","assembly_id","provider","source_kind","target_domain","canonical_kv_path","access","direct_source_required","minimum_necessary","credential_authority","credential_reference_class","intr_hops","adapter","provider_capability_binding","compatibility_state","monitoring","authority_effect"],
+  "properties": {
+    "schema": {"const":"stegverse.kv.connection-assembly/v1"},
+    "assembly_id": {"type":"string","pattern":"^kvcxn_[a-f0-9]{24}$"},
+    "provider": {"type":"string","minLength":1},
+    "source_kind": {"type":"string","minLength":1},
+    "target_domain": {"enum":["finance","assets","liabilities","email","pictures","music","personal","records","projects","research","archive"]},
+    "canonical_kv_path": {"type":"string","minLength":1},
+    "access": {"const":"READ_ONLY"},
+    "direct_source_required": {"const":true},
+    "minimum_necessary": {"const":true},
+    "credential_authority": {"const":"TV/TVC"},
+    "credential_reference_class": {"enum":["SKAP_REFERENCE","SESSION_REFERENCE","NONE"]},
+    "authentication_mechanism_class": {"type":["string","null"]},
+    "ingress_surface": {"type":["string","null"]},
+    "egress_surface": {"type":["string","null"]},
+    "intr_hops": {"type":"array","minItems":1,"items":{"type":"string","minLength":1}},
+    "adapter": {
+      "type":"object",
+      "required":["name","version"],
+      "properties":{"name":{"type":"string","minLength":1},"version":{"type":"string","minLength":1}},
+      "additionalProperties":false
+    },
+    "provider_capability_binding": {
+      "type":"object",
+      "required":["registry_schema","provider","observation_selector","evidence_version"],
+      "properties":{
+        "registry_schema":{"const":"stegverse.kv.provider-surface-capability-registry/v1"},
+        "provider":{"type":"string","minLength":1},
+        "observation_selector":{"type":"object"},
+        "evidence_version":{"type":["string","null"]}
+      },
+      "additionalProperties":false
+    },
+    "compatibility_state": {"enum":["UNASSEMBLED","ASSEMBLED_UNVERIFIED","VERIFIED","DEGRADED","REVALIDATION_REQUIRED","BLOCKED_SOURCE_CHANGE","BLOCKED_SESSION","BLOCKED_RUNTIME","RETIRED"]},
+    "last_connection_proof_ref": {"type":["string","null"]},
+    "last_readback_proof_ref": {"type":["string","null"]},
+    "monitoring": {
+      "type":"object",
+      "required":["enabled","authoritative_sources","change_classes","last_checked_at","last_change_ref"],
+      "properties":{
+        "enabled":{"type":"boolean"},
+        "authoritative_sources":{"type":"array","items":{"type":"string","minLength":1}},
+        "change_classes":{"type":"array","items":{"enum":["api_version","authentication","mfa_session","endpoint","deprecation","changelog","sdk_dependency","rate_limit","permission_scope","product_model","data_schema","export_format","browser_platform","service_health"]}},
+        "last_checked_at":{"type":["string","null"]},
+        "last_change_ref":{"type":["string","null"]}
+      },
+      "additionalProperties":false
+    },
+    "authority_effect": {"const":"NONE"}
+  },
+  "additionalProperties": false
+}
