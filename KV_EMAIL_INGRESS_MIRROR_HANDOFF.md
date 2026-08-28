@@ -44,20 +44,22 @@ The `email-continuity` slot already exists under the 33-service Personal Service
 
 1. Entering an email address does not itself activate a mailbox.
 2. Provider authorization is required before mailbox access.
-3. Reusable plaintext passwords/secrets are not stored as ordinary KV content.
-4. Mail is staged before admission and is not trusted KV knowledge while staged.
-5. Ambiguous admission fails closed.
-6. Canonical decisions are exactly:
+3. Once the mailbox address/provider route is mapped, the user should be prompted to complete the capability by placing the required credential or provider secret in SKAP Vault.
+4. KnowledgeVault stores only the bounded credential reference/binding needed to request governed use; it does not store the mailbox secret itself.
+5. Reusable plaintext passwords/secrets are not stored as ordinary KV content.
+6. Mail is staged before admission and is not trusted KV knowledge while staged.
+7. Ambiguous admission fails closed.
+8. Canonical decisions are exactly:
    - `ADMIT`
    - `QUARANTINE`
    - `REVIEW`
    - `REJECT`
    - `FAIL_CLOSED`
-7. Only `ADMIT` promotes a message into trusted KV content.
-8. Spam, abuse, phishing/malware, sender/domain restrictions, attachment restrictions, and user-defined rules may block or divert admission.
-9. Every evaluation produces a governance receipt.
-10. Rejected payloads are not retained by default; a minimal rejection receipt may remain.
-11. This policy grants no identity, provider, credential, governance, execution, or network authority.
+9. Only `ADMIT` promotes a message into trusted KV content.
+10. Spam, abuse, phishing/malware, sender/domain restrictions, attachment restrictions, and user-defined rules may block or divert admission.
+11. Every evaluation produces a governance receipt.
+12. Rejected payloads are not retained by default; a minimal rejection receipt may remain.
+13. This policy grants no identity, provider, credential, governance, execution, or network authority.
 
 ## Intended user experience
 
@@ -66,7 +68,10 @@ My KV
  -> Email
  -> Connect Email
  -> enter address
- -> provider discovery
+ -> provider discovery and mailbox mapping
+ -> prompt: Complete setup in SKAP Vault
+ -> user enters/authorizes required credential in SKAP Vault
+ -> KV receives bounded credential reference / provider-session proof
  -> authorize provider session
  -> choose/default ingress governance
  -> mailbox mapped to email-continuity
@@ -81,22 +86,25 @@ The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable
 
 1. hosted source validation passes on the exact implementation head;
 2. provider discovery resolves a supported mailbox route;
-3. user authorizes a real provider session;
-4. credential/session material remains outside ordinary KV plaintext state;
-5. a real inbound message enters staging without becoming trusted KV content;
-6. at least one real `ADMIT` path is observed and receipt-linked;
-7. at least one non-admit path (`REJECT`, `QUARANTINE`, or `REVIEW`) is observed and receipt-linked;
-8. ambiguous or unavailable governance proves `FAIL_CLOSED`;
-9. admitted mail is projected into the intended semantic KV surfaces and can be reviewed;
-10. disconnect/reconnect or interruption recovery reconciles without duplicate trusted admission;
-11. provider/session revocation blocks subsequent mailbox access;
-12. live evidence distinguishes provider receipt, governance receipt, and KV persistence receipt.
+3. after mailbox mapping, the user is explicitly directed to complete credential setup in SKAP Vault;
+4. the required credential/secret is present behind SKAP Vault and only a bounded reference/session proof is exposed to KV;
+5. user authorizes a real provider session;
+6. credential/session material remains outside ordinary KV plaintext state;
+7. a real inbound message enters staging without becoming trusted KV content;
+8. at least one real `ADMIT` path is observed and receipt-linked;
+9. at least one non-admit path (`REJECT`, `QUARANTINE`, or `REVIEW`) is observed and receipt-linked;
+10. ambiguous or unavailable governance proves `FAIL_CLOSED`;
+11. admitted mail is projected into the intended semantic KV surfaces and can be reviewed;
+12. disconnect/reconnect or interruption recovery reconciles without duplicate trusted admission;
+13. provider/session or SKAP credential revocation blocks subsequent mailbox access;
+14. live evidence distinguishes SKAP credential reference/session proof, provider receipt, governance receipt, and KV persistence receipt.
 
 ## Remaining machine-execution work
 
 - validate this branch through hosted CI;
 - reconcile the Personal Services registry entry with this more precise ingress contract if validation passes;
 - implement provider adapter discovery/auth/session interfaces;
+- implement post-mapping SKAP Vault completion prompt and bounded credential-reference binding;
 - implement staged message normalization and canonical message identifiers;
 - implement governed admission/quarantine projection;
 - implement receipt/replay/reconciliation behavior;
