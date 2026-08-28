@@ -1,35 +1,23 @@
-name: Production Provider Activation
+name: Production Provider Activation - Validation Only
 
 on:
   workflow_dispatch:
     inputs:
-      action:
-        description: Terraform operation
-        required: true
-        type: choice
-        options:
-          - plan
-          - apply
-      confirm_apply:
-        description: Type APPLY to authorize infrastructure mutation
-        required: false
-        type: string
       spiffe_identity:
-        description: Configured SPIFFE workload identity
+        description: Expected SPIFFE workload identity for future resident activation
         required: true
         type: string
       ecosystem_chat_endpoint:
-        description: Authenticated Ecosystem Chat HTTPS endpoint
+        description: Expected authenticated Ecosystem Chat HTTPS endpoint
         required: true
         type: string
       master_records_endpoint:
-        description: Authenticated Master-Records HTTPS endpoint
+        description: Expected authenticated Master-Records HTTPS endpoint
         required: true
         type: string
 
 permissions:
   contents: read
-  id-token: write
 
 env:
   TF_IN_AUTOMATION: "true"
@@ -37,45 +25,28 @@ env:
   TF_WORKING_DIR: infra/production-providers
 
 jobs:
-  activate:
-    name: Plan or apply protected providers
+  validate:
+    name: Validate provider activation source only
     runs-on: ubuntu-latest
-    environment: production-provider-activation
-    concurrency:
-      group: production-provider-activation
-      cancel-in-progress: false
-    steps:
-      - name: Check out exact repository state
-        uses: actions/checkout@v4
+    timeout-minutes: 15
 
-      - name: Reject incomplete or unsafe inputs
+    steps:
+      - name: Check out exact repository state without credential persistence
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Reject incomplete activation metadata
         shell: bash
         env:
-          REQUESTED_ACTION: ${{ inputs.action }}
-          CONFIRM_APPLY: ${{ inputs.confirm_apply }}
           SPIFFE_IDENTITY: ${{ inputs.spiffe_identity }}
           CHAT_ENDPOINT: ${{ inputs.ecosystem_chat_endpoint }}
           MASTER_RECORDS_ENDPOINT: ${{ inputs.master_records_endpoint }}
-          AWS_ROLE_ARN: ${{ vars.PROVIDER_ACTIVATION_AWS_ROLE_ARN }}
-          AWS_REGION: ${{ vars.PROVIDER_ACTIVATION_AWS_REGION }}
         run: |
           set -euo pipefail
-          test -n "$AWS_ROLE_ARN"
-          test -n "$AWS_REGION"
           [[ "$SPIFFE_IDENTITY" == spiffe://* ]]
           [[ "$CHAT_ENDPOINT" == https://* ]]
           [[ "$MASTER_RECORDS_ENDPOINT" == https://* ]]
-          if [[ "$REQUESTED_ACTION" == "apply" && "$CONFIRM_APPLY" != "APPLY" ]]; then
-            echo "Apply requires exact confirmation token APPLY" >&2
-            exit 1
-          fi
-
-      - name: Configure AWS identity through GitHub OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.PROVIDER_ACTIVATION_AWS_ROLE_ARN }}
-          aws-region: ${{ vars.PROVIDER_ACTIVATION_AWS_REGION }}
-          role-session-name: continuity-vault-provider-activation
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
@@ -86,75 +57,60 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform fmt -check -recursive
 
-      - name: Initialize Terraform
+      - name: Initialize Terraform without backend
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform init -input=false
+        run: terraform init -backend=false -input=false
 
-      - name: Validate Terraform
+      - name: Validate Terraform source
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
 
-      - name: Create immutable execution plan
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform plan -input=false -out=provider-activation.tfplan
-
-      - name: Apply approved execution plan
-        if: ${{ inputs.action == 'apply' }}
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform apply -input=false -auto-approve provider-activation.tfplan
-
-      - name: Export configured provider identifiers
-        if: ${{ inputs.action == 'apply' }}
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform output -json > provider-outputs.json
-
-      - name: Assemble fail-closed activation input artifact
-        if: ${{ inputs.action == 'apply' }}
+      - name: Emit non-authorizing resident activation request
         shell: bash
         env:
           SPIFFE_IDENTITY: ${{ inputs.spiffe_identity }}
           CHAT_ENDPOINT: ${{ inputs.ecosystem_chat_endpoint }}
           MASTER_RECORDS_ENDPOINT: ${{ inputs.master_records_endpoint }}
-          AWS_REGION: ${{ vars.PROVIDER_ACTIVATION_AWS_REGION }}
           SOURCE_COMMIT: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          set -euo pipefail
           python3 - <<'PY'
-          import json
-          import os
+          import json, os
+          from datetime import datetime, timezone
           from pathlib import Path
-
-          outputs = json.loads(Path("infra/production-providers/provider-outputs.json").read_text())
-          def value(name):
-              item = outputs.get(name)
-              if not isinstance(item, dict) or not item.get("value"):
-                  raise SystemExit(f"missing Terraform output: {name}")
-              return item["value"]
-
-          artifact = {
-              "schema": "stegverse.production-provider-inputs.v1",
-              "decision": "FAIL_CLOSED",
+          payload = {
+              "schema": "stegverse.production-provider-activation-request/v1",
+              "state": "TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION_REQUIRED",
+              "repository": os.environ["REPOSITORY"],
               "source_commit": os.environ["SOURCE_COMMIT"],
-              "providers": {
-                  "steg-id-signature": {"identity_ref": value("stegid_kms_key_arn"), "region": os.environ["AWS_REGION"]},
-                  "key-custody": {"identity_ref": value("custody_kms_key_arn"), "region": os.environ["AWS_REGION"]},
-                  "replicated-state": {"identity_ref": value("state_table_arn"), "region": os.environ["AWS_REGION"]},
-                  "ai-entity-attestation": {"identity_ref": os.environ["SPIFFE_IDENTITY"], "region": "global"},
-                  "ecosystem-chat": {"identity_ref": os.environ["CHAT_ENDPOINT"], "region": "global"},
-                  "master-records": {"identity_ref": os.environ["MASTER_RECORDS_ENDPOINT"], "region": "global"},
+              "workflow_run_id": os.environ["RUN_ID"],
+              "requested_provider_metadata": {
+                  "spiffe_identity": os.environ["SPIFFE_IDENTITY"],
+                  "ecosystem_chat_endpoint": os.environ["CHAT_ENDPOINT"],
+                  "master_records_endpoint": os.environ["MASTER_RECORDS_ENDPOINT"],
               },
-              "next_gate": "execute all six live probes and assemble signed deployment receipt",
+              "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
+              "cloud_identity_acquired": False,
+              "oidc_token_requested": False,
+              "terraform_plan_against_production_performed": False,
+              "terraform_apply_performed": False,
+              "provider_mutation_performed": False,
+              "credential_authority": "TV/TVC",
+              "canonical_next_transition": "TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION",
+              "authority_effect": "NONE",
+              "generated_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z"),
           }
-          Path("activation-provider-inputs.json").write_text(json.dumps(artifact, sort_keys=True, indent=2) + "\n")
+          out=Path("reports/production_provider_activation")
+          out.mkdir(parents=True,exist_ok=True)
+          (out/"activation-request.json").write_text(json.dumps(payload,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+          print(json.dumps(payload,sort_keys=True))
           PY
 
-      - name: Upload plan and provider evidence inputs
+      - name: Upload non-authorizing provider activation request
         uses: actions/upload-artifact@v4
         with:
-          name: production-provider-activation-${{ github.run_id }}
-          path: |
-            infra/production-providers/provider-activation.tfplan
-            infra/production-providers/provider-outputs.json
-            activation-provider-inputs.json
+          name: production-provider-activation-request-${{ github.run_id }}
+          path: reports/production_provider_activation/activation-request.json
           if-no-files-found: error
           retention-days: 30
