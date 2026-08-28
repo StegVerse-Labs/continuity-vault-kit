@@ -23,6 +23,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - retired GitHub-OIDC production-provider activation authority; hosted provider workflow now validates IaC source only and defers cloud identity/provisioning/apply to TVC-admitted resident execution
 - retired residual hosted release reconciliation/downstream mutation and retry-dispatch authority; release/downstream workflows now emit non-authorizing observations and defer canonical transitions to TV/TVC/non-hosted owners
 - retired hosted StegDB overlay writeback; scheduled/manual overlay workflows now build hash-verifiable candidate trees and patches as artifacts without committing or pushing canonical CVK state
+- retired hosted KV format-branch writeback; auto-footer formatting now produces a validated candidate patch artifact without branch commits or pushes
 - preserved TV/TVC as the only credential/release authority; no successor release is claimed until an admitted TVC publication path actually runs
 
 ### Notes
