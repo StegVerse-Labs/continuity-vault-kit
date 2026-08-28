@@ -66,13 +66,15 @@ These directories are intentionally separate from `03_Records/Finance`: Finance 
 Its canonical sections are:
 
 1. Accounts
-2. Spending habits and analysis
-3. Savings analysis
-4. Retirement analysis
-5. Federal income tax analysis
-6. State income tax analysis
-7. Rewards, yield, and collateral
-8. Analysis provenance
+2. Assets
+3. Liabilities
+4. Spending habits and analysis
+5. Savings analysis
+6. Retirement analysis
+7. Federal income tax analysis
+8. State income tax analysis
+9. Rewards, yield, and collateral
+10. Analysis provenance
 
 The document summarizes private finance state; machine-readable normalized state remains in `_Entities/Self/Personal_Finance.json`.
 
