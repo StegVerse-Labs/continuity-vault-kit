@@ -3,8 +3,8 @@
 Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #94
-Branch: `fix/release-reconciliation-hosted-authority`
-State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
+Branch: `main`
+State: MERGED_VALIDATED_HOSTED_RECONCILIATION_AUTHORITY_RETIRED
 
 ## Goal
 
@@ -58,3 +58,22 @@ Regression is installed in the automation-contract checker, a dedicated unit tes
 ## Next executable boundary
 
 Run exact-head validation, merge only if green, then inspect remaining hosted repository-mutation workflows (StegDB overlay sync and format-branch automation are known candidates).
+
+
+## Merge and validation evidence
+
+```text
+PR: #96
+validated head: 33079fc16fb8619258b7a0d6c33858e75f3ad2d7
+merge: 9bf9019afaa15ae76fdfaa2890f3d4900d11b7a4
+Release Integrity: 33136278408 SUCCESS
+Repository diagnostics: 33136278430 SUCCESS
+Security Baseline: 33136278421 SUCCESS
+KV Guardrails: 33136278454 SUCCESS
+```
+
+The three workflows are read-only observation surfaces only. Canonical release/downstream mutation and retry authority are not hosted.
+
+## Current next boundary
+
+Issue #94 source-retirement goal is COMPLETE. Known remaining hosted repository-mutation candidates are the two StegDB overlay sync workflows and KV format-branch auto-footer workflow.
