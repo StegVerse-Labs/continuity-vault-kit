@@ -1,0 +1,75 @@
+{
+  "schema": "stegverse.kv.email-ingress-policy/v1",
+  "service_id": "email-continuity",
+  "state": "SOURCE_READY",
+  "authority_effect": "NONE",
+  "provider_session": {
+    "authorization_required": true,
+    "credential_storage": "REFERENCE_ONLY_NO_PLAINTEXT_SECRETS",
+    "provider_neutral": true
+  },
+  "staging": {
+    "required": true,
+    "trusted_kv_content_before_decision": false
+  },
+  "governance": {
+    "default_on_ambiguity": "FAIL_CLOSED",
+    "rules": [
+      {
+        "rule_id": "known-spam-reject",
+        "enabled": true,
+        "action": "REJECT",
+        "match": {
+          "signal": "spam_or_bulk_abuse",
+          "threshold": "provider_or_stegverse_high_confidence"
+        }
+      },
+      {
+        "rule_id": "malware-phishing-quarantine",
+        "enabled": true,
+        "action": "QUARANTINE",
+        "match": {
+          "signal": "phishing_malware_or_dangerous_attachment"
+        }
+      },
+      {
+        "rule_id": "user-denylist-reject",
+        "enabled": true,
+        "action": "REJECT",
+        "match": {
+          "signal": "sender_or_domain_user_denylist"
+        }
+      },
+      {
+        "rule_id": "restricted-content-review",
+        "enabled": true,
+        "action": "REVIEW",
+        "match": {
+          "signal": "user_defined_restriction_requires_review"
+        }
+      },
+      {
+        "rule_id": "ordinary-mail-admit",
+        "enabled": true,
+        "action": "ADMIT",
+        "match": {
+          "signal": "passes_active_ingress_governance"
+        }
+      }
+    ]
+  },
+  "admission": {
+    "allowed_decisions": [
+      "ADMIT",
+      "QUARANTINE",
+      "REVIEW",
+      "REJECT",
+      "FAIL_CLOSED"
+    ],
+    "trusted_content_decision": "ADMIT"
+  },
+  "receipt": {
+    "required_for_every_evaluation": true,
+    "retain_rejected_payload": false
+  }
+}
