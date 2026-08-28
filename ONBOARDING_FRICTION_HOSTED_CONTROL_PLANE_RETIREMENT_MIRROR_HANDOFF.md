@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #85
 Branch: `fix/onboarding-friction-hosted-control-plane-85`
-State: CLAIMED_FOR_IMPLEMENTATION
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Goal
 
@@ -83,6 +83,30 @@ Do not change the threshold value or candidate signature semantics. Do not creat
 
 No real issue is triaged, labeled, reminded, closed, created, or reconciled by this repair. No user vault content is read or mutated. No release, deployment, provider execution, or activation is produced.
 
+## Implemented source state
+
+```text
+onboarding-friction.yml: read-only current-event classifier + artifact
+onboarding-friction-maintenance.yml: read-only durable-registry projection + artifact
+onboarding-friction-bootstrap.yml: read-only expected-label vocabulary validation + artifact
+automation-candidate-lifecycle.yml: read-only candidate-state projection + artifact
+
+issue mutation: removed
+label mutation: removed
+repository writeback: removed
+workflow dispatch: removed
+github.token / GH_TOKEN: removed
+credential persistence: false
+threshold semantics: 3 retained
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+```
+
+Regression:
+- `tools/test_automation_contracts.py` rejects hosted mutation/token authority across all four surfaces.
+- `tests/test_hosted_onboarding_control_plane_retirement.py` enforces read-only behavior and threshold preservation.
+- Release Integrity executes the dedicated regression.
+
 ## Next executable boundary
 
-Implement read-only observation workflows, enforce regression checks, validate exact head, merge only on green evidence, then inspect any remaining hosted mutation surfaces separately.
+Run exact-head validation; repair source/test defects without restoring hosted mutation authority; merge only after green evidence. Then scan remaining workflows for hosted mutation authority and continue only through a new bounded handoff if a distinct surface remains.
