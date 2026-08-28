@@ -314,3 +314,39 @@ Final exact-head validation:
 - Repository validation diagnostics run `33136267603`: PASS
 - KV Guardrails run `33136267622`: PASS
 - Release integrity run `33136267563`: PASS
+
+
+## Personal-information multi-email entry point
+
+The governed email lane now has a second intuitive entry surface in addition to the dedicated Email/Connect Email flow.
+
+Source:
+- `schemas/kv-personal-contact-profile.schema.json`
+- `vault_template/KnowledgeVault/_Entities/Self/Personal_Contact_Profile.json`
+- `runtime/personal_contact_profile.py`
+- `tests/test_personal_contact_profile.py`
+- `USER_GUIDE.md`
+
+Behavior:
+- personal information may contain zero, one, or multiple email addresses;
+- addresses are normalized and duplicate addresses are rejected case-insensitively;
+- each address has its own owner-selected label;
+- at most one address is marked primary, but primary status does not grant authority;
+- an address may remain ordinary contact information with `email_continuity_enabled=false`;
+- enabling continuity for one address maps only that address into the existing governed email flow;
+- every mapped address has its own deterministic `mapping_id` and connection state;
+- one address may be `SESSION_VERIFIED` while another remains `UNMAPPED`, `MAPPED_CREDENTIAL_REQUIRED`, `CREDENTIAL_BOUND`, or `REVOKED`;
+- mailbox credentials remain SKAP-only and never become personal-profile fields.
+
+Intended UX:
+
+```text
+Personal Information
+ -> Email addresses
+ -> + Add email
+ -> label / optional primary
+ -> [optional] Connect this email
+ -> provider mapping
+ -> Complete setup in SKAP Vault
+ -> governed ingress for that address
+```
