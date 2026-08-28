@@ -13,8 +13,10 @@ on:
       - "tests/test_email_continuity_runtime.py"
       - "runtime/email_ingress_pipeline.py"
       - "runtime/email_provider_adapter.py"
+      - "runtime/email_interlock.py"
       - "tests/test_email_ingress_pipeline.py"
       - "tests/test_email_provider_adapter.py"
+      - "tests/test_email_interlock.py"
       - "KV_EMAIL_INGRESS_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-kv-email-ingress-policy.yml"
   push:
@@ -42,4 +44,4 @@ jobs:
       - name: Validate canonical policy
         run: python tools/check_kv_email_ingress_policy.py
       - name: Run deterministic tests
-        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime tests.test_email_ingress_pipeline tests.test_email_provider_adapter -v
+        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime tests.test_email_ingress_pipeline tests.test_email_provider_adapter tests.test_email_interlock -v
