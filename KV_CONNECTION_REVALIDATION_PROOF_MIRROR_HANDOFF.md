@@ -1,6 +1,6 @@
 # KV Connection Revalidation Proof Mirror Handoff
 
-Status: SOURCE_LANE_OPEN / IMPLEMENTATION_IN_PROGRESS
+Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #119
 Branch: `feature/kv-connection-revalidation-proof`
@@ -98,4 +98,4 @@ A resident WorkerCoordinator task may consume these proof objects and persist th
 
 ## Current boundary
 
-Source proof contract only. No live provider session, private-KV readback proof, or connection verification is claimed by this branch.
+Machine-executable proof schemas, admission runtime, tests, and validation are implemented on this branch. No live provider session, private-KV readback proof, or connection verification is claimed by this branch.
