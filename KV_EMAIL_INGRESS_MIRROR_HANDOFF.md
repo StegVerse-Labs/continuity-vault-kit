@@ -45,6 +45,8 @@ The `email-continuity` slot already exists under the 33-service Personal Service
 - `schemas/kv-email-ingress-receipt.schema.json`
 - `runtime/email_ingress_pipeline.py`
 - `tests/test_email_ingress_pipeline.py`
+- `runtime/email_provider_adapter.py`
+- `tests/test_email_provider_adapter.py`
 
 ## Governance invariants
 
@@ -121,6 +123,18 @@ The current runtime-extension branch adds:
 
 This remains provider-neutral and uses caller-supplied classification signals. It does not claim production spam/phishing detection or live provider access.
 
+## Provider adapter / post-mapping activation interface
+
+The runtime extension now includes a concrete provider-adapter protocol/registry:
+
+- domain/provider discovery must resolve exactly one registered route or fail closed;
+- discovery produces `MAPPED_CREDENTIAL_REQUIRED`, never an authenticated session;
+- provider session descriptors are metadata-only and are rejected if they expose password/secret/token fields;
+- the mapping runtime returns `COMPLETE_SKAP_CREDENTIAL_SETUP` immediately after mapping;
+- the next action explicitly names `SKAP_VAULT` as credential destination and `PROHIBITED_IN_KV` as raw-secret destination;
+- after SKAP reference binding, the next action becomes `VERIFY_PROVIDER_SESSION`;
+- only after session verification can the runtime surface `BEGIN_GOVERNED_INGRESS`, still subject to Interlock admission.
+
 ## Hosted validation evidence
 
 Validated implementation head before handoff reconciliation:
@@ -175,8 +189,6 @@ The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable
 
 ## Remaining machine-execution work
 
-- implement concrete provider adapter discovery/auth/session interfaces around the provider-neutral mapping contract;
-- implement the user-facing post-mapping SKAP Vault completion prompt around the now-implemented bounded credential-reference binding;
 - expose the bounded service through the applicable KV/Interlock runtime;
 - perform real owner-authorized mailbox activation proof;
 - only then change runtime state from inactive/source-ready.
