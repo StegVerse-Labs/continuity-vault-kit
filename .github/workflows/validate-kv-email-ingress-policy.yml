@@ -6,6 +6,9 @@ on:
       - "schemas/kv-email-ingress-policy.schema.json"
       - "schemas/kv-email-account-mapping.schema.json"
       - "schemas/kv-email-ingress-receipt.schema.json"
+      - "schemas/kv-email-provider-registry.schema.json"
+      - "specs/kv-email-provider-registry.v1.json"
+      - "tools/check_kv_email_provider_registry.py"
       - "specs/kv-email-ingress-policy.v1.json"
       - "tools/check_kv_email_ingress_policy.py"
       - "tests/test_kv_email_ingress_policy.py"
@@ -17,6 +20,8 @@ on:
       - "tests/test_email_ingress_pipeline.py"
       - "tests/test_email_provider_adapter.py"
       - "tests/test_email_interlock.py"
+      - "runtime/documented_email_providers.py"
+      - "tests/test_documented_email_providers.py"
       - "KV_EMAIL_INGRESS_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-kv-email-ingress-policy.yml"
   push:
@@ -43,5 +48,7 @@ jobs:
           python-version: "3.12"
       - name: Validate canonical policy
         run: python tools/check_kv_email_ingress_policy.py
+      - name: Validate documented provider registry
+        run: python tools/check_kv_email_provider_registry.py
       - name: Run deterministic tests
-        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime tests.test_email_ingress_pipeline tests.test_email_provider_adapter tests.test_email_interlock -v
+        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime tests.test_email_ingress_pipeline tests.test_email_provider_adapter tests.test_email_interlock tests.test_documented_email_providers -v
