@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #97
 Branch: `fix/stegdb-overlay-hosted-writeback`
-State: CLAIMED_FOR_IMPLEMENTATION
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Goal
 
@@ -37,6 +37,24 @@ The hosted workflows may build deterministic candidate trees in temporary/report
 
 No canonical overlay sync, repository mutation, deployment, runtime activation, or credential authority is produced.
 
+## Implemented source state
+
+```text
+both workflows: contents read
+CVK checkout credential persistence: false
+StegDB checkout credential persistence: false
+candidate overlay tree: generated in report directory
+SHA-256 inventories: generated
+overlay patch: generated
+repository mutation: false
+git commit/push: false
+canonical_next_transition: NON_HOSTED_REPOSITORY_SYNC_REQUIRED
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+```
+
+Regression is installed in automation contracts, a dedicated unit test, and Release Integrity.
+
 ## Next executable boundary
 
-Convert both workflows to read-only delta/patch generation, add regression enforcement, validate exact head, merge only on green evidence, then inspect KV format-branch mutation separately.
+Run exact-head validation and merge only if green. Then inspect and retire the remaining KV format-branch hosted mutation surface.
