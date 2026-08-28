@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-organization-security-posture.schema.json",
+  "title": "StegVerse KV Organization Security Posture",
+  "type": "object",
+  "required": [
+    "schema",
+    "organization_id",
+    "posture_id",
+    "version",
+    "preset",
+    "effective_at",
+    "scope",
+    "capability_tier",
+    "surfaces",
+    "history_policy",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.organization-security-posture/v1"
+    },
+    "organization_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "posture_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "preset": {
+      "enum": [
+        "EMPLOYEE_PRIVATE",
+        "BUSINESS_GOVERNED",
+        "ADMINISTRATIVE_SUPERVISION",
+        "GOVERNMENT_HIGH_CONTROL",
+        "COMPARTMENTED_REGULATED"
+      ]
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "employee_kv_count",
+        "official_use_default"
+      ],
+      "properties": {
+        "employee_kv_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "official_use_default": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "capability_tier": {
+      "enum": [
+        "CORE",
+        "P1_REPLAY",
+        "P2_RECONSTRUCTION"
+      ]
+    },
+    "surfaces": {
+      "type": "object",
+      "required": [
+        "admin_inspection",
+        "org_replay",
+        "org_reconstruction",
+        "cross_kv_search",
+        "employee_consent_required",
+        "break_glass",
+        "legal_hold",
+        "audit_receipt_required",
+        "compartment_enforcement"
+      ],
+      "properties": {
+        "admin_inspection": {
+          "enum": [
+            "NONE",
+            "BUSINESS_SCOPE",
+            "BROAD_GOVERNED",
+            "ROLE_COMPARTMENT_BOUND"
+          ]
+        },
+        "org_replay": {
+          "type": "boolean"
+        },
+        "org_reconstruction": {
+          "type": "boolean"
+        },
+        "cross_kv_search": {
+          "enum": [
+            "NONE",
+            "BUSINESS_SCOPE",
+            "BROAD_GOVERNED",
+            "COMPARTMENT_BOUND"
+          ]
+        },
+        "employee_consent_required": {
+          "type": "boolean"
+        },
+        "break_glass": {
+          "type": "boolean"
+        },
+        "legal_hold": {
+          "type": "boolean"
+        },
+        "audit_receipt_required": {
+          "const": true
+        },
+        "compartment_enforcement": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "history_policy": {
+      "type": "object",
+      "required": [
+        "retrospective_scope_change",
+        "historical_access_requires_explicit_decision"
+      ],
+      "properties": {
+        "retrospective_scope_change": {
+          "enum": [
+            "PROHIBITED",
+            "EXPLICIT_ONLY",
+            "POLICY_DEFINED"
+          ]
+        },
+        "historical_access_requires_explicit_decision": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authority_effect": {
+      "const": "NONE_POLICY_ONLY"
+    }
+  },
+  "additionalProperties": false
+}
