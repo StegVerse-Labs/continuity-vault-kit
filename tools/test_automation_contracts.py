@@ -45,19 +45,41 @@ WORKFLOWS = {
         "actions/upload-artifact@v4",
     },
     "downstream-propagation.yml": {"release:", "evidence/downstream-propagation"},
-    "onboarding-friction-bootstrap.yml": {"workflow_dispatch:", "onboarding-friction"},
-    "onboarding-friction.yml": {
-        "name: Onboarding friction triage",
-        "issues:",
-        "automation-candidate",
-        "evidence/onboarding-friction/latest.json",
+    "onboarding-friction-bootstrap.yml": {
+        "name: Onboarding friction bootstrap - Validation Only",
+        "workflow_dispatch:",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_LABEL_PROVISIONING_IF_REQUIRED",
+        "actions/upload-artifact@v4",
     },
-    "onboarding-friction-maintenance.yml": {"schedule:", "needs-reproduction", "workflow_dispatch"},
+    "onboarding-friction.yml": {
+        "name: Onboarding friction triage - Validation Only",
+        "issues:",
+        "threshold",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_FRICTION_RECONCILIATION",
+        "actions/upload-artifact@v4",
+    },
+    "onboarding-friction-maintenance.yml": {
+        "name: Onboarding friction maintenance - Validation Only",
+        "schedule:",
+        "workflow_dispatch:",
+        "threshold",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_FRICTION_RECONCILIATION",
+        "actions/upload-artifact@v4",
+    },
     "automation-candidate-lifecycle.yml": {
+        "name: Automation candidate lifecycle - Validation Only",
         "automation-candidate",
-        "candidate-supported",
-        "candidate-insufficient-evidence",
-        "evidence/onboarding-friction/candidates",
+        "threshold",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_CANDIDATE_RECONCILIATION",
+        "actions/upload-artifact@v4",
     },
     "automation-candidate-implementation.yml": {
         "name: Automation candidate implementation - Validation Only",
@@ -256,6 +278,49 @@ def validate_candidate_implementation_boundary() -> None:
         fail("candidate implementation missing validation-only boundary tokens: " + ", ".join(missing))
 
 
+
+def validate_hosted_onboarding_control_plane_boundary() -> None:
+    workflow_root = REPO_ROOT / ".github" / "workflows"
+    files = (
+        "onboarding-friction.yml",
+        "onboarding-friction-maintenance.yml",
+        "onboarding-friction-bootstrap.yml",
+        "automation-candidate-lifecycle.yml",
+    )
+    forbidden = {
+        "contents: write",
+        "actions: write",
+        "issues: write",
+        "pull-requests: write",
+        "github.token",
+        "GH_TOKEN:",
+        "${{ secrets.",
+        "gh label ",
+        "gh issue ",
+        "gh workflow run",
+        "git push",
+        "git commit",
+        "git tag",
+    }
+    for filename in files:
+        text = read_text(workflow_root / filename)
+        present = sorted(token for token in forbidden if token in text)
+        if present:
+            fail(f"{filename} reintroduces hosted onboarding/candidate authority: {', '.join(present)}")
+        required = {
+            "contents: read",
+            "VALIDATION_TRANSPORT_ONLY",
+            "authority_effect",
+            "NONE",
+            "actions/upload-artifact@v4",
+        }
+        if "actions/checkout@v4" in text:
+            required.add("persist-credentials: false")
+        missing = sorted(token for token in required if token not in text)
+        if missing:
+            fail(f"{filename} missing validation-only hosted-control tokens: {', '.join(missing)}")
+
+
 def validate_friction_registry() -> None:
     registry = read_json(REPO_ROOT / "evidence" / "onboarding-friction" / "latest.json")
     required = {
@@ -352,6 +417,7 @@ def main() -> int:
         validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
         validate_candidate_implementation_boundary,
+        validate_hosted_onboarding_control_plane_boundary,
         validate_friction_registry,
         validate_issue_form,
         validate_threshold_consistency,
