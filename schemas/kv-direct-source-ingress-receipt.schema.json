@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-direct-source-ingress-receipt.schema.json",
+  "title": "KnowledgeVault Direct-Source Ingress Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_id",
+    "target_domain",
+    "state",
+    "direct_source_verified",
+    "retrieved_at",
+    "freshness_state",
+    "normalization_receipt_ref",
+    "persistence_receipt_ref",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema_version": { "const": "stegverse.kv.direct-source-ingress-receipt/v1" },
+    "source_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "target_domain": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "state": {
+      "enum": ["ADMITTED_PERSISTED", "FAIL_CLOSED", "REVOKED", "SESSION_UNAVAILABLE"]
+    },
+    "direct_source_verified": { "type": "boolean" },
+    "masked_owner_reference": { "type": ["string", "null"], "maxLength": 120 },
+    "retrieved_at": { "type": ["string", "null"], "format": "date-time" },
+    "coverage_start": { "type": ["string", "null"], "format": "date-time" },
+    "coverage_end": { "type": ["string", "null"], "format": "date-time" },
+    "adapter_version": { "type": ["string", "null"], "maxLength": 80 },
+    "intermediary_used": { "type": "boolean" },
+    "intermediary_name": { "type": ["string", "null"], "maxLength": 160 },
+    "freshness_state": { "enum": ["FRESH", "STALE", "UNKNOWN", "UNAVAILABLE"] },
+    "normalization_receipt_ref": { "type": ["string", "null"], "maxLength": 256 },
+    "persistence_receipt_ref": { "type": ["string", "null"], "maxLength": 256 },
+    "failure_reason": { "type": ["string", "null"], "maxLength": 512 },
+    "authority_effect": { "const": "NONE" }
+  }
+}
