@@ -136,6 +136,59 @@ The node-specific page is the natural location for:
 
 A device-node route remains reconstructable and replaceable. The opaque route handle is not the durable source of truth; the KnowledgeVault plus admitted identity/node/receipt continuity remains authoritative.
 
+
+## Device recognition and primary action state — accepted 2026-08-28
+
+The device-node page MUST determine whether the current device has previously established a valid StegVerse node relationship before presenting the primary action.
+
+The page should resolve a bounded local/device continuity signal first, then reconcile that signal against the governed node/KV receipt state when connectivity is available.
+
+Canonical UI states:
+
+```text
+recognized prior device / valid node continuity:
+  primary status/action label: Established Node
+
+no valid prior device/node continuity:
+  primary action label: Register Device
+```
+
+The displayed wording is intentionally user-facing:
+
+- `Established Node` means the device has a previously admitted node identity/continuity relationship that can be verified or reconstructed from valid local + governed receipt evidence.
+- `Register Device` means no valid established-node evidence is available for this device and a new governed registration flow is required.
+
+The page MUST NOT infer `Established Node` merely from:
+
+- possession of the node URL;
+- a cookie alone;
+- browser local storage alone;
+- an unverified opaque-node handle;
+- a claimed device name;
+- a stale or revoked receipt;
+- network/IP similarity.
+
+Preferred state-resolution sequence:
+
+```text
+page opens
+  -> inspect bounded local node continuity marker
+  -> inspect cached last-known receipt/hash if available
+  -> when online, reconcile against canonical KV/node continuity state
+  -> validate non-revoked node binding
+  -> render one of:
+       Established Node
+       Register Device
+```
+
+If the device is offline and a previously validated local continuity bundle exists, the page may render `Established Node` with an explicit local/offline state indicator. It must not claim fresh network validation until reconciliation occurs.
+
+If evidence is missing, contradictory, revoked, or unverifiable, fail closed to `Register Device` or an explicit recovery/reverification path rather than silently treating the device as established.
+
+A successful `Register Device` action should create the governed node registration transition and Receipt #1, persist the bounded local continuity marker required for future recognition, and then transition the page to `Established Node`.
+
+The recognition mechanism is continuity evidence, not fingerprinting. Do not use covert browser/device fingerprinting as device authority.
+
 ## Privacy / addressing constraint
 
 Do not encode a user's real name, email address, precise identity, or raw KV identifier into public DNS labels or public URLs by default.
