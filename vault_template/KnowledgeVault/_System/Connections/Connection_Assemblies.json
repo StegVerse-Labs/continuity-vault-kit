@@ -1,0 +1,6 @@
+{
+  "schema": "stegverse.kv.connection-assembly-registry/v1",
+  "state": "EMPTY",
+  "authority_effect": "NONE",
+  "assemblies": []
+}
