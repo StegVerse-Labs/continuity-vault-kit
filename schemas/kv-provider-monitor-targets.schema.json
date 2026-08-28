@@ -1,0 +1,30 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-provider-monitor-targets.schema.json",
+  "title":"KnowledgeVault provider monitor targets",
+  "type":"object",
+  "required":["schema","authority_effect","targets"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.provider-monitor-targets/v1"},
+    "authority_effect":{"const":"NONE"},
+    "targets":{"type":"array","items":{
+      "type":"object",
+      "required":["target_id","provider","url","allowed_host","source_type","change_class","severity","breaking_on_change","affected_assumptions"],
+      "properties":{
+        "target_id":{"type":"string","pattern":"^kvmon_[a-f0-9]{24}$"},
+        "provider":{"type":"string","minLength":1},
+        "url":{"type":"string","pattern":"^https://"},
+        "allowed_host":{"type":"string","minLength":1},
+        "source_type":{"enum":["provider_documentation","provider_changelog","provider_status"]},
+        "change_class":{"enum":["api_version","authentication","mfa_session","endpoint","deprecation","changelog","sdk_dependency","rate_limit","permission_scope","product_model","data_schema","export_format","browser_platform","service_health"]},
+        "severity":{"enum":["INFO","LOW","MEDIUM","HIGH","CRITICAL"]},
+        "breaking_on_change":{"type":"boolean"},
+        "affected_assumptions":{"type":"array","items":{"type":"string","minLength":1}},
+        "summary_on_change":{"type":"string"},
+        "source_binding_ref":{"type":"string","minLength":1}
+      },
+      "additionalProperties":false
+    }}
+  },
+  "additionalProperties":false
+}
