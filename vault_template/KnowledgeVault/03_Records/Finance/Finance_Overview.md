@@ -24,6 +24,42 @@ Suggested fields:
 - observation date;
 - notes about account role.
 
+## Assets
+
+Summarize major owned resources and the asset records that contribute to the owner's balance-sheet view.
+
+Suggested analysis:
+
+- liquid assets;
+- investment assets;
+- retirement assets;
+- real estate;
+- vehicles and other material property;
+- business interests and receivables;
+- valuables / collectibles where tracked;
+- estimated value and valuation date;
+- liquidity and concentration observations.
+
+Canonical detailed continuity records live under `03_Records/Assets/`.
+
+## Liabilities
+
+Summarize major obligations and the liability records that contribute to the owner's balance-sheet view.
+
+Suggested analysis:
+
+- credit-card balances;
+- auto loans;
+- mortgages;
+- student/personal loans;
+- taxes owed where applicable;
+- interest/APR;
+- minimum or scheduled payments;
+- maturity/payoff observations;
+- utilization and debt-service observations.
+
+Canonical detailed continuity records live under `03_Records/Liabilities/`.
+
 ## Spending habits and analysis
 
 Summarize observed spending patterns.
