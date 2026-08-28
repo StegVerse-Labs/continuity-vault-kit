@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-email-ingress-receipt.schema.json",
+  "title": "KnowledgeVault Email Ingress Governance Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "receipt_id",
+    "mapping_id",
+    "canonical_message_id",
+    "staged_content_hash",
+    "decision",
+    "reason",
+    "trusted_projection_created",
+    "payload_retained_in_receipt",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.email-ingress-receipt/v1"},
+    "receipt_id": {"type": "string", "pattern": "^kv-email-receipt:[a-f0-9]{64}$"},
+    "mapping_id": {"type": "string", "pattern": "^kv-email:[a-f0-9]{64}$"},
+    "canonical_message_id": {"type": "string", "pattern": "^kv-email-message:[a-f0-9]{64}$"},
+    "staged_content_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "decision": {"enum": ["ADMIT", "QUARANTINE", "REVIEW", "REJECT", "FAIL_CLOSED"]},
+    "reason": {"type": "string", "minLength": 1},
+    "trusted_projection_created": {"type": "boolean"},
+    "payload_retained_in_receipt": {"const": false},
+    "authority_effect": {"const": "NONE"}
+  }
+}
