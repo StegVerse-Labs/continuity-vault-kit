@@ -48,6 +48,33 @@ A simple operating loop is:
 
 **Capture → organize lightly → index what matters → preserve enough context to reconstruct later.**
 
+## 3. Personal information and email addresses
+
+Personal information belongs under `_Entities/Self/`. The supplied `Personal_Contact_Profile.json` is the structured contact surface for the vault owner.
+
+A user may enter **more than one email address**. Each address is independent and may have:
+
+- a human-readable label such as personal, work, school, family, or another owner-chosen label;
+- optional primary status for display/contact preference;
+- email-continuity disabled, leaving the address as contact information only; or
+- email-continuity enabled, which starts the governed mailbox-mapping flow for that specific address.
+
+Only one address is marked primary at a time, but there is no one-mailbox limitation.
+
+When email continuity is enabled for an address, the intended progression is:
+
+```text
+Personal information
+ -> add/select email address
+ -> Connect this email
+ -> provider discovery + mailbox mapping
+ -> Complete setup in SKAP Vault
+ -> verify provider session
+ -> governed email ingress
+```
+
+Adding an address to personal information does **not** grant mailbox access. Credentials and provider secrets belong in SKAP Vault, not in `Personal_Contact_Profile.json` or other ordinary KnowledgeVault files. Each mapped email address maintains its own connection state, so one account can be active while another remains unmapped, awaiting SKAP setup, revoked, or otherwise inactive.
+
 ## 3. What the main folders mean
 
 ```text
@@ -73,7 +100,7 @@ KnowledgeVault/
 
 Use the numbered folders for ordinary human content. Use `_Index/` to make important material discoverable. Treat `_System/`, `_Policy/`, `_Meta/`, and other underscore-prefixed areas as structured system surfaces rather than casual storage locations.
 
-## 4. KnowledgeVault and StegVerse
+## 5. KnowledgeVault and StegVerse
 
 KnowledgeVault is the continuity and knowledge state layer. It is not the same thing as secret custody, device execution, or network transport.
 
@@ -97,7 +124,7 @@ In practical terms:
 
 Do not bypass those boundaries merely because direct file or network access is technically possible.
 
-## 5. Sensitive information and secrets
+## 6. Sensitive information and secrets
 
 KnowledgeVault may contain sensitive records, but the baseline file structure is not itself encryption.
 
@@ -107,7 +134,7 @@ Until a SKAP-backed runtime is active for a given deployment, protect sensitive 
 
 For repository and deployment security requirements, see [`SECURITY.md`](./SECURITY.md).
 
-## 6. AI and conversation continuity
+## 7. AI and conversation continuity
 
 AI is optional. KnowledgeVault is designed so AI tools can work with predictable structure without becoming canonical authority over the vault.
 
@@ -127,7 +154,7 @@ See:
 - [`docs/EXAMPLES.md`](./docs/EXAMPLES.md)
 - [`docs/AI_COMPATIBLE.md`](./docs/AI_COMPATIBLE.md)
 
-## 7. Indexing and retrieval
+## 8. Indexing and retrieval
 
 Indexes are what make a growing vault reconstructable.
 
@@ -135,7 +162,7 @@ Use `_Index/Master_Index.md` as the broad map and add topic, timeline, relations
 
 Prefer durable references, clear filenames, dates where useful, and open formats such as Markdown, text, PDF, PNG, and JPEG.
 
-## 8. Backup, migration, and replacement
+## 9. Backup, migration, and replacement
 
 KnowledgeVault is designed to be replaceable and portable.
 
@@ -155,7 +182,7 @@ python3 tools/verify_release.py dist/ContinuityVault_vX.Y.Z.zip
 
 Migration helpers live under `_migration/` and repository tooling under `tools/`.
 
-## 9. Optional sharing and modules
+## 10. Optional sharing and modules
 
 KnowledgeVault may participate in broader StegVerse modules and sharing flows, but sharing must remain explicit and policy-bounded. The existence of data in KV does not imply permission to disclose it.
 
@@ -170,7 +197,7 @@ When module or sharing integrations are active, the user should be able to deter
 
 See [`docs/DATA_SHARING.md`](./docs/DATA_SHARING.md) for the current documented sharing model.
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 If setup fails, first determine which stage failed: download, unzip/copy, initialization, verification, permissions, or first use.
 
@@ -178,7 +205,7 @@ For repository-supported onboarding problems, use the structured onboarding-fric
 
 If the vault already exists, do not run a repair process that silently overwrites owner-authored files. Preserve the existing vault and use a new destination or an explicit migration path.
 
-## 11. Deeper technical review
+## 12. Deeper technical review
 
 Most users should not need the internal architecture documents.
 

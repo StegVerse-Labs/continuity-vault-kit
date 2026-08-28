@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-personal-contact-profile.schema.json",
+  "title": "KnowledgeVault Personal Contact Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "email_addresses", "authority_effect"],
+  "properties": {
+    "schema": {"const": "stegverse.kv.personal-contact-profile/v1"},
+    "email_addresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address",
+          "label",
+          "primary",
+          "email_continuity_enabled",
+          "mapping_id",
+          "connection_state"
+        ],
+        "properties": {
+          "address": {"type": "string", "format": "email"},
+          "label": {"type": "string", "minLength": 1},
+          "primary": {"type": "boolean"},
+          "email_continuity_enabled": {"type": "boolean"},
+          "mapping_id": {
+            "type": ["string", "null"],
+            "pattern": "^kv-email:[a-f0-9]{64}$"
+          },
+          "connection_state": {
+            "enum": [
+              "UNMAPPED",
+              "MAPPED_CREDENTIAL_REQUIRED",
+              "CREDENTIAL_BOUND",
+              "SESSION_VERIFIED",
+              "REVOKED"
+            ]
+          }
+        }
+      }
+    },
+    "authority_effect": {"const": "NONE"}
+  }
+}

@@ -19,6 +19,7 @@ Last updated: 2026-08-27
 - Issue #16 remains a separate external activation gate and is not a baseline KnowledgeVault installation requirement.
 - Root user-operation documentation is now consolidated into `README.md` plus `USER_GUIDE.md`; `SECURITY.md` remains the separate repository/deployment security policy.
 - Governed `email-continuity` source is now merged under `KV_EMAIL_INGRESS_MIRROR_HANDOFF.md`: PR #88 established the provider-neutral ingress/SKAP credential-reference contract and mapping runtime; PR #91 added pre-admission staging, governance receipts/replay, provider adapter discovery interface, explicit SKAP completion guidance, and canonical KV Interlock request binding; PR #95 added documented-unverified Gmail, Microsoft Graph/Outlook, and iCloud Mail provider metadata with minimum-read access and SKAP-only credential destination. Live mailbox/provider/SKAP activation remains separately unproven and the service remains inactive.
+- Personal information now has a source-ready multi-email model under `_Entities/Self/Personal_Contact_Profile.json`: multiple addresses are allowed, one may be marked primary, and each address may independently opt into the governed `email-continuity` mapping/SKAP/provider flow without turning ordinary profile data into mailbox authority.
 
 ## Root user-document consolidation completed
 
