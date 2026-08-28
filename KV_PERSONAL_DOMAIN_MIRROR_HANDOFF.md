@@ -262,6 +262,106 @@ Offline behavior:
 
 Negative invariant: modifying HTML/CSS/JavaScript, local storage, cookies, or client-side card state MUST NOT activate a service in the KnowledgeVault.
 
+
+## Canonical service governance states — accepted 2026-08-28
+
+The services page is a governance projection, not merely a catalog.
+
+Each service card MUST display one canonical user-facing service state:
+
+```text
+ACTIVE
+INACTIVE
+UNAVAILABLE
+REVIEW
+```
+
+These are intentionally analogous to, but distinct from, the lower-level governance verdicts used by StegVerse.
+
+Recommended semantic relationship:
+
+```text
+ALLOW       -> service may be ACTIVE when activation and readiness prerequisites are satisfied
+DENY        -> requested activation/action is not admitted; service may remain INACTIVE
+FAIL_CLOSED -> service/action is UNAVAILABLE because required evidence, authority, continuity, or runtime proof is missing or invalid
+REVIEW      -> service is in REVIEW and requires user/governance attention before a transition may proceed
+```
+
+Do not collapse the two vocabularies into one field. A service lifecycle/status value describes the card's current state; a governance verdict describes the decision on a particular proposed transition or action.
+
+Canonical card semantics:
+
+```text
+ACTIVE
+  service is activated in this individual's KV
+  card is visually active
+  entry may still be bounded by action-specific readiness checks
+
+INACTIVE
+  service is known/available but not activated in this individual's KV
+  card is grayed out
+  card MUST visibly say "INACTIVE"
+  user may enter the governed activation flow where permitted
+
+UNAVAILABLE
+  service cannot currently be used or activated because a required dependency, runtime, authority proof, continuity proof, provider/session, or other fail-closed prerequisite is absent/invalid
+  card remains visible but non-operable
+  reason should be explainable in plain language
+
+REVIEW
+  service or its activation state requires explicit review/reverification before proceeding
+  card remains visible and non-operable except for the review/recovery action
+```
+
+### Device-continuity recovery action
+
+`RE-REGISTER DEVICE` is a required recovery/action directive, not a fifth service lifecycle state and not a substitute for `REVIEW`.
+
+When a service cannot safely rely on the current device continuity binding, the preferred projection is:
+
+```text
+service_state: REVIEW
+required_action: RE-REGISTER DEVICE
+```
+
+If the missing/invalid device binding makes the service impossible to evaluate safely, the projection may instead be:
+
+```text
+service_state: UNAVAILABLE
+required_action: RE-REGISTER DEVICE
+```
+
+The choice between REVIEW and UNAVAILABLE must be derived from the governing rule:
+
+- use REVIEW when a valid human/governance decision or reverification can resolve the ambiguity;
+- use UNAVAILABLE when the system must fail closed because the required continuity/authority evidence is absent or invalid.
+
+A successful re-registration must produce a new governed device continuity transition/receipt before dependent service cards can advance.
+
+### Display invariant
+
+Color is never the only status signal.
+
+Every card MUST show the text state explicitly:
+
+- `ACTIVE`
+- `INACTIVE`
+- `UNAVAILABLE`
+- `REVIEW`
+
+Inactive cards are both grayed out and labeled `INACTIVE`.
+
+The UI may additionally show the most recent governance verdict and required action in a details area, for example:
+
+```text
+Status: REVIEW
+Decision: FAIL_CLOSED
+Action: RE-REGISTER DEVICE
+Reason: device continuity receipt is stale
+```
+
+This preserves the separation between service state, governance verdict, and recovery instruction while keeping the user-facing experience simple.
+
 ## Privacy / addressing constraint
 
 Do not encode a user's real name, email address, precise identity, or raw KV identifier into public DNS labels or public URLs by default.
