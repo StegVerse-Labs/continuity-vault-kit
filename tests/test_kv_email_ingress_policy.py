@@ -19,6 +19,21 @@ class EmailIngressPolicyTests(unittest.TestCase):
         policy["provider_session"]["credential_storage"] = "PLAINTEXT_PASSWORD"
         self.assertTrue(any("plaintext" in error for error in validate(policy)))
 
+    def test_skap_vault_is_required_for_activation(self):
+        policy = copy.deepcopy(self.policy)
+        policy["skap_credential_binding"]["required_for_activation"] = False
+        self.assertTrue(any("SKAP Vault" in error for error in validate(policy)))
+
+    def test_kv_cannot_store_mailbox_secret(self):
+        policy = copy.deepcopy(self.policy)
+        policy["skap_credential_binding"]["kv_stores_secret"] = True
+        self.assertTrue(any("must not store" in error for error in validate(policy)))
+
+    def test_mapping_must_prompt_for_credential_completion(self):
+        policy = copy.deepcopy(self.policy)
+        policy["skap_credential_binding"]["user_prompt_after_mapping"] = False
+        self.assertTrue(any("prompted" in error for error in validate(policy)))
+
     def test_pre_admission_trust_fails(self):
         policy = copy.deepcopy(self.policy)
         policy["staging"]["trusted_kv_content_before_decision"] = True
