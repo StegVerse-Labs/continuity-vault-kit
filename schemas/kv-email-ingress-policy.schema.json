@@ -10,6 +10,7 @@
     "state",
     "authority_effect",
     "provider_session",
+    "skap_credential_binding",
     "staging",
     "governance",
     "admission",
@@ -28,6 +29,17 @@
         "authorization_required": {"const": true},
         "credential_storage": {"const": "REFERENCE_ONLY_NO_PLAINTEXT_SECRETS"},
         "provider_neutral": {"const": true}
+      }
+    },
+    "skap_credential_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_for_activation", "vault", "kv_stores_secret", "user_prompt_after_mapping"],
+      "properties": {
+        "required_for_activation": {"const": true},
+        "vault": {"const": "SKAP_VAULT"},
+        "kv_stores_secret": {"const": false},
+        "user_prompt_after_mapping": {"const": true}
       }
     },
     "staging": {
