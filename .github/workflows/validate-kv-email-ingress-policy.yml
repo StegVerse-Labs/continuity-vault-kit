@@ -20,6 +20,8 @@ on:
       - "specs/kv-email-ingress-policy.v1.json"
       - "tools/check_kv_email_ingress_policy.py"
       - "tests/test_kv_email_ingress_policy.py"
+      - "runtime/email_continuity.py"
+      - "tests/test_email_continuity_runtime.py"
 
 permissions:
   contents: read
