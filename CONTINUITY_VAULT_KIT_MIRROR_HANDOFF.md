@@ -114,11 +114,12 @@ Original installation baseline and current authoritative `main` template are now
 
 ```text
 original installation tree: 13ac73d64bb96bf80cb790d205b29962b6913310
-current main template tree:  f37978fcde3c7622ceef33d92c6aa19c8171b4ef
-current source census:       132 files / 53 directories / 96,957 bytes
+previous fully reconciled template tree: f37978fcde3c7622ceef33d92c6aa19c8171b4ef
+current main template tree:             7d8be8b13be05c239d332e028d0ede95cfce4b58
+current source census:                  133 files / 53 directories / 97,071 bytes
 ```
 
-The only source-file addition from the original installation tree to current `main` is `_Entities/Self/StegID/Continuity/README.md`; that file is present in the connected Drive at the exact 1,520-byte source size.
+The previously reconciled source addition `_Entities/Self/StegID/Continuity/README.md` is present in the connected Drive at the exact 1,520-byte source size. Current `main` now adds `_Entities/Self/Personal_Contact_Profile.json` (114 bytes) for the multi-email personal-information model. That file has not yet been re-proven present in the connected Drive in this lane, so the earlier full-parity closure remains historical evidence for tree `f37978fcde3c7622ceef33d92c6aa19c8171b4ef` rather than a claim about current tree `7d8be8b13be05c239d332e028d0ede95cfce4b58`.
 
 Connected destination remains:
 
@@ -185,18 +186,19 @@ _System/Guides: expected backup/export guide present
 
 ### Final recursive parity closure — 2026-08-27
 
-The remaining parity gate is now satisfied.
+The parity gate was satisfied for the previously reconciled tree `f37978fcde3c7622ceef33d92c6aa19c8171b4ef`. Current `main` has a one-file template delta: `_Entities/Self/Personal_Contact_Profile.json`.
 
-The complete current `main` KnowledgeVault template tree was enumerated from Git and compared against the connected Drive by source-defined subtree. All 132 source files and all 53 source-defined directories are present after repairing the final live gaps.
+The previously reconciled KnowledgeVault template tree was enumerated from Git and compared against the connected Drive by source-defined subtree. All 132 files and 53 directories for that historical tree were present. Current `main` contains 133 files and 53 directories; the new 114-byte personal-contact profile is the only newly introduced template delta identified in this lane.
 
 Verification summary:
 
 ```text
-current main template tree: f37978fcde3c7622ceef33d92c6aa19c8171b4ef
-source files:               132
-source directories:         53
-source bytes:               96,957
-source-defined paths present: YES
+fully reconciled tree:      f37978fcde3c7622ceef33d92c6aa19c8171b4ef
+current main template tree: 7d8be8b13be05c239d332e028d0ede95cfce4b58
+current source files:       133
+current source directories: 53
+current source bytes:       97,071
+current new parity delta:   _Entities/Self/Personal_Contact_Profile.json (114 bytes)
 raw source payload conversion to native Google Workspace files: NO
 exact source-size matches:   131
 intentional size exception:  _Meta/vault.manifest.json
@@ -208,11 +210,11 @@ Drive-only runtime/user state is preserved and excluded from source-template par
 
 The connected receipt `_System/installation.receipt.json` (Drive id `1475U1vTyKKvo0l5F3YOgZqZttHMXAh_i`) was replaced in place with schema v1.1 and now records the current tree SHA, 132/53 census, accepted manifest exception, repaired paths, Drive-only exclusions, `full_template_parity=VALIDATED`, `authority_effect=NONE`, and `activation_effect=false`.
 
-**Full recursive KnowledgeVault source-template parity is therefore VALIDATED / COMPLETE.**
+**Full recursive KnowledgeVault source-template parity remains VALIDATED / COMPLETE for historical tree `f37978fcde3c7622ceef33d92c6aa19c8171b4ef`. Current tree `7d8be8b13be05c239d332e028d0ede95cfce4b58` is SOURCE-AHEAD-BY-ONE-FILE until the new personal-contact profile is installed/reconciled in the connected Drive.**
 
 This completion is file/template parity only. It does not activate InTr, SKAP provider credentials, identity authority, device authority, governance authority, or provider execution.
 
-Current user action for file-parity work: **NONE**.
+Current user action for file-parity work: **NONE**. Remaining parity work is machine-executable once the connected Drive write path is used for the 114-byte profile file and the installation receipt is refreshed.
 
 ## Recoverable execution and communication-extension host
 
