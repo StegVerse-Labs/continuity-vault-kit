@@ -638,3 +638,27 @@ authority_effect: NONE
 ```
 
 Candidate references from merged PR metadata are now observation-only. Canonical candidate reconciliation remains a separate non-hosted transition.
+
+
+### Onboarding friction + candidate lifecycle hosted control-plane retirement — completion
+
+Issue #85 / PR #89 is merged and validated.
+
+```text
+validated head: 017cd46ada5257ad2d2c44c966b4f60b9f9c0dd1
+merge: 05125a75c4dddb42b3de2b70201dcd99eed368a1
+Release integrity: 33135922653 SUCCESS
+Repository diagnostics: 33135922657 SUCCESS
+Security Baseline: 33135922517 SUCCESS
+KV Guardrails: 33135922600 SUCCESS
+affected workflows: onboarding-friction.yml, onboarding-friction-maintenance.yml, onboarding-friction-bootstrap.yml, automation-candidate-lifecycle.yml
+hosted issue mutation: false
+hosted label mutation: false
+hosted repository mutation: false
+hosted workflow dispatch: false
+GitHub token authority: NONE
+threshold semantics: 3 preserved
+authority_effect: NONE
+```
+
+These workflows now produce non-authorizing observations only. Canonical friction/candidate lifecycle mutation requires a separately admitted non-hosted owner.
