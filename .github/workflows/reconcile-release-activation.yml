@@ -1,4 +1,4 @@
-name: Activate release reconciliation
+name: Activate release reconciliation - Validation Only
 
 on:
   push:
@@ -8,14 +8,33 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
-  dispatch:
+  observe:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch idempotent reconciliation
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run reconcile-published-release.yml -f release_tag=v0.1.4
+      - name: Emit non-authorizing reconciliation request
+        run: |
+          mkdir -p reports/release_reconciliation
+          cat > reports/release_reconciliation/activation-request.json <<'JSON'
+          {
+            "schema": "stegverse.kv.release-reconciliation-request/v1",
+            "state": "TVC_ADMITTED_RELEASE_RECONCILIATION_REQUIRED",
+            "workflow_dispatch_performed": false,
+            "repository_mutation_performed": false,
+            "release_mutation_performed": false,
+            "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
+            "credential_authority": "TV/TVC",
+            "canonical_next_transition": "TVC_ADMITTED_RELEASE_RECONCILIATION",
+            "authority_effect": "NONE"
+          }
+          JSON
+
+      - name: Upload non-authorizing reconciliation request
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-reconciliation-request-${{ github.run_id }}
+          path: reports/release_reconciliation/activation-request.json
+          if-no-files-found: error
+          retention-days: 30

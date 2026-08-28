@@ -1,4 +1,4 @@
-name: Downstream release propagation
+name: Downstream release propagation - Validation Only
 
 on:
   release:
@@ -11,179 +11,70 @@ on:
         type: string
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
 
 concurrency:
-  group: downstream-release-propagation
+  group: downstream-release-propagation-validation
   cancel-in-progress: false
 
 jobs:
-  determine:
+  observe:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Check out source repository
+      - name: Check out source repository without credential persistence
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Resolve release tag
-        id: release
+      - name: Project downstream review requirement
         env:
           EVENT_TAG: ${{ github.event.release.tag_name }}
           INPUT_TAG: ${{ inputs.release_tag }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          tag="${EVENT_TAG:-${INPUT_TAG:-}}"
-          if [ -z "$tag" ]; then
-            tag=$(git tag --sort=-version:refname | head -n 1)
-          fi
-          if [ -z "$tag" ]; then
-            echo "No release tag is available; propagation is not actionable."
-            exit 1
-          fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
-      - name: Inspect downstream repositories
-        id: inspect
-        env:
-          SOURCE_REPOSITORY: ${{ github.repository }}
-          SOURCE_TAG: ${{ steps.release.outputs.tag }}
-        run: |
+          mkdir -p reports/downstream_propagation
           python3 - <<'PY'
-          import json
-          import os
-          import subprocess
+          import json, os, subprocess
           from datetime import datetime, timezone
           from pathlib import Path
-
-          root = Path.cwd()
-          registry = json.loads((root / "automation/downstream-propagation.json").read_text(encoding="utf-8"))
-          workspace = root / ".downstream-scan"
-          workspace.mkdir(exist_ok=True)
-          results = []
-
+          tag=os.environ.get("EVENT_TAG") or os.environ.get("INPUT_TAG") or ""
+          if not tag:
+              tags=subprocess.run(["git","tag","--sort=-version:refname"],text=True,capture_output=True,check=False).stdout.splitlines()
+              tag=tags[0] if tags else ""
+          registry=json.loads(Path("automation/downstream-propagation.json").read_text(encoding="utf-8"))
+          results=[]
           for destination in registry["destinations"]:
-              repo = destination["repository"]
-              clone_dir = workspace / repo.replace("/", "__")
-              clone_url = f"https://github.com/{repo}.git"
-              clone = subprocess.run(
-                  ["git", "clone", "--depth", "1", "--branch", destination.get("default_branch", "main"), clone_url, str(clone_dir)],
-                  text=True,
-                  capture_output=True,
-                  check=False,
-              )
-              if clone.returncode != 0:
-                  results.append({
-                      "repository": repo,
-                      "determination": "repository unavailable or renamed",
-                      "rationale": clone.stderr.strip()[-500:] or "clone failed",
-                      "matches": [],
-                  })
-                  continue
-
-              matches = []
-              excluded = {".git"}
-              for path in clone_dir.rglob("*"):
-                  if not path.is_file() or any(part in excluded for part in path.parts):
-                      continue
-                  try:
-                      text = path.read_text(encoding="utf-8")
-                  except (UnicodeDecodeError, OSError):
-                      continue
-                  lowered = text.lower()
-                  hit_terms = [term for term in destination["search_terms"] if term.lower() in lowered]
-                  if hit_terms:
-                      matches.append({
-                          "path": str(path.relative_to(clone_dir)),
-                          "terms": sorted(hit_terms),
-                      })
-
-              if matches:
-                  determination = "update required"
-                  rationale = "Existing repository-specific references require review against the new release."
-              else:
-                  determination = "no update required"
-                  rationale = "No direct Continuity Vault Kit release, install, download, compatibility, or mirror reference was found."
-
               results.append({
-                  "repository": repo,
-                  "determination": determination,
-                  "rationale": rationale,
-                  "matches": matches,
+                  "repository":destination["repository"],
+                  "default_branch":destination.get("default_branch","main"),
+                  "search_terms":destination["search_terms"],
+                  "determination":"NON_HOSTED_REVIEW_REQUIRED",
               })
-
-          tag = os.environ["SOURCE_TAG"]
-          now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-          payload = {
-              "schema_version": "1.0",
-              "source_repository": os.environ["SOURCE_REPOSITORY"],
-              "source_release": tag,
-              "checked_utc": now,
-              "results": results,
+          payload={
+              "schema":"stegverse.kv.downstream-propagation-observation/v1",
+              "source_repository":os.environ["REPOSITORY"],
+              "source_release":tag or None,
+              "configured_destination_count":len(results),
+              "results":results,
+              "repository_mutation_performed":False,
+              "issue_mutation_performed":False,
+              "downstream_mutation_performed":False,
+              "github_actions_role":"VALIDATION_TRANSPORT_ONLY",
+              "canonical_next_transition":"NON_HOSTED_DOWNSTREAM_PROPAGATION_REVIEW",
+              "authority_effect":"NONE",
+              "observed_utc":datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z"),
           }
-          out_dir = root / "evidence" / "downstream-propagation"
-          out_dir.mkdir(parents=True, exist_ok=True)
-          (out_dir / "latest.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-          lines = [
-              "# Downstream Propagation Determination",
-              "",
-              f"- Source release: `{tag}`",
-              f"- Checked UTC: `{now}`",
-              "",
-          ]
-          for result in results:
-              lines.extend([
-                  f"## {result['repository']}",
-                  "",
-                  f"**Determination:** {result['determination']}",
-                  "",
-                  result["rationale"],
-                  "",
-              ])
-              if result["matches"]:
-                  lines.append("Matched publication surfaces:")
-                  lines.append("")
-                  for match in result["matches"]:
-                      lines.append(f"- `{match['path']}` — {', '.join(match['terms'])}")
-                  lines.append("")
-          (out_dir / "latest.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-
-          actionable = [r for r in results if r["determination"] != "no update required"]
-          output = Path(os.environ["GITHUB_OUTPUT"])
-          with output.open("a", encoding="utf-8") as handle:
-              handle.write(f"actionable_count={len(actionable)}\n")
-              handle.write("summary=" + json.dumps({"tag": tag, "results": results}, separators=(",", ":")) + "\n")
+          Path("reports/downstream_propagation/observation.json").write_text(json.dumps(payload,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+          print(json.dumps(payload,sort_keys=True))
           PY
 
-      - name: Commit durable propagation receipt
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add evidence/downstream-propagation/latest.json evidence/downstream-propagation/latest.md
-          if git diff --cached --quiet; then
-            echo "Propagation receipt is unchanged."
-          else
-            git commit -m "evidence: record downstream propagation for ${{ steps.release.outputs.tag }}"
-            git push origin HEAD:main
-          fi
-
-      - name: Record determination and close completed gate
-        if: steps.inspect.outputs.actionable_count == '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh issue comment 10 --body "Automated downstream propagation completed for \`${{ steps.release.outputs.tag }}\`. All configured destinations were determined to require no update because no direct kit release, install, download, compatibility, or mirror reference was found. Durable receipt: \`evidence/downstream-propagation/latest.md\`. Workflow: ${RUN_URL}."
-          gh issue close 10 --reason completed
-
-      - name: Record actionable propagation findings
-        if: steps.inspect.outputs.actionable_count != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh issue comment 10 --body "Automated downstream propagation found ${{ steps.inspect.outputs.actionable_count }} actionable or unavailable destinations for \`${{ steps.release.outputs.tag }}\`. Exact files and rationales are preserved in \`evidence/downstream-propagation/latest.md\`. Workflow: ${RUN_URL}. Issue #10 remains open until automation can apply or conclusively classify those destinations."
+      - name: Upload non-authorizing downstream observation
+        uses: actions/upload-artifact@v4
+        with:
+          name: downstream-propagation-observation-${{ github.run_id }}
+          path: reports/downstream_propagation/observation.json
+          if-no-files-found: error
+          retention-days: 30

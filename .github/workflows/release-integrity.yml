@@ -15,8 +15,10 @@ on:
       - "tests/test_hosted_candidate_authority_retirement.py"
       - "tests/test_hosted_onboarding_control_plane_retirement.py"
       - "tests/test_production_provider_hosted_authority_retirement.py"
+      - "tests/test_release_reconciliation_hosted_authority_retirement.py"
       - "tests/test_hosted_onboarding_control_plane_retirement.py"
       - "tests/test_production_provider_hosted_authority_retirement.py"
+      - "tests/test_release_reconciliation_hosted_authority_retirement.py"
       - "vault_template/**"
       - "automation/**"
       - "evidence/onboarding-friction/**"
@@ -90,6 +92,9 @@ jobs:
 
       - name: Validate production provider hosted authority retirement
         run: python3 -m unittest tests.test_production_provider_hosted_authority_retirement -v
+
+      - name: Validate release reconciliation hosted authority retirement
+        run: python3 -m unittest tests.test_release_reconciliation_hosted_authority_retirement -v
 
       - name: Rebuild release evidence
         run: |

@@ -21,6 +21,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - retired `automation-candidate-implementation.yml` hosted issue/repository/workflow-dispatch mutation authority; merged-PR candidate references are now emitted only as non-authorizing observation evidence
 - retired the coupled onboarding-friction triage/maintenance/bootstrap and candidate-lifecycle hosted control plane; classification and threshold projections now emit non-authorizing artifacts without issue, label, repository, workflow-dispatch, or token authority
 - retired GitHub-OIDC production-provider activation authority; hosted provider workflow now validates IaC source only and defers cloud identity/provisioning/apply to TVC-admitted resident execution
+- retired residual hosted release reconciliation/downstream mutation and retry-dispatch authority; release/downstream workflows now emit non-authorizing observations and defer canonical transitions to TV/TVC/non-hosted owners
 - preserved TV/TVC as the only credential/release authority; no successor release is claimed until an admitted TVC publication path actually runs
 
 ### Notes

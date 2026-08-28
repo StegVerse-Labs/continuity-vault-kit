@@ -36,6 +36,21 @@ WORKFLOWS = {
         "canonical_evidence_transition_performed",
         "actions/upload-artifact@v4",
     },
+    "reconcile-published-release.yml": {
+        "name: Reconcile published release evidence - Validation Only",
+        "contents: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "TVC_ADMITTED_RELEASE_RECONCILIATION",
+        "actions/upload-artifact@v4",
+    },
+    "reconcile-release-activation.yml": {
+        "name: Activate release reconciliation - Validation Only",
+        "contents: read",
+        "VALIDATION_TRANSPORT_ONLY",
+        "TVC_ADMITTED_RELEASE_RECONCILIATION_REQUIRED",
+        "actions/upload-artifact@v4",
+    },
     "release-cycle-recovery.yml": {
         "name: Release cycle recovery - Validation Only",
         'workflows: ["Release cycle outcome - Validation Only"]',
@@ -44,7 +59,14 @@ WORKFLOWS = {
         "workflow_dispatch_performed",
         "actions/upload-artifact@v4",
     },
-    "downstream-propagation.yml": {"release:", "evidence/downstream-propagation"},
+    "downstream-propagation.yml": {
+        "name: Downstream release propagation - Validation Only",
+        "contents: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_DOWNSTREAM_PROPAGATION_REVIEW",
+        "actions/upload-artifact@v4",
+    },
     "onboarding-friction-bootstrap.yml": {
         "name: Onboarding friction bootstrap - Validation Only",
         "workflow_dispatch:",
@@ -246,6 +268,46 @@ def validate_release_cycle_outcome() -> None:
         fail("release-cycle outcome scope must preserve the content-certification boundary")
     read_text(REPO_ROOT / "docs" / "release_evidence" / "latest_cycle.md")
 
+
+
+
+def validate_release_reconciliation_hosted_boundary() -> None:
+    workflow_root = REPO_ROOT / ".github" / "workflows"
+    files = (
+        "downstream-propagation.yml",
+        "reconcile-published-release.yml",
+        "reconcile-release-activation.yml",
+    )
+    forbidden = {
+        "contents: write",
+        "actions: write",
+        "issues: write",
+        "git push",
+        "git commit",
+        "gh issue ",
+        "gh workflow run",
+        "github.token",
+        "GH_TOKEN:",
+        "${{ secrets.",
+        "gh release ",
+    }
+    for filename in files:
+        text = read_text(workflow_root / filename)
+        present = sorted(token for token in forbidden if token in text)
+        if present:
+            fail(f"{filename} reintroduces hosted release/downstream authority: {', '.join(present)}")
+        required = {
+            "contents: read",
+            "VALIDATION_TRANSPORT_ONLY",
+            "authority_effect",
+            "NONE",
+            "actions/upload-artifact@v4",
+        }
+        if "actions/checkout@v4" in text:
+            required.add("persist-credentials: false")
+        missing = sorted(token for token in required if token not in text)
+        if missing:
+            fail(f"{filename} missing validation-only reconciliation tokens: {', '.join(missing)}")
 
 
 def validate_production_provider_hosted_boundary() -> None:
@@ -461,6 +523,7 @@ def main() -> int:
         validate_release_cycle,
         validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
+        validate_release_reconciliation_hosted_boundary,
         validate_production_provider_hosted_boundary,
         validate_candidate_implementation_boundary,
         validate_hosted_onboarding_control_plane_boundary,
