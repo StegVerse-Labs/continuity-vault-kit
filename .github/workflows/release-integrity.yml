@@ -13,6 +13,8 @@ on:
       - "tools/test_automation_contracts.py"
       - "tests/test_hosted_release_authority_retirement.py"
       - "tests/test_hosted_candidate_authority_retirement.py"
+      - "tests/test_hosted_onboarding_control_plane_retirement.py"
+      - "tests/test_hosted_onboarding_control_plane_retirement.py"
       - "vault_template/**"
       - "automation/**"
       - "evidence/onboarding-friction/**"
@@ -80,6 +82,9 @@ jobs:
 
       - name: Validate hosted candidate authority retirement
         run: python3 -m unittest tests.test_hosted_candidate_authority_retirement -v
+
+      - name: Validate hosted onboarding control-plane retirement
+        run: python3 -m unittest tests.test_hosted_onboarding_control_plane_retirement -v
 
       - name: Rebuild release evidence
         run: |

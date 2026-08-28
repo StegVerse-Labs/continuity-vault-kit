@@ -1,4 +1,4 @@
-name: Onboarding friction triage
+name: Onboarding friction triage - Validation Only
 
 on:
   issues:
@@ -6,15 +6,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
 
 concurrency:
-  group: onboarding-friction-triage
+  group: onboarding-friction-triage-validation
   cancel-in-progress: false
 
 jobs:
-  triage:
+  observe:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.issue.labels.*.name, 'onboarding-friction')
@@ -22,39 +21,29 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Check out repository
+      - name: Check out repository without credential persistence
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Ensure triage labels exist
+      - name: Classify current report without mutation
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh label create onboarding-friction --color D4C5F9 --description "Structured first-use or setup friction" --force
-          gh label create needs-reproduction --color FEF2C0 --description "Setup report needs reproducible details" --force
-          gh label create automation-candidate --color B60205 --description "Repeated friction eligible for repository automation" --force
-          for name in ios android windows macos linux other initializer unzip manual-copy release-verification markdown first-use; do
-            gh label create "friction:${name}" --color C5DEF5 --description "Automated onboarding-friction classification" --force
-          done
-
-      - name: Classify current report
-        if: github.event_name == 'issues'
-        id: classify
-        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
+          mkdir -p reports/onboarding_friction
           python3 - <<'PY'
-          import os
-          import re
+          import json, os, re
+          from datetime import datetime, timezone
           from pathlib import Path
 
-          body = os.environ.get("ISSUE_BODY", "")
-
-          def field(label: str) -> str:
-              pattern = rf"### {re.escape(label)}\s+(.+?)(?=\n### |\Z)"
-              match = re.search(pattern, body, flags=re.S)
-              return match.group(1).strip() if match else ""
+          body = os.environ.get("ISSUE_BODY", "") or ""
+          def field(label):
+              m = re.search(rf"### {re.escape(label)}\s+(.+?)(?=\n### |\Z)", body, flags=re.S)
+              return m.group(1).strip() if m else ""
 
           platform_raw = field("Platform").lower()
           path_raw = field("Setup path").lower()
@@ -63,156 +52,46 @@ jobs:
           observed = field("What happened")
           expected = field("What you expected")
 
-          platform_map = {
-              "iphone or ipad": "ios",
-              "android": "android",
-              "windows": "windows",
-              "macos": "macos",
-              "linux": "linux",
-          }
-          path_map = {
-              "python initializer": "initializer",
-              "download and unzip": "unzip",
-              "copy vault_template manually": "manual-copy",
-              "release zip verification": "release-verification",
-              "opening or editing markdown files": "markdown",
-          }
-
-          platform = platform_map.get(platform_raw, "other")
-          path = path_map.get(path_raw, "first-use")
-          stage = re.sub(r"[^a-z0-9]+", "-", stage_raw).strip("-") or "unknown"
-          complete = all((platform_raw, path_raw, stage_raw, attempted, observed, expected))
+          platform = {
+              "iphone or ipad":"ios","android":"android","windows":"windows",
+              "macos":"macos","linux":"linux"
+          }.get(platform_raw, "other")
+          path = {
+              "python initializer":"initializer","download and unzip":"unzip",
+              "copy vault_template manually":"manual-copy",
+              "release zip verification":"release-verification",
+              "opening or editing markdown files":"markdown"
+          }.get(path_raw, "first-use")
+          stage = re.sub(r"[^a-z0-9]+","-",stage_raw).strip("-") or "unknown"
+          complete = all((platform_raw,path_raw,stage_raw,attempted,observed,expected))
           signature = f"{platform}:{path}:{stage}"
-
-          response = {
-              "initializer": "Run `python3 tools/init_vault.py --dry-run /path/to/parent` first. The initializer refuses overwrite, verifies copied hashes, removes partial installs on failure, and writes an installation receipt after success.",
-              "release-verification": "Keep the release ZIP beside its `.sha256` and `.manifest.json` sidecars, then run `python3 tools/verify_release.py <release.zip>`.",
-              "unzip": "Confirm the archive expands to a single `KnowledgeVault/` folder. Do not merge it into an existing accepted vault; preserve the existing vault and use the migration guidance instead.",
-              "manual-copy": "Copy the complete `vault_template/KnowledgeVault/` tree into a new destination. Do not overwrite an existing vault.",
-              "markdown": "The vault uses ordinary Markdown files. Open them with any text or Markdown editor; no account or specialized application is required.",
-          }.get(path, "Use the shortest reproducible steps and preserve the existing vault until the destination or change is verified.")
-
-          out = Path(os.environ["GITHUB_OUTPUT"])
-          with out.open("a", encoding="utf-8") as handle:
-              handle.write(f"platform={platform}\n")
-              handle.write(f"path={path}\n")
-              handle.write(f"stage={stage}\n")
-              handle.write(f"signature={signature}\n")
-              handle.write(f"complete={'true' if complete else 'false'}\n")
-              handle.write("response<<EOF\n" + response + "\nEOF\n")
-          PY
-
-      - name: Apply classification and respond
-        if: github.event_name == 'issues'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          PLATFORM: ${{ steps.classify.outputs.platform }}
-          PATH_CLASS: ${{ steps.classify.outputs.path }}
-          COMPLETE: ${{ steps.classify.outputs.complete }}
-          RESPONSE: ${{ steps.classify.outputs.response }}
-          SIGNATURE: ${{ steps.classify.outputs.signature }}
-        run: |
-          gh issue edit "$ISSUE_NUMBER" --add-label "friction:${PLATFORM}" --add-label "friction:${PATH_CLASS}"
-          if [ "$COMPLETE" != "true" ]; then
-            gh issue edit "$ISSUE_NUMBER" --add-label needs-reproduction
-          else
-            gh issue edit "$ISSUE_NUMBER" --remove-label needs-reproduction 2>/dev/null || true
-          fi
-          gh issue comment "$ISSUE_NUMBER" --body "Automated triage signature: \`${SIGNATURE}\`. ${RESPONSE}\n\nThis response is guidance only. It does not authorize overwriting an existing vault or exposing private vault content."
-
-      - name: Build durable friction registry
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p evidence/onboarding-friction
-          gh issue list --state all --label onboarding-friction --limit 1000 --json number,title,state,createdAt,updatedAt,labels,url,body > /tmp/friction-issues.json
-          python3 - <<'PY'
-          import json
-          import re
-          from collections import Counter
-          from datetime import datetime, timezone
-          from pathlib import Path
-
-          issues = json.loads(Path('/tmp/friction-issues.json').read_text(encoding='utf-8'))
-          records = []
-          counts = Counter()
-
-          def field(body: str, label: str) -> str:
-              match = re.search(rf"### {re.escape(label)}\s+(.+?)(?=\n### |\Z)", body or "", flags=re.S)
-              return match.group(1).strip() if match else "unknown"
-
-          for issue in issues:
-              labels = [item['name'] for item in issue.get('labels', [])]
-              platform = next((x.split(':', 1)[1] for x in labels if x.startswith('friction:') and x.split(':', 1)[1] in {'ios','android','windows','macos','linux','other'}), 'other')
-              path_class = next((x.split(':', 1)[1] for x in labels if x.startswith('friction:') and x.split(':', 1)[1] in {'initializer','unzip','manual-copy','release-verification','markdown','first-use'}), 'first-use')
-              stage = re.sub(r"[^a-z0-9]+", "-", field(issue.get('body', ''), 'Failure stage').lower()).strip('-') or 'unknown'
-              signature = f"{platform}:{path_class}:{stage}"
-              counts[signature] += 1
-              records.append({
-                  'issue_number': issue['number'],
-                  'state': issue['state'],
-                  'signature': signature,
-                  'url': issue['url'],
-                  'created_at': issue['createdAt'],
-                  'updated_at': issue['updatedAt'],
-              })
-
-          generated = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
           payload = {
-              'schema_version': '1.0',
-              'generated_utc': generated,
-              'report_count': len(records),
-              'threshold': 3,
-              'signature_counts': dict(sorted(counts.items())),
-              'reports': sorted(records, key=lambda x: x['issue_number']),
-              'privacy_scope': 'issue metadata and user-supplied reproducible setup details only; private vault content prohibited',
+              "schema":"stegverse.kv.onboarding-friction-observation/v1",
+              "event_name":os.environ.get("EVENT_NAME",""),
+              "issue_number":int(os.environ["ISSUE_NUMBER"]) if os.environ.get("ISSUE_NUMBER") else None,
+              "issue_url":os.environ.get("ISSUE_URL") or None,
+              "signature":signature,
+              "complete_reproduction_fields":complete,
+              "projected_labels":[f"friction:{platform}",f"friction:{path}"] + ([] if complete else ["needs-reproduction"]),
+              "threshold":3,
+              "canonical_issue_mutation_performed":False,
+              "label_mutation_performed":False,
+              "repository_mutation_performed":False,
+              "candidate_creation_performed":False,
+              "github_actions_role":"VALIDATION_TRANSPORT_ONLY",
+              "canonical_next_transition":"NON_HOSTED_FRICTION_RECONCILIATION",
+              "authority_effect":"NONE",
+              "observed_utc":datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z"),
           }
-          root = Path('evidence/onboarding-friction')
-          (root / 'latest.json').write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
-          lines = [
-              '# Onboarding Friction Registry', '',
-              f'- **Generated UTC:** `{generated}`',
-              f'- **Reports:** `{len(records)}`',
-              '- **Automation-candidate threshold:** `3 reports with the same signature`', '',
-              '## Signature counts', '',
-          ]
-          if counts:
-              lines.extend(f'- `{signature}`: {count}' for signature, count in sorted(counts.items()))
-          else:
-              lines.append('- No structured onboarding-friction reports recorded.')
-          lines += ['', 'This registry excludes private vault content and does not authorize automated mutation of user vaults.', '']
-          (root / 'latest.md').write_text('\n'.join(lines), encoding='utf-8')
-          Path('/tmp/candidates.json').write_text(json.dumps([s for s, c in counts.items() if c >= 3]), encoding='utf-8')
+          Path("reports/onboarding_friction/triage-observation.json").write_text(
+              json.dumps(payload,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+          print(json.dumps(payload,sort_keys=True))
           PY
 
-      - name: Create threshold-based automation candidates
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 - <<'PY' > /tmp/candidates.txt
-          import json
-          from pathlib import Path
-          for signature in json.loads(Path('/tmp/candidates.json').read_text(encoding='utf-8')):
-              print(signature)
-          PY
-          while IFS= read -r signature; do
-            [ -n "$signature" ] || continue
-            title="[Automation candidate] ${signature}"
-            existing=$(gh issue list --state open --label automation-candidate --search "${title} in:title" --json number --jq '.[0].number // empty')
-            if [ -z "$existing" ]; then
-              gh issue create --title "$title" --label automation-candidate --body "At least three structured onboarding-friction reports share signature \`${signature}\`.\n\nInvestigate the smallest repository-native fix that removes the demonstrated manual step without adding an account, hosted service, mandatory SDK, or authority over user vault content.\n\nSource registry: \`evidence/onboarding-friction/latest.json\`."
-            fi
-          done < /tmp/candidates.txt
-
-      - name: Commit updated friction evidence
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add evidence/onboarding-friction/latest.json evidence/onboarding-friction/latest.md
-          if git diff --cached --quiet; then
-            echo "Friction registry unchanged"
-          else
-            git commit -m "ci: update onboarding friction registry [skip ci]"
-            git push
-          fi
+      - name: Upload non-authorizing triage observation
+        uses: actions/upload-artifact@v4
+        with:
+          name: onboarding-friction-triage-${{ github.run_id }}
+          path: reports/onboarding_friction/triage-observation.json
+          if-no-files-found: error
+          retention-days: 30

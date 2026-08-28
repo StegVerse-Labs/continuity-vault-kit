@@ -1,4 +1,4 @@
-name: Onboarding friction bootstrap
+name: Onboarding friction bootstrap - Validation Only
 
 on:
   push:
@@ -10,20 +10,53 @@ on:
   workflow_dispatch:
 
 permissions:
-  issues: write
+  contents: read
 
 jobs:
-  labels:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ensure onboarding labels exist
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Check out repository without credential persistence
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate expected label vocabulary without mutation
         run: |
-          gh label create onboarding-friction --repo "${{ github.repository }}" --color D4C5F9 --description "Structured first-use or setup friction" --force
-          gh label create needs-reproduction --repo "${{ github.repository }}" --color FEF2C0 --description "Setup report needs reproducible details" --force
-          gh label create automation-candidate --repo "${{ github.repository }}" --color B60205 --description "Repeated friction eligible for repository automation" --force
-          for name in ios android windows macos linux other initializer unzip manual-copy release-verification markdown first-use; do
-            gh label create "friction:${name}" --repo "${{ github.repository }}" --color C5DEF5 --description "Automated onboarding-friction classification" --force
-          done
+          mkdir -p reports/onboarding_friction
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          labels=[
+              "onboarding-friction","needs-reproduction","automation-candidate",
+              "friction:ios","friction:android","friction:windows","friction:macos",
+              "friction:linux","friction:other","friction:initializer","friction:unzip",
+              "friction:manual-copy","friction:release-verification","friction:markdown",
+              "friction:first-use"
+          ]
+          payload={
+              "schema":"stegverse.kv.onboarding-friction-bootstrap-observation/v1",
+              "expected_labels":labels,
+              "label_mutation_performed":False,
+              "issue_mutation_performed":False,
+              "repository_mutation_performed":False,
+              "github_actions_role":"VALIDATION_TRANSPORT_ONLY",
+              "canonical_next_transition":"NON_HOSTED_LABEL_PROVISIONING_IF_REQUIRED",
+              "authority_effect":"NONE",
+              "observed_utc":datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z"),
+          }
+          Path("reports/onboarding_friction/bootstrap-observation.json").write_text(
+              json.dumps(payload,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+          print(json.dumps(payload,sort_keys=True))
+          PY
+
+      - name: Upload non-authorizing bootstrap observation
+        uses: actions/upload-artifact@v4
+        with:
+          name: onboarding-friction-bootstrap-${{ github.run_id }}
+          path: reports/onboarding_friction/bootstrap-observation.json
+          if-no-files-found: error
+          retention-days: 30
