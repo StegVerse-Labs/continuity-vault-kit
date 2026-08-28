@@ -3,8 +3,8 @@
 Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #85
-Branch: `fix/onboarding-friction-hosted-control-plane-85`
-State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
+Branch: `main`
+State: MERGED_VALIDATED_HOSTED_CONTROL_PLANE_RETIRED
 
 ## Goal
 
@@ -110,3 +110,23 @@ Regression:
 ## Next executable boundary
 
 Run exact-head validation; repair source/test defects without restoring hosted mutation authority; merge only after green evidence. Then scan remaining workflows for hosted mutation authority and continue only through a new bounded handoff if a distinct surface remains.
+
+
+## Merge and validation evidence
+
+```text
+PR: #89
+validated head: 017cd46ada5257ad2d2c44c966b4f60b9f9c0dd1
+merge: 05125a75c4dddb42b3de2b70201dcd99eed368a1
+
+Release integrity: 33135922653 SUCCESS
+Repository validation diagnostics: 33135922657 SUCCESS
+Security Baseline: 33135922517 SUCCESS
+KV Guardrails: 33135922600 SUCCESS
+```
+
+All four coupled workflows are now read-only validation/evidence transport. Threshold=3 semantics remain intact. No issue, label, repository, workflow-dispatch, token, release, deployment, or activation authority was granted.
+
+## Current next boundary
+
+Issue #85 source-retirement goal is COMPLETE. Continue repository-wide inspection for any distinct hosted mutation authority not already covered by #78/#82/#84/#89. Production KV runtime deployment, live InTr boundary/readback, TVC owner ingress, provider execution, and TVC release publication remain separate open runtime gates.
