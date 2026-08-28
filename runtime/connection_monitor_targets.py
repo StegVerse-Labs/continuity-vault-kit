@@ -40,6 +40,7 @@ def validate_target(target:Dict[str,Any])->Dict[str,Any]:
 def compile_monitor_targets(assemblies:list[Dict[str,Any]],source_catalog:Dict[str,Dict[str,Any]])->Dict[str,Any]:
     if not isinstance(assemblies,list) or not isinstance(source_catalog,dict):
         raise ConnectionMonitorTargetError("assemblies list and source catalog object required")
+    reject_secret_fields(source_catalog,"$.source_catalog")
     targets=[]
     for assembly in assemblies:
         reject_secret_fields(assembly,"$.assembly")
