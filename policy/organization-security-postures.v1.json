@@ -1,0 +1,75 @@
+{
+  "schema": "stegverse.kv.organization-security-posture-presets/v1",
+  "presets": {
+    "EMPLOYEE_PRIVATE": {
+      "admin_inspection": "BUSINESS_SCOPE",
+      "org_replay": false,
+      "org_reconstruction": false,
+      "cross_kv_search": "BUSINESS_SCOPE",
+      "employee_consent_required": true,
+      "break_glass": true,
+      "legal_hold": true,
+      "audit_receipt_required": true,
+      "compartment_enforcement": false
+    },
+    "BUSINESS_GOVERNED": {
+      "admin_inspection": "BUSINESS_SCOPE",
+      "org_replay": true,
+      "org_reconstruction": false,
+      "cross_kv_search": "BUSINESS_SCOPE",
+      "employee_consent_required": false,
+      "break_glass": true,
+      "legal_hold": true,
+      "audit_receipt_required": true,
+      "compartment_enforcement": false
+    },
+    "ADMINISTRATIVE_SUPERVISION": {
+      "admin_inspection": "BROAD_GOVERNED",
+      "org_replay": true,
+      "org_reconstruction": false,
+      "cross_kv_search": "BROAD_GOVERNED",
+      "employee_consent_required": false,
+      "break_glass": true,
+      "legal_hold": true,
+      "audit_receipt_required": true,
+      "compartment_enforcement": false
+    },
+    "GOVERNMENT_HIGH_CONTROL": {
+      "admin_inspection": "BROAD_GOVERNED",
+      "org_replay": true,
+      "org_reconstruction": true,
+      "cross_kv_search": "BROAD_GOVERNED",
+      "employee_consent_required": false,
+      "break_glass": true,
+      "legal_hold": true,
+      "audit_receipt_required": true,
+      "compartment_enforcement": true
+    },
+    "COMPARTMENTED_REGULATED": {
+      "admin_inspection": "ROLE_COMPARTMENT_BOUND",
+      "org_replay": true,
+      "org_reconstruction": true,
+      "cross_kv_search": "COMPARTMENT_BOUND",
+      "employee_consent_required": false,
+      "break_glass": true,
+      "legal_hold": true,
+      "audit_receipt_required": true,
+      "compartment_enforcement": true
+    }
+  },
+  "tier_rules": {
+    "CORE": {
+      "replay": false,
+      "reconstruction": false
+    },
+    "P1_REPLAY": {
+      "replay": true,
+      "reconstruction": false
+    },
+    "P2_RECONSTRUCTION": {
+      "replay": true,
+      "reconstruction": true
+    }
+  },
+  "authority_effect": "NONE_POLICY_ONLY"
+}
