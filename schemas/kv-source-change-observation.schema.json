@@ -1,0 +1,23 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-source-change-observation.schema.json",
+  "title":"KnowledgeVault source change observation",
+  "type":"object",
+  "required":["schema","observation_id","provider","observed_at","source_ref","source_type","change_class","severity","breaking","affected_assumptions","summary","authority_effect"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.source-change-observation/v1"},
+    "observation_id":{"type":"string","pattern":"^kvchg_[a-f0-9]{24}$"},
+    "provider":{"type":"string","minLength":1},
+    "observed_at":{"type":"string","minLength":1},
+    "source_ref":{"type":"string","minLength":1},
+    "source_type":{"enum":["provider_documentation","provider_changelog","provider_status","stegverse_conformance_observation"]},
+    "change_class":{"enum":["api_version","authentication","mfa_session","endpoint","deprecation","changelog","sdk_dependency","rate_limit","permission_scope","product_model","data_schema","export_format","browser_platform","service_health"]},
+    "severity":{"enum":["INFO","LOW","MEDIUM","HIGH","CRITICAL"]},
+    "breaking":{"type":"boolean"},
+    "affected_assumptions":{"type":"array","items":{"type":"string","minLength":1}},
+    "summary":{"type":"string","minLength":1},
+    "effective_at":{"type":["string","null"]},
+    "authority_effect":{"const":"NONE"}
+  },
+  "additionalProperties":false
+}
