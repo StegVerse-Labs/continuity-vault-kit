@@ -708,3 +708,25 @@ authority_effect: NONE
 ```
 
 Downstream registry and release-evidence consistency are now observed only; canonical release/downstream transitions remain non-hosted.
+
+
+### StegDB overlay hosted writeback retirement — completion
+
+Issue #97 / PR #98 is merged and validated.
+
+```text
+validated head: 496cb404d2e11b33cd77cb9cd477389db6a88e03
+merge: 3c5067d9300c6e36becd3dfd962605cc78b74f0a
+Release Integrity: 33136456687 SUCCESS
+Repository diagnostics: 33136456629 SUCCESS
+Security Baseline: 33136456668 SUCCESS
+KV Guardrails: 33136456681 SUCCESS
+repository mutation: false
+git commit/push: false
+StegDB mutation: false
+candidate tree/hash inventory/patch artifact: retained
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+```
+
+Canonical StegDB→CVK overlay sync is now a separately admitted non-hosted repository transition.
