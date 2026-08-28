@@ -7,6 +7,8 @@ on:
       - "schemas/kv-email-account-mapping.schema.json"
       - "schemas/kv-email-ingress-receipt.schema.json"
       - "schemas/kv-email-provider-registry.schema.json"
+      - "schemas/kv-personal-contact-profile.schema.json"
+      - "vault_template/KnowledgeVault/_Entities/Self/Personal_Contact_Profile.json"
       - "specs/kv-email-provider-registry.v1.json"
       - "tools/check_kv_email_provider_registry.py"
       - "specs/kv-email-ingress-policy.v1.json"
@@ -22,6 +24,8 @@ on:
       - "tests/test_email_interlock.py"
       - "runtime/documented_email_providers.py"
       - "tests/test_documented_email_providers.py"
+      - "runtime/personal_contact_profile.py"
+      - "tests/test_personal_contact_profile.py"
       - "KV_EMAIL_INGRESS_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-kv-email-ingress-policy.yml"
   push:
@@ -29,11 +33,27 @@ on:
     paths:
       - "schemas/kv-email-ingress-policy.schema.json"
       - "schemas/kv-email-account-mapping.schema.json"
+      - "schemas/kv-email-ingress-receipt.schema.json"
+      - "schemas/kv-email-provider-registry.schema.json"
+      - "schemas/kv-personal-contact-profile.schema.json"
+      - "vault_template/KnowledgeVault/_Entities/Self/Personal_Contact_Profile.json"
+      - "specs/kv-email-provider-registry.v1.json"
+      - "tools/check_kv_email_provider_registry.py"
       - "specs/kv-email-ingress-policy.v1.json"
       - "tools/check_kv_email_ingress_policy.py"
       - "tests/test_kv_email_ingress_policy.py"
       - "runtime/email_continuity.py"
       - "tests/test_email_continuity_runtime.py"
+      - "runtime/email_ingress_pipeline.py"
+      - "runtime/email_provider_adapter.py"
+      - "runtime/email_interlock.py"
+      - "runtime/documented_email_providers.py"
+      - "runtime/personal_contact_profile.py"
+      - "tests/test_email_ingress_pipeline.py"
+      - "tests/test_email_provider_adapter.py"
+      - "tests/test_email_interlock.py"
+      - "tests/test_documented_email_providers.py"
+      - "tests/test_personal_contact_profile.py"
 
 permissions:
   contents: read
@@ -51,4 +71,4 @@ jobs:
       - name: Validate documented provider registry
         run: python tools/check_kv_email_provider_registry.py
       - name: Run deterministic tests
-        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime tests.test_email_ingress_pipeline tests.test_email_provider_adapter tests.test_email_interlock tests.test_documented_email_providers -v
+        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime tests.test_email_ingress_pipeline tests.test_email_provider_adapter tests.test_email_interlock tests.test_documented_email_providers tests.test_personal_contact_profile -v
