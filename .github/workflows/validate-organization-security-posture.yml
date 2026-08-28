@@ -1,0 +1,42 @@
+name: Validate organization KV security posture
+
+on:
+  pull_request:
+    paths:
+      - 'ORG_SECURITY_POSTURE_MIRROR_HANDOFF.md'
+      - 'schemas/kv-organization-security-posture.schema.json'
+      - 'schemas/kv-organization-posture-change-receipt.schema.json'
+      - 'policy/organization-security-postures.v1.json'
+      - 'runtime/organization_security_posture.py'
+      - 'tests/test_organization_security_posture.py'
+      - 'tools/check_organization_security_posture.py'
+      - '.github/workflows/validate-organization-security-posture.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ORG_SECURITY_POSTURE_MIRROR_HANDOFF.md'
+      - 'schemas/kv-organization-security-posture.schema.json'
+      - 'schemas/kv-organization-posture-change-receipt.schema.json'
+      - 'policy/organization-security-postures.v1.json'
+      - 'runtime/organization_security_posture.py'
+      - 'tests/test_organization_security_posture.py'
+      - 'tools/check_organization_security_posture.py'
+      - '.github/workflows/validate-organization-security-posture.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Static posture checks
+        run: python tools/check_organization_security_posture.py
+      - name: Deterministic posture tests
+        run: python -m unittest tests.test_organization_security_posture -v
