@@ -81,6 +81,14 @@ WORKFLOWS = {
         "NON_HOSTED_CANDIDATE_RECONCILIATION",
         "actions/upload-artifact@v4",
     },
+    "production-provider-activation.yml": {
+        "name: Production Provider Activation - Validation Only",
+        "contents: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION",
+        "actions/upload-artifact@v4",
+    },
     "automation-candidate-implementation.yml": {
         "name: Automation candidate implementation - Validation Only",
         "pull_request:",
@@ -237,6 +245,43 @@ def validate_release_cycle_outcome() -> None:
     if "no certification of user-authored content" not in scope:
         fail("release-cycle outcome scope must preserve the content-certification boundary")
     read_text(REPO_ROOT / "docs" / "release_evidence" / "latest_cycle.md")
+
+
+
+def validate_production_provider_hosted_boundary() -> None:
+    workflow = read_text(REPO_ROOT / ".github" / "workflows" / "production-provider-activation.yml")
+    forbidden = {
+        "id-token: write",
+        "aws-actions/configure-aws-credentials",
+        "role-to-assume:",
+        "terraform plan",
+        "terraform apply",
+        "confirm_apply",
+        "PROVIDER_ACTIVATION_AWS_ROLE_ARN",
+        "github.token",
+        "GH_TOKEN:",
+        "${{ secrets.",
+    }
+    present = sorted(token for token in forbidden if token in workflow)
+    if present:
+        fail("production-provider activation reintroduces hosted production authority: " + ", ".join(present))
+    required = {
+        "contents: read",
+        "persist-credentials: false",
+        "terraform init -backend=false",
+        "terraform validate",
+        "VALIDATION_TRANSPORT_ONLY",
+        "TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION",
+        "cloud_identity_acquired",
+        "terraform_apply_performed",
+        "provider_mutation_performed",
+        "authority_effect",
+        "NONE",
+        "actions/upload-artifact@v4",
+    }
+    missing = sorted(token for token in required if token not in workflow)
+    if missing:
+        fail("production-provider activation missing validation-only boundary tokens: " + ", ".join(missing))
 
 
 def validate_candidate_implementation_boundary() -> None:
@@ -416,6 +461,7 @@ def main() -> int:
         validate_release_cycle,
         validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
+        validate_production_provider_hosted_boundary,
         validate_candidate_implementation_boundary,
         validate_hosted_onboarding_control_plane_boundary,
         validate_friction_registry,
