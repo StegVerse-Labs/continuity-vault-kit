@@ -1,8 +1,8 @@
 # KV Governed Email Ingress Mirror Handoff
 
-Status: SOURCE_READY_VALIDATED_MERGE_PENDING  
+Status: SOURCE_READY_VALIDATED_MERGED_RUNTIME_EXTENSION_ACTIVE  
 Repository: StegVerse-Labs/continuity-vault-kit  
-Branch: `kv-governed-email-ingress`  
+Branch: `kv-email-ingress-runtime-v2`  
 Updated: 2026-08-27
 
 ## Purpose
@@ -122,6 +122,21 @@ The KV Guardrails lane initially exposed a nondeterministic tamper-test construc
 
 This evidence proves source/runtime-contract behavior only. It does not prove a live mailbox/provider session.
 
+## Merge evidence
+
+- PR: `#88`
+- final validated head: `e2eb801b0b39619e950174e8bc29ed77f5f3a4b1`
+- merge: `2784cdb6c39ee5fd95f3896e359de33472f04ac4`
+- merge method: squash
+- merged state: SOURCE_READY / NOT LIVE-ACTIVATED
+
+Final exact-head validation:
+- Validate KV Email Ingress Policy run `33135831775`: PASS
+- Security Baseline run `33135831717`: PASS
+- Repository validation diagnostics run `33135831685`: PASS
+- Release integrity run `33135831849`: PASS
+- KV Guardrails run `33135831764`: PASS
+
 ## Activation predicates
 
 The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable predicates are proven with real owner-authorized activity:
@@ -143,8 +158,6 @@ The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable
 
 ## Remaining machine-execution work
 
-- validate this branch through hosted CI;
-- reconcile the Personal Services registry entry with this more precise ingress contract if validation passes;
 - implement concrete provider adapter discovery/auth/session interfaces around the provider-neutral mapping contract;
 - implement the user-facing post-mapping SKAP Vault completion prompt around the now-implemented bounded credential-reference binding;
 - implement staged message normalization and canonical message identifiers;
