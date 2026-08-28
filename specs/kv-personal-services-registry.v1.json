@@ -90,6 +90,7 @@
       "provider_dependency": "EXTERNAL_MAIL_PROVIDER",
       "activation_requires": [
         "verified provider session",
+        "governed inbound staging/admission per stegverse.kv.email-ingress-policy/v1",
         "Interlock minimum-disclosure/send admission"
       ],
       "authority_effect": "NONE"
