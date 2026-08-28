@@ -11,6 +11,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 ### Added
 - governed KnowledgeVault email-continuity ingress contract with pre-admission staging, fail-closed admission decisions, SKAP Vault credential-reference binding, deterministic mailbox mapping, and source-ready runtime validation
 - provider-neutral email account mapping runtime that prohibits raw mailbox secrets in KV state and requires `skap://` binding before provider-session verification
+- documented-unverified Gmail, Microsoft Graph/Outlook, and iCloud Mail provider adapter metadata with minimum read access, explicit user authorization, SKAP Vault credential destination, and fail-closed unknown-domain handling
 - fail-closed `KV-INTERLOCK-v1` runtime endpoint core with exact DEVICE→KV InTr admission binding, injected authority/policy/storage boundaries, bounded-context enforcement, deterministic receipts, and candidate-only `COMMIT_CANDIDATE` semantics
 - deterministic runtime endpoint tests and canonical runtime handoff for the Site/KV production backend seam
 

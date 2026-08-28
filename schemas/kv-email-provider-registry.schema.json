@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-email-provider-registry.schema.json",
+  "title": "KnowledgeVault Email Provider Adapter Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "state", "authority_effect", "providers"],
+  "properties": {
+    "schema": {"const": "stegverse.kv.email-provider-registry/v1"},
+    "state": {"enum": ["DOCUMENTED_UNVERIFIED", "PARTIALLY_VERIFIED", "VERIFIED"]},
+    "authority_effect": {"const": "NONE"},
+    "providers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id", "domains", "transport", "authorization",
+          "minimum_read_permission", "credential_destination",
+          "kv_secret_storage", "evidence"
+        ],
+        "properties": {
+          "provider_id": {"type": "string", "minLength": 1},
+          "domains": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "transport": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "route"],
+            "properties": {
+              "kind": {"enum": ["REST_API", "IMAP"]},
+              "route": {"type": "string", "minLength": 1}
+            }
+          },
+          "authorization": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "user_authorization_required"],
+            "properties": {
+              "mode": {"enum": ["OAUTH2_DELEGATED", "APP_SPECIFIC_PASSWORD"]},
+              "user_authorization_required": {"const": true}
+            }
+          },
+          "minimum_read_permission": {"type": "string", "minLength": 1},
+          "credential_destination": {"const": "SKAP_VAULT"},
+          "kv_secret_storage": {"const": false},
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["state", "source_refs", "observed_on"],
+            "properties": {
+              "state": {"const": "DOCUMENTED"},
+              "source_refs": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "observed_on": {"type": "string", "format": "date"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
