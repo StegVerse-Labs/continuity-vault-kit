@@ -1,0 +1,40 @@
+name: Validate KV Email Ingress Policy
+
+on:
+  pull_request:
+    paths:
+      - "schemas/kv-email-ingress-policy.schema.json"
+      - "schemas/kv-email-account-mapping.schema.json"
+      - "specs/kv-email-ingress-policy.v1.json"
+      - "tools/check_kv_email_ingress_policy.py"
+      - "tests/test_kv_email_ingress_policy.py"
+      - "runtime/email_continuity.py"
+      - "tests/test_email_continuity_runtime.py"
+      - "KV_EMAIL_INGRESS_MIRROR_HANDOFF.md"
+      - ".github/workflows/validate-kv-email-ingress-policy.yml"
+  push:
+    branches: [main]
+    paths:
+      - "schemas/kv-email-ingress-policy.schema.json"
+      - "schemas/kv-email-account-mapping.schema.json"
+      - "specs/kv-email-ingress-policy.v1.json"
+      - "tools/check_kv_email_ingress_policy.py"
+      - "tests/test_kv_email_ingress_policy.py"
+      - "runtime/email_continuity.py"
+      - "tests/test_email_continuity_runtime.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate canonical policy
+        run: python tools/check_kv_email_ingress_policy.py
+      - name: Run deterministic tests
+        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime -v

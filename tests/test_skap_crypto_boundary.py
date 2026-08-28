@@ -96,7 +96,7 @@ class SKAPCryptoBoundaryTests(unittest.TestCase):
 
     def test_ciphertext_tamper_fails_closed(self):
         envelope = copy.deepcopy(self._seal())
-        envelope["ciphertext_b64"] = envelope["ciphertext_b64"][:-1] + ("A" if envelope["ciphertext_b64"][-1] != "A" else "B")
+        envelope["ciphertext_b64"] = ("A" if envelope["ciphertext_b64"][0] != "A" else "B") + envelope["ciphertext_b64"][1:]
         with self.assertRaises(SKAPCryptoError):
             self._resolve(envelope)
 

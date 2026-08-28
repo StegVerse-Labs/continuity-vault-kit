@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-email-ingress-policy.schema.json",
+  "title": "StegVerse KnowledgeVault Governed Email Ingress Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "service_id",
+    "state",
+    "authority_effect",
+    "provider_session",
+    "skap_credential_binding",
+    "staging",
+    "governance",
+    "admission",
+    "receipt"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.email-ingress-policy/v1"},
+    "service_id": {"const": "email-continuity"},
+    "state": {"enum": ["INSTALLED_INACTIVE", "SOURCE_READY", "ACTIVATION_PENDING", "ACTIVE"]},
+    "authority_effect": {"const": "NONE"},
+    "provider_session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorization_required", "credential_storage", "provider_neutral"],
+      "properties": {
+        "authorization_required": {"const": true},
+        "credential_storage": {"const": "REFERENCE_ONLY_NO_PLAINTEXT_SECRETS"},
+        "provider_neutral": {"const": true}
+      }
+    },
+    "skap_credential_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_for_activation", "vault", "kv_stores_secret", "user_prompt_after_mapping"],
+      "properties": {
+        "required_for_activation": {"const": true},
+        "vault": {"const": "SKAP_VAULT"},
+        "kv_stores_secret": {"const": false},
+        "user_prompt_after_mapping": {"const": true}
+      }
+    },
+    "staging": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "trusted_kv_content_before_decision"],
+      "properties": {
+        "required": {"const": true},
+        "trusted_kv_content_before_decision": {"const": false}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_on_ambiguity", "rules"],
+      "properties": {
+        "default_on_ambiguity": {"const": "FAIL_CLOSED"},
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rule_id", "enabled", "action"],
+            "properties": {
+              "rule_id": {"type": "string", "minLength": 1},
+              "enabled": {"type": "boolean"},
+              "action": {"enum": ["ADMIT", "QUARANTINE", "REVIEW", "REJECT", "FAIL_CLOSED"]},
+              "match": {"type": "object"}
+            }
+          }
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_decisions", "trusted_content_decision"],
+      "properties": {
+        "allowed_decisions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["ADMIT", "QUARANTINE", "REVIEW", "REJECT", "FAIL_CLOSED"]}
+        },
+        "trusted_content_decision": {"const": "ADMIT"}
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_for_every_evaluation", "retain_rejected_payload"],
+      "properties": {
+        "required_for_every_evaluation": {"const": true},
+        "retain_rejected_payload": {"const": false}
+      }
+    }
+  }
+}
