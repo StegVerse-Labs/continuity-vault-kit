@@ -663,3 +663,26 @@ authority_effect: NONE
 ```
 
 These workflows now produce non-authorizing observations only. Canonical friction/candidate lifecycle mutation requires a separately admitted non-hosted owner.
+
+
+### Production provider hosted activation authority retirement — issue #16 correction
+
+PR #92 is merged and validated.
+
+```text
+validated head: 55c0a18de596455f40f37d4cf368cf77a555fda3
+merge: 1d487ed09007d42af602ce24d71e937541e279a3
+Release Integrity: 33136076697 SUCCESS
+Repository diagnostics: 33136076696 SUCCESS
+Security Baseline: 33136076689 SUCCESS
+KV Guardrails: 33136076726 SUCCESS
+GitHub OIDC cloud identity: RETIRED
+Terraform hosted production plan/apply: RETIRED
+hosted provider mutation: false
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+canonical runtime continuation: TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION
+issue #16 completion: OPEN / NOT ACTIVATED
+authority_effect: NONE
+```
+
+Issue #16's canonical operator instructions now require TVC-admitted resident provider activation. GitHub environment/OIDC/APPLY instructions are retired. Six live probes, Master-Records acknowledgement, rollback/revocation evidence, and a signed deployment receipt remain unobserved runtime gates.
