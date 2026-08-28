@@ -283,8 +283,8 @@ Recommended semantic relationship:
 ```text
 ALLOW       -> service may be ACTIVE when activation and readiness prerequisites are satisfied
 DENY        -> requested activation/action is not admitted; service may remain INACTIVE
-FAIL_CLOSED -> service/action is UNAVAILABLE because required evidence, authority, continuity, or runtime proof is missing or invalid
-REVIEW      -> service is in REVIEW and requires user/governance attention before a transition may proceed
+FAIL_CLOSED -> the proposed action is not allowed to proceed without sufficient proof; the displayed service state may be REVIEW or UNAVAILABLE depending on what remediation is possible
+REVIEW      -> service requires explicit human review / approval / confirmation / re-verification before a transition may proceed
 ```
 
 Do not collapse the two vocabularies into one field. A service lifecycle/status value describes the card's current state; a governance verdict describes the decision on a particular proposed transition or action.
@@ -304,37 +304,44 @@ INACTIVE
   user may enter the governed activation flow where permitted
 
 UNAVAILABLE
-  service cannot currently be used or activated because a required dependency, runtime, authority proof, continuity proof, provider/session, or other fail-closed prerequisite is absent/invalid
+  service is not presently available to this user/node/KV
+  this may mean the service has not yet been released, provisioned, installed, offered, or made available in the current environment, or that a required provider/runtime is temporarily unavailable
   card remains visible but non-operable
-  reason should be explainable in plain language
+  reason should be explainable in plain language without implying fault or denial unless that is actually the case
 
 REVIEW
-  service or its activation state requires explicit review/reverification before proceeding
-  card remains visible and non-operable except for the review/recovery action
+  service or its activation/action state requires explicit human review, approval, confirmation, amendment, or re-verification before proceeding
+  card remains visible and non-operable except for the applicable review/recovery action
 ```
 
 ### Device-continuity recovery action
 
-`REVIEW` is specifically the device-continuity recovery state and its canonical user-facing action is `RE-REGISTER DEVICE`.
+`REVIEW` is a human-review state. On this services-governance surface, one important and canonical review action is `RE-REGISTER DEVICE` when device/node continuity needs human re-establishment.
 
-Canonical projection:
+Canonical projection for that case:
 
 ```text
 service_state: REVIEW
 required_action: RE-REGISTER DEVICE
 ```
 
-Therefore, for this services-governance surface:
+So:
 
 ```text
-REVIEW = RE-REGISTER DEVICE
+REVIEW = HUMAN REVIEW REQUIRED
+RE-REGISTER DEVICE = one canonical REVIEW action when node/device continuity is the issue
 ```
 
-Use `REVIEW` when the service cannot safely proceed because the current device/node continuity binding requires re-registration. Do not use `REVIEW` as a generic human-review bucket for unrelated service conditions.
+`REVIEW` is therefore not restricted to device continuity. Other governed service conditions may also legitimately require human review, approval, confirmation, amendment, or re-verification.
 
-`UNAVAILABLE` remains distinct: it means the service must fail closed because a required dependency, provider/runtime, authority proof, or other prerequisite is unavailable or invalid and device re-registration is not itself the direct corrective action.
+`UNAVAILABLE` remains distinct and has two valid meanings:
 
-A successful `RE-REGISTER DEVICE` action must produce a new governed device continuity transition/receipt before dependent service cards can leave `REVIEW`.
+1. the service is not available yet for this user/node/KV because it has not been released, provisioned, installed, offered, or made available in the current environment; or
+2. the service is temporarily unavailable because a required dependency/provider/runtime is unavailable.
+
+`UNAVAILABLE` should not imply fault, denial, or a security failure by itself.
+
+A successful `RE-REGISTER DEVICE` review action must produce the appropriate governed device continuity transition/receipt before dependent service cards can leave `REVIEW`.
 
 ### Display invariant
 
@@ -354,7 +361,7 @@ The UI may additionally show the most recent governance verdict and required act
 ```text
 Status: REVIEW
 Action: RE-REGISTER DEVICE
-Reason: device continuity receipt is stale
+Reason: device continuity must be re-established
 ```
 
 This preserves the separation between service state, governance verdict, and recovery instruction while keeping the user-facing experience simple.
