@@ -43,6 +43,14 @@ KnowledgeVault/
       Personal_Finance.json
 ```
 
+## Direct-source population rule
+
+Data used to populate continuity-domain directories should come from the direct authoritative provider/source using owner-authorized access with reusable credentials resolved through SKAP Vault, under `KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md`.
+
+Examples include financial institutions for Finance/Assets/Liabilities, mailbox providers for Email, photo/media providers or owner-controlled storage for Pictures, and music providers or owner-controlled libraries for Music.
+
+The directory taxonomy is the durable destination/navigation layer; it is not itself a source connector.
+
 ## Navigation semantics
 
 - human-facing directory cards may link to these canonical paths;
