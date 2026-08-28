@@ -1,0 +1,24 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-connection-health-receipt.schema.json",
+  "title":"KnowledgeVault connection health receipt",
+  "type":"object",
+  "required":["schema","assembly_id","provider","observed_at","prior_state","current_state","reason","revalidation_required","provider_operation_authorized","credential_material_present","authority_effect"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.connection-health-receipt/v1"},
+    "assembly_id":{"type":"string","pattern":"^kvcxn_[a-f0-9]{24}$"},
+    "provider":{"type":"string","minLength":1},
+    "observed_at":{"type":"string","minLength":1},
+    "prior_state":{"enum":["UNASSEMBLED","ASSEMBLED_UNVERIFIED","VERIFIED","DEGRADED","REVALIDATION_REQUIRED","BLOCKED_SOURCE_CHANGE","BLOCKED_SESSION","BLOCKED_RUNTIME","RETIRED"]},
+    "current_state":{"enum":["UNASSEMBLED","ASSEMBLED_UNVERIFIED","VERIFIED","DEGRADED","REVALIDATION_REQUIRED","BLOCKED_SOURCE_CHANGE","BLOCKED_SESSION","BLOCKED_RUNTIME","RETIRED"]},
+    "reason":{"type":"string","minLength":1},
+    "change_observation_ref":{"type":["string","null"]},
+    "revalidation_required":{"type":"boolean"},
+    "connection_proof_ref":{"type":["string","null"]},
+    "readback_proof_ref":{"type":["string","null"]},
+    "provider_operation_authorized":{"const":false},
+    "credential_material_present":{"const":false},
+    "authority_effect":{"const":"NONE"}
+  },
+  "additionalProperties":false
+}

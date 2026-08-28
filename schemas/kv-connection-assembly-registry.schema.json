@@ -1,0 +1,14 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-connection-assembly-registry.schema.json",
+  "title":"KnowledgeVault connection assembly registry",
+  "type":"object",
+  "required":["schema","state","authority_effect","assemblies"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.connection-assembly-registry/v1"},
+    "state":{"enum":["EMPTY","ASSEMBLED_UNVERIFIED","PARTIALLY_VERIFIED","VERIFIED","DEGRADED"]},
+    "authority_effect":{"const":"NONE"},
+    "assemblies":{"type":"array","items":{"$ref":"kv-connection-assembly.schema.json"}}
+  },
+  "additionalProperties":false
+}
