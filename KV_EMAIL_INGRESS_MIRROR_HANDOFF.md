@@ -350,3 +350,25 @@ Personal Information
  -> Complete setup in SKAP Vault
  -> governed ingress for that address
 ```
+
+
+## Personal-information multi-email merge evidence
+
+- PR: `#103`
+- validated head: `c1034161b7c1bab20740851858bd993b1a673533`
+- merge: `11fba19b646f2d597c66d604f82663bd608ea65b`
+
+Exact-head validation:
+- Validate KV Email Ingress Policy run `33137954171`: PASS
+- Security Baseline run `33137954127`: PASS
+- Repository validation diagnostics run `33137954134`: PASS
+- Release integrity run `33137954148`: PASS
+- KnowledgeVault Execution Recovery run `33137954130`: PASS
+- KV Guardrails run `33137954121`: PASS
+
+Merged behavior:
+- Personal Information can hold multiple email addresses;
+- one address may be marked primary for preference/display, but primary status grants no mailbox authority;
+- each address can independently opt into governed email continuity;
+- each mapped address has its own mapping/session state and SKAP completion path;
+- ordinary profile-only addresses remain `UNMAPPED` and require no provider credentials.
