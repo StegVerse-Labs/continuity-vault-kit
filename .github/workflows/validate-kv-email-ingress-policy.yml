@@ -5,11 +5,14 @@ on:
     paths:
       - "schemas/kv-email-ingress-policy.schema.json"
       - "schemas/kv-email-account-mapping.schema.json"
+      - "schemas/kv-email-ingress-receipt.schema.json"
       - "specs/kv-email-ingress-policy.v1.json"
       - "tools/check_kv_email_ingress_policy.py"
       - "tests/test_kv_email_ingress_policy.py"
       - "runtime/email_continuity.py"
       - "tests/test_email_continuity_runtime.py"
+      - "runtime/email_ingress_pipeline.py"
+      - "tests/test_email_ingress_pipeline.py"
       - "KV_EMAIL_INGRESS_MIRROR_HANDOFF.md"
       - ".github/workflows/validate-kv-email-ingress-policy.yml"
   push:
@@ -37,4 +40,4 @@ jobs:
       - name: Validate canonical policy
         run: python tools/check_kv_email_ingress_policy.py
       - name: Run deterministic tests
-        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime -v
+        run: python -m unittest tests.test_kv_email_ingress_policy tests.test_email_continuity_runtime tests.test_email_ingress_pipeline -v
