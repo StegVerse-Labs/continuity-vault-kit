@@ -686,3 +686,25 @@ authority_effect: NONE
 ```
 
 Issue #16's canonical operator instructions now require TVC-admitted resident provider activation. GitHub environment/OIDC/APPLY instructions are retired. Six live probes, Master-Records acknowledgement, rollback/revocation evidence, and a signed deployment receipt remain unobserved runtime gates.
+
+
+### Release reconciliation + downstream hosted authority retirement — completion
+
+Issue #94 / PR #96 is merged and validated.
+
+```text
+validated head: 33079fc16fb8619258b7a0d6c33858e75f3ad2d7
+merge: 9bf9019afaa15ae76fdfaa2890f3d4900d11b7a4
+Release Integrity: 33136278408 SUCCESS
+Repository diagnostics: 33136278430 SUCCESS
+Security Baseline: 33136278421 SUCCESS
+KV Guardrails: 33136278454 SUCCESS
+repository mutation: false
+issue mutation: false
+workflow dispatch: false
+GitHub token/release API authority: NONE
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+```
+
+Downstream registry and release-evidence consistency are now observed only; canonical release/downstream transitions remain non-hosted.
