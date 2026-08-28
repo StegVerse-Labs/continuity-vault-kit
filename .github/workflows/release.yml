@@ -10,6 +10,9 @@ on:
       - "VERSION"
       - ".github/workflows/release.yml"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
