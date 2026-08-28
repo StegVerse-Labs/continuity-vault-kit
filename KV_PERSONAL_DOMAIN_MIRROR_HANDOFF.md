@@ -189,6 +189,79 @@ A successful `Register Device` action should create the governed node registrati
 
 The recognition mechanism is continuity evidence, not fingerprinting. Do not use covert browser/device fingerprinting as device authority.
 
+
+## Node services page — accepted 2026-08-28
+
+The canonical node-scoped services surface is:
+
+```text
+https://stegverse.me/n/<opaque-node>/services.html
+```
+
+A compatibility alias using case-insensitive web-server handling may accept `services.HTML`, but the canonical route should be lowercase `services.html`.
+
+This page lists the individual's available StegVerse services as separate cards.
+
+Default presentation:
+
+```text
+service installed/known but not activated in this individual's KV:
+  card visible
+  card visually grayed out
+  card state: Inactive / Not Activated
+  service action unavailable unless the user intentionally enters the governed activation flow
+
+service activated in this individual's KV:
+  card active
+  card state: Active
+  service entry/action available subject to current readiness and governance checks
+```
+
+The services page MUST derive card state from the individual's KnowledgeVault service/module state and current readiness projection. The web page MUST NOT maintain a separate authoritative activation registry.
+
+Canonical authority rule:
+
+```text
+services.html displays state
+KnowledgeVault owns persistent service activation state
+Interlock/InTr governs admissible activation/action transitions
+web UI owns no activation authority
+```
+
+A grayed card means the service is available to the user but is not presently activated for that individual's KV. It does not mean the service is globally unavailable.
+
+A visually active card does not by itself prove that every external/provider action is currently executable. The card should distinguish, where applicable:
+
+- Activated in KV;
+- Ready locally;
+- Governed action ready;
+- Temporarily blocked / provider unavailable;
+- Reverification required.
+
+This prevents conflating `ACTIVE_IN_KV` with live provider/runtime readiness.
+
+Preferred card contents:
+
+- service name;
+- concise plain-language description;
+- activation state;
+- readiness/availability indicator;
+- optional setup-required indicator;
+- link to service details;
+- link to relevant receipt/history in an advanced view.
+
+The page should be readable without repository, GitHub, schema, workflow, or internal architecture knowledge.
+
+For inactive cards, activation should route through the individual's KV governance flow, not directly toggle client-side state. Successful activation must produce the appropriate governed KV state transition and receipt before the card changes from grayed to active.
+
+Offline behavior:
+
+- previously validated service states may be shown from the local node continuity/cache;
+- the page must visibly indicate local/offline or stale state;
+- no fresh activation should be claimed until the governed transition is reconciled.
+
+Negative invariant: modifying HTML/CSS/JavaScript, local storage, cookies, or client-side card state MUST NOT activate a service in the KnowledgeVault.
+
 ## Privacy / addressing constraint
 
 Do not encode a user's real name, email address, precise identity, or raw KV identifier into public DNS labels or public URLs by default.
