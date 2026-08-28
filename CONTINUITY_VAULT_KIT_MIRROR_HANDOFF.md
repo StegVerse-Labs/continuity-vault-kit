@@ -730,3 +730,24 @@ authority_effect: NONE
 ```
 
 Canonical StegDB→CVK overlay sync is now a separately admitted non-hosted repository transition.
+
+
+### KV format-branch hosted mutation retirement — completion
+
+Issue #99 / PR #100 is merged and validated.
+
+```text
+validated head: 889ddac46ede5a2e53153ced85a2de361562acb1
+merge: 90576d265008fcebeb64449588655d4c845fe18e
+Release Integrity: 33136581700 SUCCESS
+Repository diagnostics: 33136581698 SUCCESS
+Security Baseline: 33136581716 SUCCESS
+KV Guardrails: 33136581688 SUCCESS
+branch mutation: false
+git commit/push: false
+candidate formatter patch: retained
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+```
+
+Formatting changes now require a separately admitted non-hosted patch application.
