@@ -372,3 +372,24 @@ Merged behavior:
 - each address can independently opt into governed email continuity;
 - each mapped address has its own mapping/session state and SKAP completion path;
 - ordinary profile-only addresses remain `UNMAPPED` and require no provider credentials.
+
+
+## Connected-KV personal-profile installation evidence
+
+The personal-information multi-email entry surface is no longer source-only.
+
+Observed connected-KV state on 2026-08-28:
+
+- `_Entities/Self/Personal_Contact_Profile.json` installed;
+- exact installed size: `114` bytes;
+- MIME: `text/plain`;
+- native Google Workspace conversion: `false`;
+- source tree: `7d8be8b13be05c239d332e028d0ede95cfce4b58`;
+- source census: `133` files / `53` directories / `97,071` bytes;
+- connected profile file id: `1vv0ivVe0G0_hkx1vXlBMLHgLuuICkN05`;
+- refreshed `_System/installation.receipt.json` id: `14wHQ6OyiDwFtn_ElQL8l-XpC8bz_9HE8`;
+- parity state: `VALIDATED`.
+
+Repository evidence: `evidence/kv/2026-08-28-personal-contact-profile-connected-installation.json`.
+
+This proves that the multi-email personal-information data surface exists in the connected KnowledgeVault. It still does not prove that any mailbox is mapped, any SKAP credential is installed, or governed mail ingress is active.
