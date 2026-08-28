@@ -86,6 +86,56 @@ My KV -> Devices
 
 Do not expose raw repository paths, GitHub concepts, or internal runtime topology to ordinary users unless they intentionally open an advanced evidence/debug view.
 
+
+## Canonical device-node route — accepted 2026-08-28
+
+The preferred durable user route is:
+
+```text
+https://stegverse.me/n/<opaque-node>/
+```
+
+The web edge may internally serve `index.html`, but `index.html` is not required to be part of the permanent user-visible URL. A compatibility form such as `/n/<opaque-node>/index.html` may resolve to the same resource.
+
+The `<opaque-node>` component is a routing handle only. It MUST NOT contain or directly expose:
+
+- the user's real name;
+- email address;
+- phone number;
+- raw device serial / hardware identifier;
+- raw KV identifier;
+- credential identifier;
+- any other directly identifying or authority-bearing value.
+
+The route MUST NOT itself confer device, KV, identity, SKAP, Interlock, or execution authority.
+
+Required resolution flow:
+
+```text
+stegverse.me/n/<opaque-node>/
+  -> authenticate / establish authorized user session
+  -> verify node registration and current node/KV binding
+  -> verify applicable Receipt #1 / continuity evidence
+  -> evaluate current Interlock / readiness state
+  -> resolve the associated KnowledgeVault
+  -> render the node-specific My KV / StegOS projection
+```
+
+Possession or discovery of the URL alone is insufficient for access.
+
+The node-specific page is the natural location for:
+
+- My KV;
+- device registration state;
+- last StegOS synchronization;
+- last KV synchronization;
+- local/offline state;
+- node receipt/history view;
+- module availability/readiness;
+- Node Evidence export.
+
+A device-node route remains reconstructable and replaceable. The opaque route handle is not the durable source of truth; the KnowledgeVault plus admitted identity/node/receipt continuity remains authoritative.
+
 ## Privacy / addressing constraint
 
 Do not encode a user's real name, email address, precise identity, or raw KV identifier into public DNS labels or public URLs by default.
