@@ -1,0 +1,42 @@
+{
+  "schema": "stegverse.kv.connected-installation-evidence/v1",
+  "observed_utc": "2026-08-28T05:23:44Z",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "source_branch": "main",
+  "source_template_tree_sha": "7d8be8b13be05c239d332e028d0ede95cfce4b58",
+  "source_census": {
+    "files": 133,
+    "directories": 53,
+    "total_source_bytes": 97071
+  },
+  "destination": {
+    "kind": "GOOGLE_DRIVE",
+    "vault_path": "/KnowledgeVault",
+    "vault_folder_id": "1c8OdhJeLD6E4ALmi-aR7dXvG8PjDLSfi"
+  },
+  "installed_delta": {
+    "path": "_Entities/Self/Personal_Contact_Profile.json",
+    "source_size": 114,
+    "installed_size": 114,
+    "mime_type": "text/plain",
+    "converted": false,
+    "drive_file_id": "1vv0ivVe0G0_hkx1vXlBMLHgLuuICkN05",
+    "verified_present": true
+  },
+  "installation_receipt": {
+    "path": "_System/installation.receipt.json",
+    "drive_file_id": "14wHQ6OyiDwFtn_ElQL8l-XpC8bz_9HE8",
+    "mime_type": "text/plain",
+    "verified_tree_sha": "7d8be8b13be05c239d332e028d0ede95cfce4b58",
+    "full_template_parity": "VALIDATED"
+  },
+  "authority_effect": "NONE",
+  "activation_effect": false,
+  "email_provider_activation_performed": false,
+  "skap_credential_used": false,
+  "notes": [
+    "The previous installation receipt was retired after the current-tree receipt was verified.",
+    "This evidence proves connected-KV template parity for the personal contact profile addition only.",
+    "It does not activate email provider access, SKAP credentials, Interlock transport, or mailbox monitoring."
+  ]
+}
