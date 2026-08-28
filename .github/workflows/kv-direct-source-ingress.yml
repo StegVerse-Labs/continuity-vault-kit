@@ -1,0 +1,29 @@
+name: Validate KV Direct-Source Ingress
+
+on:
+  pull_request:
+    paths:
+      - "KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md"
+      - "schemas/kv-direct-source-ingress-request.schema.json"
+      - "schemas/kv-direct-source-ingress-receipt.schema.json"
+      - "runtime/direct_source_ingress.py"
+      - "tests/test_direct_source_ingress.py"
+      - "tools/check_kv_direct_source_ingress.py"
+      - ".github/workflows/kv-direct-source-ingress.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Static direct-source ingress checks
+        run: python tools/check_kv_direct_source_ingress.py
+      - name: Direct-source ingress tests
+        run: python -m unittest tests.test_direct_source_ingress

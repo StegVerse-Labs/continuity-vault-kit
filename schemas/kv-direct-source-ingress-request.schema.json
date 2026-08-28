@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-direct-source-ingress-request.schema.json",
+  "title": "KnowledgeVault Direct-Source Ingress Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_id",
+    "source_kind",
+    "target_domain",
+    "skap_credential_ref",
+    "requested_access",
+    "direct_source_required",
+    "minimum_necessary",
+    "owner_authorized",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema_version": { "const": "stegverse.kv.direct-source-ingress-request/v1" },
+    "source_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "source_kind": {
+      "enum": ["financial_institution", "brokerage", "card_issuer", "lender", "crypto_exchange", "mailbox_provider", "photo_provider", "music_provider", "tax_provider", "owner_storage", "other_direct_source"]
+    },
+    "target_domain": {
+      "enum": ["finance", "assets", "liabilities", "email", "pictures", "music", "personal", "records", "projects", "research", "archive"]
+    },
+    "provider_route": { "type": ["string", "null"], "maxLength": 512 },
+    "masked_owner_reference": { "type": ["string", "null"], "maxLength": 120 },
+    "skap_credential_ref": {
+      "type": "string",
+      "pattern": "^skap://[A-Za-z0-9._~:/?#\\[\\]@!$&'()*+,;=%-]+$"
+    },
+    "requested_access": { "const": "READ_ONLY" },
+    "direct_source_required": { "const": true },
+    "minimum_necessary": { "const": true },
+    "owner_authorized": { "const": true },
+    "intermediary_transport": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["used", "name"],
+      "properties": {
+        "used": { "type": "boolean" },
+        "name": { "type": ["string", "null"], "maxLength": 160 },
+        "role": { "type": ["string", "null"], "maxLength": 240 }
+      }
+    },
+    "authority_effect": { "const": "NONE" }
+  }
+}
