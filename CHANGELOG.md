@@ -24,6 +24,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - retired residual hosted release reconciliation/downstream mutation and retry-dispatch authority; release/downstream workflows now emit non-authorizing observations and defer canonical transitions to TV/TVC/non-hosted owners
 - retired hosted StegDB overlay writeback; scheduled/manual overlay workflows now build hash-verifiable candidate trees and patches as artifacts without committing or pushing canonical CVK state
 - retired hosted KV format-branch writeback; auto-footer formatting now produces a validated candidate patch artifact without branch commits or pushes
+- added a repository-wide hosted workflow non-authority invariant across all 38 workflows; every workflow must declare explicit permissions and any write/token/OIDC/cloud-mutation marker fails validation
 - preserved TV/TVC as the only credential/release authority; no successor release is claimed until an admitted TVC publication path actually runs
 
 ### Notes

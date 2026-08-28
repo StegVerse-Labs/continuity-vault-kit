@@ -295,6 +295,43 @@ def validate_release_cycle_outcome() -> None:
 
 
 
+
+def validate_all_hosted_workflows_non_authorizing() -> None:
+    workflow_root = REPO_ROOT / ".github" / "workflows"
+    forbidden = {
+        "contents: write",
+        "actions: write",
+        "issues: write",
+        "pull-requests: write",
+        "id-token: write",
+        "packages: write",
+        "deployments: write",
+        "git push",
+        "git commit",
+        "git tag",
+        "gh release ",
+        "gh workflow run",
+        "github.token",
+        "GH_TOKEN:",
+        "${{ secrets.",
+        "aws-actions/configure-aws-credentials",
+        "terraform apply",
+        "kubectl apply",
+        "helm upgrade",
+        "repository_dispatch",
+    }
+    workflows = sorted(workflow_root.glob("*.yml"))
+    if len(workflows) < 1:
+        fail("no hosted workflows found for authority audit")
+    for path in workflows:
+        text = read_text(path)
+        if "permissions:" not in text:
+            fail(f"{path.name} must declare explicit permissions")
+        present = sorted(token for token in forbidden if token in text)
+        if present:
+            fail(f"{path.name} reintroduces hosted authority: {', '.join(present)}")
+
+
 def validate_kv_format_hosted_boundary() -> None:
     workflow = read_text(REPO_ROOT / ".github" / "workflows" / "kv-format-branch.yml")
     forbidden = {
@@ -607,6 +644,7 @@ def main() -> int:
         validate_release_cycle,
         validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
+        validate_all_hosted_workflows_non_authorizing,
         validate_kv_format_hosted_boundary,
         validate_stegdb_overlay_hosted_boundary,
         validate_release_reconciliation_hosted_boundary,

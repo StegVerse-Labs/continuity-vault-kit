@@ -18,11 +18,13 @@ on:
       - "tests/test_release_reconciliation_hosted_authority_retirement.py"
       - "tests/test_stegdb_overlay_hosted_writeback_retirement.py"
       - "tests/test_kv_format_hosted_mutation_retirement.py"
+      - "tests/test_global_hosted_workflow_authority.py"
       - "tests/test_hosted_onboarding_control_plane_retirement.py"
       - "tests/test_production_provider_hosted_authority_retirement.py"
       - "tests/test_release_reconciliation_hosted_authority_retirement.py"
       - "tests/test_stegdb_overlay_hosted_writeback_retirement.py"
       - "tests/test_kv_format_hosted_mutation_retirement.py"
+      - "tests/test_global_hosted_workflow_authority.py"
       - "vault_template/**"
       - "automation/**"
       - "evidence/onboarding-friction/**"
@@ -105,6 +107,9 @@ jobs:
 
       - name: Validate KV format hosted mutation retirement
         run: python3 -m unittest tests.test_kv_format_hosted_mutation_retirement -v
+
+      - name: Validate repository-wide hosted workflow authority
+        run: python3 -m unittest tests.test_global_hosted_workflow_authority -v
 
       - name: Rebuild release evidence
         run: |
