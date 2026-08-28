@@ -39,6 +39,9 @@ The `email-continuity` slot already exists under the 33-service Personal Service
 - `tools/check_kv_email_ingress_policy.py`
 - `tests/test_kv_email_ingress_policy.py`
 - `.github/workflows/validate-kv-email-ingress-policy.yml`
+- `schemas/kv-email-account-mapping.schema.json`
+- `runtime/email_continuity.py`
+- `tests/test_email_continuity_runtime.py`
 
 ## Governance invariants
 
@@ -80,6 +83,27 @@ My KV
 
 Provider-specific authorization and transport adapters must conform to this provider-neutral contract rather than redefining admission semantics.
 
+## Provider-neutral mapping runtime
+
+The source lane now includes a deterministic provider-neutral account-mapping runtime:
+
+```text
+MAPPED_CREDENTIAL_REQUIRED
+ -> CREDENTIAL_BOUND
+ -> SESSION_VERIFIED
+ -> REVOKED
+```
+
+Properties:
+
+- mailbox mapping ID is deterministically derived from normalized email address;
+- provider identity/route are recorded without granting provider authority;
+- mapping completion explicitly requires a `skap://` credential reference;
+- raw password/token/app-password fields are rejected from KV mapping payloads;
+- session verification is impossible until the SKAP reference is bound;
+- revoked mappings cannot be rebound without creating a new authorized mapping flow;
+- this runtime does not itself authenticate to a provider or read mailbox contents.
+
 ## Activation predicates
 
 The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable predicates are proven with real owner-authorized activity:
@@ -103,8 +127,8 @@ The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable
 
 - validate this branch through hosted CI;
 - reconcile the Personal Services registry entry with this more precise ingress contract if validation passes;
-- implement provider adapter discovery/auth/session interfaces;
-- implement post-mapping SKAP Vault completion prompt and bounded credential-reference binding;
+- implement concrete provider adapter discovery/auth/session interfaces around the provider-neutral mapping contract;
+- implement the user-facing post-mapping SKAP Vault completion prompt around the now-implemented bounded credential-reference binding;
 - implement staged message normalization and canonical message identifiers;
 - implement governed admission/quarantine projection;
 - implement receipt/replay/reconciliation behavior;
