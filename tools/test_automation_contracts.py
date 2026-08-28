@@ -111,6 +111,20 @@ WORKFLOWS = {
         "TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION",
         "actions/upload-artifact@v4",
     },
+    "sync-knowledgevault-overlay-from-stegdb.yml": {
+        "contents: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_REPOSITORY_SYNC_REQUIRED",
+        "actions/upload-artifact@v4",
+    },
+    "sync-overlay-from-stegdb.yml": {
+        "contents: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_REPOSITORY_SYNC_REQUIRED",
+        "actions/upload-artifact@v4",
+    },
     "automation-candidate-implementation.yml": {
         "name: Automation candidate implementation - Validation Only",
         "pull_request:",
@@ -269,6 +283,38 @@ def validate_release_cycle_outcome() -> None:
     read_text(REPO_ROOT / "docs" / "release_evidence" / "latest_cycle.md")
 
 
+
+
+
+def validate_stegdb_overlay_hosted_boundary() -> None:
+    workflow_root = REPO_ROOT / ".github" / "workflows"
+    for filename in ("sync-knowledgevault-overlay-from-stegdb.yml", "sync-overlay-from-stegdb.yml"):
+        text = read_text(workflow_root / filename)
+        forbidden = {
+            "contents: write",
+            "git push",
+            "git commit",
+            "github.token",
+            "GH_TOKEN:",
+            "${{ secrets.",
+        }
+        present = sorted(token for token in forbidden if token in text)
+        if present:
+            fail(f"{filename} reintroduces hosted StegDB overlay writeback: {', '.join(present)}")
+        required = {
+            "contents: read",
+            "persist-credentials: false",
+            "VALIDATION_TRANSPORT_ONLY",
+            "NON_HOSTED_REPOSITORY_SYNC_REQUIRED",
+            "repository_mutation_performed",
+            "git_push_performed",
+            "actions/upload-artifact@v4",
+            "authority_effect",
+            "NONE",
+        }
+        missing = sorted(token for token in required if token not in text)
+        if missing:
+            fail(f"{filename} missing validation-only overlay tokens: {', '.join(missing)}")
 
 
 def validate_release_reconciliation_hosted_boundary() -> None:
@@ -523,6 +569,7 @@ def main() -> int:
         validate_release_cycle,
         validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
+        validate_stegdb_overlay_hosted_boundary,
         validate_release_reconciliation_hosted_boundary,
         validate_production_provider_hosted_boundary,
         validate_candidate_implementation_boundary,
