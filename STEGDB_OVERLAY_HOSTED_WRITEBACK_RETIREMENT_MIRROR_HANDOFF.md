@@ -3,8 +3,8 @@
 Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #97
-Branch: `fix/stegdb-overlay-hosted-writeback`
-State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
+Branch: `main`
+State: MERGED_VALIDATED_HOSTED_WRITEBACK_RETIRED
 
 ## Goal
 
@@ -58,3 +58,22 @@ Regression is installed in automation contracts, a dedicated unit test, and Rele
 ## Next executable boundary
 
 Run exact-head validation and merge only if green. Then inspect and retire the remaining KV format-branch hosted mutation surface.
+
+
+## Merge and validation evidence
+
+```text
+PR: #98
+validated head: 496cb404d2e11b33cd77cb9cd477389db6a88e03
+merge: 3c5067d9300c6e36becd3dfd962605cc78b74f0a
+Release Integrity: 33136456687 SUCCESS
+Repository diagnostics: 33136456629 SUCCESS
+Security Baseline: 33136456668 SUCCESS
+KV Guardrails: 33136456681 SUCCESS
+```
+
+Both StegDB overlay workflows now generate candidate trees, SHA-256 inventories, and patches only. Canonical CVK writeback remains a separate non-hosted repository mutation.
+
+## Current next boundary
+
+Issue #97 source-retirement goal is COMPLETE. The remaining known hosted repository-mutation surface is `.github/workflows/kv-format-branch.yml`.
