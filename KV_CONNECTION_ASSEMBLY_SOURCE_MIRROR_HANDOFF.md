@@ -1,6 +1,6 @@
 # KV Connection Assembly Source Mirror Handoff
 
-Status: SOURCE_LANE_OPEN / ARCHITECTURE_DEFINITION
+Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #113
 Branch: `feature/kv-connection-assembly-source`
@@ -125,6 +125,8 @@ Credential values remain inaccessible to the assembly record.
 
 - `KV_CONNECTION_ASSEMBLY_SOURCE_MIRROR_HANDOFF.md`
 - `schemas/kv-connection-assembly.schema.json`
+- `schemas/kv-connection-assembly-registry.schema.json`
+- `specs/kv-connection-assembly-registry.v1.json`
 - `schemas/kv-source-change-observation.schema.json`
 - `schemas/kv-connection-health-receipt.schema.json`
 - `runtime/connection_assembly.py`
@@ -157,4 +159,4 @@ This lane does not:
 
 ## Current boundary
 
-Architecture/source lane only. No source monitoring process is live, no provider change has been observed by this lane, no connection has been activated, and no credential or provider execution authority is granted.
+Machine-executable source contract is implemented on this branch. No source monitoring process is live, no provider change has been observed by this lane, no connection has been activated, and no credential or provider execution authority is granted.
