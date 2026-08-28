@@ -1,0 +1,27 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-connection-conformance-proof.schema.json",
+  "title":"KnowledgeVault connection provider conformance proof",
+  "type":"object",
+  "required":["schema","assembly_id","provider","observed_at","direct_source_verified","session_verified","adapter","compatibility_assumptions_ref","connection_proof_ref","provider_operation_authorized","credential_material_present","authority_effect"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.connection-conformance-proof/v1"},
+    "assembly_id":{"type":"string","pattern":"^kvcxn_[a-f0-9]{24}$"},
+    "provider":{"type":"string","minLength":1},
+    "observed_at":{"type":"string","minLength":1},
+    "direct_source_verified":{"const":true},
+    "session_verified":{"const":true},
+    "adapter":{
+      "type":"object",
+      "required":["name","version"],
+      "properties":{"name":{"type":"string","minLength":1},"version":{"type":"string","minLength":1}},
+      "additionalProperties":false
+    },
+    "compatibility_assumptions_ref":{"type":"string","minLength":1},
+    "connection_proof_ref":{"type":"string","minLength":1},
+    "provider_operation_authorized":{"const":false},
+    "credential_material_present":{"const":false},
+    "authority_effect":{"const":"NONE"}
+  },
+  "additionalProperties":false
+}
