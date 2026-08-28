@@ -1,6 +1,6 @@
 # KV Monitor Targets Canonical State Mirror Handoff
 
-Status: SOURCE_LANE_OPEN / IMPLEMENTATION_IN_PROGRESS
+Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #117
 Branch: `feature/kv-monitor-targets-canonical`
@@ -69,4 +69,4 @@ Each target must bind:
 
 ## Current boundary
 
-Source lane only. No live provider source monitoring is performed by this branch.
+Machine-executable source, empty private-KV template, compiler, tests, and validation are implemented on this branch. No live provider source monitoring is performed by this branch.
