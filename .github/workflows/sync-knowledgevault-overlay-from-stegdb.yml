@@ -1,58 +1,98 @@
-name: Sync KnowledgeVault overlay from StegDB
+name: Sync KnowledgeVault overlay from StegDB - Validation Only
 
 on:
   workflow_dispatch:
     inputs:
       stegdb_ref:
-        description: "StegDB ref (tag/branch/SHA). Use a release tag or merge SHA when possible."
+        description: "StegDB ref (tag/branch/SHA) to evaluate."
         required: false
         default: "main"
   schedule:
-    - cron: "11 3 * * *" # daily 03:11 UTC
+    - cron: "11 3 * * *"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  sync:
+  observe:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout continuity-vault-kit
+      - name: Checkout continuity-vault-kit without credential persistence
         uses: actions/checkout@v4
+        with:
+          path: _cvk
+          persist-credentials: false
 
-      - name: Checkout StegDB
+      - name: Checkout StegDB without credential persistence
         uses: actions/checkout@v4
         with:
           repository: stegverse-labs/stegdb
-          ref: ${{ inputs.stegdb_ref }}
+          ref: ${{ inputs.stegdb_ref || 'main' }}
           path: _stegdb
+          persist-credentials: false
 
-      - name: Sync KnowledgeVaultOverlay into _Canon (fail loud)
+      - name: Build deterministic overlay sync candidate
         shell: bash
         run: |
           set -euo pipefail
           SRC="_stegdb/canonical/overlays/KnowledgeVaultOverlay/canon"
-          test -d "$SRC" || (echo "::error::Missing overlay folder: $SRC"; exit 3)
+          test -d "$SRC"
+          REPORT="_cvk/reports/stegdb_overlay_sync"
+          CANDIDATE="$REPORT/candidate"
+          rm -rf "$REPORT"
+          mkdir -p "$CANDIDATE"
+          rsync -a --delete "$SRC/" "$CANDIDATE/"
+          test -n "$(ls -A "$CANDIDATE")"
+          TARGET="_cvk/vault_template/KnowledgeVault/_Canon"
+          mkdir -p "$REPORT"
+          diff -ruN "$TARGET" "$CANDIDATE" > "$REPORT/overlay.patch" || true
+          python3 - <<'PY'
+          import hashlib, json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          report=Path("_cvk/reports/stegdb_overlay_sync")
+          candidate=report/"candidate"
+          target=Path("_cvk/vault_template/KnowledgeVault/_Canon")
+          def inventory(root):
+              rows=[]
+              if not root.exists():
+                  return rows
+              for p in sorted(x for x in root.rglob("*") if x.is_file()):
+                  data=p.read_bytes()
+                  rows.append({"path":str(p.relative_to(root)),"sha256":hashlib.sha256(data).hexdigest(),"bytes":len(data)})
+              return rows
+          before=inventory(target)
+          after=inventory(candidate)
+          payload={
+              "schema":"stegverse.kv.stegdb-overlay-sync-observation/v1",
+              "stegdb_ref":"${{ inputs.stegdb_ref || 'main' }}",
+              "target":"vault_template/KnowledgeVault/_Canon",
+              "current_file_count":len(before),
+              "candidate_file_count":len(after),
+              "current_inventory":before,
+              "candidate_inventory":after,
+              "change_required":before!=after,
+              "repository_mutation_performed":False,
+              "stegdb_mutation_performed":False,
+              "git_commit_performed":False,
+              "git_push_performed":False,
+              "github_actions_role":"VALIDATION_TRANSPORT_ONLY",
+              "canonical_next_transition":"NON_HOSTED_REPOSITORY_SYNC_REQUIRED" if before!=after else "NONE",
+              "authority_effect":"NONE",
+              "observed_utc":datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z"),
+          }
+          (report/"observation.json").write_text(json.dumps(payload,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+          print(json.dumps({k:payload[k] for k in ("target","current_file_count","candidate_file_count","change_required","canonical_next_transition")},sort_keys=True))
+          PY
 
-          DST="vault_template/KnowledgeVault/_Canon"
-          mkdir -p "$DST"
-
-          rsync -a --delete "$SRC/" "$DST/"
-
-          test -n "$(ls -A "$DST")" || (echo "::error::Overlay sync produced empty $DST"; exit 4)
-
-          rm -rf _stegdb
-
-      - name: Commit overlay changes
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            echo "No changes"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add vault_template/KnowledgeVault/_Canon
-          git commit -m "chore: sync KnowledgeVaultOverlay from StegDB @ ${{ inputs.stegdb_ref }}"
-          git push
+      - name: Upload non-authorizing overlay candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: stegdb-overlay-sync-vault_template-KnowledgeVault-_Canon-${{ github.run_id }}
+          path: |
+            _cvk/reports/stegdb_overlay_sync/observation.json
+            _cvk/reports/stegdb_overlay_sync/overlay.patch
+            _cvk/reports/stegdb_overlay_sync/candidate/
+          if-no-files-found: error
+          retention-days: 30
