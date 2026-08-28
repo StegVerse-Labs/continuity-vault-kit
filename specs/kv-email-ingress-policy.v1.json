@@ -8,6 +8,12 @@
     "credential_storage": "REFERENCE_ONLY_NO_PLAINTEXT_SECRETS",
     "provider_neutral": true
   },
+  "skap_credential_binding": {
+    "required_for_activation": true,
+    "vault": "SKAP_VAULT",
+    "kv_stores_secret": false,
+    "user_prompt_after_mapping": true
+  },
   "staging": {
     "required": true,
     "trusted_kv_content_before_decision": false
