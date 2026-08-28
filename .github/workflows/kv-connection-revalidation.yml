@@ -1,0 +1,29 @@
+name: Validate KV Connection Revalidation
+
+on:
+  pull_request:
+    paths:
+      - "KV_CONNECTION_REVALIDATION_PROOF_MIRROR_HANDOFF.md"
+      - "schemas/kv-connection-conformance-proof.schema.json"
+      - "schemas/kv-connection-readback-proof.schema.json"
+      - "runtime/connection_revalidation.py"
+      - "tests/test_connection_revalidation.py"
+      - "tools/check_kv_connection_revalidation.py"
+      - ".github/workflows/kv-connection-revalidation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Static revalidation checks
+        run: python tools/check_kv_connection_revalidation.py
+      - name: Revalidation tests
+        run: python -m unittest tests.test_connection_revalidation
