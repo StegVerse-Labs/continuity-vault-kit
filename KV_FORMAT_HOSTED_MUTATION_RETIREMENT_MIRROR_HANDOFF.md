@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #99
 Branch: `fix/kv-format-hosted-mutation`
-State: CLAIMED_FOR_IMPLEMENTATION
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Goal
 
@@ -31,6 +31,24 @@ The formatter must operate on a temporary copy so the checked-out branch remains
 
 No branch mutation, merge, release, deployment, runtime activation, or authority transfer is produced.
 
+## Implemented source state
+
+```text
+workflow: KV Format Branch - Validation Only
+contents: read
+persist-credentials: false
+formatter execution: temporary candidate copy only
+candidate validation: retained
+patch artifact: retained
+repository mutation: false
+git commit/push: false
+canonical_next_transition: NON_HOSTED_FORMAT_PATCH_APPLICATION
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+```
+
+Regression is installed in automation contracts, a dedicated unit test, and Release Integrity.
+
 ## Next executable boundary
 
-Implement candidate formatting + patch artifact generation, add regression enforcement, validate exact head, merge only on green evidence, then perform a full workflow authority audit for any remaining write/credential/production surfaces.
+Run exact-head validation and merge only if green. Then perform a complete live workflow audit for any residual write, token, OIDC, production, release, or repository-mutation authority.
