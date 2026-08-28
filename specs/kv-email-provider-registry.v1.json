@@ -1,0 +1,76 @@
+{
+  "schema": "stegverse.kv.email-provider-registry/v1",
+  "state": "DOCUMENTED_UNVERIFIED",
+  "authority_effect": "NONE",
+  "providers": [
+    {
+      "provider_id": "google-gmail",
+      "domains": ["gmail.com", "googlemail.com"],
+      "transport": {
+        "kind": "REST_API",
+        "route": "gmail-api:v1/users.messages.list+get"
+      },
+      "authorization": {
+        "mode": "OAUTH2_DELEGATED",
+        "user_authorization_required": true
+      },
+      "minimum_read_permission": "https://www.googleapis.com/auth/gmail.readonly",
+      "credential_destination": "SKAP_VAULT",
+      "kv_secret_storage": false,
+      "evidence": {
+        "state": "DOCUMENTED",
+        "source_refs": [
+          "https://developers.google.com/identity/protocols/oauth2/scopes",
+          "https://developers.google.com/workspace/gmail/api/guides/list-messages"
+        ],
+        "observed_on": "2026-08-27"
+      }
+    },
+    {
+      "provider_id": "microsoft-outlook-graph",
+      "domains": ["outlook.com", "hotmail.com", "live.com", "msn.com"],
+      "transport": {
+        "kind": "REST_API",
+        "route": "microsoft-graph:v1.0/mail"
+      },
+      "authorization": {
+        "mode": "OAUTH2_DELEGATED",
+        "user_authorization_required": true
+      },
+      "minimum_read_permission": "Mail.Read",
+      "credential_destination": "SKAP_VAULT",
+      "kv_secret_storage": false,
+      "evidence": {
+        "state": "DOCUMENTED",
+        "source_refs": [
+          "https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview?view=graph-rest-1.0",
+          "https://learn.microsoft.com/en-us/graph/permissions-reference"
+        ],
+        "observed_on": "2026-08-27"
+      }
+    },
+    {
+      "provider_id": "apple-icloud-mail",
+      "domains": ["icloud.com", "me.com", "mac.com"],
+      "transport": {
+        "kind": "IMAP",
+        "route": "imaps://imap.mail.me.com:993"
+      },
+      "authorization": {
+        "mode": "APP_SPECIFIC_PASSWORD",
+        "user_authorization_required": true
+      },
+      "minimum_read_permission": "IMAP_AUTHENTICATED_READ",
+      "credential_destination": "SKAP_VAULT",
+      "kv_secret_storage": false,
+      "evidence": {
+        "state": "DOCUMENTED",
+        "source_refs": [
+          "https://support.apple.com/en-us/102525",
+          "https://support.apple.com/en-us/102654"
+        ],
+        "observed_on": "2026-08-27"
+      }
+    }
+  ]
+}
