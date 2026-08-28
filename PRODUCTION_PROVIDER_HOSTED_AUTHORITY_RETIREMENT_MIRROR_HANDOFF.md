@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Canonical activation issue: #16
 Branch: `fix/production-provider-hosted-authority-16`
-State: CORRECTIVE_SUBLANE_CLAIMED
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Purpose
 
@@ -77,6 +77,29 @@ Do not create a second provider activation architecture, credential path, AWS br
 
 This source repair does not deploy AWS resources, create an IAM role, establish OIDC trust, activate production providers, execute live probes, or satisfy issue #16.
 
+## Implemented source state
+
+```text
+workflow: Production Provider Activation - Validation Only
+permissions: contents: read
+persist-credentials: false
+GitHub OIDC: removed
+AWS role assumption: removed
+Terraform production plan: removed
+Terraform apply: removed
+cloud identity acquisition: false
+provider mutation: false
+Terraform fmt/init -backend=false/validate: retained
+non-authorizing activation-request artifact: retained
+canonical_next_transition: TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION
+authority_effect: NONE
+```
+
+Regression:
+- `tools/test_automation_contracts.py` rejects reintroduced OIDC/AWS/apply authority.
+- `tests/test_production_provider_hosted_authority_retirement.py` enforces the hosted boundary.
+- Release Integrity runs the dedicated regression.
+
 ## Next executable boundary
 
-Convert the hosted workflow to validation-only, add fail-closed regression coverage, validate exact head, merge, then update issue #16 and canonical handoff so the next operator/runtime step points to TVC-admitted resident execution instead of GitHub OIDC apply.
+Validate exact head and merge only on green evidence. Then update issue #16 to remove GitHub OIDC/apply operator instructions and point the remaining live activation gates to TVC-admitted resident execution.
