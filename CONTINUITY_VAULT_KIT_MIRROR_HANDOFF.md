@@ -119,7 +119,7 @@ current main template tree:             7d8be8b13be05c239d332e028d0ede95cfce4b58
 current source census:                  133 files / 53 directories / 97,071 bytes
 ```
 
-The previously reconciled source addition `_Entities/Self/StegID/Continuity/README.md` is present in the connected Drive at the exact 1,520-byte source size. Current `main` now adds `_Entities/Self/Personal_Contact_Profile.json` (114 bytes) for the multi-email personal-information model. That file has not yet been re-proven present in the connected Drive in this lane, so the earlier full-parity closure remains historical evidence for tree `f37978fcde3c7622ceef33d92c6aa19c8171b4ef` rather than a claim about current tree `7d8be8b13be05c239d332e028d0ede95cfce4b58`.
+The previously reconciled `_Entities/Self/StegID/Continuity/README.md` remains present. The current-main addition `_Entities/Self/Personal_Contact_Profile.json` (114 bytes) is also now installed and directly verified in `_Entities/Self` as unconverted `text/plain`. Current-tree parity is therefore restored.
 
 Connected destination remains:
 
@@ -210,11 +210,11 @@ Drive-only runtime/user state is preserved and excluded from source-template par
 
 The connected receipt `_System/installation.receipt.json` (Drive id `1475U1vTyKKvo0l5F3YOgZqZttHMXAh_i`) was replaced in place with schema v1.1 and now records the current tree SHA, 132/53 census, accepted manifest exception, repaired paths, Drive-only exclusions, `full_template_parity=VALIDATED`, `authority_effect=NONE`, and `activation_effect=false`.
 
-**Full recursive KnowledgeVault source-template parity remains VALIDATED / COMPLETE for historical tree `f37978fcde3c7622ceef33d92c6aa19c8171b4ef`. Current tree `7d8be8b13be05c239d332e028d0ede95cfce4b58` is SOURCE-AHEAD-BY-ONE-FILE until the new personal-contact profile is installed/reconciled in the connected Drive.**
+**Full recursive KnowledgeVault source-template parity is VALIDATED / COMPLETE for current tree `7d8be8b13be05c239d332e028d0ede95cfce4b58`. The prior one-file source-ahead delta is closed.**
 
 This completion is file/template parity only. It does not activate InTr, SKAP provider credentials, identity authority, device authority, governance authority, or provider execution.
 
-Current user action for file-parity work: **NONE**. Remaining parity work is machine-executable once the connected Drive write path is used for the 114-byte profile file and the installation receipt is refreshed.
+Current user action for file-parity work: **NONE**. `_Entities/Self/Personal_Contact_Profile.json` is installed in the connected Drive as exact 114-byte unconverted `text/plain`, and `_System/installation.receipt.json` is refreshed to current tree `7d8be8b13be05c239d332e028d0ede95cfce4b58`.
 
 ## Recoverable execution and communication-extension host
 
@@ -778,3 +778,28 @@ authority_effect: NONE
 The global workflow regression now fails closed on future write permissions, repository mutation, GitHub token/secrets authority, OIDC/cloud identity, Terraform/Kubernetes/Helm mutation, hosted release/workflow dispatch, and repository-dispatch authority. Hosted-authority source cleanup for the current workflow set is COMPLETE.
 
 Remaining KnowledgeVault activation work is separate: deploy the merged KV Interlock endpoint behind authentic DEVICE→KV InTr verification and durable receipts; observe canonical Site readback; complete TVC resident recipient/key/liveness/owner-ingress/Gateway evidence; execute TVC-admitted provider activation; and publish any successor release only through admitted TV/TVC release authority.
+
+
+## Personal multi-email connected-KV parity closure — 2026-08-28
+
+The one-file delta introduced by PR #103 is now installed and reconciled in the connected KnowledgeVault.
+
+Observed live state:
+
+```text
+source template tree: 7d8be8b13be05c239d332e028d0ede95cfce4b58
+source census:        133 files / 53 directories / 97,071 bytes
+installed path:       _Entities/Self/Personal_Contact_Profile.json
+source size:          114 bytes
+installed size:       114 bytes
+installed MIME:       text/plain
+conversion:           none
+```
+
+Connected Drive evidence:
+
+- profile file id: `1vv0ivVe0G0_hkx1vXlBMLHgLuuICkN05`
+- refreshed installation receipt id: `14wHQ6OyiDwFtn_ElQL8l-XpC8bz_9HE8`
+- machine-readable repository evidence: `evidence/kv/2026-08-28-personal-contact-profile-connected-installation.json`
+
+The previous installation receipt was retired only after the refreshed current-tree receipt was verified. This parity closure has `authority_effect=NONE` and `activation_effect=false`; no provider credential, SKAP capability, Interlock transport, or email-monitoring activation occurred.
