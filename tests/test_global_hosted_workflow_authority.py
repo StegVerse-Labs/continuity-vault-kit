@@ -16,7 +16,7 @@ class GlobalHostedWorkflowAuthorityTests(unittest.TestCase):
             "helm upgrade","repository_dispatch",
         )
         workflows=sorted(WORKFLOW_ROOT.glob("*.yml"))
-        self.assertEqual(len(workflows),43)
+        self.assertEqual(len(workflows),44)
         for path in workflows:
             text=path.read_text(encoding="utf-8")
             self.assertIn("permissions:",text,path.name)
