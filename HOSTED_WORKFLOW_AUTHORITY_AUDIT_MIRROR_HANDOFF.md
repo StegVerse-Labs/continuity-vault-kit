@@ -4,7 +4,7 @@ Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #101
 Branch: `hardening/global-hosted-workflow-authority`
-State: CLAIMED_FOR_IMPLEMENTATION
+State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
 
 ## Live audit result
 
@@ -61,6 +61,19 @@ Every hosted workflow:
 
 No runtime activation, deployment, release, provider mutation, or credential authority is produced.
 
+## Implemented source state
+
+```text
+release.yml explicit permissions: contents read
+repository-wide workflow scan: installed
+workflow count assertion: 38
+explicit permissions required for every workflow
+forbidden hosted authority markers: fail closed globally
+workflow-specific regressions: retained
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+```
+
 ## Next executable boundary
 
-Make release.yml explicitly read-only, install repository-wide enforcement, validate exact head, merge if green, then re-run the 38-workflow audit and record the completed invariant.
+Run exact-head validation, merge only on green evidence, then re-run the live 38-workflow scan on main and record the audit as COMPLETE.
