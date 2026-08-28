@@ -7,6 +7,7 @@ from runtime.email_continuity import (
     create_mapping,
     mapping_id_for,
     mark_session_verified,
+    next_activation_action,
     revoke_mapping,
 )
 
@@ -24,6 +25,18 @@ class EmailContinuityRuntimeTests(unittest.TestCase):
         self.assertIsNone(mapping.skap_credential_ref)
         self.assertFalse(mapping.credential_secret_present_in_kv)
         self.assertEqual(mapping.authority_effect, "NONE")
+
+    def test_mapping_next_action_prompts_skap_vault(self):
+        mapping = create_mapping(
+            email_address="user@example.com",
+            provider_id="example-mail",
+            provider_route="provider://example/mail",
+        )
+        action = next_activation_action(mapping)
+        self.assertEqual(action["action"], "COMPLETE_SKAP_CREDENTIAL_SETUP")
+        self.assertEqual(action["credential_destination"], "SKAP_VAULT")
+        self.assertEqual(action["raw_secret_destination"], "PROHIBITED_IN_KV")
+        self.assertEqual(action["authority_effect"], "NONE")
 
     def test_skap_binding_moves_to_credential_bound(self):
         mapping = create_mapping(

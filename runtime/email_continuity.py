@@ -97,3 +97,46 @@ def assert_no_secret_fields(payload: dict) -> None:
     present = forbidden.intersection({str(k).lower() for k in payload})
     if present:
         raise EmailMappingError(f"raw credential material prohibited in KV mapping: {sorted(present)}")
+
+
+def next_activation_action(mapping: EmailAccountMapping) -> dict:
+    """Return the bounded user-visible next step for the current mapping state."""
+    if mapping.mapping_state == "MAPPED_CREDENTIAL_REQUIRED":
+        return {
+            "action": "COMPLETE_SKAP_CREDENTIAL_SETUP",
+            "message": "Complete setup in SKAP Vault to activate this email connection.",
+            "mapping_id": mapping.mapping_id,
+            "provider_id": mapping.provider_id,
+            "credential_destination": "SKAP_VAULT",
+            "raw_secret_destination": "PROHIBITED_IN_KV",
+            "authority_effect": "NONE",
+        }
+    if mapping.mapping_state == "CREDENTIAL_BOUND":
+        return {
+            "action": "VERIFY_PROVIDER_SESSION",
+            "message": "Verify the provider session using the bound SKAP credential reference.",
+            "mapping_id": mapping.mapping_id,
+            "provider_id": mapping.provider_id,
+            "credential_destination": "SKAP_VAULT",
+            "raw_secret_destination": "PROHIBITED_IN_KV",
+            "authority_effect": "NONE",
+        }
+    if mapping.mapping_state == "SESSION_VERIFIED":
+        return {
+            "action": "BEGIN_GOVERNED_INGRESS",
+            "message": "Provider session verified; governed ingress may begin when Interlock admission is available.",
+            "mapping_id": mapping.mapping_id,
+            "provider_id": mapping.provider_id,
+            "credential_destination": "SKAP_VAULT",
+            "raw_secret_destination": "PROHIBITED_IN_KV",
+            "authority_effect": "NONE",
+        }
+    return {
+        "action": "REAUTHORIZE_MAPPING",
+        "message": "This mapping is revoked and requires a new owner-authorized mapping flow.",
+        "mapping_id": mapping.mapping_id,
+        "provider_id": mapping.provider_id,
+        "credential_destination": "SKAP_VAULT",
+        "raw_secret_destination": "PROHIBITED_IN_KV",
+        "authority_effect": "NONE",
+    }

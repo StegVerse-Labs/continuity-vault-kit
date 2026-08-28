@@ -1,8 +1,8 @@
 # KV Governed Email Ingress Mirror Handoff
 
-Status: SOURCE_READY_VALIDATED_MERGE_PENDING  
+Status: SOURCE_READY_VALIDATED_MERGED_RUNTIME_EXTENSION_ACTIVE  
 Repository: StegVerse-Labs/continuity-vault-kit  
-Branch: `kv-governed-email-ingress`  
+Branch: `kv-email-ingress-runtime-v2`  
 Updated: 2026-08-27
 
 ## Purpose
@@ -42,6 +42,13 @@ The `email-continuity` slot already exists under the 33-service Personal Service
 - `schemas/kv-email-account-mapping.schema.json`
 - `runtime/email_continuity.py`
 - `tests/test_email_continuity_runtime.py`
+- `schemas/kv-email-ingress-receipt.schema.json`
+- `runtime/email_ingress_pipeline.py`
+- `tests/test_email_ingress_pipeline.py`
+- `runtime/email_provider_adapter.py`
+- `tests/test_email_provider_adapter.py`
+- `runtime/email_interlock.py`
+- `tests/test_email_interlock.py`
 
 ## Governance invariants
 
@@ -104,6 +111,35 @@ Properties:
 - revoked mappings cannot be rebound without creating a new authorized mapping flow;
 - this runtime does not itself authenticate to a provider or read mailbox contents.
 
+## Staging / admission runtime extension
+
+The current runtime-extension branch adds:
+
+- deterministic canonical message identifiers bound to mailbox mapping + provider message ID;
+- `STAGED_UNTRUSTED` pre-admission state;
+- governed decisions `ADMIT | QUARANTINE | REVIEW | REJECT | FAIL_CLOSED`;
+- trusted projection creation only for `ADMIT`;
+- payload-free governance receipts;
+- deterministic duplicate reconciliation;
+- fail-closed content-drift detection when the same provider message identity presents changed content.
+
+This remains provider-neutral and uses caller-supplied classification signals. It does not claim production spam/phishing detection or live provider access.
+
+## Provider adapter / post-mapping activation interface
+
+The runtime extension now includes a concrete provider-adapter protocol/registry:
+
+- domain/provider discovery must resolve exactly one registered route or fail closed;
+- discovery produces `MAPPED_CREDENTIAL_REQUIRED`, never an authenticated session;
+- provider session descriptors are metadata-only and are rejected if they expose password/secret/token fields;
+- the mapping runtime returns `COMPLETE_SKAP_CREDENTIAL_SETUP` immediately after mapping;
+- the next action explicitly names `SKAP_VAULT` as credential destination and `PROHIBITED_IN_KV` as raw-secret destination;
+- after SKAP reference binding, the next action becomes `VERIFY_PROVIDER_SESSION`;
+- only after session verification can the runtime surface `BEGIN_GOVERNED_INGRESS`, still subject to Interlock admission;
+- email-specific Interlock builders now use the canonical `DISCOVER`, `REQUEST`, and `COMMIT_CANDIDATE` operations;
+- Interlock requests disclose source references/metadata only and contain no mailbox secret;
+- admitted email writeback is represented as a candidate-only projection until canonical policy admission.
+
 ## Hosted validation evidence
 
 Validated implementation head before handoff reconciliation:
@@ -121,6 +157,21 @@ Hosted results:
 The KV Guardrails lane initially exposed a nondeterministic tamper-test construction: changing the final unpadded Base64 character could alter only unused padding bits and decode to the original ciphertext. The test was repaired to mutate the first encoded ciphertext character, guaranteeing changed authenticated ciphertext. The repaired exact-head guardrail run passed all SKAP cryptographic, browser ingress, rotation/revocation, TVC key-provider, InTr persistence, reconstruction, and non-authorizing validation steps.
 
 This evidence proves source/runtime-contract behavior only. It does not prove a live mailbox/provider session.
+
+## Merge evidence
+
+- PR: `#88`
+- final validated head: `e2eb801b0b39619e950174e8bc29ed77f5f3a4b1`
+- merge: `2784cdb6c39ee5fd95f3896e359de33472f04ac4`
+- merge method: squash
+- merged state: SOURCE_READY / NOT LIVE-ACTIVATED
+
+Final exact-head validation:
+- Validate KV Email Ingress Policy run `33135831775`: PASS
+- Security Baseline run `33135831717`: PASS
+- Repository validation diagnostics run `33135831685`: PASS
+- Release integrity run `33135831849`: PASS
+- KV Guardrails run `33135831764`: PASS
 
 ## Activation predicates
 
@@ -143,14 +194,6 @@ The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable
 
 ## Remaining machine-execution work
 
-- validate this branch through hosted CI;
-- reconcile the Personal Services registry entry with this more precise ingress contract if validation passes;
-- implement concrete provider adapter discovery/auth/session interfaces around the provider-neutral mapping contract;
-- implement the user-facing post-mapping SKAP Vault completion prompt around the now-implemented bounded credential-reference binding;
-- implement staged message normalization and canonical message identifiers;
-- implement governed admission/quarantine projection;
-- implement receipt/replay/reconciliation behavior;
-- expose the bounded service through the applicable KV/Interlock runtime;
 - perform real owner-authorized mailbox activation proof;
 - only then change runtime state from inactive/source-ready.
 
