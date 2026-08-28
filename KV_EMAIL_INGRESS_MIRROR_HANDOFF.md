@@ -299,3 +299,18 @@ Exact-head hosted validation:
 - Release integrity run `33136236581`: PASS
 
 This validates repository source and documented provider metadata only. Gmail, Microsoft Graph mail, and iCloud Mail remain `DOCUMENTED_UNVERIFIED` until real owner-authorized provider sessions are observed.
+
+
+## Documented-provider merge evidence
+
+- PR: `#95`
+- final validated head: `f01d45c4da710420da2976e7b388d267055b9a65`
+- merge: `93cc683471d4012b538203f27c7cd8a1c509ebdf`
+- merged state: DOCUMENTED_UNVERIFIED provider routes / LIVE ACTIVATION PENDING
+
+Final exact-head validation:
+- Validate KV Email Ingress Policy run `33136267560`: PASS
+- Security Baseline run `33136267572`: PASS
+- Repository validation diagnostics run `33136267603`: PASS
+- KV Guardrails run `33136267622`: PASS
+- Release integrity run `33136267563`: PASS
