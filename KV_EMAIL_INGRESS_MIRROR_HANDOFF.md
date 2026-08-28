@@ -1,6 +1,6 @@
 # KV Governed Email Ingress Mirror Handoff
 
-Status: SOURCE_READY_VALIDATION_PENDING  
+Status: SOURCE_READY_VALIDATED_MERGE_PENDING  
 Repository: StegVerse-Labs/continuity-vault-kit  
 Branch: `kv-governed-email-ingress`  
 Updated: 2026-08-27
@@ -103,6 +103,24 @@ Properties:
 - session verification is impossible until the SKAP reference is bound;
 - revoked mappings cannot be rebound without creating a new authorized mapping flow;
 - this runtime does not itself authenticate to a provider or read mailbox contents.
+
+## Hosted validation evidence
+
+Validated implementation head before handoff reconciliation:
+
+`c9b1dd040d0ee9bc28f9be235322c27214e31431`
+
+Hosted results:
+
+- Validate KV Email Ingress Policy run `33135794760`: PASS
+- Security Baseline run `33135794754`: PASS
+- Repository validation diagnostics run `33135794779`: PASS
+- Release integrity run `33135794783`: PASS
+- KV Guardrails run `33135794789`: PASS
+
+The KV Guardrails lane initially exposed a nondeterministic tamper-test construction: changing the final unpadded Base64 character could alter only unused padding bits and decode to the original ciphertext. The test was repaired to mutate the first encoded ciphertext character, guaranteeing changed authenticated ciphertext. The repaired exact-head guardrail run passed all SKAP cryptographic, browser ingress, rotation/revocation, TVC key-provider, InTr persistence, reconstruction, and non-authorizing validation steps.
+
+This evidence proves source/runtime-contract behavior only. It does not prove a live mailbox/provider session.
 
 ## Activation predicates
 
