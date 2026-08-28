@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-personal-finance-snapshot.schema.json",
+  "title": "KnowledgeVault Personal Finance Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "updated_at",
+    "accounts",
+    "liabilities",
+    "transactions",
+    "recurring_activity",
+    "rewards",
+    "collateral_relationships",
+    "provenance",
+    "execution_authority"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "stegverse.kv.personal-finance/v1"
+    },
+    "updated_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "accounts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/account" }
+    },
+    "liabilities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/liability" }
+    },
+    "transactions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/transaction" }
+    },
+    "recurring_activity": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/recurring" }
+    },
+    "rewards": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/reward" }
+    },
+    "collateral_relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/collateral" }
+    },
+    "provenance": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/provenance" }
+    },
+    "snapshot_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "execution_authority": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "money": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": { "type": "number" },
+        "currency": { "type": "string", "minLength": 2, "maxLength": 16 }
+      }
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["account_id", "display_name", "type", "balances", "source"],
+      "properties": {
+        "account_id": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "type": {
+          "enum": ["depository", "credit", "loan", "investment", "crypto", "cash", "other"]
+        },
+        "subtype": { "type": ["string", "null"], "maxLength": 80 },
+        "mask": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9*•-]{1,8}$" },
+        "balances": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["current", "available", "limit", "currency", "as_of"],
+          "properties": {
+            "current": { "type": ["number", "null"] },
+            "available": { "type": ["number", "null"] },
+            "limit": { "type": ["number", "null"] },
+            "currency": { "type": "string", "minLength": 2, "maxLength": 16 },
+            "as_of": { "type": ["string", "null"], "format": "date-time" }
+          }
+        },
+        "source": { "$ref": "#/$defs/source" },
+        "labels": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 80 },
+          "uniqueItems": true
+        },
+        "notes": { "type": ["string", "null"], "maxLength": 2000 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "provider_name"],
+      "properties": {
+        "kind": { "enum": ["owner_entry", "provider_import", "derived"] },
+        "provider_name": { "type": ["string", "null"], "maxLength": 120 },
+        "external_reference": { "type": ["string", "null"], "maxLength": 256 },
+        "connection_state": {
+          "enum": ["UNCONNECTED", "REFERENCE_ONLY", "CONNECTED_READ_ONLY", "REVOKED", "NOT_APPLICABLE"]
+        }
+      }
+    },
+    "liability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["liability_id", "account_id", "kind", "amount_owed", "as_of"],
+      "properties": {
+        "liability_id": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "account_id": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "kind": { "enum": ["credit_card", "auto_loan", "mortgage", "student_loan", "personal_loan", "other"] },
+        "amount_owed": { "$ref": "#/$defs/money" },
+        "apr_percent": { "type": ["number", "null"], "minimum": 0 },
+        "minimum_payment": { "anyOf": [{ "$ref": "#/$defs/money" }, { "type": "null" }] },
+        "due_date": { "type": ["string", "null"], "format": "date" },
+        "as_of": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transaction_id", "account_id", "posted_at", "amount", "description", "status"],
+      "properties": {
+        "transaction_id": { "type": "string", "minLength": 8, "maxLength": 160 },
+        "account_id": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "posted_at": { "type": "string", "format": "date-time" },
+        "amount": { "$ref": "#/$defs/money" },
+        "description": { "type": "string", "maxLength": 512 },
+        "category": { "type": ["string", "null"], "maxLength": 120 },
+        "status": { "enum": ["posted", "pending", "reversed"] },
+        "transfer_link": { "type": ["string", "null"], "maxLength": 160 }
+      }
+    },
+    "recurring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recurring_id", "name", "flow_type", "active"],
+      "properties": {
+        "recurring_id": { "type": "string", "minLength": 8, "maxLength": 160 },
+        "name": { "type": "string", "maxLength": 160 },
+        "flow_type": { "enum": ["inflow", "outflow"] },
+        "frequency": { "type": ["string", "null"], "maxLength": 80 },
+        "last_amount": { "anyOf": [{ "$ref": "#/$defs/money" }, { "type": "null" }] },
+        "active": { "type": "boolean" }
+      }
+    },
+    "reward": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reward_id", "kind", "source_account_id", "asset", "as_of"],
+      "properties": {
+        "reward_id": { "type": "string", "minLength": 8, "maxLength": 160 },
+        "kind": { "enum": ["apy", "apr", "cashback", "crypto_back", "points", "other"] },
+        "source_account_id": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "asset": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "rate_percent": { "type": ["number", "null"], "minimum": 0 },
+        "earning_balance": { "anyOf": [{ "$ref": "#/$defs/money" }, { "type": "null" }] },
+        "earned_value": { "anyOf": [{ "$ref": "#/$defs/money" }, { "type": "null" }] },
+        "as_of": { "type": ["string", "null"], "format": "date-time" },
+        "notes": { "type": ["string", "null"], "maxLength": 1000 }
+      }
+    },
+    "collateral": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationship_id", "collateral_account_id", "secured_account_id", "asset", "locked_amount", "as_of"],
+      "properties": {
+        "relationship_id": { "type": "string", "minLength": 8, "maxLength": 160 },
+        "collateral_account_id": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "secured_account_id": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "asset": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "locked_amount": { "$ref": "#/$defs/money" },
+        "purpose": { "type": ["string", "null"], "maxLength": 240 },
+        "as_of": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind", "observed_at"],
+      "properties": {
+        "source_kind": { "enum": ["owner_entry", "provider_import", "derived"] },
+        "provider_name": { "type": ["string", "null"], "maxLength": 120 },
+        "observed_at": { "type": ["string", "null"], "format": "date-time" },
+        "coverage_note": { "type": ["string", "null"], "maxLength": 512 }
+      }
+    }
+  }
+}
