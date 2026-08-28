@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-organization-posture-change-receipt.schema.json",
+  "title": "StegVerse Organization Posture Change Receipt",
+  "type": "object",
+  "required": [
+    "schema",
+    "organization_id",
+    "prior_posture_hash",
+    "new_posture_hash",
+    "prior_version",
+    "new_version",
+    "effective_at",
+    "changed_surfaces",
+    "historical_scope_effect",
+    "authorized_by",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.organization-posture-change-receipt/v1"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "prior_posture_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "new_posture_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "prior_version": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "new_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "changed_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "historical_scope_effect": {
+      "enum": [
+        "NONE",
+        "EXPLICITLY_AUTHORIZED",
+        "POLICY_DEFINED"
+      ]
+    },
+    "authorized_by": {
+      "type": "object",
+      "required": [
+        "actor_ref",
+        "role",
+        "decision_ref"
+      ],
+      "properties": {
+        "actor_ref": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "decision_ref": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "authority_effect": {
+      "const": "NONE_POLICY_ONLY"
+    }
+  },
+  "additionalProperties": false
+}
