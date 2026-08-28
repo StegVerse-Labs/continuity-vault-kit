@@ -1,0 +1,29 @@
+name: Validate KV Monitor Targets
+
+on:
+  pull_request:
+    paths:
+      - "KV_MONITOR_TARGETS_CANONICAL_STATE_MIRROR_HANDOFF.md"
+      - "schemas/kv-provider-monitor-targets.schema.json"
+      - "vault_template/KnowledgeVault/_System/Connections/Monitor_Targets.json"
+      - "runtime/connection_monitor_targets.py"
+      - "tests/test_connection_monitor_targets.py"
+      - "tools/check_kv_monitor_targets.py"
+      - ".github/workflows/kv-monitor-targets.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Static monitor-target checks
+        run: python tools/check_kv_monitor_targets.py
+      - name: Monitor-target tests
+        run: python -m unittest tests.test_connection_monitor_targets

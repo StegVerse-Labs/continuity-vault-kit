@@ -1,0 +1,5 @@
+{
+  "schema": "stegverse.kv.provider-monitor-targets/v1",
+  "authority_effect": "NONE",
+  "targets": []
+}
