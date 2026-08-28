@@ -20,6 +20,14 @@ Financial provider / owner entry
  -> optional governed analysis/readback
 ```
 
+## Direct-source ingestion dependency
+
+Canonical live population must conform to `KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md` (issue #108).
+
+For finance, assets, and liabilities, canonical imports should originate from the direct institution/provider source using an owner-authorized provider session whose reusable credential material is resolved through SKAP Vault. An intermediary may be admitted only as explicit transport/convenience and may not silently replace the underlying source in provenance.
+
+Default access is READ_ONLY / minimum-necessary. Provider login/session verification, source/account binding, normalization, admission, and KV persistence receipts are required before imported state is treated as current direct-source data.
+
 ## Privacy and authority invariants
 
 1. Real user financial values belong only in the user's private connected KnowledgeVault or an admitted private runtime; they must never be committed to this public repository.
@@ -107,7 +115,7 @@ Required validation before merge:
 - transaction execution authority remains false: IMPLEMENTED / VALIDATION_PENDING;
 - tests use synthetic values only: SATISFIED_ON_BRANCH;
 - connected-KV write/readback: NOT YET PERFORMED;
-- automatic/provider import adapter: NOT YET IMPLEMENTED;
+- direct-source SKAP-backed provider import adapter: governed by issue #108 / NOT YET LIVE-ACTIVATED;
 - Site / My KV finance projection: NOT YET IMPLEMENTED;
 - downstream Publisher / admissibility / stegguardian propagation: NOT YET DUE.
 
