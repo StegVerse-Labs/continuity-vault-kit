@@ -284,3 +284,18 @@ Every provider entry:
 - remains `runtime_verified=false` until StegVerse performs a real conformance/activation observation.
 
 Unknown domains remain fail-closed rather than guessing a provider.
+
+
+## Documented-provider validation evidence
+
+Provider-adapter PR: `#95`  
+Validated head: `6ef27a1aec2b0c04dd3f0fcd047cba4d1c10a1fd`
+
+Exact-head hosted validation:
+- Validate KV Email Ingress Policy run `33136236584`: PASS
+- Security Baseline run `33136236583`: PASS
+- Repository validation diagnostics run `33136236577`: PASS
+- KV Guardrails run `33136236557`: PASS
+- Release integrity run `33136236581`: PASS
+
+This validates repository source and documented provider metadata only. Gmail, Microsoft Graph mail, and iCloud Mail remain `DOCUMENTED_UNVERIFIED` until real owner-authorized provider sessions are observed.
