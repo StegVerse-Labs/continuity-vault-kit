@@ -3,8 +3,8 @@
 Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Canonical activation issue: #16
-Branch: `fix/production-provider-hosted-authority-16`
-State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
+Branch: `main`
+State: MERGED_VALIDATED_HOSTED_PRODUCTION_AUTHORITY_RETIRED
 
 ## Purpose
 
@@ -103,3 +103,23 @@ Regression:
 ## Next executable boundary
 
 Validate exact head and merge only on green evidence. Then update issue #16 to remove GitHub OIDC/apply operator instructions and point the remaining live activation gates to TVC-admitted resident execution.
+
+
+## Merge and validation evidence
+
+```text
+PR: #92
+validated head: 55c0a18de596455f40f37d4cf368cf77a555fda3
+merge: 1d487ed09007d42af602ce24d71e937541e279a3
+
+Release Integrity: 33136076697 SUCCESS
+Repository validation diagnostics: 33136076696 SUCCESS
+Security Baseline: 33136076689 SUCCESS
+KV Guardrails: 33136076726 SUCCESS
+```
+
+Issue #16 remains OPEN. Its canonical operator/runtime instructions now point to `TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION`; GitHub OIDC/environment/APPLY instructions are retired.
+
+## Current next boundary
+
+The hosted-authority source correction is COMPLETE. Actual provider activation remains blocked on TVC-admitted resident execution plus six live probes, Master-Records acknowledgement, rollback/revocation evidence, and a signed deployment receipt.
