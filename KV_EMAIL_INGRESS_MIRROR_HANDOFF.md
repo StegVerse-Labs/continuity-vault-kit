@@ -42,6 +42,9 @@ The `email-continuity` slot already exists under the 33-service Personal Service
 - `schemas/kv-email-account-mapping.schema.json`
 - `runtime/email_continuity.py`
 - `tests/test_email_continuity_runtime.py`
+- `schemas/kv-email-ingress-receipt.schema.json`
+- `runtime/email_ingress_pipeline.py`
+- `tests/test_email_ingress_pipeline.py`
 
 ## Governance invariants
 
@@ -104,6 +107,20 @@ Properties:
 - revoked mappings cannot be rebound without creating a new authorized mapping flow;
 - this runtime does not itself authenticate to a provider or read mailbox contents.
 
+## Staging / admission runtime extension
+
+The current runtime-extension branch adds:
+
+- deterministic canonical message identifiers bound to mailbox mapping + provider message ID;
+- `STAGED_UNTRUSTED` pre-admission state;
+- governed decisions `ADMIT | QUARANTINE | REVIEW | REJECT | FAIL_CLOSED`;
+- trusted projection creation only for `ADMIT`;
+- payload-free governance receipts;
+- deterministic duplicate reconciliation;
+- fail-closed content-drift detection when the same provider message identity presents changed content.
+
+This remains provider-neutral and uses caller-supplied classification signals. It does not claim production spam/phishing detection or live provider access.
+
 ## Hosted validation evidence
 
 Validated implementation head before handoff reconciliation:
@@ -160,9 +177,6 @@ The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable
 
 - implement concrete provider adapter discovery/auth/session interfaces around the provider-neutral mapping contract;
 - implement the user-facing post-mapping SKAP Vault completion prompt around the now-implemented bounded credential-reference binding;
-- implement staged message normalization and canonical message identifiers;
-- implement governed admission/quarantine projection;
-- implement receipt/replay/reconciliation behavior;
 - expose the bounded service through the applicable KV/Interlock runtime;
 - perform real owner-authorized mailbox activation proof;
 - only then change runtime state from inactive/source-ready.
