@@ -1,6 +1,6 @@
 # KV Connection Registry Materialization Mirror Handoff
 
-Status: SOURCE_LANE_OPEN / IMPLEMENTATION_IN_PROGRESS
+Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #115
 Branch: `feature/kv-connection-registry-materialization`
@@ -54,4 +54,4 @@ KnowledgeVault/
 
 ## Current boundary
 
-Source implementation only. No live provider connection, credential resolution, provider monitoring, or private user assembly state is committed to the repository.
+Machine-executable template/store source is implemented on this branch. No live provider connection, credential resolution, provider monitoring, or private user assembly state is committed to the repository.
