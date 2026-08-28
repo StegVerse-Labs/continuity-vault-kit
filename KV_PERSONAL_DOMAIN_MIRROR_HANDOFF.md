@@ -315,28 +315,26 @@ REVIEW
 
 ### Device-continuity recovery action
 
-`RE-REGISTER DEVICE` is a required recovery/action directive, not a fifth service lifecycle state and not a substitute for `REVIEW`.
+`REVIEW` is specifically the device-continuity recovery state and its canonical user-facing action is `RE-REGISTER DEVICE`.
 
-When a service cannot safely rely on the current device continuity binding, the preferred projection is:
+Canonical projection:
 
 ```text
 service_state: REVIEW
 required_action: RE-REGISTER DEVICE
 ```
 
-If the missing/invalid device binding makes the service impossible to evaluate safely, the projection may instead be:
+Therefore, for this services-governance surface:
 
 ```text
-service_state: UNAVAILABLE
-required_action: RE-REGISTER DEVICE
+REVIEW = RE-REGISTER DEVICE
 ```
 
-The choice between REVIEW and UNAVAILABLE must be derived from the governing rule:
+Use `REVIEW` when the service cannot safely proceed because the current device/node continuity binding requires re-registration. Do not use `REVIEW` as a generic human-review bucket for unrelated service conditions.
 
-- use REVIEW when a valid human/governance decision or reverification can resolve the ambiguity;
-- use UNAVAILABLE when the system must fail closed because the required continuity/authority evidence is absent or invalid.
+`UNAVAILABLE` remains distinct: it means the service must fail closed because a required dependency, provider/runtime, authority proof, or other prerequisite is unavailable or invalid and device re-registration is not itself the direct corrective action.
 
-A successful re-registration must produce a new governed device continuity transition/receipt before dependent service cards can advance.
+A successful `RE-REGISTER DEVICE` action must produce a new governed device continuity transition/receipt before dependent service cards can leave `REVIEW`.
 
 ### Display invariant
 
@@ -355,7 +353,6 @@ The UI may additionally show the most recent governance verdict and required act
 
 ```text
 Status: REVIEW
-Decision: FAIL_CLOSED
 Action: RE-REGISTER DEVICE
 Reason: device continuity receipt is stale
 ```
