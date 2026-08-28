@@ -18,6 +18,7 @@ Last updated: 2026-08-27
 - Issue #68 transport-neutral receiver-acceptance persistence is IMPLEMENTED, VALIDATED, and MERGED through PR #69 at merge `08011eea59ad2b7613102c032f6fe25035b8f765`; actual bearer-generated receiver acceptance in the connected Drive-backed vault remains separately unproven.
 - Issue #16 remains a separate external activation gate and is not a baseline KnowledgeVault installation requirement.
 - Root user-operation documentation is now consolidated into `README.md` plus `USER_GUIDE.md`; `SECURITY.md` remains the separate repository/deployment security policy.
+- Governed `email-continuity` source is now merged under `KV_EMAIL_INGRESS_MIRROR_HANDOFF.md`: PR #88 established the provider-neutral ingress/SKAP credential-reference contract and mapping runtime; PR #91 added pre-admission staging, governance receipts/replay, provider adapter discovery interface, explicit SKAP completion guidance, and canonical KV Interlock request binding. Live mailbox/provider/SKAP activation remains separately unproven and the service remains inactive.
 
 ## Root user-document consolidation completed
 
