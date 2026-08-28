@@ -47,6 +47,8 @@ The `email-continuity` slot already exists under the 33-service Personal Service
 - `tests/test_email_ingress_pipeline.py`
 - `runtime/email_provider_adapter.py`
 - `tests/test_email_provider_adapter.py`
+- `runtime/email_interlock.py`
+- `tests/test_email_interlock.py`
 
 ## Governance invariants
 
@@ -133,7 +135,10 @@ The runtime extension now includes a concrete provider-adapter protocol/registry
 - the mapping runtime returns `COMPLETE_SKAP_CREDENTIAL_SETUP` immediately after mapping;
 - the next action explicitly names `SKAP_VAULT` as credential destination and `PROHIBITED_IN_KV` as raw-secret destination;
 - after SKAP reference binding, the next action becomes `VERIFY_PROVIDER_SESSION`;
-- only after session verification can the runtime surface `BEGIN_GOVERNED_INGRESS`, still subject to Interlock admission.
+- only after session verification can the runtime surface `BEGIN_GOVERNED_INGRESS`, still subject to Interlock admission;
+- email-specific Interlock builders now use the canonical `DISCOVER`, `REQUEST`, and `COMMIT_CANDIDATE` operations;
+- Interlock requests disclose source references/metadata only and contain no mailbox secret;
+- admitted email writeback is represented as a candidate-only projection until canonical policy admission.
 
 ## Hosted validation evidence
 
@@ -189,7 +194,6 @@ The service must remain `INSTALLED_INACTIVE` / source-ready until all applicable
 
 ## Remaining machine-execution work
 
-- expose the bounded service through the applicable KV/Interlock runtime;
 - perform real owner-authorized mailbox activation proof;
 - only then change runtime state from inactive/source-ready.
 
