@@ -89,6 +89,7 @@
       ],
       "provider_dependency": "EXTERNAL_MAIL_PROVIDER",
       "activation_requires": [
+        "mapped mailbox identity followed by user-directed SKAP Vault credential setup",
         "verified provider session",
         "governed inbound staging/admission per stegverse.kv.email-ingress-policy/v1",
         "Interlock minimum-disclosure/send admission"
