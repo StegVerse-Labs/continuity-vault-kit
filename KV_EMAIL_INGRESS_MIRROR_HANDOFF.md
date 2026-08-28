@@ -49,6 +49,11 @@ The `email-continuity` slot already exists under the 33-service Personal Service
 - `tests/test_email_provider_adapter.py`
 - `runtime/email_interlock.py`
 - `tests/test_email_interlock.py`
+- `schemas/kv-email-provider-registry.schema.json`
+- `specs/kv-email-provider-registry.v1.json`
+- `tools/check_kv_email_provider_registry.py`
+- `runtime/documented_email_providers.py`
+- `tests/test_documented_email_providers.py`
 
 ## Governance invariants
 
@@ -245,11 +250,37 @@ Release state:
 Machine-executable source for provider-neutral discovery, SKAP completion guidance, staged admission, receipts/replay, and KV Interlock specialization is merged.
 
 Remaining work that is not yet proven:
-1. register one or more concrete mail-provider adapters using current provider-specific authorization/session facts;
-2. execute a real owner-authorized mailbox mapping;
+1. execute a real owner-authorized mailbox mapping against one documented/supported provider route;
+2. where the address is outside the documented domains, add a separately evidenced provider adapter rather than guessing;
 3. complete the prompted SKAP Vault credential setup;
 4. verify the provider session using SKAP-backed resolution;
 5. observe one real inbound staged message before trust;
 6. observe at least one real ADMIT and one real governed non-admit outcome;
 7. verify KV projection/readback, receipt chains, duplicate reconciliation, revocation, and interruption recovery;
 8. only then consider `email-continuity` ACTIVE.
+
+
+## Documented concrete provider adapters
+
+A provider-specific metadata set is now implemented as `DOCUMENTED_UNVERIFIED`, not runtime verified:
+
+- `google-gmail` for `gmail.com` / `googlemail.com`
+  - Gmail API message list/get route
+  - delegated OAuth 2.0
+  - minimum read scope `https://www.googleapis.com/auth/gmail.readonly`
+- `microsoft-outlook-graph` for `outlook.com` / `hotmail.com` / `live.com` / `msn.com`
+  - Microsoft Graph mail route
+  - delegated OAuth 2.0
+  - minimum read permission `Mail.Read`
+- `apple-icloud-mail` for `icloud.com` / `me.com` / `mac.com`
+  - IMAP over TLS at `imap.mail.me.com:993`
+  - app-specific password authorization for this documented third-party route
+
+Every provider entry:
+- requires explicit user authorization;
+- maps credential destination to SKAP Vault;
+- prohibits KV secret storage;
+- carries dated provider-documentation evidence;
+- remains `runtime_verified=false` until StegVerse performs a real conformance/activation observation.
+
+Unknown domains remain fail-closed rather than guessing a provider.
