@@ -310,7 +310,9 @@ UNAVAILABLE
   reason should be explainable in plain language without implying fault or denial unless that is actually the case
 
 REVIEW
-  service or its activation/action state requires explicit human review, approval, confirmation, amendment, or re-verification before proceeding
+  the system has enough information to recognize that a governed decision is required, but not enough authority or certainty to complete that decision automatically
+  an authorized human must resolve the condition through review, approval, confirmation, amendment, correction, or re-verification before proceeding
+  the service/action is not automatically allowed, not necessarily denied, and not merely unavailable
   card remains visible and non-operable except for the applicable review/recovery action
 ```
 
@@ -365,6 +367,12 @@ Reason: device continuity must be re-established
 ```
 
 This preserves the separation between service state, governance verdict, and recovery instruction while keeping the user-facing experience simple.
+
+Canonical REVIEW definition:
+
+> The system has enough information to recognize that a governed decision is required, but not enough authority or certainty to complete that decision automatically. An authorized human must resolve it.
+
+This is the canonical meaning of REVIEW for the StegVerse.me services-governance surface. `RE-REGISTER DEVICE` is one possible REVIEW resolution, not the definition of REVIEW itself.
 
 ## Privacy / addressing constraint
 
