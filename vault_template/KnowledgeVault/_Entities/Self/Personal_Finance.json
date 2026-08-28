@@ -1,0 +1,13 @@
+{
+  "schema_version": "stegverse.kv.personal-finance/v1",
+  "updated_at": null,
+  "accounts": [],
+  "liabilities": [],
+  "transactions": [],
+  "recurring_activity": [],
+  "rewards": [],
+  "collateral_relationships": [],
+  "provenance": [],
+  "snapshot_hash": null,
+  "execution_authority": false
+}
