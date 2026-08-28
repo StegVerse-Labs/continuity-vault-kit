@@ -2,7 +2,7 @@
 
 Status: SOURCE_LANE_OPEN / ARCHITECTURE_DEFINITION
 Repository: `StegVerse-Labs/continuity-vault-kit`
-Issue: TBD
+Issue: #113
 Branch: `feature/kv-connection-assembly-source`
 Updated: 2026-08-28
 Authority effect: NONE
