@@ -59,7 +59,8 @@ def reject_secret_fields(value: Any, path: str = "$") -> None:
     if isinstance(value, dict):
         for key, child in value.items():
             normalized = _normalized_key(str(key))
-            if any(fragment == normalized or fragment in normalized for fragment in FORBIDDEN_KEY_FRAGMENTS):
+            padded = f"_{normalized}_"
+            if any(fragment == normalized or f"_{fragment}_" in padded for fragment in FORBIDDEN_KEY_FRAGMENTS):
                 raise PersonalFinanceError(f"forbidden secret-bearing field at {path}.{key}")
             reject_secret_fields(child, f"{path}.{key}")
     elif isinstance(value, list):

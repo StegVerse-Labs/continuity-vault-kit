@@ -1,0 +1,30 @@
+name: Validate KV Coinbase Finance Ingress
+
+on:
+  pull_request:
+    paths:
+      - "KV_COINBASE_FINANCE_INGRESS_MIRROR_HANDOFF.md"
+      - "runtime/coinbase_finance_ingress.py"
+      - "runtime/personal_finance.py"
+      - "tests/test_coinbase_finance_ingress.py"
+      - "tools/check_kv_coinbase_finance_ingress.py"
+      - ".github/workflows/kv-coinbase-finance-ingress.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Static Coinbase finance ingress checks
+        run: python tools/check_kv_coinbase_finance_ingress.py
+      - name: Coinbase finance ingress tests
+        run: python -m unittest tests.test_coinbase_finance_ingress
+      - name: Existing Personal Finance tests
+        run: python -m unittest tests.test_personal_finance
