@@ -47,7 +47,10 @@ def load_registry(kv_root: Path) -> Dict[str,Any]:
         value=json.loads(paths["registry"].read_text(encoding="utf-8"))
     except Exception as exc:
         raise ConnectionRegistryStoreError("connection registry is unreadable") from exc
-    reject_secret_fields(value,"$.connection_registry")
+    try:
+        reject_secret_fields(value,"$.connection_registry")
+    except ConnectionAssemblyError as exc:
+        raise ConnectionRegistryStoreError(str(exc)) from exc
     if value.get("schema")!=REGISTRY_SCHEMA: raise ConnectionRegistryStoreError("unexpected registry schema")
     if value.get("authority_effect")!="NONE": raise ConnectionRegistryStoreError("registry authority effect must remain NONE")
     assemblies=value.get("assemblies")
