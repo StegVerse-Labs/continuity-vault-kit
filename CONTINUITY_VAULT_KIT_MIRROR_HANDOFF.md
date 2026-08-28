@@ -751,3 +751,27 @@ authority_effect: NONE
 ```
 
 Formatting changes now require a separately admitted non-hosted patch application.
+
+
+### Repository-wide hosted workflow non-authority invariant — completion
+
+Issue #101 / PR #102 is merged, validated, and post-merge audited.
+
+```text
+validated head: e032887cef80989aeb26728d67337af2ce4d7b5c
+merge: 5d9c6c6193dbac7d6c1c364f4f6879ec76ff02d5
+Release Integrity: 33136800774 SUCCESS
+Repository diagnostics: 33136800756 SUCCESS
+Security Baseline: 33136800776 SUCCESS
+KV Guardrails: 33136800765 SUCCESS
+current workflow count: 38
+workflows with explicit permissions: 38
+workflows with forbidden hosted authority markers: 0
+GitHub Actions role: VALIDATION_TRANSPORT_ONLY
+production/runtime/control-plane/repository/release/credential authority: NONE
+authority_effect: NONE
+```
+
+The global workflow regression now fails closed on future write permissions, repository mutation, GitHub token/secrets authority, OIDC/cloud identity, Terraform/Kubernetes/Helm mutation, hosted release/workflow dispatch, and repository-dispatch authority. Hosted-authority source cleanup for the current workflow set is COMPLETE.
+
+Remaining KnowledgeVault activation work is separate: deploy the merged KV Interlock endpoint behind authentic DEVICE→KV InTr verification and durable receipts; observe canonical Site readback; complete TVC resident recipient/key/liveness/owner-ingress/Gateway evidence; execute TVC-admitted provider activation; and publish any successor release only through admitted TV/TVC release authority.
