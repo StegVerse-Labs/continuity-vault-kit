@@ -1,0 +1,20 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-connection-readback-proof.schema.json",
+  "title":"KnowledgeVault connection readback proof",
+  "type":"object",
+  "required":["schema","assembly_id","canonical_kv_path","observed_at","readback_verified","persistence_receipt_ref","readback_proof_ref","provider_operation_authorized","credential_material_present","authority_effect"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.connection-readback-proof/v1"},
+    "assembly_id":{"type":"string","pattern":"^kvcxn_[a-f0-9]{24}$"},
+    "canonical_kv_path":{"type":"string","minLength":1},
+    "observed_at":{"type":"string","minLength":1},
+    "readback_verified":{"const":true},
+    "persistence_receipt_ref":{"type":"string","minLength":1},
+    "readback_proof_ref":{"type":"string","minLength":1},
+    "provider_operation_authorized":{"const":false},
+    "credential_material_present":{"const":false},
+    "authority_effect":{"const":"NONE"}
+  },
+  "additionalProperties":false
+}
