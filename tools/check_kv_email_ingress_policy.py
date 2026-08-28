@@ -35,6 +35,16 @@ def validate(policy: dict) -> list[str]:
     if provider.get("provider_neutral") is not True:
         errors.append("canonical contract must remain provider-neutral")
 
+    skap = policy.get("skap_credential_binding", {})
+    if skap.get("required_for_activation") is not True:
+        errors.append("SKAP Vault credential binding must be required for activation")
+    if skap.get("vault") != "SKAP_VAULT":
+        errors.append("credential binding must target SKAP Vault")
+    if skap.get("kv_stores_secret") is not False:
+        errors.append("KnowledgeVault must not store the mailbox secret")
+    if skap.get("user_prompt_after_mapping") is not True:
+        errors.append("user must be prompted to complete credential setup after mailbox mapping")
+
     staging = policy.get("staging", {})
     if staging.get("required") is not True:
         errors.append("pre-admission staging is required")
