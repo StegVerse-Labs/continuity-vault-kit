@@ -111,6 +111,14 @@ WORKFLOWS = {
         "TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION",
         "actions/upload-artifact@v4",
     },
+    "kv-format-branch.yml": {
+        "name: KV Format Branch - Validation Only",
+        "contents: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_FORMAT_PATCH_APPLICATION",
+        "actions/upload-artifact@v4",
+    },
     "sync-knowledgevault-overlay-from-stegdb.yml": {
         "contents: read",
         "persist-credentials: false",
@@ -284,6 +292,36 @@ def validate_release_cycle_outcome() -> None:
 
 
 
+
+
+
+def validate_kv_format_hosted_boundary() -> None:
+    workflow = read_text(REPO_ROOT / ".github" / "workflows" / "kv-format-branch.yml")
+    forbidden = {
+        "contents: write",
+        "git push",
+        "git commit",
+        "github.token",
+        "GH_TOKEN:",
+        "${{ secrets.",
+    }
+    present = sorted(token for token in forbidden if token in workflow)
+    if present:
+        fail("kv-format branch reintroduces hosted repository mutation: " + ", ".join(present))
+    required = {
+        "contents: read",
+        "persist-credentials: false",
+        "VALIDATION_TRANSPORT_ONLY",
+        "NON_HOSTED_FORMAT_PATCH_APPLICATION",
+        "repository_mutation_performed",
+        "git_push_performed",
+        "actions/upload-artifact@v4",
+        "authority_effect",
+        "NONE",
+    }
+    missing = sorted(token for token in required if token not in workflow)
+    if missing:
+        fail("kv-format branch missing validation-only formatting tokens: " + ", ".join(missing))
 
 
 def validate_stegdb_overlay_hosted_boundary() -> None:
@@ -569,6 +607,7 @@ def main() -> int:
         validate_release_cycle,
         validate_hosted_release_cycle_boundary,
         validate_release_cycle_outcome,
+        validate_kv_format_hosted_boundary,
         validate_stegdb_overlay_hosted_boundary,
         validate_release_reconciliation_hosted_boundary,
         validate_production_provider_hosted_boundary,
