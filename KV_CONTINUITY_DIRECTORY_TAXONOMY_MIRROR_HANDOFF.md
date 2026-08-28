@@ -19,6 +19,10 @@ This is a storage/navigation taxonomy layer. It does not replace canonical schem
 KnowledgeVault/
   02_Research/
   03_Records/
+    Assets/
+      README.md
+    Liabilities/
+      README.md
     Email/
       README.md
     Finance/
@@ -47,6 +51,14 @@ KnowledgeVault/
 - a directory link does not imply that every file type is publicly browser-readable;
 - Site directory browsing must use a canonical private KV bridge and fail closed when absent.
 
+## Assets and liabilities boundaries
+
+`03_Records/Assets` is the human-readable continuity directory for owned resources such as property, investments, cash-equivalents, business interests, valuables, and other owner-controlled assets.
+
+`03_Records/Liabilities` is the human-readable continuity directory for obligations such as credit cards, auto loans, mortgages, student loans, personal loans, taxes owed, and other debts.
+
+These directories are intentionally separate from `03_Records/Finance`: Finance is the analytical overview and planning layer; Assets and Liabilities are first-class continuity domains that may also be referenced by Finance analysis.
+
 ## Finance overview contract
 
 `03_Records/Finance/Finance_Overview.md` is the top-level human-readable finance index.
@@ -74,6 +86,8 @@ The document summarizes private finance state; machine-readable normalized state
 
 ## Current files
 
+- `vault_template/KnowledgeVault/03_Records/Assets/README.md`
+- `vault_template/KnowledgeVault/03_Records/Liabilities/README.md`
 - `vault_template/KnowledgeVault/03_Records/Email/README.md`
 - `vault_template/KnowledgeVault/03_Records/Finance/Finance_Overview.md`
 - `vault_template/KnowledgeVault/03_Records/Finance/Accounts/README.md`
