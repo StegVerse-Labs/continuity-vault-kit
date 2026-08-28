@@ -46,9 +46,7 @@ class ConnectionMonitorTargetTests(unittest.TestCase):
 
     def test_secret_descriptor_rejected(self):
         catalog=self.catalog(); catalog["coinbase:changelog"]["access_token"]="synthetic"
-        # descriptor field is not copied, so rejection is enforced by validating source catalog first at integration boundary
-        with self.assertRaises(Exception):
-            from runtime.connection_assembly import reject_secret_fields
-            reject_secret_fields(catalog)
+        with self.assertRaises(ConnectionMonitorTargetError):
+            compile_monitor_targets([self.assembly()],catalog)
 
 if __name__=="__main__": unittest.main()
