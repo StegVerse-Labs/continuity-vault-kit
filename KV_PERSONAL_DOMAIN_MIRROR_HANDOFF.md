@@ -374,6 +374,45 @@ Canonical REVIEW definition:
 
 This is the canonical meaning of REVIEW for the StegVerse.me services-governance surface. `RE-REGISTER DEVICE` is one possible REVIEW resolution, not the definition of REVIEW itself.
 
+
+## Canonical service-card color mapping — accepted 2026-08-28
+
+Service cards MUST use a consistent color treatment tied to the canonical service state:
+
+```text
+ACTIVE      -> GREEN
+REVIEW      -> YELLOW
+UNAVAILABLE -> RED
+INACTIVE    -> GRAY
+```
+
+Color is a primary visual cue, but it MUST NOT be the only status signal. Every card must also display the explicit text state:
+
+- `ACTIVE`
+- `REVIEW`
+- `UNAVAILABLE`
+- `INACTIVE`
+
+Canonical presentation intent:
+
+```text
+GREEN / ACTIVE
+  service is activated in this individual's KV
+
+YELLOW / REVIEW
+  governed human decision/action is required before proceeding
+
+RED / UNAVAILABLE
+  service is not currently available to this user/node/KV
+
+GRAY / INACTIVE
+  service is available but not activated in this individual's KV
+```
+
+The same status-to-color mapping should be used consistently across `services.html`, service detail pages, node summaries, and any future StegOS/My KV service-governance surface unless a later canonical design explicitly supersedes it.
+
+Accessibility invariant: state text, iconography, and/or semantic labels must remain present so that status is understandable without relying on color perception alone.
+
 ## Privacy / addressing constraint
 
 Do not encode a user's real name, email address, precise identity, or raw KV identifier into public DNS labels or public URLs by default.
