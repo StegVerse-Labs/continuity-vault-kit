@@ -3,8 +3,8 @@
 Updated: 2026-08-27
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #99
-Branch: `fix/kv-format-hosted-mutation`
-State: IMPLEMENTED_ON_BRANCH_VALIDATION_PENDING
+Branch: `main`
+State: MERGED_VALIDATED_HOSTED_MUTATION_RETIRED
 
 ## Goal
 
@@ -52,3 +52,22 @@ Regression is installed in automation contracts, a dedicated unit test, and Rele
 ## Next executable boundary
 
 Run exact-head validation and merge only if green. Then perform a complete live workflow audit for any residual write, token, OIDC, production, release, or repository-mutation authority.
+
+
+## Merge and validation evidence
+
+```text
+PR: #100
+validated head: 889ddac46ede5a2e53153ced85a2de361562acb1
+merge: 90576d265008fcebeb64449588655d4c845fe18e
+Release Integrity: 33136581700 SUCCESS
+Repository diagnostics: 33136581698 SUCCESS
+Security Baseline: 33136581716 SUCCESS
+KV Guardrails: 33136581688 SUCCESS
+```
+
+The formatter now runs only against a temporary candidate copy and emits a patch artifact. Hosted branch mutation is retired.
+
+## Current next boundary
+
+Issue #99 source-retirement goal is COMPLETE. Run a complete live workflow authority audit for any residual hosted write/token/OIDC/production/release authority.
