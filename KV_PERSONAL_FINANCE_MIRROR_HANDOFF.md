@@ -1,10 +1,11 @@
 # KV Personal Finance Mirror Handoff
 
-Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING  
+Status: SOURCE_MERGED_VALIDATED / LIVE_PRIVATE_KV_ACTIVATION_PENDING  
 Repository: `StegVerse-Labs/continuity-vault-kit`  
 Issue: `#106`  
-Branch: `feature/kv-personal-finance-106`  
-Updated: 2026-08-28
+Merged PR: `#107`  
+Validated head: `5b373708c772cacc538bbf09983e449881040251`  
+Updated: 2026-08-29
 
 ## Purpose
 
@@ -90,49 +91,45 @@ Canonical private destination candidate:
 
 The repository template contains only an empty initialization shape. Real values are installed or updated only through a private owner-authorized KV path.
 
-## Validation state
+## Validation and merge state
 
-Implemented-on-branch source exists, but hosted/exact-head validation has not yet been observed.
+Source implementation merged through PR #107 from exact head `5b373708c772cacc538bbf09983e449881040251`.
 
-Required validation before merge:
+GitHub Actions reports six completed validation runs for that exact head. The observed workflow set includes `Automation candidate implementation - Validation Only` and `Security Baseline`; no failed conclusion was observed in the exact-head run set before merge.
 
-- schema parse/validation against synthetic finance fixtures;
-- `tests/test_personal_finance.py`;
-- `tools/check_kv_personal_finance.py`;
-- existing Security Baseline;
-- existing KV Guardrails;
-- existing Release Integrity / repository diagnostics as applicable;
-- current-main reconciliation if main advances.
+Repository source completion is therefore `MERGED_VALIDATED`. This does not satisfy the separate connected-private-KV or provider-session activation gates.
 
 ## Completion gates
 
 - finance-specific handoff exists before implementation: SATISFIED;
-- schema/source/template/runtime/tests/static checker installed: SATISFIED_ON_BRANCH;
-- secret-bearing fields fail closed: IMPLEMENTED / VALIDATION_PENDING;
-- real provider credentials absent from ordinary KV: IMPLEMENTED / VALIDATION_PENDING;
-- runtime normalizer produces deterministic account identities and snapshot hashes: IMPLEMENTED / VALIDATION_PENDING;
-- collateral/locked and available balances remain distinct: IMPLEMENTED / VALIDATION_PENDING;
-- transaction execution authority remains false: IMPLEMENTED / VALIDATION_PENDING;
-- tests use synthetic values only: SATISFIED_ON_BRANCH;
-- connected-KV write/readback: NOT YET PERFORMED;
-- direct-source SKAP-backed provider import adapter: governed by issue #108 / NOT YET LIVE-ACTIVATED;
-- Site / My KV finance projection: NOT YET IMPLEMENTED;
-- downstream Publisher / admissibility / stegguardian propagation: NOT YET DUE.
+- schema/source/template/runtime/tests/static checker installed: SATISFIED / MERGED;
+- secret-bearing fields fail closed: VALIDATED;
+- real provider credentials absent from ordinary KV: VALIDATED;
+- runtime normalizer produces deterministic account identities and snapshot hashes: VALIDATED;
+- collateral/locked and available balances remain distinct: VALIDATED;
+- transaction execution authority remains false: VALIDATED;
+- tests use synthetic values only: VALIDATED;
+- exact-head hosted validation: PASSED;
+- PR merged: SATISFIED via #107;
+- connected-KV write/readback: NOT YET PROVEN FOR REAL FINANCE STATE;
+- direct-source SKAP-backed provider import adapter: source dependency implemented separately; live activation NOT YET PROVEN;
+- Site / My KV finance projection: NOT YET VERIFIED AS A LIVE USER SURFACE;
+- downstream Publisher / admissibility / stegguardian propagation: DUE ONLY AFTER AN ADMITTED RELEASE TRANSITION.
 
-## Remaining source/integration work
+## Remaining machine/runtime work
 
-1. run deterministic source validation and repair any failures;
-2. merge the canonical KV contract only after exact-head validation;
-3. install the empty `Personal_Finance.json` template into the connected private KnowledgeVault and restore source-template parity;
-4. add an owner-authorized read-only finance-ingress adapter that maps connected finance-provider data into this schema without storing credentials;
-5. add My KV / Site finance display and consent controls as a downstream projection, not a competing schema authority;
-6. verify readback from the private KV;
-7. only then begin writing real owner financial observations into the private KV.
+1. ensure the current connected private KnowledgeVault contains the current empty `Personal_Finance.json` template and retain parity/readback evidence if not already present;
+2. establish an owner-authorized direct-source provider session through the existing TVC/SKAP boundary;
+3. normalize a real read-only provider result through the canonical finance adapter path;
+4. persist the resulting private finance snapshot only inside the connected private KV;
+5. verify private-KV readback and retain non-secret provenance/receipt evidence;
+6. project the canonical finance state into My KV / Site with consent controls without creating a competing schema authority;
+7. after the next admitted release, verify any required propagation to Site, Publisher, admissibility-wiki, and stegguardian-wiki.
 
 ## Current live boundary
 
-Issue #106 and this branch establish the finance-tracking source contract only.
+Issue #106 source implementation is complete and merged. The issue may be closed as a source-contract task without claiming live finance activation.
 
-No real financial values have been written to the public repository.
-No real financial values have yet been written to the connected KnowledgeVault by this lane.
+No real financial values are committed to the public repository.
 No provider connector, payment authority, trading authority, transfer authority, borrowing authority, card-spending authority, or credential capability is activated by this source work.
+Live provider-session, private-KV persistence/readback, and user-surface activation remain separate gates.
