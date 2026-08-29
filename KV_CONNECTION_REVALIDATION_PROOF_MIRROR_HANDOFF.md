@@ -1,10 +1,11 @@
 # KV Connection Revalidation Proof Mirror Handoff
 
-Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING
+Status: SOURCE_MERGED_VALIDATED / LIVE_PROOF_GENERATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #119
-Branch: `feature/kv-connection-revalidation-proof`
-Updated: 2026-08-28
+Merged PR: #120
+Merge commit: `21e2b47f358652813699e1b17ce7cfd01d47a8ab`
+Updated: 2026-08-29
 Authority effect: NONE
 Activation effect: false
 
@@ -82,7 +83,7 @@ A connection may transition to `VERIFIED` only when:
 - A source merge or test PASS cannot satisfy live conformance/readback proof.
 - Provider mutation authority remains NONE.
 
-## Planned source
+## Installed source
 
 - `KV_CONNECTION_REVALIDATION_PROOF_MIRROR_HANDOFF.md`
 - `schemas/kv-connection-conformance-proof.schema.json`
@@ -92,10 +93,20 @@ A connection may transition to `VERIFIED` only when:
 - `tools/check_kv_connection_revalidation.py`
 - read-only validation workflow
 
+## Validation evidence
+
+PR #120 exact head `5b74bf676b25d76e2a6483d22fc14301da061426` passed the repository validation surfaces before merge, including:
+
+- `Validate KV Connection Revalidation` run `33192800972`: SUCCESS;
+- `Repository validation diagnostics` run `33192801042`: SUCCESS;
+- `Release integrity` run `33192800914`: SUCCESS;
+- `Security Baseline` run `33192800999`: SUCCESS;
+- `KV Guardrails (Layer + Footer + Emoji + InTr)` run `33192800976`: SUCCESS.
+
 ## Downstream machine consumer
 
-A resident WorkerCoordinator task may consume these proof objects and persist the verified assembly/health receipt after live provider and private-KV proof generation is separately observed.
+`StegVerse-Labs/.github` now contains the merged resident WorkerCoordinator revalidation consumer and canonical COSV projection. That worker may consume these proof objects and persist the verified assembly/health receipt only after live provider and private-KV proof generation is separately observed.
 
 ## Current boundary
 
-Machine-executable proof schemas, admission runtime, tests, and validation are implemented on this branch. No live provider session, private-KV readback proof, or connection verification is claimed by this branch.
+The proof schemas, admission runtime, tests, validation, resident consumer, and COSV projection are source-complete. Remaining work is authentic runtime evidence: a sovereign/resident execution context, an authentic provider/session conformance proof, an authentic private-KV readback proof, and inspectable VERIFIED assembly plus health-receipt persistence. No live provider session, readback proof, or connection verification is claimed by repository source completion.
