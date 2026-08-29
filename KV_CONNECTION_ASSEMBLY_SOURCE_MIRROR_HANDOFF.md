@@ -1,9 +1,9 @@
 # KV Connection Assembly Source Mirror Handoff
 
-Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING
+Status: SOURCE_MERGED_VALIDATED / LIVE_CONNECTION_OBSERVATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #113
-Branch: `feature/kv-connection-assembly-source`
+Branch: `main`
 Updated: 2026-08-28
 Authority effect: NONE
 Activation effect: false
@@ -160,3 +160,28 @@ This lane does not:
 ## Current boundary
 
 Machine-executable source contract is implemented on this branch. No source monitoring process is live, no provider change has been observed by this lane, no connection has been activated, and no credential or provider execution authority is granted.
+
+
+## Post-merge canonical reconciliation — 2026-08-28
+
+```text
+issue: #113
+pull_request: #114
+merge_commit: 660861d98f7ec57ee85baa6f53540d79584dcc10
+source_state: MERGED_VALIDATED
+authority_effect: NONE
+activation_effect: false
+```
+
+Validation evidence:
+
+```text
+Validate KV Connection Assembly run 33191143644: SUCCESS
+Security Baseline run 33191143335: SUCCESS
+Repository validation diagnostics run 33191143584: SUCCESS
+KV Guardrails run 33191143383: SUCCESS
+```
+
+Source contract, schemas, runtime assembly logic, synthetic tests, and validation are merged. No live provider connection, provider login, credential resolution, or production provider monitoring is claimed.
+
+GitHub Actions remain validation-only. TV/TVC remains credential authority. These source merges do not prove resident execution, provider compatibility, private-KV user state, provider login, or external provider operation.
