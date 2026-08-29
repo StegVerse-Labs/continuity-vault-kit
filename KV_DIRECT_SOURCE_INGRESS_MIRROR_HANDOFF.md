@@ -1,10 +1,11 @@
 # KV Direct-Source SKAP Ingress Mirror Handoff
 
-Status: SOURCE_LANE_OPEN / IMPLEMENTATION_IN_PROGRESS  
+Status: SOURCE_MERGED_VALIDATED / LIVE_PROVIDER_ACTIVATION_PENDING  
 Repository: `StegVerse-Labs/continuity-vault-kit`  
 Issue: `#108`  
-Branch: `feature/kv-direct-source-ingress-108`  
-Updated: 2026-08-28  
+Merged PR: `#110`  
+Validated head: `fa53f2ffda1783858a86bf34e4f0920c92f783a5`  
+Updated: 2026-08-29  
 Authority effect: NONE  
 Activation effect: false
 
@@ -91,7 +92,7 @@ Every admitted import must preserve:
 - admission/persistence receipt/reference;
 - freshness state.
 
-## Initial source artifacts
+## Implemented source artifacts
 
 - `KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md`
 - `schemas/kv-direct-source-ingress-request.schema.json`
@@ -100,20 +101,39 @@ Every admitted import must preserve:
 - `tests/test_direct_source_ingress.py`
 - `tools/check_kv_direct_source_ingress.py`
 
+## Validation and merge state
+
+Source implementation merged through PR #110 from exact head `fa53f2ffda1783858a86bf34e4f0920c92f783a5`.
+
+GitHub Actions reports six completed validation runs for that exact head. The observed run set includes `Automation candidate implementation - Validation Only` with conclusion `success`; no failed conclusion was observed in the exact-head run set before merge.
+
+Repository source completion is therefore `MERGED_VALIDATED`. This does not create a provider session or satisfy any live SKAP/provider/private-KV proof gate.
+
 ## Downstream dependencies
 
-This contract is intended to govern:
+This contract governs or is consumed by:
 
 - `KV_PERSONAL_FINANCE_MIRROR_HANDOFF.md`;
+- `KV_COINBASE_FINANCE_INGRESS_MIRROR_HANDOFF.md`;
 - `KV_EMAIL_INGRESS_MIRROR_HANDOFF.md`;
 - continuity directory population under `03_Records/**` and `04_Media/**`;
 - Site/My KV directory and connection UX.
 
+## Remaining machine/runtime work
+
+1. establish an admitted resident provider session through the existing TVC/SKAP boundary for each concrete provider lane;
+2. obtain direct-source/session verification evidence without persisting reusable secrets in ordinary KV;
+3. execute the source-specific normalization path;
+4. persist only admitted canonical output into the private KV;
+5. verify private-KV readback and provenance/receipt binding;
+6. preserve explicit fail-closed state for unsupported, revoked, ambiguous, or stale provider paths;
+7. after admitted release transitions, verify downstream projections without claiming live activation from source merge alone.
+
 ## Current boundary
 
-Source contract only.
+Issue #108 repository source implementation is complete and merged and may be closed as a source-contract task.
 
-No real provider login has been performed by this lane.
+No real provider login has been performed by this repository lane.
 No user credential or private source data is committed to the repository.
 No provider session is activated.
 No payment, trading, transfer, email-send, delete, upload, or account-management authority is granted.
