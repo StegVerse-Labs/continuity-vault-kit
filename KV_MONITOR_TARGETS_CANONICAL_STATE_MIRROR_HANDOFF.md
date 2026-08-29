@@ -1,9 +1,9 @@
 # KV Monitor Targets Canonical State Mirror Handoff
 
-Status: SOURCE_IMPLEMENTED_ON_BRANCH / VALIDATION_PENDING
+Status: SOURCE_MERGED_VALIDATED / RESIDENT_MONITORING_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #117
-Branch: `feature/kv-monitor-targets-canonical`
+Branch: `main`
 Updated: 2026-08-28
 Authority effect: NONE
 Activation effect: false
@@ -70,3 +70,28 @@ Each target must bind:
 ## Current boundary
 
 Machine-executable source, empty private-KV template, compiler, tests, and validation are implemented on this branch. No live provider source monitoring is performed by this branch.
+
+
+## Post-merge canonical reconciliation — 2026-08-28
+
+```text
+issue: #117
+pull_request: #118
+merge_commit: 42bbb3dce721cedacff1d00e1f275a02b29f4712
+source_state: MERGED_VALIDATED
+authority_effect: NONE
+activation_effect: false
+```
+
+Validation evidence:
+
+```text
+Validate KV Monitor Targets run 33192150101: SUCCESS
+Validate KV Connection Registry Materialization run 33192149994: SUCCESS
+Security Baseline run 33192150199: SUCCESS
+Repository validation diagnostics run 33192150031: SUCCESS
+```
+
+Canonical non-secret provider monitor target source is merged and validated. The resident provider-change observer remains the execution consumer; no live provider monitoring is claimed.
+
+GitHub Actions remain validation-only. TV/TVC remains credential authority. These source merges do not prove resident execution, provider compatibility, private-KV user state, provider login, or external provider operation.
