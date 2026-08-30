@@ -1,0 +1,51 @@
+{
+  "schema": "stegverse.kv.transport-capability-evidence-admission-record/v1",
+  "state": "ADMITTED",
+  "admitted_at": "2026-08-30T03:45:32Z",
+  "source_evidence": {
+    "repository": "StegVerse-Labs/.github",
+    "path": "evidence/sv-dn1/first-authentic-browser-observation-20260829.json",
+    "git_blob_sha": "0a73e970e66960222832d1f2cb64892e497e1eb8",
+    "schema": "stegverse.sv-dn1.canonical-observation-evidence/v1",
+    "state": "OBSERVED",
+    "observed_at": "2026-08-29T23:39:43.780Z",
+    "source_bundle_sha256": "bce1baa1ee8db9e185f0e40673187ba0d7ef3ed47e8c1981ec9eae5d6c3cc2f0",
+    "node_id": "stegnode-web-2d6daa94e496d451d16bd5619bd30a25",
+    "device_continuity_id": "stegdevice-0d0f5403f48ff804fb3d31fb346e748c94e395bc"
+  },
+  "validation_projection": {
+    "resident_state": "COMPLETE",
+    "source_http_status": 200,
+    "transport_profile": "stegverse.universal-intr.adjacent-hop/v1",
+    "universal_intr_policy_id": "STEGVERSE-UNIVERSAL-INTR-TRANSPORT-001",
+    "boundary_from": "EXTERNAL_SYSTEM",
+    "boundary_to": "STEGOS_ECOSYSTEM",
+    "destination_validation": "PASS",
+    "lineage_verified": true,
+    "journal_replay_state": "PASS",
+    "existing_node_reused": true,
+    "new_node_identity_minted": false,
+    "credential_used": false,
+    "github_token_used": false,
+    "runtime_activation_claimed": false,
+    "production_interlock_runtime_activated": false,
+    "canonical_validation_all_pass": true
+  },
+  "adapter_contract": {
+    "script": "scripts/admit_transport_capability_evidence.py",
+    "source_schema": "stegverse.sv-dn1.canonical-observation-evidence/v1",
+    "capability_type": "ADJACENT_EXTERNAL_API_EGRESS",
+    "facts_advanced": [
+      "transport_capabilities_observed.ADJACENT_EXTERNAL_API_EGRESS"
+    ],
+    "unrelated_facts_advanced": [],
+    "activation_performed": false,
+    "authority_effect": "NONE"
+  },
+  "resulting_fact": {
+    "path": "specs/kv-activation-readiness-facts.v1.json",
+    "transport_capability": "ADJACENT_EXTERNAL_API_EGRESS",
+    "observed": true
+  },
+  "authority_effect": "NONE"
+}
