@@ -69,6 +69,58 @@ def hf_evidence():
     }
 
 
+
+def hf_canonical_evidence():
+    return {
+        "schema": module.HF_CANONICAL_SCHEMA,
+        "state": "OBSERVED",
+        "observation_class": "AUTHENTIC_ESTABLISHED_STEGVERSE_WEB_NODE",
+        "observed_at": "2026-08-29T23:39:43.780Z",
+        "continuity_source": "LIVE_EXISTING_WEB_BOOTSTRAP",
+        "source_bundle_sha256": "bce1baa1ee8db9e185f0e40673187ba0d7ef3ed47e8c1981ec9eae5d6c3cc2f0",
+        "node_id": "stegnode-test",
+        "device_continuity_id": "stegdevice-test",
+        "resident_task_id": "SV-DN1-RESIDENT-OBSERVER-001",
+        "claim_id": "SV-DN1-stegnode-test-G5",
+        "fencing_token": 5,
+        "resident_state": "COMPLETE",
+        "source_url": "https://huggingface.co/api/models/Qwen/Qwen3-8B",
+        "source_http_status": 200,
+        "raw_response_sha256": "sha256:" + "b" * 64,
+        "semantic_exchange_id": "sha256:" + "4" * 64,
+        "source_transform_hash": "sha256:" + "a" * 64,
+        "intr_receipt_hash": "sha256:" + "e" * 64,
+        "transport_profile": "stegverse.universal-intr.adjacent-hop/v1",
+        "universal_intr_policy_id": "STEGVERSE-UNIVERSAL-INTR-TRANSPORT-001",
+        "boundary_from": "EXTERNAL_SYSTEM",
+        "boundary_to": "STEGOS_ECOSYSTEM",
+        "destination_validation": "PASS",
+        "lineage_verified": True,
+        "journal_replay_state": "PASS",
+        "journal_entries": 26,
+        "journal_tail_sha256": "8" * 64,
+        "existing_node_reused": True,
+        "new_node_identity_minted": False,
+        "credential_used": False,
+        "github_token_used": False,
+        "sdk_admitted": False,
+        "runtime_activation_claimed": False,
+        "production_interlock_runtime_activated": False,
+        "authority_effect": "NONE",
+        "validation": {
+            "journal_receipt_hashes": "PASS",
+            "journal_entry_hashes": "PASS",
+            "journal_previous_hash_chain": "PASS",
+            "claim_terminal_link": "PASS",
+            "terminal_reconstruction_link": "PASS",
+            "reconstruction_same_execution": "PASS",
+            "interlock_intr_previous_receipt_hash": "PASS",
+            "intr_exchange_identity": "PASS",
+            "resident_exchange_identity": "PASS",
+            "resident_raw_digest_identity": "PASS",
+        },
+    }
+
 def hil_evidence():
     return {
         "schema": module.HIL_SCHEMA,
@@ -151,3 +203,27 @@ def test_source_facts_are_not_mutated_in_place():
     before = copy.deepcopy(FACTS)
     module.admit(hf_evidence(), FACTS)
     assert FACTS == before
+
+
+def test_canonical_hf_admission_advances_only_adjacent_external_api_egress():
+    updated, admission = module.admit(hf_canonical_evidence(), FACTS)
+    assert admission["source_schema"] == module.HF_CANONICAL_SCHEMA
+    assert admission["capability_type"] == "ADJACENT_EXTERNAL_API_EGRESS"
+    assert updated["transport_capabilities_observed"]["ADJACENT_EXTERNAL_API_EGRESS"] is True
+    for key, value in FACTS["transport_capabilities_observed"].items():
+        if key != "ADJACENT_EXTERNAL_API_EGRESS":
+            assert updated["transport_capabilities_observed"][key] is value
+
+
+def test_canonical_hf_fails_closed_on_validation_drift():
+    evidence = hf_canonical_evidence()
+    evidence["validation"]["terminal_reconstruction_link"] = "FAIL"
+    with pytest.raises(ValueError, match="terminal_reconstruction_link must PASS"):
+        module.admit(evidence, FACTS)
+
+
+def test_canonical_hf_fails_closed_on_transport_profile_drift():
+    evidence = hf_canonical_evidence()
+    evidence["transport_profile"] = "other/v1"
+    with pytest.raises(ValueError, match="transport profile mismatch"):
+        module.admit(evidence, FACTS)
