@@ -1,0 +1,195 @@
+{
+  "schema": "stegverse.kv.transport-capability-registry/v1",
+  "state": "DEFINED_INACTIVE",
+  "device_role": "EPHEMERAL_ACTIVITY_EDGE",
+  "kv_role": "DURABLE_STATE_CONTINUITY_AND_RECONSTRUCTION",
+  "credential_authority": "TV/TVC",
+  "authority_effect": "NONE",
+  "runtime_activation_claimed": false,
+  "capabilities": [
+    {
+      "capability_type": "KV_DISTRIBUTION_DOWNLOAD",
+      "capability_state": "DEFINED_UNOBSERVED",
+      "direction": "INGRESS",
+      "carrier_profiles": ["HTTP(S)_DOWNLOAD_OR_EQUIVALENT"],
+      "binding_requirements": {
+        "device_node_continuity_required": true,
+        "kv_continuity_binding_required": true,
+        "preinstallation_binding_may_reference_pending_kv_identity": true
+      },
+      "required_boundaries": [
+        "DISTRIBUTION_SOURCE->DEVICE_STEGOS_NODE",
+        "DEVICE_STEGOS_NODE->KNOWLEDGEVAULT_INSTALLATION"
+      ],
+      "receipt_requirements": {
+        "capability_establishment_receipt_required": true,
+        "adjacent_boundary_receipts_required": true,
+        "reconstruction_evidence_required": true
+      },
+      "reuse_policy": {
+        "reuse_allowed_when_valid": true,
+        "revoked_fails_closed": true,
+        "expired_fails_closed": true,
+        "superseded_fails_closed": true
+      },
+      "reference_observation": null,
+      "authority_effect": "NONE",
+      "runtime_observed": false
+    },
+    {
+      "capability_type": "DEVICE_KV_INTR",
+      "capability_state": "DEFINED_UNOBSERVED",
+      "direction": "BIDIRECTIONAL",
+      "carrier_profiles": ["InTr"],
+      "binding_requirements": {
+        "device_node_continuity_required": true,
+        "kv_continuity_binding_required": true
+      },
+      "required_boundaries": ["DEVICE_STEGOS_NODE<->KNOWLEDGEVAULT"],
+      "receipt_requirements": {
+        "capability_establishment_receipt_required": true,
+        "adjacent_boundary_receipts_required": true,
+        "reconstruction_evidence_required": true
+      },
+      "reuse_policy": {
+        "reuse_allowed_when_valid": true,
+        "revoked_fails_closed": true,
+        "expired_fails_closed": true,
+        "superseded_fails_closed": true
+      },
+      "reference_observation": null,
+      "authority_effect": "NONE",
+      "runtime_observed": false
+    },
+    {
+      "capability_type": "PUBLIC_HTTPS_INGRESS",
+      "capability_state": "DEFINED_UNOBSERVED",
+      "direction": "INGRESS",
+      "carrier_profiles": ["HTTPS"],
+      "binding_requirements": {
+        "device_node_continuity_required": true,
+        "kv_continuity_binding_required": true,
+        "public_rendezvous_identity_required": true
+      },
+      "required_boundaries": ["EXTERNAL_REQUESTER->DEVICE_STEGOS_NODE", "DEVICE_STEGOS_NODE->TARGET_INGRESS"],
+      "receipt_requirements": {
+        "capability_establishment_receipt_required": true,
+        "adjacent_boundary_receipts_required": true,
+        "reconstruction_evidence_required": true
+      },
+      "reuse_policy": {
+        "reuse_allowed_when_valid": true,
+        "revoked_fails_closed": true,
+        "expired_fails_closed": true,
+        "superseded_fails_closed": true
+      },
+      "reference_observation": "HIL_REQUIRES_THIS_TYPE_BUT_AUTHENTIC_RUNTIME_OBSERVATION_REMAINS_OPEN",
+      "authority_effect": "NONE",
+      "runtime_observed": false
+    },
+    {
+      "capability_type": "ADJACENT_EXTERNAL_API_EGRESS",
+      "capability_state": "DEFINED_UNOBSERVED",
+      "direction": "EGRESS",
+      "carrier_profiles": ["HTTPS", "PROVIDER_API"],
+      "binding_requirements": {
+        "device_node_continuity_required": true,
+        "kv_continuity_binding_required": true,
+        "destination_validation_required": true
+      },
+      "required_boundaries": ["DEVICE_STEGOS_NODE->EXTERNAL_NETWORK", "EXTERNAL_NETWORK->ENDPOINT"],
+      "receipt_requirements": {
+        "capability_establishment_receipt_required": true,
+        "adjacent_boundary_receipts_required": true,
+        "reconstruction_evidence_required": true
+      },
+      "reuse_policy": {
+        "reuse_allowed_when_valid": true,
+        "revoked_fails_closed": true,
+        "expired_fails_closed": true,
+        "superseded_fails_closed": true
+      },
+      "reference_observation": "SV-DN-1_HUGGING_FACE_OBSERVED_PATTERN",
+      "authority_effect": "NONE",
+      "runtime_observed": false
+    },
+    {
+      "capability_type": "NODE_TO_NODE_SYNC",
+      "capability_state": "DEFINED_UNOBSERVED",
+      "direction": "BIDIRECTIONAL",
+      "carrier_profiles": ["InTr", "NETWORK_TRANSPORT"],
+      "binding_requirements": {
+        "device_node_continuity_required": true,
+        "kv_continuity_binding_required": true,
+        "peer_node_continuity_required": true
+      },
+      "required_boundaries": ["DEVICE_STEGOS_NODE->EXTERNAL_NETWORK", "EXTERNAL_NETWORK->PEER_STEGOS_NODE"],
+      "receipt_requirements": {
+        "capability_establishment_receipt_required": true,
+        "adjacent_boundary_receipts_required": true,
+        "reconstruction_evidence_required": true
+      },
+      "reuse_policy": {
+        "reuse_allowed_when_valid": true,
+        "revoked_fails_closed": true,
+        "expired_fails_closed": true,
+        "superseded_fails_closed": true
+      },
+      "reference_observation": null,
+      "authority_effect": "NONE",
+      "runtime_observed": false
+    },
+    {
+      "capability_type": "KV_SKAP_INTR",
+      "capability_state": "DEFINED_UNOBSERVED",
+      "direction": "BIDIRECTIONAL",
+      "carrier_profiles": ["InTr"],
+      "binding_requirements": {
+        "device_node_continuity_required": true,
+        "kv_continuity_binding_required": true,
+        "skap_boundary_binding_required": true
+      },
+      "required_boundaries": ["KNOWLEDGEVAULT<->SKAP_VAULT"],
+      "receipt_requirements": {
+        "capability_establishment_receipt_required": true,
+        "adjacent_boundary_receipts_required": true,
+        "reconstruction_evidence_required": true
+      },
+      "reuse_policy": {
+        "reuse_allowed_when_valid": true,
+        "revoked_fails_closed": true,
+        "expired_fails_closed": true,
+        "superseded_fails_closed": true
+      },
+      "reference_observation": null,
+      "authority_effect": "NONE",
+      "runtime_observed": false
+    },
+    {
+      "capability_type": "TVC_RELAY",
+      "capability_state": "DEFINED_UNOBSERVED",
+      "direction": "BIDIRECTIONAL",
+      "carrier_profiles": ["InTr", "TVC_ADMITTED_RELAY"],
+      "binding_requirements": {
+        "device_node_continuity_required": true,
+        "kv_continuity_binding_required": true,
+        "tvc_admission_required": true
+      },
+      "required_boundaries": ["DEVICE_OR_RUNTIME->TVC", "TVC->ADMITTED_DESTINATION"],
+      "receipt_requirements": {
+        "capability_establishment_receipt_required": true,
+        "adjacent_boundary_receipts_required": true,
+        "reconstruction_evidence_required": true
+      },
+      "reuse_policy": {
+        "reuse_allowed_when_valid": true,
+        "revoked_fails_closed": true,
+        "expired_fails_closed": true,
+        "superseded_fails_closed": true
+      },
+      "reference_observation": null,
+      "authority_effect": "NONE",
+      "runtime_observed": false
+    }
+  ]
+}

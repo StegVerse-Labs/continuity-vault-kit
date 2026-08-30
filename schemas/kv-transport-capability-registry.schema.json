@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-transport-capability-registry.schema.json",
+  "title": "KnowledgeVault typed transport capability registry",
+  "type": "object",
+  "required": [
+    "schema",
+    "state",
+    "device_role",
+    "kv_role",
+    "credential_authority",
+    "authority_effect",
+    "runtime_activation_claimed",
+    "capabilities"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.transport-capability-registry/v1"},
+    "state": {"const": "DEFINED_INACTIVE"},
+    "device_role": {"const": "EPHEMERAL_ACTIVITY_EDGE"},
+    "kv_role": {"const": "DURABLE_STATE_CONTINUITY_AND_RECONSTRUCTION"},
+    "credential_authority": {"const": "TV/TVC"},
+    "authority_effect": {"const": "NONE"},
+    "runtime_activation_claimed": {"const": false},
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "capability_type",
+          "capability_state",
+          "direction",
+          "carrier_profiles",
+          "binding_requirements",
+          "required_boundaries",
+          "receipt_requirements",
+          "reuse_policy",
+          "authority_effect",
+          "runtime_observed"
+        ],
+        "properties": {
+          "capability_type": {"type": "string", "minLength": 1},
+          "capability_state": {"const": "DEFINED_UNOBSERVED"},
+          "direction": {"enum": ["INGRESS", "EGRESS", "BIDIRECTIONAL"]},
+          "carrier_profiles": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "binding_requirements": {
+            "type": "object",
+            "required": [
+              "device_node_continuity_required",
+              "kv_continuity_binding_required"
+            ],
+            "properties": {
+              "device_node_continuity_required": {"const": true},
+              "kv_continuity_binding_required": {"const": true}
+            },
+            "additionalProperties": true
+          },
+          "required_boundaries": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "receipt_requirements": {
+            "type": "object",
+            "required": [
+              "capability_establishment_receipt_required",
+              "adjacent_boundary_receipts_required",
+              "reconstruction_evidence_required"
+            ],
+            "properties": {
+              "capability_establishment_receipt_required": {"const": true},
+              "adjacent_boundary_receipts_required": {"const": true},
+              "reconstruction_evidence_required": {"const": true}
+            },
+            "additionalProperties": true
+          },
+          "reuse_policy": {
+            "type": "object",
+            "required": [
+              "reuse_allowed_when_valid",
+              "revoked_fails_closed",
+              "expired_fails_closed",
+              "superseded_fails_closed"
+            ],
+            "properties": {
+              "reuse_allowed_when_valid": {"const": true},
+              "revoked_fails_closed": {"const": true},
+              "expired_fails_closed": {"const": true},
+              "superseded_fails_closed": {"const": true}
+            },
+            "additionalProperties": true
+          },
+          "authority_effect": {"const": "NONE"},
+          "runtime_observed": {"const": false}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}
