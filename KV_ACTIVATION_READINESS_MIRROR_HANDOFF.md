@@ -6,7 +6,7 @@ Issue: #59
 Merged PR: #60
 Merge: a749c8b844b11299004990610a1b5506b2eb3ed8
 CI: KV Guardrails 33022950257 SUCCESS; Repository validation 33022950268 SUCCESS; Security Baseline 33022950263 SUCCESS
-Updated: 2026-08-26
+Updated: 2026-08-30
 
 ## Purpose
 
@@ -443,18 +443,37 @@ service with explicit external-provider dependency:
 
 Operation-specific transport types remain owned by the lane that requests them. The readiness layer does not globally force HIL `PUBLIC_HTTPS_INGRESS`, `NODE_TO_NODE_SYNC`, `KV_SKAP_INTR`, or `TVC_RELAY` onto unrelated actions.
 
-The readiness facts now expose all seven typed capability observations explicitly and currently keep each false until authentic evidence is separately admitted:
+The readiness facts expose all seven typed capability observations explicitly. The canonical SV-DN-1/Hugging Face observation has now been admitted as the first authentic typed transport fact:
 
 ```text
 KV_DISTRIBUTION_DOWNLOAD=false
 DEVICE_KV_INTR=false
 PUBLIC_HTTPS_INGRESS=false
-ADJACENT_EXTERNAL_API_EGRESS=false
+ADJACENT_EXTERNAL_API_EGRESS=true
 NODE_TO_NODE_SYNC=false
 KV_SKAP_INTR=false
 TVC_RELAY=false
 ```
 
-This source change does not downgrade the separately observed Hugging Face/SV-DN-1 transport result; it means that result has not yet been admitted as KnowledgeVault transport-capability evidence.
+`ADJACENT_EXTERNAL_API_EGRESS=true` is grounded in the canonical authentic observation preserved by `StegVerse-Labs/.github` and the durable KV admission record. No other transport fact is inferred from it.
 
 No transport, module, service, Interlock, InTr, credential, provider, or execution activation is created by these readiness facts.
+
+
+## Authentic SV-DN-1 typed transport admission — issue #135
+
+The canonical observed SV-DN-1 evidence has been admitted into readiness facts.
+
+```text
+source: StegVerse-Labs/.github/evidence/sv-dn1/first-authentic-browser-observation-20260829.json
+source Git blob: 0a73e970e66960222832d1f2cb64892e497e1eb8
+source schema: stegverse.sv-dn1.canonical-observation-evidence/v1
+source state: OBSERVED
+mapped capability: ADJACENT_EXTERNAL_API_EGRESS
+resulting fact: true
+unrelated facts advanced: NONE
+activation_performed: false
+authority_effect: NONE
+```
+
+The 46 governed module/service actions remain blocked because all require `DEVICE_KV_INTR`, production Interlock runtime remains false, and other service-specific predicates remain independently enforced. Observing one transport type therefore removes only that exact blocker where applicable; it does not authorize provider use or a governed action.

@@ -1,6 +1,6 @@
 # KV Typed Transport Capability Governance Mirror Handoff
 
-Status: IMPLEMENTED_VALIDATED_MERGED / RUNTIME_EVIDENCE_ADMISSION_PENDING
+Status: IMPLEMENTED_VALIDATED_MERGED / FIRST_RUNTIME_EVIDENCE_ADMITTED
 Repository: StegVerse-Labs/continuity-vault-kit
 Issue: #124
 Branch: docs/reconcile-typed-transport-handoff-20260830
@@ -123,7 +123,7 @@ typed transport source validation: VALIDATED
 continuity-vault-kit integration: MERGED
 StegOS read-only consumer propagation: MERGED
 authentic HF transport result: OBSERVED independently in Site
-HF observation admitted into KV typed fact: NOT YET — exact authentic bundle bytes not currently present in this repository lane
+HF observation admitted into KV typed fact: YES — ADJACENT_EXTERNAL_API_EGRESS=true from canonical .github evidence
 HIL PUBLIC_HTTPS_INGRESS source/observer: DEPLOYED in Site
 HIL PUBLIC_HTTPS_INGRESS authentic observation: NOT YET OBSERVED
 transport capability runtime activation by this source work: NONE
@@ -132,8 +132,8 @@ authority_effect: NONE
 
 ## Next executable action
 
-1. Admit the exact authentic current-format SV-DN-1/Hugging Face observation bundle when its bytes are available, advancing only `ADJACENT_EXTERNAL_API_EGRESS`.
-2. Execute the deployed HIL established-node observation when the machine-side path is fully ready; if it produces valid canonical evidence, admit only `PUBLIC_HTTPS_INGRESS`.
+1. Execute the deployed HIL established-node observation when the machine-side path is fully ready; if it produces valid canonical evidence, admit only `PUBLIC_HTTPS_INGRESS`.
+2. Establish/observe `DEVICE_KV_INTR` through its authentic device↔KV lane; this remains the universal governed-action transport blocker.
 3. Apply the same typed capability + authentic observation admission pattern to other transport-blocked lanes rather than creating bespoke transport tests.
 
 
@@ -190,3 +190,32 @@ canonical durable form:
 ```
 
 Both map only to `ADJACENT_EXTERNAL_API_EGRESS`. Canonical evidence is preferred for durable fact admission.
+
+
+## First authentic KV typed transport fact admitted — issue #135
+
+Canonical source:
+
+```text
+StegVerse-Labs/.github
+evidence/sv-dn1/first-authentic-browser-observation-20260829.json
+Git blob: 0a73e970e66960222832d1f2cb64892e497e1eb8
+schema: stegverse.sv-dn1.canonical-observation-evidence/v1
+state: OBSERVED
+observed_at: 2026-08-29T23:39:43.780Z
+```
+
+Admission result:
+
+```text
+ADJACENT_EXTERNAL_API_EGRESS=true
+all other typed transport facts unchanged
+activation_performed=false
+authority_effect=NONE
+```
+
+Durable admission record:
+
+`evidence/kv/2026-08-30-sv-dn1-adjacent-external-api-egress-admission.json`
+
+This is the first authentic runtime observation admitted into the KnowledgeVault typed transport fact set. It does not make any module/service governed-ready because `DEVICE_KV_INTR`, production Interlock runtime, and other service-specific predicates remain independently fail-closed.
