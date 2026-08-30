@@ -65,6 +65,7 @@ def test_stegfin_preserves_full_production_tvc_blockers():
 def test_all_governed_entries_require_device_kv_transport_capability():
     snapshot = module.evaluate()
     assert snapshot["transport_capabilities_observed"]["DEVICE_KV_INTR"] is False
+    assert snapshot["transport_capabilities_observed"]["ADJACENT_EXTERNAL_API_EGRESS"] is True
     assert all(
         "DEVICE_KV_INTR" in entry["transport_capability_requirements"]
         for entry in snapshot["entries"]
@@ -90,7 +91,7 @@ def test_external_provider_services_require_adjacent_external_api_egress():
     for service_id in provider_backed:
         entry = entries[service_id]
         assert "ADJACENT_EXTERNAL_API_EGRESS" in entry["transport_capability_requirements"]
-        assert "transport_capability:ADJACENT_EXTERNAL_API_EGRESS" in entry["governed_blockers"]
+        assert "transport_capability:ADJACENT_EXTERNAL_API_EGRESS" not in entry["governed_blockers"]
 
 
 def test_local_only_personal_journal_does_not_require_external_api_egress():
@@ -98,3 +99,17 @@ def test_local_only_personal_journal_does_not_require_external_api_egress():
     journal = next(e for e in snapshot["entries"] if e["entry_id"] == "personal-journal")
     assert journal["transport_capability_requirements"] == ["DEVICE_KV_INTR"]
     assert "transport_capability:ADJACENT_EXTERNAL_API_EGRESS" not in journal["governed_blockers"]
+
+
+def test_observed_external_api_egress_does_not_clear_other_governance_blockers():
+    snapshot = module.evaluate()
+    provider_entries = [
+        entry for entry in snapshot["entries"]
+        if entry["entry_type"] == "SERVICE"
+        and "ADJACENT_EXTERNAL_API_EGRESS" in entry["transport_capability_requirements"]
+    ]
+    assert provider_entries
+    for entry in provider_entries:
+        assert entry["governed_action_readiness"] == "BLOCKED"
+        assert "transport_capability:DEVICE_KV_INTR" in entry["governed_blockers"]
+        assert "production_interlock_runtime_activated" in entry["governed_blockers"]
