@@ -1,6 +1,6 @@
 {
   "schema": "stegverse.kv.activation-readiness-facts/v1",
-  "observed_at": "2026-08-27T04:08:00Z",
+  "observed_at": "2026-08-29T23:39:43.780Z",
   "baseline_intr_rc01_rc05_complete": true,
   "connected_kv_baseline_runtime_observed": true,
   "production_interlock_runtime_activated": false,
@@ -25,7 +25,7 @@
     "KV_DISTRIBUTION_DOWNLOAD": false,
     "DEVICE_KV_INTR": false,
     "PUBLIC_HTTPS_INGRESS": false,
-    "ADJACENT_EXTERNAL_API_EGRESS": false,
+    "ADJACENT_EXTERNAL_API_EGRESS": true,
     "NODE_TO_NODE_SYNC": false,
     "KV_SKAP_INTR": false,
     "TVC_RELAY": false
