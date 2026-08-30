@@ -807,7 +807,7 @@ The previous installation receipt was retired only after the refreshed current-t
 
 ## Governed KV-to-Publisher document export — 2026-08-29
 
-The feature branch `feature/kv-governed-document-export` adds a fail-closed
+Merged PR #127 adds a fail-closed
 preparation boundary for owner-selected KnowledgeVault evidence and a
 source-template destination under `_System/Exports/`.
 
@@ -819,7 +819,8 @@ content classes: RAW_SOURCE_EXCERPT, OWNER_AUTHORED, AI_DERIVED
 local unit validation: 9/9 PASS
 hosted workflow authority: VALIDATION_TRANSPORT_ONLY
 authority_effect: NONE
-state: IMPLEMENTED_LOCAL_VALIDATED
+state: SOURCE_MERGED_VALIDATED
+merge_commit: 9c98016b9698297110956baab744a1e77e4bc84b
 ```
 
 The source-template delta is exactly four files beneath

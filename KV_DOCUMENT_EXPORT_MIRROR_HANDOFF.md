@@ -1,9 +1,9 @@
 # KnowledgeVault Governed Document Export Mirror Handoff
 
-Status: IMPLEMENTED_LOCAL_VALIDATED
+Status: SOURCE_MERGED_VALIDATED / CONNECTED_KV_INSTALLATION_PENDING
 Repository: StegVerse-Labs/continuity-vault-kit
 Destination: GCAT-BCAT-Engine/Publisher
-Updated: 2026-08-29
+Updated: 2026-08-30
 
 ## Goal
 
@@ -45,9 +45,9 @@ Current state:
 
 ```text
 PLANNED: complete
-IMPLEMENTED: source complete on feature branch
-VALIDATED: dependency-light local unit, CLI, schema, compile, and hosted-authority checks pass
-MERGED: no
+IMPLEMENTED: source complete
+VALIDATED: local validation and all seven exact-head pull-request workflows pass
+MERGED: PR #127 at 9c98016b9698297110956baab744a1e77e4bc84b
 DEPLOYED: no
 ACTIVATED: no
 OBSERVED: no connected-KV request/artifact readback
@@ -58,13 +58,26 @@ COMPLETE: no
 
 ## Remaining gates
 
-1. Validate the exact branch head through repository workflows.
-2. Merge only the validated head.
-3. Install the four-file `_System/Exports/` source-template delta into the connected KV.
-4. Obtain one owner-authorized private-KV export request and Interlock receipts.
-5. Admit and render the exact bundle in Publisher.
-6. Read back the artifact manifest and receipt into the private KV.
-7. Prove deterministic reconstruction from the retained private bundle.
+1. Install the four-file `_System/Exports/` source-template delta into the connected KV.
+2. Obtain one owner-authorized private-KV export request and Interlock receipts.
+3. Admit and render the exact bundle in Publisher.
+4. Read back the artifact manifest and receipt into the private KV.
+5. Prove deterministic reconstruction from the retained private bundle.
+
+## Merge evidence
+
+```text
+pull_request: #127
+validated_head: fbb134fadab466e7564dd459c54f1dad3244daa6
+merge_commit: 9c98016b9698297110956baab744a1e77e4bc84b
+Validate governed KV document export: 33290502575 SUCCESS
+KV Guardrails: 33290502566 SUCCESS
+Security Baseline: 33290502567 SUCCESS
+Repository validation diagnostics: 33290502591 SUCCESS
+Release integrity: 33290502568 SUCCESS
+Reconstructive Memory Validation: 33290502579 SUCCESS
+KnowledgeVault Execution Recovery: 33290502565 SUCCESS
+```
 
 ## Local validation
 
