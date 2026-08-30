@@ -10,7 +10,8 @@
     "service_count",
     "activation_performed",
     "authority_effect",
-    "entries"
+    "entries",
+    "transport_capabilities_observed"
   ],
   "properties": {
     "schema": {
@@ -45,7 +46,8 @@
           "governed_action_readiness",
           "governed_blockers",
           "activation_performed",
-          "authority_effect"
+          "authority_effect",
+          "transport_capability_requirements"
         ],
         "properties": {
           "entry_type": {
@@ -82,10 +84,54 @@
           },
           "authority_effect": {
             "const": "NONE"
+          },
+          "transport_capability_requirements": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "additionalProperties": true
       }
+    },
+    "transport_capabilities_observed": {
+      "type": "object",
+      "required": [
+        "KV_DISTRIBUTION_DOWNLOAD",
+        "DEVICE_KV_INTR",
+        "PUBLIC_HTTPS_INGRESS",
+        "ADJACENT_EXTERNAL_API_EGRESS",
+        "NODE_TO_NODE_SYNC",
+        "KV_SKAP_INTR",
+        "TVC_RELAY"
+      ],
+      "properties": {
+        "KV_DISTRIBUTION_DOWNLOAD": {
+          "type": "boolean"
+        },
+        "DEVICE_KV_INTR": {
+          "type": "boolean"
+        },
+        "PUBLIC_HTTPS_INGRESS": {
+          "type": "boolean"
+        },
+        "ADJACENT_EXTERNAL_API_EGRESS": {
+          "type": "boolean"
+        },
+        "NODE_TO_NODE_SYNC": {
+          "type": "boolean"
+        },
+        "KV_SKAP_INTR": {
+          "type": "boolean"
+        },
+        "TVC_RELAY": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true
