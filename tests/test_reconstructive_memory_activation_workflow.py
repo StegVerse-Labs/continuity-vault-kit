@@ -11,32 +11,34 @@ class ProductionProviderActivationWorkflowTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.text = WORKFLOW.read_text(encoding="utf-8")
 
-    def test_is_manual_only_and_environment_protected(self) -> None:
+    def test_is_manual_only_and_non_authorizing(self) -> None:
         self.assertIn("workflow_dispatch:", self.text)
         self.assertNotIn("pull_request:", self.text)
         self.assertNotIn("push:", self.text)
-        self.assertIn("environment: production-provider-activation", self.text)
-        self.assertIn("cancel-in-progress: false", self.text)
+        self.assertIn("Production Provider Activation - Validation Only", self.text)
+        self.assertNotIn("environment: production-provider-activation", self.text)
 
-    def test_uses_oidc_and_minimum_repository_permissions(self) -> None:
+    def test_has_read_only_permissions_and_no_cloud_identity(self) -> None:
         self.assertIn("contents: read", self.text)
-        self.assertIn("id-token: write", self.text)
-        self.assertIn("aws-actions/configure-aws-credentials@v4", self.text)
-        self.assertIn("role-to-assume: ${{ vars.PROVIDER_ACTIVATION_AWS_ROLE_ARN }}", self.text)
+        self.assertNotIn("id-token: write", self.text)
+        self.assertNotIn("aws-actions/configure-aws-credentials", self.text)
+        self.assertNotIn("role-to-assume:", self.text)
         self.assertNotIn("AWS_ACCESS_KEY_ID", self.text)
         self.assertNotIn("AWS_SECRET_ACCESS_KEY", self.text)
 
-    def test_apply_requires_explicit_confirmation_and_saved_plan(self) -> None:
-        self.assertIn('CONFIRM_APPLY" != "APPLY"', self.text)
-        self.assertIn("terraform plan -input=false -out=provider-activation.tfplan", self.text)
-        self.assertIn("terraform apply -input=false -auto-approve provider-activation.tfplan", self.text)
-        self.assertNotIn("terraform apply -auto-approve\n", self.text)
+    def test_validates_source_without_plan_or_apply(self) -> None:
+        self.assertIn("terraform init -backend=false -input=false", self.text)
+        self.assertIn("terraform validate", self.text)
+        self.assertNotIn("terraform plan", self.text)
+        self.assertNotIn("terraform apply", self.text)
 
     def test_inputs_are_fail_closed_and_evidence_is_retained(self) -> None:
         self.assertIn('[[ "$SPIFFE_IDENTITY" == spiffe://* ]]', self.text)
         self.assertIn('[[ "$CHAT_ENDPOINT" == https://* ]]', self.text)
         self.assertIn('[[ "$MASTER_RECORDS_ENDPOINT" == https://* ]]', self.text)
-        self.assertIn('"decision": "FAIL_CLOSED"', self.text)
+        self.assertIn('"state": "TVC_ADMITTED_RESIDENT_PROVIDER_ACTIVATION_REQUIRED"', self.text)
+        self.assertIn('"provider_mutation_performed": False', self.text)
+        self.assertIn('"authority_effect": "NONE"', self.text)
         self.assertIn("actions/upload-artifact@v4", self.text)
         self.assertIn("retention-days: 30", self.text)
 

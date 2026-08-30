@@ -803,3 +803,29 @@ Connected Drive evidence:
 - machine-readable repository evidence: `evidence/kv/2026-08-28-personal-contact-profile-connected-installation.json`
 
 The previous installation receipt was retired only after the refreshed current-tree receipt was verified. This parity closure has `authority_effect=NONE` and `activation_effect=false`; no provider credential, SKAP capability, Interlock transport, or email-monitoring activation occurred.
+
+
+## Governed KV-to-Publisher document export — 2026-08-29
+
+The feature branch `feature/kv-governed-document-export` adds a fail-closed
+preparation boundary for owner-selected KnowledgeVault evidence and a
+source-template destination under `_System/Exports/`.
+
+```text
+schema: stegverse.kv.document-export-request/v1
+destination: GCAT-BCAT-Engine/Publisher
+formats: Markdown, HTML, PDF, DOCX, JSON
+content classes: RAW_SOURCE_EXCERPT, OWNER_AUTHORED, AI_DERIVED
+local unit validation: 9/9 PASS
+hosted workflow authority: VALIDATION_TRANSPORT_ONLY
+authority_effect: NONE
+state: IMPLEMENTED_LOCAL_VALIDATED
+```
+
+The source-template delta is exactly four files beneath
+`vault_template/KnowledgeVault/_System/Exports/` (root guidance plus Requests,
+Receipts, and Artifacts guidance). Those files are developed source, not
+placeholders, but they are not yet installed in the connected KnowledgeVault.
+No private request, InTr transmission, Publisher artifact readback, publication,
+release, deployment, or runtime activation is claimed. The scoped continuation
+record is `KV_DOCUMENT_EXPORT_MIRROR_HANDOFF.md`.

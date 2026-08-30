@@ -1,0 +1,74 @@
+{
+  "schema_version": "stegverse.kv.document-export-request/v1",
+  "export_id": "kv-document-export-demo-001",
+  "created_at": "2026-08-29T08:00:00Z",
+  "source": {
+    "repository": "StegVerse-Labs/continuity-vault-kit",
+    "release": "v0.1.9",
+    "vault_class": "PERSONAL_KV",
+    "verification_root": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "event_ids": ["event-note-created-001", "event-owner-approved-002"]
+  },
+  "authorization": {
+    "authority_source": "direct_instruction",
+    "authority_ref": "owner-document-export-approval-001",
+    "status": "active",
+    "scope": ["01_Notes/Exportable_Project_Summary.md"],
+    "purpose": "Create a governed project brief",
+    "destination": "GCAT-BCAT-Engine/Publisher",
+    "allowed_formats": ["markdown", "html", "pdf", "docx", "json"],
+    "expires_at": "2026-08-30T08:00:00Z",
+    "revocable": true,
+    "revoked": false
+  },
+  "document": {
+    "document_id": "project-brief-demo-001",
+    "document_type": "BRIEF",
+    "title": "Governed KnowledgeVault Export Demonstration",
+    "subtitle": "Source-bound document preparation without publication authority",
+    "authors": [{"name": "KnowledgeVault Owner", "affiliation": "StegVerse"}],
+    "template_profile": "stegverse-governed-brief-v1",
+    "sections": [
+      {
+        "section_id": "summary",
+        "heading": "Summary",
+        "body": "This owner-approved brief demonstrates a bounded KnowledgeVault export prepared for Publisher rendering.",
+        "content_class": "OWNER_AUTHORED",
+        "fidelity": "semantic_reconstruction",
+        "confidence": null,
+        "source_subject_ids": ["project-summary"]
+      },
+      {
+        "section_id": "derived-observation",
+        "heading": "Derived observation",
+        "body": "The export remains separate from publication, release, and execution authority.",
+        "content_class": "AI_DERIVED",
+        "fidelity": "inference",
+        "confidence": 0.99,
+        "source_subject_ids": ["project-summary"]
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "subject_id": "project-summary",
+      "path": "01_Notes/Exportable_Project_Summary.md",
+      "retention_class": "reconstructable",
+      "fidelity": "semantic_reconstruction",
+      "superseded": false,
+      "payload_available": true,
+      "content_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "artifact_refs": ["urn:stegverse:kv:event:event-note-created-001"],
+      "derived_index": false,
+      "restricted": false,
+      "contains_credentials": false
+    }
+  ],
+  "redaction": {
+    "profile": "owner-reviewed-export-v1",
+    "review_state": "OWNER_APPROVED",
+    "removed_paths": [],
+    "restricted_content_present": false
+  },
+  "requested_formats": ["markdown", "html", "pdf", "docx", "json"]
+}
