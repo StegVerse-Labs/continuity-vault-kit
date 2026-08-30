@@ -825,8 +825,11 @@ merge_commit: 9c98016b9698297110956baab744a1e77e4bc84b
 
 The source-template delta is exactly four files beneath
 `vault_template/KnowledgeVault/_System/Exports/` (root guidance plus Requests,
-Receipts, and Artifacts guidance). Those files are developed source, not
-placeholders, but they are not yet installed in the connected KnowledgeVault.
-No private request, InTr transmission, Publisher artifact readback, publication,
-release, deployment, or runtime activation is claimed. The scoped continuation
-record is `KV_DOCUMENT_EXPORT_MIRROR_HANDOFF.md`.
+Receipts, and Artifacts guidance). Those developed files are now installed in the
+connected KnowledgeVault and exact-readback observed with scoped installation
+receipt `1nFcrBB-vvIc9Tyz6eGXbILb4NVWzrSBK` (SHA-256
+`b1f77fdc208be4bf132921f3df66cdd548c7bc549cc515bd66561c2a77fb8c3d`).
+This proves DEPLOYED and scoped OBSERVED template state only. No owner-authorized
+request, InTr transmission, Publisher render/artifact readback, retained private-bundle
+reconstruction, publication, release, or runtime activation is claimed. The scoped
+continuation record is `KV_DOCUMENT_EXPORT_MIRROR_HANDOFF.md`.

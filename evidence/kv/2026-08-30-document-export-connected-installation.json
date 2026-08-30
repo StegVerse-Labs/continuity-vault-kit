@@ -1,0 +1,58 @@
+{
+  "schema": "stegverse.kv.document-export-connected-installation-evidence/v1",
+  "observed_utc": "2026-08-30T03:38:52Z",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "source_merge_commit": "9c98016b9698297110956baab744a1e77e4bc84b",
+  "source_template_tree_sha": "68cbd219f0f21525011041cef8245b982b93e8dc",
+  "lifecycle": {
+    "implemented": true,
+    "validated": true,
+    "merged": true,
+    "deployed": true,
+    "activated": false,
+    "observed": true,
+    "reconstructed_private_bundle": false,
+    "released": false,
+    "complete": false
+  },
+  "connected_kv": {
+    "root_folder_id": "1c8OdhJeLD6E4ALmi-aR7dXvG8PjDLSfi",
+    "exports_folder_id": "1dDb6AIsSz-_F1qi_2FAkmPnp-YKuVYBI",
+    "requests_folder_id": "1R5Or1-YboebcHFLXaT4IdjzTgmw3fVk9",
+    "receipts_folder_id": "17KIqcMXhwRceEv5Xh0cUDmq38-VZgmNg",
+    "artifacts_folder_id": "1K12ZtW8rBISHTYyE3-62nglDz97escs8"
+  },
+  "installed_files": [
+    {"path":"_System/Exports/README.md","drive_file_id":"1tiu5hCV3JnRMdv8TpY2g0WgncTHhlQ55","bytes":734,"sha256":"cef0851626ab997a51138ee3330b5e18c478138908ceab758d033e6d2735517f"},
+    {"path":"_System/Exports/Requests/README.md","drive_file_id":"12zZ2z34zycKAQ8DdGdW4ROCu8U54aUiq","bytes":218,"sha256":"3069d06bae181450743fcc2474697bc207ee284308848a7059badf0d359b72f6"},
+    {"path":"_System/Exports/Receipts/README.md","drive_file_id":"15xRjmGWZ4wGo550ZtU5raBgHSXlmlEip","bytes":273,"sha256":"53b2776cde36440b94b1a10012ba73d1f5869e795bbac0ba902d1abdf7724f2b"},
+    {"path":"_System/Exports/Artifacts/README.md","drive_file_id":"1TEgyNFni9jVXWlkku-_1gAG8ShyiCqTg","bytes":287,"sha256":"ac7d0032787d9ece07bf0a1b2c0fc2dbe40b461fc0a263ca9aad82226cb3509e"}
+  ],
+  "installation_receipt": {
+    "drive_file_id": "1nFcrBB-vvIc9Tyz6eGXbILb4NVWzrSBK",
+    "sha256": "b1f77fdc208be4bf132921f3df66cdd548c7bc549cc515bd66561c2a77fb8c3d",
+    "exact_base64_readback_confirmed": true
+  },
+  "verification": {
+    "folder_structure_present": true,
+    "source_bytes_unconverted": true,
+    "source_content_exact_match": true,
+    "installed_delta_files": 4,
+    "full_template_parity_claimed": false
+  },
+  "authority_effect": "NONE",
+  "activation_effect": false,
+  "owner_export_request_created": false,
+  "intr_transport_performed": false,
+  "publisher_render_performed": false,
+  "publisher_publication_authorized": false,
+  "artifact_readback_observed": false,
+  "private_bundle_reconstruction_observed": false,
+  "remaining_gates": [
+    "OWNER_AUTHORIZED_EXPORT_REQUEST",
+    "INTR_TRANSPORT_TO_PUBLISHER",
+    "PUBLISHER_RENDER",
+    "ARTIFACT_MANIFEST_RECEIPT_KV_READBACK",
+    "RETAINED_PRIVATE_BUNDLE_RECONSTRUCTION"
+  ]
+}
