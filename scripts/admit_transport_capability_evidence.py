@@ -12,6 +12,7 @@ FACTS = ROOT / "specs" / "kv-activation-readiness-facts.v1.json"
 
 HF_BROWSER_SCHEMA = "stegverse.sv-dn1.browser-resident-observation-bundle/v3"
 HF_CANONICAL_SCHEMA = "stegverse.sv-dn1.canonical-observation-evidence/v1"
+HF_SCHEMA = HF_BROWSER_SCHEMA  # compatibility alias for existing tests/consumers
 HIL_SCHEMA = "stegverse.hil.canonical-observation-evidence/v1"
 
 MAPPING = {
