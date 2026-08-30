@@ -30,7 +30,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - preserved TV/TVC as the only credential/release authority; no successor release is claimed until an admitted TVC publication path actually runs
 
 ### Notes
-- the new document-export source is locally validated but remains unmerged, uninstalled in the connected KnowledgeVault, and inactive until private-KV transport/readback evidence exists
+- the new document-export source is merged and validated but remains uninstalled in the connected KnowledgeVault and inactive until private-KV transport/readback evidence exists
 - production KV endpoint deployment, live InTr boundary identity/sealing, canonical Site readback, SKAP owner ingress, provider execution, and TVC release publication remain separate runtime evidence gates
 
 ---
