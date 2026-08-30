@@ -33,6 +33,17 @@ At any time, you can create a long-term archive by:
 Recommended format:
 ZIP archive + SHA256 checksum
 
+For a selected report, brief, paper, timeline, evidence packet, or legacy
+document, use the governed document-export path under `_System/Exports/`.
+The owner selects evidence, purpose, destination, formats, and redaction scope.
+Publisher may render an admitted bundle as Markdown, HTML, PDF, DOCX, or a JSON
+reconstruction bundle. Preparation and rendering do not themselves authorize
+publication, release, delivery, or execution.
+
+Raw source excerpts, owner-authored text, and AI-derived text must remain
+distinguishable. AI-derived text must retain supporting evidence references,
+fidelity, and confidence rather than silently becoming canonical fact.
+
 ---
 
 ## 🧬 Legacy Copy (For Family or Heirs)

@@ -4,6 +4,7 @@ current_version: 0.1.9
 current_focus: preserve verified v0.1.9 as the last published release while preparing the next Unreleased candidate for TV/TVC-only publication, deploying the merged KV Interlock/runtime-provider surfaces on admitted sovereign execution, and collecting authentic private-KV/provider evidence
 known_gaps:
   - Replacement TVC-admitted KnowledgeVault release publication runtime is not yet observed; hosted GitHub workflows are validation/evidence transport only
+  - Governed KV-to-Publisher document export source is locally validated on its feature branch, but the four-file `_System/Exports/` template delta is not installed in the connected KV and no private export/readback is observed
   - Merged KV Interlock runtime endpoint core is not yet deployed behind a live verified DEVICE-to-KV InTr boundary identity/sealing service and durable receipt store
   - Live mailbox/provider/SKAP activation and authentic provider-generated private-KV readback remain unproven
   - Coinbase and other direct-source finance normalization are source-implemented/validated but still require authentic SKAP-backed provider-session and private-KV evidence
@@ -21,6 +22,7 @@ completed_recently:
   - Closed completed source issues #39, #52, #56, #68, #106, #108, #111, #113, #115, #117, and #119 after live reconciliation
   - Reconciled specialized finance/direct-source/Coinbase handoffs from stale implementation-pending state to merged/validated source state
 next_steps:
+  - Merge the exact validated KV document-export head, install the four-file `_System/Exports/` delta through the governed connected-KV path, then prove one owner-authorized Publisher render and receipt readback
   - Treat docs/release_evidence/latest_release.json and GitHub release v0.1.9 as the immutable latest successful publication evidence until an admitted TV/TVC successor release exists
   - Use the Unreleased changelog plus validation-only hosted artifacts to determine successor candidate readiness; persistent VERSION/changelog/tag/release transitions require admitted TV/TVC release authority
   - Bind the merged KV Interlock runtime endpoint to the sovereign runtime with authentic InTr boundary verification and durable receipt persistence before Site production readback

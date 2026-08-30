@@ -9,6 +9,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- governed KV-to-Publisher document export preparation with owner-scoped formats, provenance/fidelity classes, owner-approved redaction, deterministic receipts, revocation evidence, and fail-closed tests
 - governed KnowledgeVault email-continuity ingress contract with pre-admission staging, fail-closed admission decisions, SKAP Vault credential-reference binding, deterministic mailbox mapping, and source-ready runtime validation
 - provider-neutral email account mapping runtime that prohibits raw mailbox secrets in KV state and requires `skap://` binding before provider-session verification
 - documented-unverified Gmail, Microsoft Graph/Outlook, and iCloud Mail provider adapter metadata with minimum read access, explicit user authorization, SKAP Vault credential destination, and fail-closed unknown-domain handling
@@ -29,6 +30,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - preserved TV/TVC as the only credential/release authority; no successor release is claimed until an admitted TVC publication path actually runs
 
 ### Notes
+- the new document-export source is locally validated but remains unmerged, uninstalled in the connected KnowledgeVault, and inactive until private-KV transport/readback evidence exists
 - production KV endpoint deployment, live InTr boundary identity/sealing, canonical Site readback, SKAP owner ingress, provider execution, and TVC release publication remain separate runtime evidence gates
 
 ---

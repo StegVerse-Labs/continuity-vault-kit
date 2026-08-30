@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-document-export-request.schema.json",
+  "title": "KnowledgeVault Governed Document Export Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "export_id",
+    "created_at",
+    "source",
+    "authorization",
+    "document",
+    "evidence",
+    "redaction",
+    "requested_formats"
+  ],
+  "properties": {
+    "schema_version": {"const": "stegverse.kv.document-export-request/v1"},
+    "export_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "release", "vault_class", "verification_root", "event_ids"],
+      "properties": {
+        "repository": {"const": "StegVerse-Labs/continuity-vault-kit"},
+        "release": {"type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+"},
+        "vault_class": {"enum": ["PERSONAL_KV", "ORGANIZATIONAL_KV", "STEGVERSE_KV", "MACHINE_KV"]},
+        "verification_root": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "event_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_source",
+        "authority_ref",
+        "status",
+        "scope",
+        "purpose",
+        "destination",
+        "allowed_formats",
+        "revocable",
+        "revoked"
+      ],
+      "properties": {
+        "authority_source": {"enum": ["direct_instruction", "active_standing_delegation"]},
+        "authority_ref": {"type": "string", "minLength": 1},
+        "status": {"const": "active"},
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "purpose": {"type": "string", "minLength": 1},
+        "destination": {"const": "GCAT-BCAT-Engine/Publisher"},
+        "allowed_formats": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["markdown", "html", "pdf", "docx", "json"]}
+        },
+        "expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "revocable": {"const": true},
+        "revoked": {"const": false}
+      }
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document_id", "document_type", "title", "authors", "template_profile", "sections"],
+      "properties": {
+        "document_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$"},
+        "document_type": {"enum": ["REPORT", "LETTER", "BRIEF", "PAPER", "TIMELINE", "EVIDENCE_PACKET", "LEGACY_EXPORT"]},
+        "title": {"type": "string", "minLength": 1, "maxLength": 300},
+        "subtitle": {"type": ["string", "null"], "maxLength": 500},
+        "authors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "affiliation": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "template_profile": {"type": "string", "minLength": 1},
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["section_id", "heading", "body", "content_class", "fidelity", "source_subject_ids"],
+            "properties": {
+              "section_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+              "heading": {"type": "string", "minLength": 1},
+              "body": {"type": "string", "minLength": 1},
+              "content_class": {"enum": ["RAW_SOURCE_EXCERPT", "OWNER_AUTHORED", "AI_DERIVED"]},
+              "fidelity": {"enum": ["exact", "semantic_reconstruction", "inference"]},
+              "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+              "source_subject_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subject_id",
+          "path",
+          "retention_class",
+          "fidelity",
+          "superseded",
+          "payload_available",
+          "content_hash",
+          "artifact_refs",
+          "derived_index",
+          "restricted",
+          "contains_credentials"
+        ],
+        "properties": {
+          "subject_id": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "retention_class": {"enum": ["integrity_only", "reconstructable", "full_fidelity"]},
+          "fidelity": {"enum": ["exact", "semantic_reconstruction", "inference", "integrity_only", "unavailable"]},
+          "superseded": {"type": "boolean"},
+          "payload_available": {"type": "boolean"},
+          "content_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "artifact_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "derived_index": {"type": "boolean"},
+          "restricted": {"type": "boolean"},
+          "contains_credentials": {"type": "boolean"}
+        }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "review_state", "removed_paths", "restricted_content_present"],
+      "properties": {
+        "profile": {"type": "string", "minLength": 1},
+        "review_state": {"const": "OWNER_APPROVED"},
+        "removed_paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "restricted_content_present": {"const": false}
+      }
+    },
+    "requested_formats": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["markdown", "html", "pdf", "docx", "json"]}
+    }
+  }
+}

@@ -1,0 +1,52 @@
+name: Validate governed KV document export
+
+on:
+  pull_request:
+    paths:
+      - "runtime/document_export.py"
+      - "schemas/kv-document-export-request.schema.json"
+      - "fixtures/document-export/**"
+      - "tests/test_document_export.py"
+      - "tools/prepare_document_export.py"
+      - "vault_template/KnowledgeVault/_System/Exports/**"
+      - "KV_DOCUMENT_EXPORT_MIRROR_HANDOFF.md"
+      - ".github/workflows/kv-document-export.yml"
+  push:
+    branches: [main]
+    paths:
+      - "runtime/document_export.py"
+      - "schemas/kv-document-export-request.schema.json"
+      - "fixtures/document-export/**"
+      - "tests/test_document_export.py"
+      - "tools/prepare_document_export.py"
+      - "vault_template/KnowledgeVault/_System/Exports/**"
+      - "KV_DOCUMENT_EXPORT_MIRROR_HANDOFF.md"
+      - ".github/workflows/kv-document-export.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile document export boundary
+        run: python -m py_compile runtime/document_export.py tools/prepare_document_export.py tests/test_document_export.py
+      - name: Validate schema JSON
+        run: python -m json.tool schemas/kv-document-export-request.schema.json >/dev/null
+      - name: Run document export tests
+        run: python -m unittest tests.test_document_export -v
+      - name: Demonstrate bounded preparation
+        run: |
+          python tools/prepare_document_export.py \
+            fixtures/document-export/admitted.json \
+            --bundle-out /tmp/publisher-bundle.json \
+            --receipt-out /tmp/kv-export-receipt.json
+          test -s /tmp/publisher-bundle.json
+          test -s /tmp/kv-export-receipt.json
