@@ -1,0 +1,62 @@
+{
+  "schema": "stegverse.kv.document-export-owner-run-evidence/v1",
+  "observed_utc": "2026-08-30T17:56:00Z",
+  "export_id": "kv-publisher-activation-20260830-001",
+  "authority_source": "direct_instruction",
+  "purpose": "Prove the authentic governed KV → InTr → Publisher → KV document-creation and reconstruction path.",
+  "authorized_formats": ["markdown", "pdf", "json"],
+  "source_note": {
+    "drive_id": "1zGar20KrIe0fKNkPpX9Hr1I_2W7cSnKE",
+    "sha256": "de3524a3e21ab24508a56b96a4b697743a9d1fce99cc250ed9e1a04fa1be008f",
+    "restricted": false,
+    "contains_credentials": false
+  },
+  "request": {
+    "drive_id": "1_DhXUcnnNsBblvmPT2fO-BWYwu5jLf9r",
+    "semantic_sha256": "sha256:55b3cbaa950f5440d0ae7c370220bc8f337aeac0ecab511ddd4c721adee8ed81"
+  },
+  "retained_bundle": {
+    "drive_id": "1nnB6hAtOVbWCRiyyNj-IgBx46O6X-CE1",
+    "export_sha256": "sha256:98622e0ba7b3335c7eea6e4ab5d7a819aa73bc74a7e5db55ced0266dba3a014d"
+  },
+  "preparation_receipt": {
+    "drive_id": "1XoLxpKUKoBFKvYQPm6M9vSpMaw5AA0zl",
+    "receipt_sha256": "sha256:2a6c12f0313544eedbb603872964a76322cc78c011022714de845eda3bb1e703",
+    "result": "PREPARED_NOT_TRANSMITTED"
+  },
+  "publisher_admission_receipt": {
+    "drive_id": "1AeJBXMy4MuGu31Qt2hAZL2kHhbnO38v-",
+    "receipt_sha256": "8c66704a5da75df7c954d3ac3efd6d1646a10a9abd65eba865361242d4293746",
+    "result": "ADMITTED"
+  },
+  "publisher_render": {
+    "generation_id": "58f6de9dc6b28c32e0adee12",
+    "manifest_drive_id": "1c3HdjeTWjrPtxaitjQnJLzAqyld93nch",
+    "manifest_sha256": "sha256:20e83ce0dedbb873284c4f2c5ebf7adb966c6151fea999c3dc92f1a0ededcb25",
+    "rendering_receipt_drive_id": "10WMrPEPwu0wn80Tg-Qt4Iqmy5vLHh_Ba",
+    "rendering_receipt_sha256": "sha256:2b0cf96e0356b3c714940e419c9755427016af1fa4ae2569aaf2f5b8e1aff78e",
+    "result": "GENERATED_VALIDATED_NOT_PUBLISHED"
+  },
+  "artifacts": [
+    {"format": "markdown", "drive_id": "1YxL-4kFGWyEb8r4SwdikRzsdhzmpAEDF", "sha256": "sha256:8d44eaebe69796bca29db2762bad18de9b67e639ee72183d17c71b39c5511e0a", "bytes": 1098, "readback_exact": true, "reconstruction_exact": true},
+    {"format": "pdf", "drive_id": "1iNtfhUwT1buzZ6C-UsTKTyVFZQE8FrCG", "sha256": "sha256:1fc18e95da0f79c2fc680457d7598b7c094c9e6b31005d6afa95b9f611449ed2", "bytes": 1787, "readback_exact": true, "reconstruction_exact": true},
+    {"format": "json", "drive_id": "1A0VrzCyCtoHUzhQ7AF81V--2VUldLfuc", "sha256": "sha256:79998e80c83ae57ac81cdab52ea8e4db562f420d67f7b01380a60fc94d19e5ca", "bytes": 2869, "readback_exact": true, "reconstruction_exact": true}
+  ],
+  "lifecycle": {
+    "owner_request_observed": true,
+    "prepared": true,
+    "intr_transport_observed": false,
+    "publisher_admission_observed": true,
+    "publisher_render_observed": true,
+    "artifact_readback_observed": true,
+    "private_bundle_reconstruction_observed": true,
+    "activated": false,
+    "released": false,
+    "complete": false
+  },
+  "blocker": "VERIFIED_DEVICE_KV_INTR_ENVELOPE_AND_RECEIPT_NOT_OBSERVED",
+  "authority_effect": "NONE",
+  "publication_authorized": false,
+  "release_authorized": false,
+  "execution_authorized": false
+}
