@@ -136,86 +136,46 @@ authority_effect: NONE
 2. Establish/observe `DEVICE_KV_INTR` through its authentic device↔KV lane; this remains the universal governed-action transport blocker.
 3. Apply the same typed capability + authentic observation admission pattern to other transport-blocked lanes rather than creating bespoke transport tests.
 
-
 ## Authentic observation evidence admission — issue #129
 
-The typed transport model now has a bounded fail-closed evidence adapter:
+The typed transport model has a bounded fail-closed evidence adapter:
 
 - `scripts/admit_transport_capability_evidence.py`
 - `schemas/kv-transport-capability-evidence-admission.schema.json`
 - `tests/test_admit_transport_capability_evidence.py`
 
-Initial mappings:
-
-```text
-stegverse.sv-dn1.browser-resident-observation-bundle/v3
-  -> ADJACENT_EXTERNAL_API_EGRESS
-
-stegverse.hil.canonical-observation-evidence/v1
-  -> PUBLIC_HTTPS_INGRESS
-```
-
-Admission advances only the matching `transport_capabilities_observed.<TYPE>` fact.
-
-It does not advance production Interlock activation, provider/session state, credential state, module/service activation, TVC lifecycle state, execution authority, or any unrelated transport capability.
-
-The HIL ingress capability may be admitted independently of the later TVC lifecycle receipt because the fact being established is specifically public HTTPS ingress capability, not completion of the HIL lifecycle.
-
-The current Hugging Face browser observer source on Site emits the v3 bundle above. That browser bundle is normalized and canonically preserved by the `.github` evidence lane as `stegverse.sv-dn1.canonical-observation-evidence/v1`. The canonical preserved evidence is preferred for durable KV admission; the v3 bundle remains an accepted upstream/source form.
-
-No KV fact is advanced merely because the adapter exists. Authentic evidence bytes must be supplied and pass validation.
-
+Mappings include canonical SV-DN-1/Hugging Face evidence -> `ADJACENT_EXTERNAL_API_EGRESS` and canonical HIL evidence -> `PUBLIC_HTTPS_INGRESS`. Admission advances only the matching transport fact and cannot advance production Interlock activation, provider/session state, credential state, module/service activation, TVC lifecycle state, execution authority, or unrelated transport capabilities.
 
 ## Canonical SV-DN-1 evidence reconciliation — issue #133
 
-The authentic preserved Hugging Face observation was located at:
-
-```text
-StegVerse-Labs/.github
-evidence/sv-dn1/first-authentic-browser-observation-20260829.json
-schema: stegverse.sv-dn1.canonical-observation-evidence/v1
-state: OBSERVED
-```
-
-The evidence records the established Node/device continuity identity, HTTP 200 source capture, exact raw-response digest, semantic exchange identity, Universal InTr adjacent-hop profile, destination validation PASS, lineage verification, journal replay PASS, terminal/reconstruction linkage PASS, same-execution reconstruction PASS, no credential use, no GitHub-token use, no new Node identity, and no runtime/production-Interlock activation claim.
-
-The KV evidence adapter now accepts both:
-
-```text
-browser source form:
-  stegverse.sv-dn1.browser-resident-observation-bundle/v3
-
-canonical durable form:
-  stegverse.sv-dn1.canonical-observation-evidence/v1
-```
-
-Both map only to `ADJACENT_EXTERNAL_API_EGRESS`. Canonical evidence is preferred for durable fact admission.
-
+Canonical durable Hugging Face evidence is preserved in `StegVerse-Labs/.github/evidence/sv-dn1/first-authentic-browser-observation-20260829.json` and is preferred for durable KV admission.
 
 ## First authentic KV typed transport fact admitted — issue #135
 
-Canonical source:
+`ADJACENT_EXTERNAL_API_EGRESS=true` is admitted from the canonical observed SV-DN-1 evidence. Every other typed transport fact remains independently governed. Durable admission record: `evidence/kv/2026-08-30-sv-dn1-adjacent-external-api-egress-admission.json`.
+
+## HIL evidence-admission hardening — issue #138
+
+Before `PUBLIC_HTTPS_INGRESS` may be advanced from a HIL browser observation, the admission validator now requires the canonical HIL bundle to preserve the observation surface's explicit non-claims and identity predicates:
 
 ```text
-StegVerse-Labs/.github
-evidence/sv-dn1/first-authentic-browser-observation-20260829.json
-Git blob: 0a73e970e66960222832d1f2cb64892e497e1eb8
-schema: stegverse.sv-dn1.canonical-observation-evidence/v1
-state: OBSERVED
-observed_at: 2026-08-29T23:39:43.780Z
+state=OBSERVED
+observation_class=AUTHENTIC_ESTABLISHED_STEGVERSE_WEB_NODE
+existing_node_reused=true
+new_node_identity_minted=false
+credential_used=false
+github_token_used=false
+participant_research_submission=false
+runtime_activation_claimed=false
+tvc_lifecycle_intent_observed=true
+tvc_receiving_receipt_observed=false
+receiver_restart_reconstruction_observed=false
+custody_state=EXACT_BYTES_PERSISTED
+registry_state=RECORDED
+exact_byte_reconstruction=PASS
+controlled_pdf_sha256 == retrieved_pdf_sha256
+next_required_transition=HIL_CUSTODY_TVC_INTERLOCK_ADMISSION
+journal replay / claim-terminal / terminal-reconstruction / InTr-chain / exact-byte validation markers = PASS
 ```
 
-Admission result:
-
-```text
-ADJACENT_EXTERNAL_API_EGRESS=true
-all other typed transport facts unchanged
-activation_performed=false
-authority_effect=NONE
-```
-
-Durable admission record:
-
-`evidence/kv/2026-08-30-sv-dn1-adjacent-external-api-egress-admission.json`
-
-This is the first authentic runtime observation admitted into the KnowledgeVault typed transport fact set. It does not make any module/service governed-ready because `DEVICE_KV_INTR`, production Interlock runtime, and other service-specific predicates remain independently fail-closed.
+The adapter also requires the receiver/submission/receipt-chain hash identities to be present. This hardening prevents a malformed or over-claimed HIL observation from advancing `PUBLIC_HTTPS_INGRESS`; it does not require the downstream TVC receiving receipt to exist, because that is a different lifecycle predicate.
