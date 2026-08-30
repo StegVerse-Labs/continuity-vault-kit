@@ -10,11 +10,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FACTS = ROOT / "specs" / "kv-activation-readiness-facts.v1.json"
 
-HF_SCHEMA = "stegverse.sv-dn1.browser-resident-observation-bundle/v3"
+HF_BROWSER_SCHEMA = "stegverse.sv-dn1.browser-resident-observation-bundle/v3"
+HF_CANONICAL_SCHEMA = "stegverse.sv-dn1.canonical-observation-evidence/v1"
+HF_SCHEMA = HF_BROWSER_SCHEMA  # compatibility alias for existing tests/consumers
 HIL_SCHEMA = "stegverse.hil.canonical-observation-evidence/v1"
 
 MAPPING = {
-    HF_SCHEMA: "ADJACENT_EXTERNAL_API_EGRESS",
+    HF_BROWSER_SCHEMA: "ADJACENT_EXTERNAL_API_EGRESS",
+    HF_CANONICAL_SCHEMA: "ADJACENT_EXTERNAL_API_EGRESS",
     HIL_SCHEMA: "PUBLIC_HTTPS_INGRESS",
 }
 
@@ -26,7 +29,7 @@ def _require(condition: bool, message: str, failures: list[str]) -> None:
 
 def validate_hf(payload: dict) -> list[str]:
     failures: list[str] = []
-    _require(payload.get("schema") == HF_SCHEMA, "unexpected HF evidence schema", failures)
+    _require(payload.get("schema") == HF_BROWSER_SCHEMA, "unexpected HF evidence schema", failures)
     _require(payload.get("state") == "OBSERVED", "HF evidence must be OBSERVED", failures)
     _require(payload.get("observation_class") == "AUTHENTIC_ESTABLISHED_STEGVERSE_WEB_NODE", "HF observation class invalid", failures)
     _require(payload.get("authority_effect") == "NONE", "HF authority_effect must be NONE", failures)
@@ -88,6 +91,77 @@ def validate_hf(payload: dict) -> list[str]:
     return failures
 
 
+def validate_hf_canonical(payload: dict) -> list[str]:
+    failures: list[str] = []
+    _require(payload.get("schema") == HF_CANONICAL_SCHEMA, "unexpected canonical HF evidence schema", failures)
+    _require(payload.get("state") == "OBSERVED", "canonical HF evidence must be OBSERVED", failures)
+    _require(
+        payload.get("observation_class") == "AUTHENTIC_ESTABLISHED_STEGVERSE_WEB_NODE",
+        "canonical HF observation class invalid",
+        failures,
+    )
+    _require(payload.get("authority_effect") == "NONE", "canonical HF authority_effect must be NONE", failures)
+    _require(isinstance(payload.get("node_id"), str) and bool(payload.get("node_id")), "canonical HF node_id missing", failures)
+    _require(
+        isinstance(payload.get("device_continuity_id"), str) and bool(payload.get("device_continuity_id")),
+        "canonical HF device continuity missing",
+        failures,
+    )
+    _require(payload.get("resident_state") == "COMPLETE", "canonical HF resident state must be COMPLETE", failures)
+    _require(payload.get("source_http_status") == 200, "canonical HF source HTTP status must be 200", failures)
+    _require(
+        payload.get("transport_profile") == "stegverse.universal-intr.adjacent-hop/v1",
+        "canonical HF transport profile mismatch",
+        failures,
+    )
+    _require(
+        payload.get("universal_intr_policy_id") == "STEGVERSE-UNIVERSAL-INTR-TRANSPORT-001",
+        "canonical HF Universal InTr policy mismatch",
+        failures,
+    )
+    _require(payload.get("boundary_from") == "EXTERNAL_SYSTEM", "canonical HF source boundary mismatch", failures)
+    _require(payload.get("boundary_to") == "STEGOS_ECOSYSTEM", "canonical HF destination boundary mismatch", failures)
+    _require(payload.get("destination_validation") == "PASS", "canonical HF destination validation must PASS", failures)
+    _require(payload.get("lineage_verified") is True, "canonical HF lineage must be verified", failures)
+    _require(payload.get("journal_replay_state") == "PASS", "canonical HF journal replay must PASS", failures)
+    _require(payload.get("existing_node_reused") is True, "canonical HF must reuse established node", failures)
+    _require(payload.get("new_node_identity_minted") is False, "canonical HF may not mint a new node identity", failures)
+    _require(payload.get("credential_used") is False, "canonical HF credential_used must be false", failures)
+    _require(payload.get("github_token_used") is False, "canonical HF github_token_used must be false", failures)
+    _require(payload.get("runtime_activation_claimed") is False, "canonical HF runtime activation may not be claimed", failures)
+    _require(
+        payload.get("production_interlock_runtime_activated") is False,
+        "canonical HF production Interlock activation may not be claimed",
+        failures,
+    )
+    validation = payload.get("validation")
+    _require(isinstance(validation, dict), "canonical HF validation block missing", failures)
+    if isinstance(validation, dict):
+        for key in (
+            "journal_receipt_hashes",
+            "journal_entry_hashes",
+            "journal_previous_hash_chain",
+            "claim_terminal_link",
+            "terminal_reconstruction_link",
+            "reconstruction_same_execution",
+            "interlock_intr_previous_receipt_hash",
+            "intr_exchange_identity",
+            "resident_exchange_identity",
+            "resident_raw_digest_identity",
+        ):
+            _require(validation.get(key) == "PASS", f"canonical HF validation {key} must PASS", failures)
+    for key in (
+        "source_bundle_sha256",
+        "raw_response_sha256",
+        "semantic_exchange_id",
+        "source_transform_hash",
+        "intr_receipt_hash",
+        "journal_tail_sha256",
+    ):
+        _require(isinstance(payload.get(key), str) and bool(payload.get(key)), f"canonical HF {key} missing", failures)
+    return failures
+
+
 def validate_hil(payload: dict) -> list[str]:
     failures: list[str] = []
     _require(payload.get("schema") == HIL_SCHEMA, "unexpected HIL evidence schema", failures)
@@ -108,8 +182,10 @@ def validate_hil(payload: dict) -> list[str]:
 
 def admit(payload: dict, facts: dict) -> tuple[dict, dict]:
     schema = payload.get("schema")
-    if schema == HF_SCHEMA:
+    if schema == HF_BROWSER_SCHEMA:
         failures = validate_hf(payload)
+    elif schema == HF_CANONICAL_SCHEMA:
+        failures = validate_hf_canonical(payload)
     elif schema == HIL_SCHEMA:
         failures = validate_hil(payload)
     else:

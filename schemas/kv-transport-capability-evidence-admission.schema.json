@@ -14,11 +14,16 @@
     "authority_effect"
   ],
   "properties": {
-    "schema": {"const": "stegverse.kv.transport-capability-evidence-admission/v1"},
-    "state": {"const": "ADMITTED"},
+    "schema": {
+      "const": "stegverse.kv.transport-capability-evidence-admission/v1"
+    },
+    "state": {
+      "const": "ADMITTED"
+    },
     "source_schema": {
       "enum": [
         "stegverse.sv-dn1.browser-resident-observation-bundle/v3",
+        "stegverse.sv-dn1.canonical-observation-evidence/v1",
         "stegverse.hil.canonical-observation-evidence/v1"
       ]
     },
@@ -32,14 +37,20 @@
       "type": "array",
       "minItems": 1,
       "maxItems": 1,
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
     "unrelated_facts_advanced": {
       "type": "array",
       "maxItems": 0
     },
-    "activation_performed": {"const": false},
-    "authority_effect": {"const": "NONE"}
+    "activation_performed": {
+      "const": false
+    },
+    "authority_effect": {
+      "const": "NONE"
+    }
   },
   "additionalProperties": false
 }
