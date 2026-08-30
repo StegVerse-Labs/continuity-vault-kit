@@ -423,3 +423,38 @@ Readiness surface retains one current projection.
 This does not reduce the Universal Interlock runtime/adoption gates. It gives the
 device shell a machine-readable explanation for why all governed controls remain
 disabled.
+
+
+## Typed transport capability readiness — issue #126
+
+Follow-on to typed transport capability governance (#124/#125).
+
+The readiness control plane now treats transport capability as an explicit first-level governance prerequisite rather than inferring transport readiness from a generic network/runtime boolean.
+
+Current source semantics:
+
+```text
+all governed module/service actions:
+  require DEVICE_KV_INTR
+
+service with explicit external-provider dependency:
+  additionally requires ADJACENT_EXTERNAL_API_EGRESS
+```
+
+Operation-specific transport types remain owned by the lane that requests them. The readiness layer does not globally force HIL `PUBLIC_HTTPS_INGRESS`, `NODE_TO_NODE_SYNC`, `KV_SKAP_INTR`, or `TVC_RELAY` onto unrelated actions.
+
+The readiness facts now expose all seven typed capability observations explicitly and currently keep each false until authentic evidence is separately admitted:
+
+```text
+KV_DISTRIBUTION_DOWNLOAD=false
+DEVICE_KV_INTR=false
+PUBLIC_HTTPS_INGRESS=false
+ADJACENT_EXTERNAL_API_EGRESS=false
+NODE_TO_NODE_SYNC=false
+KV_SKAP_INTR=false
+TVC_RELAY=false
+```
+
+This source change does not downgrade the separately observed Hugging Face/SV-DN-1 transport result; it means that result has not yet been admitted as KnowledgeVault transport-capability evidence.
+
+No transport, module, service, Interlock, InTr, credential, provider, or execution activation is created by these readiness facts.
