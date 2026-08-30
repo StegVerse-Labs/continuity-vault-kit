@@ -60,3 +60,41 @@ def test_stegfin_preserves_full_production_tvc_blockers():
         "provider_session_evidence_observed",
     }
     assert required.issubset(set(stegfin["governed_blockers"]))
+
+
+def test_all_governed_entries_require_device_kv_transport_capability():
+    snapshot = module.evaluate()
+    assert snapshot["transport_capabilities_observed"]["DEVICE_KV_INTR"] is False
+    assert all(
+        "DEVICE_KV_INTR" in entry["transport_capability_requirements"]
+        for entry in snapshot["entries"]
+    )
+    assert all(
+        "transport_capability:DEVICE_KV_INTR" in entry["governed_blockers"]
+        for entry in snapshot["entries"]
+    )
+
+
+def test_external_provider_services_require_adjacent_external_api_egress():
+    snapshot = module.evaluate()
+    services = json.loads(
+        (ROOT / "specs" / "kv-personal-services-registry.v1.json").read_text(encoding="utf-8")
+    )["services"]
+    provider_backed = {
+        service["service_id"]
+        for service in services
+        if service["service_class"] == "KV_DEVICE_PROVIDER" or service["provider_dependency"] != "NONE"
+    }
+    entries = {entry["entry_id"]: entry for entry in snapshot["entries"] if entry["entry_type"] == "SERVICE"}
+    assert provider_backed
+    for service_id in provider_backed:
+        entry = entries[service_id]
+        assert "ADJACENT_EXTERNAL_API_EGRESS" in entry["transport_capability_requirements"]
+        assert "transport_capability:ADJACENT_EXTERNAL_API_EGRESS" in entry["governed_blockers"]
+
+
+def test_local_only_personal_journal_does_not_require_external_api_egress():
+    snapshot = module.evaluate()
+    journal = next(e for e in snapshot["entries"] if e["entry_id"] == "personal-journal")
+    assert journal["transport_capability_requirements"] == ["DEVICE_KV_INTR"]
+    assert "transport_capability:ADJACENT_EXTERNAL_API_EGRESS" not in journal["governed_blockers"]
