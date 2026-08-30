@@ -4,7 +4,7 @@ current_version: 0.1.9
 current_focus: preserve verified v0.1.9 as the last published release while preparing the next Unreleased candidate for TV/TVC-only publication, deploying the merged KV Interlock/runtime-provider surfaces on admitted sovereign execution, and collecting authentic private-KV/provider evidence
 known_gaps:
   - Replacement TVC-admitted KnowledgeVault release publication runtime is not yet observed; hosted GitHub workflows are validation/evidence transport only
-  - Governed KV-to-Publisher document export source is merged and validated, but the four-file `_System/Exports/` template delta is not installed in the connected KV and no private export/readback is observed
+  - Governed KV-to-Publisher document export source is merged and validated and the four-file `_System/Exports/` template delta is installed/exact-readback observed in the connected KV; no owner-authorized export request, InTr transport, Publisher render, artifact/receipt readback, or retained private-bundle reconstruction is observed
   - Merged KV Interlock runtime endpoint core is not yet deployed behind a live verified DEVICE-to-KV InTr boundary identity/sealing service and durable receipt store
   - Live mailbox/provider/SKAP activation and authentic provider-generated private-KV readback remain unproven
   - Coinbase and other direct-source finance normalization are source-implemented/validated but still require authentic SKAP-backed provider-session and private-KV evidence
@@ -13,6 +13,7 @@ known_gaps:
   - Production reconstructive-memory provider activation remains gated on sovereign TVC-admitted execution in issue #16 and is not a baseline KnowledgeVault requirement
   - Governed email-ingress downstream propagation remains gated on the next admitted release in issue #90
 completed_recently:
+  - Installed the governed document-export `_System/Exports/{Requests,Receipts,Artifacts}` template surface in the connected KnowledgeVault and verified exact unconverted readback plus scoped installation receipt; deployment/observation of template state does not constitute activation
   - Consolidated root user-operation documentation into concise README.md plus comprehensive USER_GUIDE.md
   - Completed stale-link validation for removed WELCOME.md, GETTING_STARTED.md, SAFETY.md, DO_NOT_STORE_HERE.md, PATCH_README.md, and Patch_README.md references; issue #52 is closed
   - Added user-facing SKAP Vault / KnowledgeVault / Device-StegOS Node / External Network / Endpoint boundary guidance while keeping Interlock/InTr runtime activation distinct from baseline file-only use
@@ -22,7 +23,7 @@ completed_recently:
   - Closed completed source issues #39, #52, #56, #68, #106, #108, #111, #113, #115, #117, and #119 after live reconciliation
   - Reconciled specialized finance/direct-source/Coinbase handoffs from stale implementation-pending state to merged/validated source state
 next_steps:
-  - Install the merged four-file `_System/Exports/` delta through the governed connected-KV path, then prove one owner-authorized Publisher render and receipt readback
+  - Obtain one owner-authorized non-restricted KV export request, then prove InTr transport to Publisher, authorized rendering, artifact/manifest/receipt KV readback, and retained private-bundle reconstruction
   - Treat docs/release_evidence/latest_release.json and GitHub release v0.1.9 as the immutable latest successful publication evidence until an admitted TV/TVC successor release exists
   - Use the Unreleased changelog plus validation-only hosted artifacts to determine successor candidate readiness; persistent VERSION/changelog/tag/release transitions require admitted TV/TVC release authority
   - Bind the merged KV Interlock runtime endpoint to the sovereign runtime with authentic InTr boundary verification and durable receipt persistence before Site production readback

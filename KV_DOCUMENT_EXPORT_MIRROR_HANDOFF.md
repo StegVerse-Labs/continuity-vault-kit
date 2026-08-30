@@ -1,6 +1,6 @@
 # KnowledgeVault Governed Document Export Mirror Handoff
 
-Status: SOURCE_MERGED_VALIDATED / CONNECTED_KV_INSTALLATION_PENDING
+Status: SOURCE_MERGED_VALIDATED / CONNECTED_KV_TEMPLATE_INSTALLED
 Repository: StegVerse-Labs/continuity-vault-kit
 Destination: GCAT-BCAT-Engine/Publisher
 Updated: 2026-08-30
@@ -48,9 +48,9 @@ PLANNED: complete
 IMPLEMENTED: source complete
 VALIDATED: local validation and all seven exact-head pull-request workflows pass
 MERGED: PR #127 at 9c98016b9698297110956baab744a1e77e4bc84b
-DEPLOYED: no
+DEPLOYED: yes — four `_System/Exports/` template files installed in the connected KV
 ACTIVATED: no
-OBSERVED: no connected-KV request/artifact readback
+OBSERVED: yes — exact template files and scoped installation receipt read back; no owner request, transport, render, or artifact readback
 RECONSTRUCTED: synthetic fixture replay is deterministic; no retained private-KV replay evidence
 RELEASED: no
 COMPLETE: no
@@ -58,10 +58,10 @@ COMPLETE: no
 
 ## Remaining gates
 
-1. Install the four-file `_System/Exports/` source-template delta into the connected KV.
-2. Obtain one owner-authorized private-KV export request and Interlock receipts.
-3. Admit and render the exact bundle in Publisher.
-4. Read back the artifact manifest and receipt into the private KV.
+1. Obtain one owner-authorized non-restricted KV export request and Interlock receipts.
+2. Transport the admitted scoped bundle through InTr to Publisher.
+3. Admit and render the exact authorized formats in Publisher.
+4. Read back the artifacts, manifest, and receipts into the private KV and verify hashes.
 5. Prove deterministic reconstruction from the retained private bundle.
 
 ## Merge evidence
@@ -100,3 +100,22 @@ TV/TVC and SKAP credential authority are unchanged. GitHub Actions validates and
 transports evidence only and cannot mutate canonical repository or runtime state.
 
 🔒 Layer: Framework | KV
+
+
+## Connected KnowledgeVault template installation — 2026-08-30
+
+The governed destination surface is now deployed into the connected Google Drive-backed KnowledgeVault and exact-readback observed.
+
+```text
+KnowledgeVault root: 1c8OdhJeLD6E4ALmi-aR7dXvG8PjDLSfi
+Exports:             1dDb6AIsSz-_F1qi_2FAkmPnp-YKuVYBI
+Requests:            1R5Or1-YboebcHFLXaT4IdjzTgmw3fVk9
+Receipts:            17KIqcMXhwRceEv5Xh0cUDmq38-VZgmNg
+Artifacts:           1K12ZtW8rBISHTYyE3-62nglDz97escs8
+installation receipt: 1nFcrBB-vvIc9Tyz6eGXbILb4NVWzrSBK
+receipt sha256: b1f77fdc208be4bf132921f3df66cdd548c7bc549cc515bd66561c2a77fb8c3d
+```
+
+All four installed README files remain unconverted `text/plain` and were read back exactly. The installation receipt records `source_content_exact_match=true`, `activation_effect=false`, `owner_export_request_created=false`, and `intr_transport_performed=false`.
+
+This proves **DEPLOYED** and scoped **OBSERVED** template state only. It does not prove owner authorization, InTr transmission, Publisher rendering, artifact readback, private-bundle reconstruction, publication, release, or runtime activation.
