@@ -161,6 +161,32 @@ It does not advance production Interlock activation, provider/session state, cre
 
 The HIL ingress capability may be admitted independently of the later TVC lifecycle receipt because the fact being established is specifically public HTTPS ingress capability, not completion of the HIL lifecycle.
 
-The current Hugging Face browser observer source on Site emits the v3 bundle above. Earlier session references to an older canonical-evidence filename/schema are superseded by the live Site source.
+The current Hugging Face browser observer source on Site emits the v3 bundle above. That browser bundle is normalized and canonically preserved by the `.github` evidence lane as `stegverse.sv-dn1.canonical-observation-evidence/v1`. The canonical preserved evidence is preferred for durable KV admission; the v3 bundle remains an accepted upstream/source form.
 
 No KV fact is advanced merely because the adapter exists. Authentic evidence bytes must be supplied and pass validation.
+
+
+## Canonical SV-DN-1 evidence reconciliation — issue #133
+
+The authentic preserved Hugging Face observation was located at:
+
+```text
+StegVerse-Labs/.github
+evidence/sv-dn1/first-authentic-browser-observation-20260829.json
+schema: stegverse.sv-dn1.canonical-observation-evidence/v1
+state: OBSERVED
+```
+
+The evidence records the established Node/device continuity identity, HTTP 200 source capture, exact raw-response digest, semantic exchange identity, Universal InTr adjacent-hop profile, destination validation PASS, lineage verification, journal replay PASS, terminal/reconstruction linkage PASS, same-execution reconstruction PASS, no credential use, no GitHub-token use, no new Node identity, and no runtime/production-Interlock activation claim.
+
+The KV evidence adapter now accepts both:
+
+```text
+browser source form:
+  stegverse.sv-dn1.browser-resident-observation-bundle/v3
+
+canonical durable form:
+  stegverse.sv-dn1.canonical-observation-evidence/v1
+```
+
+Both map only to `ADJACENT_EXTERNAL_API_EGRESS`. Canonical evidence is preferred for durable fact admission.
