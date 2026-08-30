@@ -1,9 +1,9 @@
 # KV Typed Transport Capability Governance Mirror Handoff
 
-Status: ACTIVE_IMPLEMENTATION
+Status: IMPLEMENTED_VALIDATED_MERGED / RUNTIME_EVIDENCE_ADMISSION_PENDING
 Repository: StegVerse-Labs/continuity-vault-kit
 Issue: #124
-Branch: build/kv-typed-transport-capability-124
+Branch: docs/reconcile-typed-transport-handoff-20260830
 Created: 2026-08-30
 
 ## Goal
@@ -89,9 +89,52 @@ This lane does not itself activate any Node, transport, Interlock, InTr, provide
 The Hugging Face observation remains OBSERVED independently of this source abstraction.
 The HIL runtime observation remains a separate live gate.
 
+## Completion evidence
+
+```text
+typed transport registry/schema/validator/tests:
+  PR #125
+  merge: 8755c8db27c6d134a59df1850c065750552d86e6
+  exact-head validation: PASS
+
+KV activation-readiness typed transport gating:
+  PR #128
+  merge: 381b2eb3a37fbd308d2155befac1bab19b01f821
+  exact-head validation: PASS
+
+authentic transport observation evidence admission:
+  PR #130
+  merge: 035716d4ccc8f05466b60bb5bb2bb02bd3ad6b69
+  exact-head validation: PASS
+
+downstream StegOS typed transport blocker projection:
+  StegVerse-Labs/StegOS PR #97
+  merge: 2ab982a4cf0f96d5614a4f2b67265640f5178fee
+  StegOS CI: PASS
+```
+
+The StegOS propagation deliberately preserves historical `stegverse.kv.activation-readiness-snapshot/v1` replay/digest compatibility. New typed snapshots are strict; historical snapshots are not mutated during validation.
+
+## Current runtime standing
+
+```text
+typed transport governance source: IMPLEMENTED
+typed transport source validation: VALIDATED
+continuity-vault-kit integration: MERGED
+StegOS read-only consumer propagation: MERGED
+authentic HF transport result: OBSERVED independently in Site
+HF observation admitted into KV typed fact: NOT YET — exact authentic bundle bytes not currently present in this repository lane
+HIL PUBLIC_HTTPS_INGRESS source/observer: DEPLOYED in Site
+HIL PUBLIC_HTTPS_INGRESS authentic observation: NOT YET OBSERVED
+transport capability runtime activation by this source work: NONE
+authority_effect: NONE
+```
+
 ## Next executable action
 
-Implement and validate the typed transport capability registry, then reconcile it into KnowledgeVault readiness and downstream StegOS consumption without promoting source state to runtime activation.
+1. Admit the exact authentic current-format SV-DN-1/Hugging Face observation bundle when its bytes are available, advancing only `ADJACENT_EXTERNAL_API_EGRESS`.
+2. Execute the deployed HIL established-node observation when the machine-side path is fully ready; if it produces valid canonical evidence, admit only `PUBLIC_HTTPS_INGRESS`.
+3. Apply the same typed capability + authentic observation admission pattern to other transport-blocked lanes rather than creating bespoke transport tests.
 
 
 ## Authentic observation evidence admission — issue #129
