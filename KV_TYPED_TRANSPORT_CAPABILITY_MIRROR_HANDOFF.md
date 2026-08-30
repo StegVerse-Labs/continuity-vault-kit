@@ -92,3 +92,32 @@ The HIL runtime observation remains a separate live gate.
 ## Next executable action
 
 Implement and validate the typed transport capability registry, then reconcile it into KnowledgeVault readiness and downstream StegOS consumption without promoting source state to runtime activation.
+
+
+## Authentic observation evidence admission — issue #129
+
+The typed transport model now has a bounded fail-closed evidence adapter:
+
+- `scripts/admit_transport_capability_evidence.py`
+- `schemas/kv-transport-capability-evidence-admission.schema.json`
+- `tests/test_admit_transport_capability_evidence.py`
+
+Initial mappings:
+
+```text
+stegverse.sv-dn1.browser-resident-observation-bundle/v3
+  -> ADJACENT_EXTERNAL_API_EGRESS
+
+stegverse.hil.canonical-observation-evidence/v1
+  -> PUBLIC_HTTPS_INGRESS
+```
+
+Admission advances only the matching `transport_capabilities_observed.<TYPE>` fact.
+
+It does not advance production Interlock activation, provider/session state, credential state, module/service activation, TVC lifecycle state, execution authority, or any unrelated transport capability.
+
+The HIL ingress capability may be admitted independently of the later TVC lifecycle receipt because the fact being established is specifically public HTTPS ingress capability, not completion of the HIL lifecycle.
+
+The current Hugging Face browser observer source on Site emits the v3 bundle above. Earlier session references to an older canonical-evidence filename/schema are superseded by the live Site source.
+
+No KV fact is advanced merely because the adapter exists. Authentic evidence bytes must be supplied and pass validation.
