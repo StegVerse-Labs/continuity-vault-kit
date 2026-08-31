@@ -14,6 +14,19 @@ Make conversation/client loss operationally unremarkable by preserving a bounded
 
 The transcript is not the durable authority.
 
+## Existing canonical recall substrate
+
+This lane extends rather than replaces the existing conversation-continuity implementation:
+
+- `schemas/conversation-event.schema.json`;
+- `continuity/recall.py`;
+- `docs/AUTOMATED_CONVERSATION_RECALL.md`;
+- append-only `events.jsonl` semantics with previous-event chaining, content hashes, resulting-state hashes, fidelity classification, and archive-readiness evaluation.
+
+The event chain remains the canonical continuity history. The new session head is a **derived, bounded semantic checkpoint** optimized for cold reconstruction. It must bind to the exact recall event-chain reference and verification root used to derive it.
+
+A session head may be discarded and rebuilt from canonical events plus durable repo/runtime evidence. It is not a second canonical history.
+
 ## Canonical KV surface
 
 ```text
@@ -42,13 +55,15 @@ A session head may preserve only bounded semantic continuity:
 - last verified repository/runtime observations;
 - authorization and authority boundaries;
 - next executable action;
-- provenance and predecessor hash.
+- provenance and predecessor hash;
+- canonical conversation-event chain reference and verification root.
 
 A session head is not:
 
 - a transcript dump;
 - a credential store;
 - an execution mandate;
+- a replacement for canonical `events.jsonl`;
 - a replacement for live repository/runtime verification;
 - proof that a task is deployed, activated, observed, reconstructed, released, or complete.
 
@@ -60,10 +75,12 @@ authorized client
   -> KV-INTERLOCK-v1 REQUEST
   -> bounded session head
   -> verify head hash + predecessor/generation continuity
+  -> verify bound recall-chain root / event source reference
   -> independently inspect live repository/runtime state
   -> reconcile stale claims
   -> continue highest-priority admitted work
-  -> generate successor candidate
+  -> append canonical continuity events as applicable
+  -> generate successor checkpoint candidate
   -> governed commit/readback
   -> receipt + new head
 ```
@@ -75,6 +92,7 @@ No direct COMMIT is introduced. Existing KV-INTERLOCK-v1 COMMIT_CANDIDATE semant
 - unknown or malformed schema: reject;
 - duplicate/stale generation: reject;
 - prior-head hash mismatch: reject;
+- missing or malformed canonical recall-chain binding: reject;
 - secret-like field names anywhere in bounded state: reject;
 - transcript/raw-message storage: reject;
 - authority expansion: reject;
@@ -91,12 +109,14 @@ Persistent-session reconstruction reaches goal activation only after:
 1. source schema/runtime/tests are merged;
 2. the private KV Sessions surface is materialized;
 3. authentic DEVICE_KV_INTR is observed;
-4. a real bounded session head is written through governed commit/readback;
-5. a new client/session reads it through Interlock/InTr;
-6. live repo/runtime state is independently reconciled;
-7. the exact prior task is resumed without duplicate side effects;
-8. a successor head is committed and read back;
-9. reconstruction receipts prove predecessor/successor continuity.
+4. a real canonical conversation-event chain exists for the active session/work scope;
+5. a real bounded session head is derived from and bound to that chain;
+6. the head is written through governed commit/readback;
+7. a new client/session reads it through Interlock/InTr;
+8. recall-chain integrity and live repo/runtime state are independently reconciled;
+9. the exact prior task is resumed without duplicate side effects;
+10. a successor head is committed and read back;
+11. reconstruction receipts prove predecessor/successor and recall-root continuity.
 
 ## Current lifecycle
 
@@ -119,4 +139,4 @@ COMPLETE: false
 - StegVerse-Labs/Site: eventual user-facing projection and recovery intent surface.
 - StegVerse-Labs/master-records or canonical evidence custody owner where reconstruction evidence requires durable cross-runtime custody.
 
-No second transport protocol, credential path, runtime owner, or hosted GitHub production authority may be introduced.
+No second transport protocol, credential path, runtime owner, conversation-history authority, or hosted GitHub production authority may be introduced.
