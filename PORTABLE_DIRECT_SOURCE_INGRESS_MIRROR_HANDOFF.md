@@ -64,3 +64,7 @@ It does not mean:
 - merge.
 
 Runtime execution on an actual sovereign resident remains separately observed.
+
+## 2026-08-31 canonical raw persistence extension
+
+Issue #160 adds canonical HB carrier-binding verification and a second write-once transition, `PERSISTED_CANONICAL_RAW`. Exact owner-controlled bytes may be persisted at the owner-selected canonical KV path after staging/readback. `trusted_semantic_admission`, provider session, reusable credential material, and authority effect remain false/NONE.
