@@ -9,6 +9,7 @@ The format is based on [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- private-KV canonical conversation-event store using the existing append-only recall chain, compare-and-swap persistence, exact readback verification, secret/transcript rejection, and persistent-session verification-root binding
 - persistent-session reconstruction checkpoints bound to the existing append-only conversation-recall chain, with monotonic predecessor hashing, live-verification requirements, authority non-transfer, secret/transcript rejection, and private-KV Sessions guidance
 - KV-INTERLOCK-v1 persistent-session read/candidate adapters that return bounded reconstruction context, stage only validated monotonic successors, bind current/successor/recall hashes, and fail closed on stale or ambiguous state
 - governed KV-to-Publisher document export preparation with owner-scoped formats, provenance/fidelity classes, owner-approved redaction, deterministic receipts, revocation evidence, and fail-closed tests
