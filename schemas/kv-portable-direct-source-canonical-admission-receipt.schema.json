@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-portable-direct-source-canonical-admission-receipt.schema.json",
+  "title": "KnowledgeVault portable direct-source canonical admission receipt",
+  "type": "object",
+  "required": [
+    "schema",
+    "state",
+    "materialization_id",
+    "request_hash",
+    "transport_intent_hash",
+    "payload_hash",
+    "staging_receipt_sha256",
+    "ingress_receipt_sha256",
+    "directory_id",
+    "requested_canonical_path",
+    "canonical_batch_path",
+    "canonical_file_count",
+    "total_bytes",
+    "canonical_kv_persistence_observed",
+    "exact_canonical_readback_verified",
+    "trusted_semantic_admission",
+    "provider_session_required",
+    "provider_session_observed",
+    "credential_material_present",
+    "provider_operation_authorized",
+    "credential_authority",
+    "github_token_runtime_authority",
+    "authority_effect",
+    "observed_at",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.portable-direct-source-canonical-admission/v1"
+    },
+    "state": {
+      "const": "CANONICAL_ADMITTED"
+    },
+    "materialization_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "transport_intent_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "staging_receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "ingress_receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "directory_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requested_canonical_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonical_batch_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonical_file_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "total_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4194304
+    },
+    "canonical_kv_persistence_observed": {
+      "const": true
+    },
+    "exact_canonical_readback_verified": {
+      "const": true
+    },
+    "trusted_semantic_admission": {
+      "const": true
+    },
+    "provider_session_required": {
+      "const": false
+    },
+    "provider_session_observed": {
+      "const": false
+    },
+    "credential_material_present": {
+      "const": false
+    },
+    "provider_operation_authorized": {
+      "const": false
+    },
+    "credential_authority": {
+      "const": "TV/TVC"
+    },
+    "github_token_runtime_authority": {
+      "const": "NONE"
+    },
+    "authority_effect": {
+      "const": "NONE"
+    },
+    "observed_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  },
+  "additionalProperties": false
+}

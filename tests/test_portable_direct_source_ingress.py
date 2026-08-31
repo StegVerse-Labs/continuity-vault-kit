@@ -9,6 +9,7 @@ from pathlib import Path
 from runtime.portable_direct_source_ingress import (
     PortableDirectSourceIngressError,
     admit_portable_direct_source,
+    promote_portable_direct_source,
     sha256_uri,
     sha256_uri_bytes,
 )
@@ -101,6 +102,63 @@ class PortableDirectSourceIngressTests(unittest.TestCase):
             self.assertEqual((stage / "files" / "one.bin").read_bytes(), b"abc")
             self.assertEqual((stage / "files" / "two.bin").read_bytes(), b"xyz")
             self.assertEqual(json.loads((stage / "receipt.json").read_text()), receipt)
+
+    def test_staged_owner_controlled_batch_promotes_to_canonical_kv_and_readback(self) -> None:
+        request = build_request([("one.bin", b"abc"), ("two.bin", b"xyz")])
+        ingress = ingress_for(request)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "KnowledgeVault"
+            (root / "00_Inbox").mkdir(parents=True)
+            stage = admit_portable_direct_source(request, ingress, kv_data_root=root)
+            result = promote_portable_direct_source(request, stage, kv_data_root=root)
+            receipt = result["admission_receipt"]
+            self.assertEqual(receipt["state"], "CANONICAL_ADMITTED")
+            self.assertTrue(receipt["canonical_kv_persistence_observed"])
+            self.assertTrue(receipt["exact_canonical_readback_verified"])
+            self.assertTrue(receipt["trusted_semantic_admission"])
+            self.assertFalse(receipt["provider_session_required"])
+            self.assertFalse(receipt["credential_material_present"])
+            canonical = root / receipt["canonical_batch_path"]
+            self.assertEqual((canonical / "files" / "one.bin").read_bytes(), b"abc")
+            self.assertEqual((canonical / "files" / "two.bin").read_bytes(), b"xyz")
+            self.assertEqual(json.loads((canonical / "admission-receipt.json").read_text()), receipt)
+            self.assertEqual(result["connection_health"]["compatibility_state"], "VERIFIED")
+            self.assertEqual(result["connection_health"]["canonical_path"], "04_Media/Pictures")
+            self.assertFalse(result["connection_health"]["provider_operation_authorized"])
+
+    def test_canonical_promotion_is_idempotent(self) -> None:
+        request = build_request([("one.bin", b"abc")])
+        ingress = ingress_for(request)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "KnowledgeVault"
+            (root / "00_Inbox").mkdir(parents=True)
+            stage = admit_portable_direct_source(request, ingress, kv_data_root=root)
+            first = promote_portable_direct_source(request, stage, kv_data_root=root)
+            second = promote_portable_direct_source(request, stage, kv_data_root=root)
+            self.assertEqual(first, second)
+
+    def test_canonical_promotion_detects_staged_tamper(self) -> None:
+        request = build_request([("one.bin", b"abc")])
+        ingress = ingress_for(request)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "KnowledgeVault"
+            (root / "00_Inbox").mkdir(parents=True)
+            stage = admit_portable_direct_source(request, ingress, kv_data_root=root)
+            staged = root / stage["staging_path"] / "files" / "one.bin"
+            staged.write_bytes(b"tampered")
+            with self.assertRaisesRegex(PortableDirectSourceIngressError, "staged_vs_request_bytes_mismatch"):
+                promote_portable_direct_source(request, stage, kv_data_root=root)
+
+    def test_canonical_promotion_rejects_staging_receipt_drift(self) -> None:
+        request = build_request([("one.bin", b"abc")])
+        ingress = ingress_for(request)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "KnowledgeVault"
+            (root / "00_Inbox").mkdir(parents=True)
+            stage = admit_portable_direct_source(request, ingress, kv_data_root=root)
+            stage["trusted_semantic_admission"] = True
+            with self.assertRaisesRegex(PortableDirectSourceIngressError, "staging_receipt_binding_mismatch:trusted_semantic_admission"):
+                promote_portable_direct_source(request, stage, kv_data_root=root)
 
     def test_idempotent_identical_retry(self) -> None:
         request = build_request([("one.bin", b"abc")])
