@@ -258,3 +258,37 @@ SHWP-STEGOS-SOVEREIGN-RELAY-MATERIALIZATION-001
 -> SHWP-STEGOS-RELAY-NODE-KV-CONTINUITY-001
 -> SHWP-DEVICE-KV-INTR-OBSERVATION-001
 ```
+
+
+## Transcript-independent semantic reconstruction dry run — 2026-08-31
+
+A bounded reconstruction dry run was performed from the private generation-0 session head plus current authoritative repository handoffs. The transcript was not treated as authority.
+
+```text
+receipt: _System/Continuity/Sessions/kv-persistent-session-reconstruction-20260830/receipts/generation-000000-reconstruction-dry-run.receipt.json
+receipt file id: 1hV5Naz0cnL2XFiWAX4BoQTWE7sL7tmSQ
+head_sha256: sha256:f6aae75a5273ad48d88f56b63190dd7bc1bd7bcbbcdadb95ce2b41af582d731f
+conversation_event_verification_root: a0e4ce683cfd25c9bd9b0f9a0fb06ae070b2ceffd5d5b8d401df99435d58265f
+reconstruction_basis: PRIVATE_KV_HEAD_PLUS_LIVE_REPOSITORY_HANDOFFS_ONLY
+semantic_reconstruction_sufficient: true
+transcript_used_as_authority: false
+authentic_device_kv_intr_observed: false
+live_interlock_request_observed: false
+new_session_boundary_observed: false
+duplicate_side_effect_test_observed: false
+governed_successor_writeback_observed: false
+```
+
+The head successfully identifies the same remaining executable boundary after live-state reconciliation:
+
+```text
+SHWP-STEGOS-SOVEREIGN-RELAY-MATERIALIZATION-001
+-> SHWP-STEGOS-RELAY-NODE-KV-CONTINUITY-001
+-> SHWP-DEVICE-KV-INTR-OBSERVATION-001
+-> cold KV-INTERLOCK-v1 session read
+-> live repo/runtime reconciliation
+-> duplicate-safe continuation
+-> governed successor write/readback
+```
+
+This proves the persisted semantic head is sufficient for bounded reconstruction, but it deliberately does not satisfy the authentic transport or new-session activation predicates. The exact remaining blocker is resident consumption of the already-merged StegOS/KV InTr execution chain on an eligible non-hosted sovereign runtime.
