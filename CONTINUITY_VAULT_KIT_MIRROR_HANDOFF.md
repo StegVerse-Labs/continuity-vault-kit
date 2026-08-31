@@ -833,3 +833,16 @@ This proves DEPLOYED and scoped OBSERVED template state only. No owner-authorize
 request, InTr transmission, Publisher render/artifact readback, retained private-bundle
 reconstruction, publication, release, or runtime activation is claimed. The scoped
 continuation record is `KV_DOCUMENT_EXPORT_MIRROR_HANDOFF.md`.
+
+
+## Persistent session reconstruction — issue #142
+
+A new bounded semantic checkpoint layer is being built over the existing canonical conversation-recall event chain.
+
+Canonical handoff: `KV_PERSISTENT_SESSION_RECONSTRUCTION_MIRROR_HANDOFF.md`.
+
+The new session head is derived/disposable rather than a second history authority. It binds to the exact conversation-event chain reference and verification root, preserves active goals/repositories/handoffs/blockers/task/evidence refs and the next executable action, and requires independent live repo/runtime verification before continuation.
+
+Source lane: `feature/kv-persistent-session-reconstruction-142`.
+
+No production Interlock/InTr activation, private-KV session-head materialization, DEVICE_KV_INTR observation, cold-session reconstruction, canonical writeback, or release is claimed by this source work.
