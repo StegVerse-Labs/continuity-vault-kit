@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any, Callable
 
+from runtime.kv_interlock_endpoint import KVInterlockRuntimeError
 from runtime.persistent_session_reconstruction import (
     PersistentSessionError,
     build_reconstruction_projection,
@@ -17,7 +18,7 @@ READ_SCOPE = ["session_head"]
 COMMIT_SCOPE = ["session_head_candidate"]
 
 
-class PersistentSessionInterlockError(ValueError):
+class PersistentSessionInterlockError(KVInterlockRuntimeError):
     pass
 
 
