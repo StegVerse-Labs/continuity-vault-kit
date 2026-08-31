@@ -195,3 +195,48 @@ The fanout is intentionally asymmetric: the KV report returns the endpoint dispo
 This proves the requested one-input/two-report reduction in an isolated contract integration. It does **not** prove production endpoint deployment, live DEVICE_KV_INTR, or live authenticated Master Records custody.
 
 Live follow-up is tracked in `master-records/orchestration#50`. That repository's current root handoff marks live authenticated custody round-trip work as machine-owned / authority-bound, so this test does not compete with or synthesize that external evidence.
+
+
+## Endpoint fanout probe — merged CI execution evidence
+
+The test harness from PR #150 is merged at:
+
+```text
+merge: 4238b384d1e282038125774b33ade2fe9bf8d5e8
+```
+
+Canonical KV validation then executed the exact merged source and passed:
+
+```text
+workflow: Validate KV Interlock Contract
+run: 33352845713
+run_number: 25
+job: 99369368124
+conclusion: SUCCESS
+endpoint fanout tests: 4/4 PASS
+probe execution: PASS
+report_count: 2
+artifact: endpoint-fanout-probe-evidence
+artifact_id: 9744179445
+```
+
+CI probe bindings:
+
+```text
+probe_id: ci-endpoint-fanout-001
+input_probe_sha256: 66a7744c330330201c7c4311539365a758adfa1e17e1217c93258e1abee0f903
+request_payload_sha256: sha256:d8de6cd417829f5e5fdca62320579e76c9473154a042689c07fa3c22b05df231
+intr_receipt_ref: sha256:66096a712612abb17a8ca90f7ec6422757c35f8982485952b8821ec076d7717b
+kv_receipt_id: kv-interlock-receipt:3ff649920982dea0e9684df84081c2fa46097fa8e88a98d41332e75115534195
+kv_response_hash: ed46ef747cbef8a12192d269ea64805873809bab01747dcbd42c03f1e518879d
+kv_status_report_sha256: 9d25fc08585d3298e7dd4e2e519fb5324157fc28849e26fc96fd12f65a3741a9
+master_record_ref: master-record:sha256:e4f1a8f6b2702ac70a8c4eec619426eb4189afeed4144e2a573cc7842015a42a
+master_record_sha256: e4f1a8f6b2702ac70a8c4eec619426eb4189afeed4144e2a573cc7842015a42a
+```
+
+This is now stronger than the initial local-isolated execution: the exact merged repository source passed the canonical KV workflow and emitted a retained two-report artifact. It still remains validation-only rather than proof of a deployed production endpoint, authentic DEVICE_KV_INTR, or live authenticated Master Records custody.
+
+Durable CI summary:
+`evidence/kv/2026-08-30-endpoint-fanout-probe-ci.json`.
+
+Live Master Records continuation remains `master-records/orchestration#50`.
