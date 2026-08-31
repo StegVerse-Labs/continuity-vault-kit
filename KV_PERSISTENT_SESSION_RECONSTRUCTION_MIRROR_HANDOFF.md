@@ -292,3 +292,42 @@ SHWP-STEGOS-SOVEREIGN-RELAY-MATERIALIZATION-001
 ```
 
 This proves the persisted semantic head is sufficient for bounded reconstruction, but it deliberately does not satisfy the authentic transport or new-session activation predicates. The exact remaining blocker is resident consumption of the already-merged StegOS/KV InTr execution chain on an eligible non-hosted sovereign runtime.
+
+
+## Sovereign resident rendezvous — direct-control dependency removed at source — 2026-08-30
+
+The prior activation blocker that required a coordinating session to possess a direct sovereign-server control connector is no longer accepted as the steady-state design.
+
+Merged source now provides a non-authorizing rendezvous path:
+
+```text
+Site / compatible client
+  -> StegVerse Service Gateway resident rendezvous
+  -> sovereign resident outbound poll
+  -> exact request digest/schema validation
+  -> existing local resident request dispatcher
+  -> WorkerCoordinator independent claim/fence/admission
+  -> existing StegOS/KV runtime chain
+```
+
+Cross-repository merge evidence:
+
+```text
+StegVerse-org/LLM-adapter PR #241
+merge: e34d52ec83b83992e3b27b8b28c0fa3ca39829b8
+role: durable non-authorizing request/ack rendezvous
+
+StegVerse-Labs/.github PR #584
+merge: 91bf9a7314313f989bd8e5e8008887a647e30cd9
+role: outbound sovereign resident consumer integrated into continuous WorkerCoordinator source
+
+StegVerse-Labs/Site PR #772
+merge: 9e3ef8878276ffc0d7f92982acf8cced251120d8
+role: bounded browser/iPhone request client
+```
+
+The Gateway cannot mint claims/fences or grant execution authority; TV/TVC remains credential authority and the WorkerCoordinator independently admits any local work.
+
+Remaining runtime bootstrap is now **deployment observation**, not missing connector design/source: the public sovereign Service Gateway must run the merged rendezvous source and the existing resident must refresh/materialize the merged outbound consumer once. After that, future bounded resident requests do not require an interactive SSH/systemd/server-control connector.
+
+This does not yet satisfy authentic DEVICE_KV_INTR, cold-session reconstruction, or governed successor write/readback.
