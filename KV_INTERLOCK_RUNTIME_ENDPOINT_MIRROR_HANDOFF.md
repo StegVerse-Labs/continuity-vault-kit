@@ -240,3 +240,29 @@ Durable CI summary:
 `evidence/kv/2026-08-30-endpoint-fanout-probe-ci.json`.
 
 Live Master Records continuation remains `master-records/orchestration#50`.
+
+
+## Endpoint-status return through KV Interlock — issue #155
+
+The two-report fanout topology now sends the KV endpoint-status observation back through the existing `KV-INTERLOCK-v1` candidate boundary rather than merely constructing the report beside the Interlock response.
+
+Canonical return path:
+
+```text
+endpoint probe
+-> KVInterlockRuntime REQUEST
+-> endpoint-status observation
+-> hash bind observation
+-> KVInterlockRuntime COMMIT_CANDIDATE
+   candidate_type=ENDPOINT_STATUS_REPORT
+   payload_ref=urn:stegverse:endpoint-status-report:sha256:<observation>
+   requested_destination=_System/Continuity/EndpointStatus/<probe_id>.json
+-> opaque writeback_candidate_ref
+-> canonical_state_changed=false
+```
+
+The returned report records the second Interlock packet, InTr receipt reference, response hash, KV receipt id, candidate type, payload reference, destination, candidate-only state, and authority effect.
+
+The Master Records travel report remains the second and only other report structure. Report count therefore remains exactly two.
+
+This return path stages only a governed candidate. It does not mutate canonical KV state, activate a provider, establish live DEVICE_KV_INTR, or grant execution/credential authority.
