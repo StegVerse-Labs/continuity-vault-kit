@@ -1,6 +1,7 @@
 from __future__ import annotations
-import base64, copy, json, unittest
+import base64, copy, json, tempfile, unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from runtime import document_export as de
 from runtime import document_intr_transfer as intr
 
@@ -44,5 +45,18 @@ class DocumentInTrTransferTests(unittest.TestCase):
         b=bundle(); b["requested_formats"]=["markdown"]; unhashed=copy.deepcopy(b); unhashed.pop("export_sha256"); b["export_sha256"]=intr.sha256_value(unhashed)
         with self.assertRaisesRegex(intr.DocumentInTrTransferError,"formats differ"):
             intr.validate_artifact_return(publisher_return(b),source_bundle=b)
+
+    def test_private_bundle_retention_is_write_once_and_idempotent(self):
+        b=bundle()
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            first=intr.retain_private_export_bundle(b,root=root)
+            second=intr.retain_private_export_bundle(b,root=root)
+            self.assertEqual(first,second)
+            self.assertEqual(json.loads(first.read_text()),b)
+            altered=copy.deepcopy(b); altered["document"]["title"]="collision"
+            unhashed=copy.deepcopy(altered); unhashed.pop("export_sha256"); altered["export_sha256"]=intr.sha256_value(unhashed)
+            with self.assertRaisesRegex(intr.DocumentInTrTransferError,"write-once collision"):
+                intr.retain_private_export_bundle(altered,root=root)
 
 if __name__=="__main__": unittest.main()
