@@ -5,6 +5,7 @@ the Publisher application payload and validates returned application bytes.
 """
 from __future__ import annotations
 import base64, copy, hashlib, json
+from pathlib import Path
 from typing import Any, Mapping
 from runtime.document_export import BUNDLE_SCHEMA, PUBLISHER_DESTINATION
 
@@ -123,3 +124,24 @@ def build_import_receipt(candidate:Mapping[str,Any],*,return_transport_terminal_
       "execution_authorized":False,"authority_effect":"NONE",
     }
     return {**body,"receipt_sha256":sha256_value(body)}
+
+
+def retain_private_export_bundle(bundle:Mapping[str,Any], *, root:Path) -> Path:
+    """Persist one verified private export bundle write-once for return validation."""
+    verify_bundle(bundle)
+    export_id=bundle.get("export_id")
+    if not isinstance(export_id,str) or not export_id or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for ch in export_id):
+        raise DocumentInTrTransferError("export_id invalid for private retention")
+    target_root=root.expanduser().resolve()
+    target_root.mkdir(parents=True,exist_ok=True)
+    path=target_root/f"{export_id}.json"
+    raw=(json.dumps(dict(bundle),sort_keys=True,indent=2,ensure_ascii=False)+"\n").encode("utf-8")
+    if path.exists():
+        existing=path.read_bytes()
+        if existing==raw:
+            return path
+        raise DocumentInTrTransferError("private export bundle write-once collision")
+    path.write_bytes(raw)
+    if path.read_bytes()!=raw:
+        raise DocumentInTrTransferError("private export bundle persistence verification failed")
+    return path

@@ -201,3 +201,22 @@ remains `VALIDATED_IMPORT_CANDIDATE_NOT_COMMITTED`.
 This source does not construct StegOS transport intents/hop receipts or claim
 forward/return transport. It is the KV application contract consumed by the
 sovereign Universal InTr runtime.
+
+
+## Private export-bundle retention for reverse InTr validation — issue #153
+
+The governed document lane now includes a write-once private retention helper:
+
+```text
+runtime.document_intr_transfer.retain_private_export_bundle(bundle, root=...)
+```
+
+It first revalidates the prepared owner-authorized Publisher bundle, then writes
+canonical JSON as `<export_id>.json` beneath a caller-selected KV-private local
+root. Identical retry is idempotent; a different payload at the same export ID
+fails closed with a write-once collision.
+
+This satisfies the reverse Publisher -> KV consumer's provenance dependency
+without placing the original private bundle in Publisher's return transport.
+Retention itself grants no transport, publication, release, execution, or
+canonical KV mutation authority.
