@@ -134,3 +134,64 @@ Validation evidence:
 - durable evidence `evidence/kv/2026-08-27-runtime-response-hash-compatibility-validation.json`.
 
 Production endpoint deployment and live boundary identity/sealing remain unobserved.
+
+
+## Endpoint fanout probe — 2026-08-30
+
+A machine-executed local-isolated contract test now exercises one non-secret probe through the existing `KVInterlockRuntime.handle` request boundary and reduces the outcome to exactly two bounded report structures.
+
+Source:
+
+```text
+tools/run_endpoint_fanout_probe.py
+tests/test_endpoint_fanout_probe.py
+.github/workflows/validate-kv-interlock-contract.yml
+evidence/kv/2026-08-30-endpoint-fanout-probe-local.json
+PR #150
+```
+
+Probe:
+
+```text
+probe_id: manual-endpoint-fanout-001
+value: stegverse-endpoint-fanout-probe
+classification: TEST_ONLY_NON_SECRET
+probe_sha256: a1efc09faba9a044f7778192387584a4564444bce08f8ea45141202e9db4b4c0
+```
+
+Report 1 — KV Interlock endpoint status:
+
+```text
+schema: stegverse.kv-interlock.endpoint-status-report.v1
+endpoint_status: PASS
+decision: ALLOW_BOUNDED_CONTEXT
+request_payload_sha256: sha256:be0483e6057696cec2338878bb2d82af084f659be6d04b928f80ce429181e30a
+intr_receipt_ref: sha256:799595a0e78a890a1a5936caed170a4d053576c25964c554b2311ee9e77a5315
+response_hash: 3a6573085535b2b3df624851b8a14edfdb403212cf723547bd166cb83743ec56
+report_sha256: b5f4f9a3a1cbbf982b851c11d5dbb5f47679bf0e2b9682648a2e7aeccab6e214
+canonical_state_changed: false
+execution_authority: NONE
+credential_authority: TV/TVC
+```
+
+Report 2 — Master Records travel report:
+
+```text
+schema: stegverse.master-records.travel-report.v1
+local custody state: TEST_ONLY_RECORDED
+master_record_ref: master-record:sha256:cd421a1c3d2989dadb8d172c50ed2f270bfbfa9c9260e741df09c597897259f8
+hop_count: 5
+1 TEST_PROBE_INGRESS
+2 DEVICE->KV
+3 KV_INTERLOCK_RUNTIME
+4 REPORT_FANOUT
+5 MASTER_RECORDS_TEST_CUSTODY
+authority_granted: false
+production_custody_claimed: false
+```
+
+The fanout is intentionally asymmetric: the KV report returns the endpoint disposition and hash/receipt binding, while the Master Records report retains the traversal chain and the hash of the record offered to the Master Records-compatible custody contract.
+
+This proves the requested one-input/two-report reduction in an isolated contract integration. It does **not** prove production endpoint deployment, live DEVICE_KV_INTR, or live authenticated Master Records custody.
+
+Live follow-up is tracked in `master-records/orchestration#50`. That repository's current root handoff marks live authenticated custody round-trip work as machine-owned / authority-bound, so this test does not compete with or synthesize that external evidence.

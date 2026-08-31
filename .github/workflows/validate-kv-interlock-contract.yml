@@ -13,6 +13,8 @@ on:
       - "tools/validate_kv_interlock_intr_envelope.py"
       - "runtime/kv_interlock_endpoint.py"
       - "tests/test_kv_interlock_runtime_endpoint.py"
+      - "tools/run_endpoint_fanout_probe.py"
+      - "tests/test_endpoint_fanout_probe.py"
       - "KV_INTERLOCK_RUNTIME_ENDPOINT_MIRROR_HANDOFF.md"
       - "tests/test_kv_interlock_contract.py"
       - "tests/test_kv_interlock_intr_envelope.py"
@@ -53,6 +55,8 @@ jobs:
           python -m py_compile tools/validate_kv_interlock_intr_envelope.py
           python -m py_compile runtime/kv_interlock_endpoint.py
           python -m py_compile tests/test_kv_interlock_runtime_endpoint.py
+          python -m py_compile tools/run_endpoint_fanout_probe.py
+          python -m py_compile tests/test_endpoint_fanout_probe.py
           python -m py_compile tests/test_kv_interlock_contract.py
           python -m py_compile tests/test_kv_interlock_intr_envelope.py
       - name: Validate canonical contract
@@ -65,3 +69,17 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_kv_interlock_intr_envelope.py' -v
       - name: Run KV Interlock runtime endpoint tests
         run: python -m unittest discover -s tests -p 'test_kv_interlock_runtime_endpoint.py' -v
+      - name: Run endpoint fanout probe tests
+        run: python -m unittest discover -s tests -p 'test_endpoint_fanout_probe.py' -v
+      - name: Emit endpoint fanout probe evidence
+        run: |
+          mkdir -p probe-evidence
+          python tools/run_endpoint_fanout_probe.py \
+            --value "stegverse-endpoint-fanout-probe" \
+            --probe-id "ci-endpoint-fanout-001" \
+            --output probe-evidence/endpoint-fanout-probe.result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: endpoint-fanout-probe-evidence
+          path: probe-evidence/endpoint-fanout-probe.result.json
+          if-no-files-found: error
