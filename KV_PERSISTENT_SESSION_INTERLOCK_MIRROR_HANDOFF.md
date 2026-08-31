@@ -1,9 +1,9 @@
 # KnowledgeVault Persistent Session Interlock Mirror Handoff
 
-Status: SOURCE_IMPLEMENTATION_IN_PROGRESS
+Status: SOURCE_MERGED_VALIDATED / PRIVATE_KV_DEPLOYMENT_OPEN
 Repository: StegVerse-Labs/continuity-vault-kit
 Issue: #144
-Branch: feature/kv-session-interlock-144
+Merged PR: #145\nMerge: 7088a1888e45654d92f889623c32e6264c4c8729
 Updated: 2026-08-30
 Authority effect: NONE
 Runtime activation claimed: false
@@ -87,3 +87,19 @@ RECONSTRUCTED: false
 RELEASED: false
 COMPLETE: false
 ```
+
+
+## Merge and validation evidence
+
+```text
+issue: #144 CLOSED_BY_MERGE
+PR: #145 MERGED
+merge: 7088a1888e45654d92f889623c32e6264c4c8729
+validated head: fb02764af1e21b46ab76ef8f65d5bc738abe6c00
+Repository validation diagnostics: 33346696652 SUCCESS
+Security Baseline: 33346696651 SUCCESS
+Release integrity: 33346696647 SUCCESS
+KV Guardrails: 33346696656 SUCCESS
+```
+
+The KV-INTERLOCK-v1 source seam is now merged. Remaining work is runtime/private-KV materialization and authentic DEVICE_KV_INTR delivery, followed by governed canonical write/readback and cold-session reconstruction proof.
