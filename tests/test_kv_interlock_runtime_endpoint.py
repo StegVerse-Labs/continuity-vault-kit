@@ -256,6 +256,35 @@ class KVInterlockRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(self.m.KVInterlockRuntimeError, "only allowed"):
             self.execute(request, envelope)
 
+    def test_request_selector_is_bounded_and_authority_neutral(self):
+        request = self.request()
+        request["selector"] = {
+            "directory_id": "pictures",
+            "canonical_path": "04_Media/Pictures",
+        }
+        response = self.execute(request, self.envelope(request))
+        self.assertEqual(response["decision"], "ALLOW_BOUNDED_CONTEXT")
+        self.assertEqual(request["authority_ref"], "owner-assertion-1")
+
+    def test_selector_rejects_extra_fields(self):
+        request = self.request()
+        request["selector"] = {
+            "directory_id": "pictures",
+            "canonical_path": "04_Media/Pictures",
+            "extra": True,
+        }
+        with self.assertRaisesRegex(self.m.KVInterlockRuntimeError, "selector invalid"):
+            self.execute(request, self.envelope(request))
+
+    def test_selector_is_request_only(self):
+        request = self.request("COMMIT_CANDIDATE")
+        request["selector"] = {
+            "directory_id": "pictures",
+            "canonical_path": "04_Media/Pictures",
+        }
+        with self.assertRaisesRegex(self.m.KVInterlockRuntimeError, "selector only allowed for REQUEST"):
+            self.execute(request, self.envelope(request))
+
 
 if __name__ == "__main__":
     unittest.main()

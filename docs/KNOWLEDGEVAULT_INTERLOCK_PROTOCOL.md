@@ -61,9 +61,12 @@ A requester supplies:
 - requested record class;
 - minimum required fields or query scope;
 - time/scope constraints;
+- optional bounded selector (`directory_id`, `canonical_path`) for exact directory reads;
 - requested disclosure mode;
 - authority/delegation reference;
 - correlation/request id.
+
+A selector does not establish authority. It is valid only for `REQUEST`, must contain exactly `directory_id` and `canonical_path`, and is evaluated only after the same verified InTr admission and injected authority validation as every other restricted-record request.
 
 ### RETURN
 
