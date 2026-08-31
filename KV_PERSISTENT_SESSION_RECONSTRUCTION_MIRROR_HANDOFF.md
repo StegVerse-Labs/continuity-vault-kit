@@ -161,7 +161,7 @@ The source layer is now merged and validated. The next implementation boundary i
 No private-KV materialization, live DEVICE_KV_INTR delivery, cold-session reconstruction, activation, release, or completion is claimed.
 
 
-## KV-INTERLOCK-v1 integration lane — issue #144
+## KV-INTERLOCK-v1 integration lane — issue #144 — MERGED
 
 Issue #144 implements the next source seam:
 
@@ -172,3 +172,16 @@ Issue #144 implements the next source seam:
 The adapter is injected behind the existing `KVInterlockRuntime`; it does not create a second endpoint or transport. `REQUEST` may expose only the bounded reconstruction projection. `COMMIT_CANDIDATE` resolves an opaque payload reference, verifies exact successor continuity against the current head, and stages a candidate-only record with current/successor hashes and recall-root binding.
 
 Canonical KV mutation remains separately governed and unimplemented in this lane. Private-KV deployment and live DEVICE_KV_INTR remain runtime gates.
+
+
+### Issue #144 completion evidence
+
+```text
+PR #145: MERGED
+merge: 7088a1888e45654d92f889623c32e6264c4c8729
+source integration: COMPLETE_MERGED_VALIDATED
+canonical KV mutation: NOT IMPLEMENTED BY THIS LANE
+private-KV deployment: NOT OBSERVED
+DEVICE_KV_INTR: NOT OBSERVED
+cold-session reconstruction: NOT OBSERVED
+```
