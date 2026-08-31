@@ -118,6 +118,8 @@
       "required": [
         "client_class",
         "source_session_ref",
+        "conversation_event_chain_ref",
+        "conversation_event_verification_root",
         "requires_live_verification"
       ],
       "properties": {
@@ -133,6 +135,14 @@
         "source_session_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "conversation_event_chain_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversation_event_verification_root": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         },
         "requires_live_verification": {
           "const": true
