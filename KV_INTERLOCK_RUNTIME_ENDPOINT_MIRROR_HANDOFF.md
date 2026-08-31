@@ -266,3 +266,20 @@ The returned report records the second Interlock packet, InTr receipt reference,
 The Master Records travel report remains the second and only other report structure. Report count therefore remains exactly two.
 
 This return path stages only a governed candidate. It does not mutate canonical KV state, activate a provider, establish live DEVICE_KV_INTR, or grant execution/credential authority.
+
+
+## Endpoint-status Interlock return merge evidence — 2026-08-31
+
+```text
+issue: #155
+PR: #157 MERGED
+merge: fad0f6731b5b49e384fd74b9eb9d29df20d57bd7
+Validate KV Interlock Contract: 33388854016 SUCCESS
+Security Baseline: 33388854042 SUCCESS
+KV Guardrails: 33388854005 SUCCESS
+build-vault-release: 33388854046 SUCCESS
+```
+
+The KV report now completes an explicit second Interlock traversal through `COMMIT_CANDIDATE` with `candidate_type=ENDPOINT_STATUS_REPORT`, a hash-bound opaque payload reference, and a recorded candidate-only result. Canonical KV mutation remains false.
+
+This closes the source/validated implementation gap in the KV side of the two-report topology. Live DEVICE_KV_INTR and production candidate materialization remain runtime evidence gates.
