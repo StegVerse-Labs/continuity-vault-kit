@@ -209,3 +209,19 @@ authority_effect: NONE
 A non-exact Google-Docs staging attempt was discarded before finalization; only the exact UTF-8 source-aligned text/plain README remains in the canonical Sessions folder.
 
 This satisfies the private-KV **surface materialization** gate only. It does not satisfy the event-chain, session-head, Interlock/InTr transport, canonical writeback, cold reconstruction, duplicate-safe continuation, or activation gates.
+
+
+## Canonical conversation-event store — issue #146
+
+Issue #146 is the bounded implementation lane for the canonical private event chain referenced by persistent-session heads.
+
+```text
+canonical chain ref: _System/Continuity/Events/events.jsonl
+runtime: runtime/conversation_event_store.py
+guidance: vault_template/KnowledgeVault/_System/Continuity/Events/README.md
+handoff: KV_CONVERSATION_EVENT_STORE_MIRROR_HANDOFF.md
+```
+
+The store reuses `continuity/recall.py` chain validation, appends with exact prior-root compare-and-swap semantics, performs exact readback, and rejects transcript/secret-bearing content. It creates no execution or credential authority.
+
+Until source merges and a real private event chain is written/read back, the event-chain activation gate remains open.
