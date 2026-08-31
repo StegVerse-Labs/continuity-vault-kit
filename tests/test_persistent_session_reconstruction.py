@@ -44,6 +44,8 @@ def head(generation=0, prior=None):
         "provenance": {
             "client_class": "ECOSYSTEM_CHAT",
             "source_session_ref": "chat-session:opaque",
+            "conversation_event_chain_ref": "_System/Continuity/Events/events.jsonl",
+            "conversation_event_verification_root": "a" * 64,
             "requires_live_verification": True,
         },
         "authority": {
@@ -60,6 +62,8 @@ def test_valid_genesis_head_and_projection():
     assert validate_session_head(value) == value
     projection = build_reconstruction_projection(value)
     assert projection["head_sha256"] == session_head_sha256(value)
+    assert projection["conversation_event_chain_ref"] == "_System/Continuity/Events/events.jsonl"
+    assert projection["conversation_event_verification_root"] == "a" * 64
     assert projection["requires_live_verification"] is True
     assert projection["stored_state_is_authority"] is False
     assert projection["transcript_required"] is False
@@ -111,3 +115,15 @@ def test_successor_timestamp_cannot_roll_back():
     second["created_at"] = "2026-08-30T19:59:59Z"
     with pytest.raises(PersistentSessionError, match="timestamp rollback"):
         verify_successor(first, second)
+
+
+def test_missing_or_malformed_recall_chain_binding_fails_closed():
+    value = head()
+    value["provenance"]["conversation_event_verification_root"] = "not-a-root"
+    with pytest.raises(PersistentSessionError, match="conversation_event_verification_root"):
+        validate_session_head(value)
+
+    value = head()
+    value["provenance"]["conversation_event_chain_ref"] = ""
+    with pytest.raises(PersistentSessionError, match="conversation_event_chain_ref"):
+        validate_session_head(value)
