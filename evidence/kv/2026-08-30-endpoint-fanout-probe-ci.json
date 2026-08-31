@@ -1,0 +1,45 @@
+{
+  "schema": "stegverse.endpoint-fanout-probe-ci-evidence.v1",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "merge_commit": "4238b384d1e282038125774b33ade2fe9bf8d5e8",
+  "workflow": "Validate KV Interlock Contract",
+  "workflow_run_id": 33352845713,
+  "workflow_run_number": 25,
+  "workflow_conclusion": "success",
+  "job_id": 99369368124,
+  "artifact": {
+    "id": 9744179445,
+    "name": "endpoint-fanout-probe-evidence",
+    "expired": false,
+    "size_bytes": 1696
+  },
+  "probe_id": "ci-endpoint-fanout-001",
+  "pass": true,
+  "report_count": 2,
+  "kv_interlock_endpoint_status": {
+    "endpoint_status": "PASS",
+    "input_probe_sha256": "66a7744c330330201c7c4311539365a758adfa1e17e1217c93258e1abee0f903",
+    "intr_receipt_ref": "sha256:66096a712612abb17a8ca90f7ec6422757c35f8982485952b8821ec076d7717b",
+    "kv_receipt_id": "kv-interlock-receipt:3ff649920982dea0e9684df84081c2fa46097fa8e88a98d41332e75115534195",
+    "request_payload_sha256": "sha256:d8de6cd417829f5e5fdca62320579e76c9473154a042689c07fa3c22b05df231",
+    "response_hash": "ed46ef747cbef8a12192d269ea64805873809bab01747dcbd42c03f1e518879d",
+    "report_sha256": "9d25fc08585d3298e7dd4e2e519fb5324157fc28849e26fc96fd12f65a3741a9"
+  },
+  "master_records_travel": {
+    "custody_status": "TEST_ONLY_RECORDED",
+    "master_record_ref": "master-record:sha256:e4f1a8f6b2702ac70a8c4eec619426eb4189afeed4144e2a573cc7842015a42a",
+    "record_sha256": "e4f1a8f6b2702ac70a8c4eec619426eb4189afeed4144e2a573cc7842015a42a",
+    "expected_hop_count": 5,
+    "production_custody_claimed": false
+  },
+  "lifecycle": {
+    "source_implemented": true,
+    "local_isolated_machine_execution": true,
+    "hosted_validation": true,
+    "merged": true,
+    "production_endpoint_deployed": false,
+    "live_device_kv_intr_observed": false,
+    "live_master_records_custody_observed": false
+  },
+  "authority_effect": "NONE_VALIDATION_ONLY"
+}
