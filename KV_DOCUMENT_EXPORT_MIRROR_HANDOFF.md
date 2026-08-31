@@ -165,3 +165,39 @@ artifact/receipt readback, and reconstruction evidence. It does **not** advance
 verified DEVICE→KV InTr envelope and receipt and none was observed in this run.
 No transport receipt was fabricated or inferred. Publication, release, deployment,
 and execution authority remain false.
+
+
+## Universal InTr application payload/import contract — issue #148
+
+The KV document lane now has an application-side exact-byte boundary matching the
+canonical StegOS `publisher-artifact-transfer` profile.
+
+```text
+runtime/document_intr_transfer.py
+  prepared owner-authorized bundle
+    -> stegverse.publisher.artifact-transfer/v1 exact canonical bytes
+
+  stegverse.publisher.artifact-return/v1 exact bytes
+    -> exact artifact/manifest/source-export validation
+    -> stegverse.kv.publisher-artifact-import-candidate/v1
+    -> transport-bound import receipt
+```
+
+The import candidate is deliberately non-mutating:
+
+```text
+candidate_only=true
+canonical_kv_mutation_authorized=false
+publication_authorized=false
+release_authorized=false
+execution_authorized=false
+authority_effect=NONE
+```
+
+A `stegverse.kv.publisher-artifact-import-receipt/v1` may be built only after
+the caller supplies the authentic terminal reverse-InTr receipt hash. Its result
+remains `VALIDATED_IMPORT_CANDIDATE_NOT_COMMITTED`.
+
+This source does not construct StegOS transport intents/hop receipts or claim
+forward/return transport. It is the KV application contract consumed by the
+sovereign Universal InTr runtime.
