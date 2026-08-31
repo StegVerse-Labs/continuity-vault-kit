@@ -159,7 +159,7 @@ Release integrity: 33346462740 SUCCESS
 
 The source layer is now merged and validated. The next implementation boundary is the KV-INTERLOCK-v1 adapter that reads/writes bounded session-head candidates without bypassing governed canonical writeback, followed by a StegOS device consumer over the existing `device-kv` Universal InTr connector.
 
-The private-KV Sessions topology and exact README guidance are now materialized and directly read back. No user-specific session head, live DEVICE_KV_INTR delivery, cold-session reconstruction, activation, release, or completion is claimed.
+The private-KV Sessions topology, exact README guidance, and generation-0 bounded session head are now materialized and directly read back. Live DEVICE_KV_INTR delivery, cold-session reconstruction, governed successor write/readback, activation, release, and completion remain open.
 
 
 ## KV-INTERLOCK-v1 integration lane — issue #144 — MERGED
@@ -201,7 +201,7 @@ README.md: 1mUkTE68DD8W8GsgIv2EQ_uONDAKtes7x
 README MIME: text/plain
 source Git blob: c942ba2ee35fda7798b2a4c63eaf19269d8a3b5a
 direct readback: PASS
-user-specific session head created: false
+user-specific session head created: true
 activation_effect: false
 authority_effect: NONE
 ```
@@ -225,3 +225,36 @@ handoff: KV_CONVERSATION_EVENT_STORE_MIRROR_HANDOFF.md
 The store reuses `continuity/recall.py` chain validation, appends with exact prior-root compare-and-swap semantics, performs exact readback, and rejects transcript/secret-bearing content. It creates no execution or credential authority.
 
 Until source merges and a real private event chain is written/read back, the event-chain activation gate remains open.
+
+
+## Generation-0 private session head materialization — 2026-08-31
+
+The first real bounded semantic session head is now present in the connected private KnowledgeVault and has been read back and canonically rehashed.
+
+```text
+session_id: kv-persistent-session-reconstruction-20260830
+generation: 0
+head file: _System/Continuity/Sessions/kv-persistent-session-reconstruction-20260830/head.json
+head file id: 1nzf08Ilf56peqdB80kBw6DViHfZT1zDo
+history copy: _System/Continuity/Sessions/kv-persistent-session-reconstruction-20260830/history/000000-head.json
+history file id: 1KgvDfsiPhciqENdTevvUMjDJKWEa38y2
+materialization receipt: _System/Continuity/Sessions/kv-persistent-session-reconstruction-20260830/receipts/generation-000000-materialization.receipt.json
+receipt file id: 1rwy6_JEhgRh9G1KfOVi-tPCi3opuIcMx
+head_sha256: sha256:f6aae75a5273ad48d88f56b63190dd7bc1bd7bcbbcdadb95ce2b41af582d731f
+conversation_event_verification_root: a0e4ce683cfd25c9bd9b0f9a0fb06ae070b2ceffd5d5b8d401df99435d58265f
+readback: PASS
+canonical rehash after readback: PASS
+execution_authority: NONE
+credential_authority: TV/TVC
+authority_effect: NONE
+```
+
+This satisfies activation gates 4 and 5 and the direct materialization/readback portion of gate 6, but it does **not** claim that the write occurred through an observed live DEVICE_KV_INTR path. The authentic transport gate remains open and no cold-session reconstruction or successor canonical write/readback is claimed.
+
+Next executable boundary remains the already-admitted sovereign chain in StegVerse-Labs/.github:
+
+```text
+SHWP-STEGOS-SOVEREIGN-RELAY-MATERIALIZATION-001
+-> SHWP-STEGOS-RELAY-NODE-KV-CONTINUITY-001
+-> SHWP-DEVICE-KV-INTR-OBSERVATION-001
+```
