@@ -17,7 +17,7 @@ REQUEST_REQUIRED = {
     "record_class", "requested_scope", "minimum_necessary_justification",
     "authority_ref", "disclosure_mode",
 }
-REQUEST_ALLOWED = REQUEST_REQUIRED | {"time_scope", "candidate_writeback"}
+REQUEST_ALLOWED = REQUEST_REQUIRED | {"time_scope", "candidate_writeback", "selector"}
 ENVELOPE_REQUIRED = {
     "schema", "protocol", "packet_id", "direction", "source_role", "next_role",
     "request_id", "operation", "payload_schema_version", "payload_hash",
@@ -193,6 +193,16 @@ class KVInterlockRuntime:
             "BOUNDED_CONTEXT", "SOURCE_REFERENCE_ONLY", "ORIGINAL_ARTIFACT_REVIEW"
         }:
             raise KVInterlockRuntimeError("disclosure_mode invalid")
+        selector = request.get("selector")
+        if selector is not None:
+            if request["operation"] != "REQUEST":
+                raise KVInterlockRuntimeError("selector only allowed for REQUEST")
+            if (
+                not isinstance(selector, dict)
+                or set(selector) != {"directory_id", "canonical_path"}
+                or not all(isinstance(selector.get(key), str) and selector.get(key) for key in ("directory_id", "canonical_path"))
+            ):
+                raise KVInterlockRuntimeError("selector invalid")
         candidate = request.get("candidate_writeback")
         if request["operation"] == "COMMIT_CANDIDATE":
             if (
