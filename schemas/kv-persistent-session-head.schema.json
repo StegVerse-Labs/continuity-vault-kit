@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-persistent-session-head.schema.json",
+  "title": "KnowledgeVault Persistent Session Head",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "session_id",
+    "generation",
+    "prior_head_sha256",
+    "created_at",
+    "semantic_state",
+    "provenance",
+    "authority"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.persistent-session-head/v1"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "prior_head_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "semantic_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "active_goals",
+        "authoritative_repositories",
+        "handoff_refs",
+        "blockers",
+        "machine_task_refs",
+        "evidence_refs",
+        "last_verified_observations",
+        "authorization_boundaries",
+        "next_executable_action"
+      ],
+      "properties": {
+        "active_goals": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "authoritative_repositories": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "handoff_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "blockers": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "machine_task_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "last_verified_observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["subject", "state", "observed_at", "source_ref"],
+            "properties": {
+              "subject": { "type": "string", "minLength": 1 },
+              "state": { "type": "string", "minLength": 1 },
+              "observed_at": { "type": "string", "format": "date-time" },
+              "source_ref": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "authorization_boundaries": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "next_executable_action": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "client_class",
+        "source_session_ref",
+        "requires_live_verification"
+      ],
+      "properties": {
+        "client_class": {
+          "type": "string",
+          "enum": [
+            "ECOSYSTEM_CHAT",
+            "COMPATIBLE_LLM_CLIENT",
+            "STEGOS_DEVICE_CLIENT",
+            "WORKER_COORDINATOR"
+          ]
+        },
+        "source_session_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires_live_verification": {
+          "const": true
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_transfer",
+        "execution_authority",
+        "credential_authority",
+        "canonical_completion_claimed"
+      ],
+      "properties": {
+        "authority_transfer": { "const": false },
+        "execution_authority": { "const": "NONE" },
+        "credential_authority": { "const": "TV/TVC" },
+        "canonical_completion_claimed": { "const": false }
+      }
+    }
+  }
+}
