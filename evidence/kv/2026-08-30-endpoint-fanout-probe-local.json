@@ -1,0 +1,53 @@
+{
+  "schema": "stegverse.endpoint-fanout-probe-execution-evidence.v1",
+  "executed_at": "2026-08-30T22:06:00-05:00",
+  "execution_mode": "LOCAL_ISOLATED_CONTRACT_INTEGRATION",
+  "production_endpoint_claimed": false,
+  "live_device_kv_intr_claimed": false,
+  "live_master_records_custody_claimed": false,
+  "probe": {
+    "schema": "stegverse.endpoint-fanout-probe.v1",
+    "probe_id": "manual-endpoint-fanout-001",
+    "value": "stegverse-endpoint-fanout-probe",
+    "classification": "TEST_ONLY_NON_SECRET",
+    "sha256": "a1efc09faba9a044f7778192387584a4564444bce08f8ea45141202e9db4b4c0"
+  },
+  "reports": {
+    "kv_interlock_endpoint_status": {
+      "schema": "stegverse.kv-interlock.endpoint-status-report.v1",
+      "endpoint_status": "PASS",
+      "decision": "ALLOW_BOUNDED_CONTEXT",
+      "request_id": "fanout-probe:manual-endpoint-fanout-001",
+      "packet_id": "packet:fanout-probe:manual-endpoint-fanout-001",
+      "request_payload_sha256": "sha256:be0483e6057696cec2338878bb2d82af084f659be6d04b928f80ce429181e30a",
+      "intr_receipt_ref": "sha256:799595a0e78a890a1a5936caed170a4d053576c25964c554b2311ee9e77a5315",
+      "response_hash": "3a6573085535b2b3df624851b8a14edfdb403212cf723547bd166cb83743ec56",
+      "kv_receipt_id": "kv-interlock-receipt:876b8bbd5124b60881e0862c08713f63dc7a5a450c304fae5661fc41c6160bca",
+      "report_sha256": "b5f4f9a3a1cbbf982b851c11d5dbb5f47679bf0e2b9682648a2e7aeccab6e214",
+      "canonical_state_changed": false,
+      "credential_authority": "TV/TVC",
+      "execution_authority": "NONE",
+      "authority_effect": "NONE_OBSERVATION_ONLY"
+    },
+    "master_records_travel": {
+      "schema": "stegverse.master-records.travel-report.v1",
+      "custody_status": "TEST_ONLY_RECORDED",
+      "master_record_ref": "master-record:sha256:cd421a1c3d2989dadb8d172c50ed2f270bfbfa9c9260e741df09c597897259f8",
+      "record_sha256": "cd421a1c3d2989dadb8d172c50ed2f270bfbfa9c9260e741df09c597897259f8",
+      "hop_count": 5,
+      "hops": [
+        "TEST_PROBE_INGRESS",
+        "DEVICE->KV",
+        "KV_INTERLOCK_RUNTIME",
+        "REPORT_FANOUT",
+        "MASTER_RECORDS_TEST_CUSTODY"
+      ],
+      "authority_granted": false,
+      "production_custody_claimed": false,
+      "authority_effect": "NONE"
+    }
+  },
+  "report_count": 2,
+  "pass": true,
+  "note": "Machine-executed local contract-integration probe. It proves the one-input/two-report data reduction and contract bindings; it does not prove production endpoint deployment, live DEVICE_KV_INTR transport, or live Master Records custody."
+}
