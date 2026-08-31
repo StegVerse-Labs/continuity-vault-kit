@@ -187,10 +187,20 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
     probe = build_probe(value, probe_id=probe_id)
     probe_sha256 = sha256_json(probe)
     stored_receipts: list[dict[str, Any]] = []
+    stored_candidates: list[dict[str, Any]] = []
 
     request = build_request(probe)
 
-    def policy(_request: dict[str, Any]) -> dict[str, Any]:
+    def policy(policy_request: dict[str, Any]) -> dict[str, Any]:
+        if policy_request["operation"] == "COMMIT_CANDIDATE":
+            return {
+                "decision": "ALLOW_BOUNDED_CONTEXT",
+                "granted_scope": [],
+                "context": {},
+                "source_refs": [f"urn:stegverse:test:probe:{probe_id}"],
+                "policy_profile": "endpoint-status-report-candidate-test-v1",
+                "redaction_profile": "test-only-non-secret",
+            }
         return {
             "decision": "ALLOW_BOUNDED_CONTEXT",
             "granted_scope": ["probe_value", "probe_sha256"],
@@ -203,6 +213,10 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
             "redaction_profile": "test-only-non-secret",
         }
 
+    def store_candidate(candidate: dict[str, Any]) -> str:
+        stored_candidates.append(copy.deepcopy(candidate))
+        return "urn:stegverse:test:kv-candidate:" + sha256_json(candidate)
+
     runtime = KVInterlockRuntime(
         authority_validator=lambda authority_ref, *_: authority_ref == "test-only-owner-assertion",
         policy_evaluator=policy,
@@ -210,6 +224,7 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
             stored_receipts.append(copy.deepcopy(receipt))
             or f"urn:stegverse:test:kv-receipt:{receipt['receipt_id'].split(':')[-1]}"
         ),
+        candidate_store=store_candidate,
         clock=lambda: now,
     )
 
@@ -259,6 +274,104 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
         "execution_authority": "NONE",
         "authority_effect": "NONE_OBSERVATION_ONLY",
     }
+
+    status_observation = {
+        "schema": KV_REPORT_SCHEMA,
+        "probe_id": probe_id,
+        "endpoint_status": kv_status_report["endpoint_status"],
+        "request_id": kv_status_report["request_id"],
+        "packet_id": kv_status_report["packet_id"],
+        "input_probe_sha256": kv_status_report["input_probe_sha256"],
+        "request_payload_sha256": kv_status_report["request_payload_sha256"],
+        "intr_receipt_ref": kv_status_report["intr_receipt_ref"],
+        "response_hash": kv_status_report["response_hash"],
+        "kv_receipt_id": kv_status_report["kv_receipt_id"],
+        "canonical_state_changed": False,
+        "credential_authority": "TV/TVC",
+        "execution_authority": "NONE",
+        "authority_effect": "NONE_OBSERVATION_ONLY",
+    }
+    status_observation_sha256 = sha256_json(status_observation)
+
+    status_return_request = {
+        "schema_version": "kv.interlock.request.v1",
+        "operation": "COMMIT_CANDIDATE",
+        "request_id": f"fanout-status-return:{probe_id}",
+        "requester": {
+            "module": "continuity-vault-kit",
+            "component": "endpoint-fanout-probe",
+        },
+        "purpose": "Return endpoint status observation through KV Interlock candidate boundary.",
+        "record_class": "ENDPOINT_STATUS_REPORT",
+        "requested_scope": [],
+        "minimum_necessary_justification": (
+            "Record endpoint status as a candidate-only governed report without canonical mutation."
+        ),
+        "authority_ref": "test-only-owner-assertion",
+        "disclosure_mode": "SOURCE_REFERENCE_ONLY",
+        "candidate_writeback": {
+            "candidate_type": "ENDPOINT_STATUS_REPORT",
+            "payload_ref": (
+                "urn:stegverse:endpoint-status-report:sha256:" + status_observation_sha256
+            ),
+            "requested_destination": (
+                "_System/Continuity/EndpointStatus/" + probe_id + ".json"
+            ),
+        },
+    }
+    status_return_envelope = build_envelope(status_return_request, now=now)
+    status_return_envelope["packet_id"] = f"packet:fanout-status-return:{probe_id}"
+    status_return_envelope["payload_hash"] = sha256_uri(status_return_request)
+    status_return_envelope["expires_at"] = "2026-08-31T03:05:00Z"
+    status_return_intr_receipt_ref = "sha256:" + sha256_hex_bytes(
+        canonical_json(
+            {
+                "probe_id": probe_id,
+                "packet_id": status_return_envelope["packet_id"],
+                "payload_hash": status_return_envelope["payload_hash"],
+                "status_observation_sha256": status_observation_sha256,
+            }
+        ).encode("utf-8")
+    )
+    status_return_response = runtime.handle(
+        status_return_request,
+        intr_envelope=status_return_envelope,
+        intr_receipt_ref=status_return_intr_receipt_ref,
+    )
+    status_candidate = stored_candidates[-1] if stored_candidates else None
+    kv_status_report["status_observation_sha256"] = status_observation_sha256
+    kv_status_report["return_interlock"] = {
+        "operation": "COMMIT_CANDIDATE",
+        "decision": status_return_response["decision"],
+        "packet_id": status_return_envelope["packet_id"],
+        "intr_receipt_ref": status_return_intr_receipt_ref,
+        "response_hash": status_return_response["receipt"]["response_hash"],
+        "kv_receipt_id": status_return_response["receipt"]["receipt_id"],
+        "writeback_candidate_ref": status_return_response["receipt"]["writeback_candidate_ref"],
+        "candidate_type": (
+            status_candidate.get("candidate_type") if isinstance(status_candidate, dict) else None
+        ),
+        "payload_ref": (
+            status_candidate.get("payload_ref") if isinstance(status_candidate, dict) else None
+        ),
+        "requested_destination": (
+            status_candidate.get("requested_destination")
+            if isinstance(status_candidate, dict)
+            else None
+        ),
+        "candidate_only": (
+            status_candidate.get("candidate_only") if isinstance(status_candidate, dict) else None
+        ),
+        "canonical_state_changed": (
+            status_candidate.get("canonical_state_changed")
+            if isinstance(status_candidate, dict)
+            else None
+        ),
+        "authority_effect": (
+            status_candidate.get("authority_effect") if isinstance(status_candidate, dict) else None
+        ),
+    }
+    kv_status_report["receipt_store_count"] = len(stored_receipts)
 
     travel_hops = [
         {
@@ -385,6 +498,10 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
         "report_count": 2,
         "pass": (
             kv_status_report["endpoint_status"] == "PASS"
+            and kv_status_report["return_interlock"]["decision"] == "ALLOW_BOUNDED_CONTEXT"
+            and kv_status_report["return_interlock"]["candidate_type"] == "ENDPOINT_STATUS_REPORT"
+            and kv_status_report["return_interlock"]["candidate_only"] is True
+            and kv_status_report["return_interlock"]["canonical_state_changed"] is False
             and custody_result["custody_status"] == "TEST_ONLY_RECORDED"
             and len(travel_report["hops"]) == 5
         ),

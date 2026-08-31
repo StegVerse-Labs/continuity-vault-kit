@@ -21,10 +21,19 @@ class EndpointFanoutProbeTests(unittest.TestCase):
         self.assertEqual(report["endpoint_status"], "PASS")
         self.assertEqual(report["decision"], "ALLOW_BOUNDED_CONTEXT")
         self.assertEqual(report["intr_protocol"], "InTr")
-        self.assertEqual(report["receipt_store_count"], 1)
+        self.assertEqual(report["receipt_store_count"], 2)
         self.assertFalse(report["canonical_state_changed"])
         self.assertEqual(report["credential_authority"], "TV/TVC")
         self.assertEqual(report["execution_authority"], "NONE")
+        returned = report["return_interlock"]
+        self.assertEqual(returned["operation"], "COMMIT_CANDIDATE")
+        self.assertEqual(returned["decision"], "ALLOW_BOUNDED_CONTEXT")
+        self.assertEqual(returned["candidate_type"], "ENDPOINT_STATUS_REPORT")
+        self.assertTrue(returned["candidate_only"])
+        self.assertFalse(returned["canonical_state_changed"])
+        self.assertEqual(returned["authority_effect"], "NONE")
+        self.assertTrue(returned["writeback_candidate_ref"].startswith("urn:stegverse:test:kv-candidate:"))
+        self.assertTrue(returned["payload_ref"].endswith(report["status_observation_sha256"]))
 
     def test_master_records_report_records_full_travel(self):
         result = run_probe("alpha-probe-value", probe_id="probe-alpha")
@@ -56,6 +65,9 @@ class EndpointFanoutProbeTests(unittest.TestCase):
         self.assertNotIn("private_key", text)
         self.assertFalse(
             result["reports"]["kv_interlock_endpoint_status"]["canonical_state_changed"]
+        )
+        self.assertFalse(
+            result["reports"]["kv_interlock_endpoint_status"]["return_interlock"]["canonical_state_changed"]
         )
         self.assertEqual(result["authority_effect"], "NONE_TEST_ONLY")
 
