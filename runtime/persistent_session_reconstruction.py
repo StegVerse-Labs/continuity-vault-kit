@@ -167,6 +167,8 @@ def validate_session_head(head: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(provenance, dict) or set(provenance) != {
         "client_class",
         "source_session_ref",
+        "conversation_event_chain_ref",
+        "conversation_event_verification_root",
         "requires_live_verification",
     }:
         raise PersistentSessionError("provenance invalid")
@@ -174,6 +176,15 @@ def validate_session_head(head: dict[str, Any]) -> dict[str, Any]:
         raise PersistentSessionError("client_class invalid")
     if not isinstance(provenance["source_session_ref"], str) or not provenance["source_session_ref"]:
         raise PersistentSessionError("source_session_ref required")
+    if not isinstance(provenance["conversation_event_chain_ref"], str) or not provenance["conversation_event_chain_ref"]:
+        raise PersistentSessionError("conversation_event_chain_ref required")
+    root = provenance["conversation_event_verification_root"]
+    if not (
+        isinstance(root, str)
+        and len(root) == 64
+        and all(ch in "0123456789abcdef" for ch in root)
+    ):
+        raise PersistentSessionError("conversation_event_verification_root invalid")
     if provenance["requires_live_verification"] is not True:
         raise PersistentSessionError("live verification must be required")
 
@@ -222,6 +233,8 @@ def build_reconstruction_projection(head: dict[str, Any]) -> dict[str, Any]:
         "last_verified_observations": copy.deepcopy(valid["semantic_state"]["last_verified_observations"]),
         "authorization_boundaries": list(valid["semantic_state"]["authorization_boundaries"]),
         "next_executable_action": valid["semantic_state"]["next_executable_action"],
+        "conversation_event_chain_ref": valid["provenance"]["conversation_event_chain_ref"],
+        "conversation_event_verification_root": valid["provenance"]["conversation_event_verification_root"],
         "requires_live_verification": True,
         "stored_state_is_authority": False,
         "transcript_required": False,
