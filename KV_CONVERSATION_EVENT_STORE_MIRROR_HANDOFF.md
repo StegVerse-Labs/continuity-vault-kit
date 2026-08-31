@@ -1,9 +1,10 @@
 # KnowledgeVault Conversation Event Store Mirror Handoff
 
-Status: SOURCE_IMPLEMENTATION_IN_PROGRESS
+Status: SOURCE_MERGED_VALIDATED / PRIVATE_KV_DEPLOYMENT_OPEN
 Repository: StegVerse-Labs/continuity-vault-kit
 Issue: #146
-Branch: feature/kv-conversation-event-store-146
+Merged PR: #147
+Merge: adab132653febd872158f28a6774d32d150ac41e
 Updated: 2026-08-30
 Authority effect: NONE
 Runtime activation claimed: false
@@ -85,9 +86,9 @@ Source implementation, CI, merge, or private folder materialization does not pro
 ## Current lifecycle
 
 ```text
-IMPLEMENTED: IN_PROGRESS
-VALIDATED: false
-MERGED: false
+IMPLEMENTED: true
+VALIDATED: true
+MERGED: true
 DEPLOYED_PRIVATE_KV_SURFACE: false
 EVENT_CHAIN_OBSERVED: false
 ACTIVATED: false
@@ -95,3 +96,19 @@ RECONSTRUCTED: false
 RELEASED: false
 COMPLETE: false
 ```
+
+
+## Merge and validation evidence
+
+```text
+issue: #146 CLOSED_BY_MERGE
+PR: #147 MERGED
+merge: adab132653febd872158f28a6774d32d150ac41e
+validated head: 2d58d9343030c66fff706a434f77b03a2ba17b43
+Repository validation diagnostics: 33347382483 SUCCESS
+Security Baseline: 33347382436 SUCCESS
+Release integrity: 33347382437 SUCCESS
+KV Guardrails: 33347382451 SUCCESS
+```
+
+The canonical event-store source is merged and validated. Remaining work is private-KV Events materialization, first authentic project event-chain append/readback, persistent-session head derivation from that root, and the still-separate DEVICE_KV_INTR/cold-reconstruction runtime gates.
