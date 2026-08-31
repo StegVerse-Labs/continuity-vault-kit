@@ -1,9 +1,9 @@
 # KnowledgeVault Persistent Session Reconstruction Mirror Handoff
 
-Status: SOURCE_IMPLEMENTATION_IN_PROGRESS
+Status: SOURCE_MERGED_VALIDATED / RUNTIME_INTEGRATION_OPEN
 Repository: StegVerse-Labs/continuity-vault-kit
 Issue: #142
-Branch: feature/kv-persistent-session-reconstruction-142
+Merged PR: #143\nMerge: d533ffdb7b39e5965a4d8d7b209bfd9363c96b1a
 Updated: 2026-08-30
 Authority effect: NONE
 Runtime activation claimed: false
@@ -140,3 +140,22 @@ COMPLETE: false
 - StegVerse-Labs/master-records or canonical evidence custody owner where reconstruction evidence requires durable cross-runtime custody.
 
 No second transport protocol, credential path, runtime owner, conversation-history authority, or hosted GitHub production authority may be introduced.
+
+
+## Source merge evidence
+
+```text
+issue: #142 CLOSED_BY_MERGE
+PR: #143 MERGED
+merge: d533ffdb7b39e5965a4d8d7b209bfd9363c96b1a
+validated head: a5d4c81c95eae981f50d26e66eec639977cd6abb
+KV Guardrails: 33346462804 SUCCESS
+KnowledgeVault Execution Recovery: 33346462753 SUCCESS
+Repository validation diagnostics: 33346462754 SUCCESS
+Security Baseline: 33346462776 SUCCESS
+Release integrity: 33346462740 SUCCESS
+```
+
+The source layer is now merged and validated. The next implementation boundary is the KV-INTERLOCK-v1 adapter that reads/writes bounded session-head candidates without bypassing governed canonical writeback, followed by a StegOS device consumer over the existing `device-kv` Universal InTr connector.
+
+No private-KV materialization, live DEVICE_KV_INTR delivery, cold-session reconstruction, activation, release, or completion is claimed.
