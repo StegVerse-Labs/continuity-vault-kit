@@ -159,3 +159,16 @@ Release integrity: 33346462740 SUCCESS
 The source layer is now merged and validated. The next implementation boundary is the KV-INTERLOCK-v1 adapter that reads/writes bounded session-head candidates without bypassing governed canonical writeback, followed by a StegOS device consumer over the existing `device-kv` Universal InTr connector.
 
 No private-KV materialization, live DEVICE_KV_INTR delivery, cold-session reconstruction, activation, release, or completion is claimed.
+
+
+## KV-INTERLOCK-v1 integration lane — issue #144
+
+Issue #144 implements the next source seam:
+
+- `runtime/persistent_session_interlock.py`;
+- `tests/test_persistent_session_interlock.py`;
+- `KV_PERSISTENT_SESSION_INTERLOCK_MIRROR_HANDOFF.md`.
+
+The adapter is injected behind the existing `KVInterlockRuntime`; it does not create a second endpoint or transport. `REQUEST` may expose only the bounded reconstruction projection. `COMMIT_CANDIDATE` resolves an opaque payload reference, verifies exact successor continuity against the current head, and stages a candidate-only record with current/successor hashes and recall-root binding.
+
+Canonical KV mutation remains separately governed and unimplemented in this lane. Private-KV deployment and live DEVICE_KV_INTR remain runtime gates.
