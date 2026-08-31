@@ -1,6 +1,6 @@
 # KnowledgeVault Persistent Session Interlock Mirror Handoff
 
-Status: SOURCE_MERGED_VALIDATED / PRIVATE_KV_DEPLOYMENT_OPEN
+Status: SOURCE_MERGED_VALIDATED / PRIVATE_KV_HEAD_MATERIALIZED / LIVE_INTR_OPEN
 Repository: StegVerse-Labs/continuity-vault-kit
 Issue: #144
 Merged PR: #145\nMerge: 7088a1888e45654d92f889623c32e6264c4c8729
@@ -77,10 +77,10 @@ Source implementation does not prove private-KV deployment, DEVICE_KV_INTR runti
 ## Current lifecycle
 
 ```text
-IMPLEMENTED: IN_PROGRESS
-VALIDATED: false
-MERGED: false
-DEPLOYED: false
+IMPLEMENTED: true
+VALIDATED: true
+MERGED: true
+DEPLOYED: true
 ACTIVATED: false
 OBSERVED: false
 RECONSTRUCTED: false
@@ -103,3 +103,18 @@ KV Guardrails: 33346696656 SUCCESS
 ```
 
 The KV-INTERLOCK-v1 source seam is now merged. Remaining work is runtime/private-KV materialization and authentic DEVICE_KV_INTR delivery, followed by governed canonical write/readback and cold-session reconstruction proof.
+
+
+## Private-KV head availability
+
+The canonical session head now exists and is directly readable in the connected private KnowledgeVault:
+
+```text
+session_id: kv-persistent-session-reconstruction-20260830
+head file id: 1nzf08Ilf56peqdB80kBw6DViHfZT1zDo
+head_sha256: sha256:f6aae75a5273ad48d88f56b63190dd7bc1bd7bcbbcdadb95ce2b41af582d731f
+conversation_event_verification_root: a0e4ce683cfd25c9bd9b0f9a0fb06ae070b2ceffd5d5b8d401df99435d58265f
+direct readback: PASS
+```
+
+This makes the persistent-session record available to the already-merged policy adapter. It does not prove that a live DEVICE->KV InTr request has reached the endpoint or that the endpoint has returned the record through the governed transport.
