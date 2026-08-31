@@ -1,0 +1,23 @@
+{
+  "schema": "stegverse.kv.persistent-session-surface-observation/v1",
+  "observed_at": "2026-08-31T01:18:11Z",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "issue": 142,
+  "source_merge": "d533ffdb7b39e5965a4d8d7b209bfd9363c96b1a",
+  "connected_kv": {
+    "root_folder_id": "1c8OdhJeLD6E4ALmi-aR7dXvG8PjDLSfi",
+    "system_folder_id": "1l2Q_4BiGztm4Io39QhgimSDxM4D5ShZR",
+    "continuity_folder_id": "17rNiQ5RBTEebe1IRvKq2JgmHcqIJfrh3",
+    "sessions_folder_id": "1l-qHsBpKi6-yKNIghuJctMlGD_JiF7M6",
+    "readme_file_id": "1mUkTE68DD8W8GsgIv2EQ_uONDAKtes7x",
+    "readme_mime_type": "text/plain",
+    "readme_source_blob": "c942ba2ee35fda7798b2a4c63eaf19269d8a3b5a",
+    "direct_readback": "PASS"
+  },
+  "user_specific_session_head_created": false,
+  "canonical_event_chain_created": false,
+  "device_kv_intr_observed": false,
+  "cold_session_reconstruction_observed": false,
+  "activation_effect": false,
+  "authority_effect": "NONE"
+}
