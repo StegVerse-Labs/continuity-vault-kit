@@ -3,7 +3,7 @@
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Branch: `feat/kv-installation-status-projection-20260831`
 Updated: 2026-08-31T21:11:00-05:00
-State: ACTIVE_IMPLEMENTATION
+State: MERGED_VALIDATED / DEVICE_KV_RUNTIME_OBSERVATION_PENDING
 Credential authority: TV/TVC
 Authority effect: NONE
 
@@ -66,3 +66,27 @@ The projection proves only what is observable from the current resident KV root.
 ## Completion boundary
 
 Source implementation, deterministic validation, merge. DEVICE_KV transport exposure and Site Step 2 consumption are separate downstream integrations.
+
+
+## Merge evidence
+
+```text
+PR #168
+merge b62387bb5ddb13dcca6ff5c7c24e5a14a2a10d23
+KV Guardrails (Layer + Footer + Emoji + InTr): SUCCESS
+Security Baseline: SUCCESS
+Repository validation diagnostics: SUCCESS
+```
+
+Source lifecycle:
+
+```text
+implemented=true
+validated=true
+merged=true
+resident DEVICE_KV query observation=false
+public-device observation=false
+```
+
+Downstream endpoint integration merged in `StegVerse-Labs/.github` PR #725 at `0ffe6a5ea61b2a0c24a28b702545ffbd8f6c0ec7`.
+Site live-first Step 2 integration merged in `StegVerse-Labs/Site` PR #881 at `8e5540917531dd34219ada22a568024817c3e956`.
