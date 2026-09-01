@@ -9,6 +9,84 @@ ADMISSION_SCHEMA="stegverse.kv.portable-direct-source-canonical-admission/v1"
 PROVENANCE_SCHEMA="stegverse.kv.portable-direct-source-provenance/v1"
 HEALTH_SCHEMA="stegverse.kv.portable-direct-source-connection-health/v1"
 
+INSTALLATION_STATUS_SCHEMA="stegverse.kv.installation-status-projection/v1"
+INSTALLATION_RECEIPT_REL=Path("_System/installation.receipt.json")
+
+def _sha256_file(path:Path)->str:
+    import hashlib
+    h=hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda:handle.read(65536),b""):
+            h.update(chunk)
+    return "sha256:"+h.hexdigest()
+
+def _validate_installation_receipt(receipt:dict[str,Any])->dict[str,Any]:
+    _require(receipt.get("schema_version")=="1.1","installation_receipt_schema_invalid")
+    source=receipt.get("source")
+    _require(isinstance(source,str) and "continuity-vault-kit:vault_template/KnowledgeVault" in source,"installation_receipt_source_invalid")
+    tree=receipt.get("current_verified_source_tree_sha")
+    _require(isinstance(tree,str) and len(tree)==40 and all(ch in "0123456789abcdefABCDEF" for ch in tree),"installation_receipt_tree_sha_invalid")
+    destination=receipt.get("destination")
+    _require(isinstance(destination,str) and destination.endswith("/KnowledgeVault"),"installation_receipt_destination_invalid")
+    verification=receipt.get("verification")
+    _require(isinstance(verification,dict),"installation_receipt_verification_missing")
+    _require(verification.get("full_recursive_source_path_presence") is True,"installation_receipt_recursive_presence_invalid")
+    _require(verification.get("source_defined_directories_present") is True,"installation_receipt_directory_presence_invalid")
+    _require(verification.get("source_defined_files_present") is True,"installation_receipt_file_presence_invalid")
+    _require(verification.get("full_template_parity")=="VALIDATED","installation_receipt_template_parity_invalid")
+    _require(receipt.get("authority_effect")=="NONE","installation_receipt_authority_effect_invalid")
+    _require(receipt.get("activation_effect") is False,"installation_receipt_activation_effect_invalid")
+    census=receipt.get("source_census")
+    _require(isinstance(census,dict),"installation_receipt_source_census_missing")
+    _require(isinstance(census.get("files"),int) and census["files"]>0,"installation_receipt_file_census_invalid")
+    _require(isinstance(census.get("directories"),int) and census["directories"]>0,"installation_receipt_directory_census_invalid")
+    return receipt
+
+def get_installation_status(*,kv_data_root:Path)->dict[str,Any]:
+    root=_safe_root(kv_data_root)
+    receipt_path=(root/INSTALLATION_RECEIPT_REL).resolve()
+    _require(root in receipt_path.parents,"installation_receipt_path_escape")
+    if not receipt_path.is_file():
+        return {
+            "schema":INSTALLATION_STATUS_SCHEMA,
+            "state":"KV_INSTALLATION_NOT_VERIFIED",
+            "resident_kv_root_observed":True,
+            "installation_receipt_present":False,
+            "source_tree_sha":None,
+            "receipt_sha256":None,
+            "receipt_verified_utc":None,
+            "full_template_parity":None,
+            "source_census":None,
+            "destination_kind":None,
+            "current_cloud_provider_observation":False,
+            "credential_material_present":False,
+            "provider_operation_authorized":False,
+            "authority_effect":"NONE",
+        }
+    receipt=_validate_installation_receipt(_read_json(receipt_path,"installation_receipt_unreadable"))
+    destination=str(receipt.get("destination") or "")
+    destination_kind=destination.split(":",1)[0] if ":" in destination else "OWNER_CONTROLLED_STORAGE"
+    return {
+        "schema":INSTALLATION_STATUS_SCHEMA,
+        "state":"KV_INSTALLATION_VERIFIED",
+        "resident_kv_root_observed":True,
+        "installation_receipt_present":True,
+        "source_tree_sha":receipt["current_verified_source_tree_sha"],
+        "receipt_sha256":_sha256_file(receipt_path),
+        "receipt_verified_utc":receipt.get("verified_utc"),
+        "full_template_parity":"VALIDATED",
+        "source_census":{
+            "files":receipt["source_census"]["files"],
+            "directories":receipt["source_census"]["directories"],
+        },
+        "destination_kind":destination_kind,
+        "current_cloud_provider_observation":False,
+        "credential_material_present":False,
+        "provider_operation_authorized":False,
+        "authority_effect":"NONE",
+    }
+
+
 class PortableDirectoryProjectionError(ValueError):
     pass
 
