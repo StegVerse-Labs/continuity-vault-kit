@@ -7,6 +7,7 @@ from pathlib import Path
 from runtime.portable_directory_projection import (
     PortableDirectoryProjectionError,
     get_directory_health,
+    get_installation_status,
     list_admitted_directory,
 )
 
@@ -61,6 +62,27 @@ def install_batch(root:Path,mid:str="INTR-MAT-"+"a"*24)->Path:
     write_json(batch/"connection-health.json",health)
     return batch
 
+def install_receipt(root:Path,*,authority_effect:str="NONE")->Path:
+    receipt={
+      "schema_version":"1.1",
+      "source":"continuity-vault-kit:vault_template/KnowledgeVault@fixture",
+      "current_verified_source_tree_sha":"a"*40,
+      "destination":"owner-storage:/KnowledgeVault",
+      "verified_utc":"2026-08-31T20:00:00Z",
+      "verification":{
+        "full_recursive_source_path_presence":True,
+        "source_defined_directories_present":True,
+        "source_defined_files_present":True,
+        "full_template_parity":"VALIDATED",
+      },
+      "authority_effect":authority_effect,
+      "activation_effect":False,
+      "source_census":{"files":133,"directories":53},
+    }
+    path=root/"_System/installation.receipt.json"
+    write_json(path,receipt)
+    return path
+
 class PortableDirectoryProjectionTests(unittest.TestCase):
     def test_lists_only_canonical_admitted_metadata(self):
         with tempfile.TemporaryDirectory() as td:
@@ -104,6 +126,44 @@ class PortableDirectoryProjectionTests(unittest.TestCase):
             root=Path(td)/"KnowledgeVault"; (root/"00_Inbox").mkdir(parents=True)
             with self.assertRaises(PortableDirectoryProjectionError):
                 list_admitted_directory(kv_data_root=root,directory_id="pictures",canonical_path="../Pictures")
+
+
+    def test_installation_status_projects_bounded_verified_receipt(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)/"KnowledgeVault"; (root/"00_Inbox").mkdir(parents=True)
+            install_receipt(root)
+            result=get_installation_status(kv_data_root=root)
+            self.assertEqual(result["schema"],"stegverse.kv.installation-status-projection/v1")
+            self.assertEqual(result["state"],"KV_INSTALLATION_VERIFIED")
+            self.assertTrue(result["resident_kv_root_observed"])
+            self.assertTrue(result["installation_receipt_present"])
+            self.assertEqual(result["source_tree_sha"],"a"*40)
+            self.assertTrue(result["receipt_sha256"].startswith("sha256:"))
+            self.assertEqual(result["full_template_parity"],"VALIDATED")
+            self.assertEqual(result["source_census"],{"files":133,"directories":53})
+            self.assertEqual(result["destination_kind"],"owner-storage")
+            self.assertFalse(result["current_cloud_provider_observation"])
+            self.assertFalse(result["credential_material_present"])
+            self.assertFalse(result["provider_operation_authorized"])
+            self.assertEqual(result["authority_effect"],"NONE")
+            self.assertNotIn("destination",result)
+
+    def test_installation_status_missing_receipt_is_explicit_not_verified(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)/"KnowledgeVault"; (root/"00_Inbox").mkdir(parents=True)
+            result=get_installation_status(kv_data_root=root)
+            self.assertEqual(result["state"],"KV_INSTALLATION_NOT_VERIFIED")
+            self.assertTrue(result["resident_kv_root_observed"])
+            self.assertFalse(result["installation_receipt_present"])
+            self.assertIsNone(result["receipt_sha256"])
+            self.assertFalse(result["current_cloud_provider_observation"])
+
+    def test_installation_status_authority_drift_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)/"KnowledgeVault"; (root/"00_Inbox").mkdir(parents=True)
+            install_receipt(root,authority_effect="WRITE")
+            with self.assertRaisesRegex(PortableDirectoryProjectionError,"authority_effect"):
+                get_installation_status(kv_data_root=root)
 
 if __name__=="__main__":
     unittest.main()
