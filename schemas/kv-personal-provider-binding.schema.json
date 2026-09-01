@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-personal-provider-binding.schema.json",
+  "title": "Personal KnowledgeVault provider binding",
+  "type": "object",
+  "required": [
+    "schema",
+    "binding_id",
+    "kv_kind",
+    "provider",
+    "root_locator",
+    "materialization_scope",
+    "credential_authority",
+    "credential_reference_class",
+    "compatibility_state",
+    "credential_material_present",
+    "provider_operation_authorized",
+    "authority_effect",
+    "activation_effect"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.personal-provider-binding/v1"
+    },
+    "binding_id": {
+      "type": "string",
+      "pattern": "^kvpb_[a-f0-9]{24}$"
+    },
+    "kv_kind": {
+      "const": "PERSONAL_KV"
+    },
+    "provider": {
+      "enum": [
+        "GOOGLE_DRIVE"
+      ]
+    },
+    "root_locator": {
+      "type": "object",
+      "required": [
+        "locator_type",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "locator_type": {
+          "const": "GOOGLE_DRIVE_FOLDER_ID"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 256
+        }
+      }
+    },
+    "canonical_root_name": {
+      "const": "KnowledgeVault"
+    },
+    "materialization_scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "_System/installation.receipt.json",
+          "_System/Workspace/**",
+          "_Entities/Self/Personal_Contact_Profile.json"
+        ]
+      }
+    },
+    "credential_authority": {
+      "const": "TV/TVC"
+    },
+    "credential_reference_class": {
+      "const": "TVC_EPHEMERAL_PROVIDER_SESSION"
+    },
+    "compatibility_state": {
+      "enum": [
+        "ASSEMBLED_UNVERIFIED",
+        "VERIFIED",
+        "BLOCKED_SESSION",
+        "BLOCKED_RUNTIME",
+        "REVALIDATION_REQUIRED"
+      ]
+    },
+    "last_connection_proof_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_readback_proof_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "credential_material_present": {
+      "const": false
+    },
+    "provider_operation_authorized": {
+      "const": false
+    },
+    "authority_effect": {
+      "const": "NONE"
+    },
+    "activation_effect": {
+      "const": false
+    }
+  },
+  "additionalProperties": false
+}
