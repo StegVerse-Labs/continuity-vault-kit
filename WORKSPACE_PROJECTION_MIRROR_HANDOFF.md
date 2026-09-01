@@ -2,7 +2,7 @@
 
 Updated: 2026-08-31
 Repository: StegVerse-Labs/continuity-vault-kit
-State: SOURCE_IMPLEMENTED_RUNTIME_OBSERVATION_PENDING
+State: CONNECTED_KV_WORKSPACE_ROOT_CREATED_QUERY_OBSERVATION_PENDING
 Authority effect: NONE
 Credential authority: TV/TVC
 
@@ -16,6 +16,11 @@ Supported files are `workspace.json`, `principals.json`, `relationships.json`, `
 
 Relationships must bind known principals. Organizations must be typed `ORGANIZATION`. Membership state is bounded to ACTIVE/PENDING/SUSPENDED/REVOKED. Feed actors must resolve to known principals and visibility must use the canonical Workspace visibility vocabulary.
 
+## Connected owner-KV state
+On 2026-08-31 the existing connected owner KnowledgeVault was inspected before mutation. `_System` did not contain a Workspace directory. `_System/Workspace` was then created in that existing KnowledgeVault. No principal, relationship, organization, membership, feed, assistant, credential, or authority data was fabricated or inserted. Therefore the authentic current Workspace registry content is empty until governed interactions populate it.
+
+This is runtime/user state under `_System`; it is not added to the source installation template and does not convert provider storage into authority.
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 
@@ -24,5 +29,5 @@ This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace p
 - `tests/test_workspace_projection.py` — commit `ffeca16657f7d64287077ae5651d8cbe34ea7219`
 - `WORKSPACE_PROJECTION_MIRROR_HANDOFF.md`
 
-## Completion boundary
-Source implementation and deterministic test source do not prove a resident KV is mounted, a Workspace registry exists, or a Site request has been observed. Authentic data requires current `STEGVERSE_KV_ROOT` plus an admitted DEVICE_KV query and exact response recovery.
+## Remaining evidence gates
+Resident source must refresh to the current CVK + Labs `.github` Workspace query extension; an authentic registered-node request must then return `KV_WORKSPACE_EMPTY` (or later governed content) through the persisted HB-derived DEVICE_KV response and Site must recover those exact bytes.
