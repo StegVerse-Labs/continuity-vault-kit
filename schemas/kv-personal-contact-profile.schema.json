@@ -4,9 +4,15 @@
   "title": "KnowledgeVault Personal Contact Profile",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "email_addresses", "authority_effect"],
+  "required": [
+    "schema",
+    "email_addresses",
+    "authority_effect"
+  ],
   "properties": {
-    "schema": {"const": "stegverse.kv.personal-contact-profile/v1"},
+    "schema": {
+      "const": "stegverse.kv.personal-contact-profile/v1"
+    },
     "email_addresses": {
       "type": "array",
       "items": {
@@ -21,12 +27,25 @@
           "connection_state"
         ],
         "properties": {
-          "address": {"type": "string", "format": "email"},
-          "label": {"type": "string", "minLength": 1},
-          "primary": {"type": "boolean"},
-          "email_continuity_enabled": {"type": "boolean"},
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "email_continuity_enabled": {
+            "type": "boolean"
+          },
           "mapping_id": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^kv-email:[a-f0-9]{64}$"
           },
           "connection_state": {
@@ -41,6 +60,113 @@
         }
       }
     },
-    "authority_effect": {"const": "NONE"}
+    "authority_effect": {
+      "const": "NONE"
+    },
+    "display_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200
+    },
+    "legal_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 300
+    },
+    "date_of_birth": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "phone_numbers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "number",
+          "label",
+          "primary"
+        ],
+        "properties": {
+          "number": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "primary": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "postal_addresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "line1",
+          "city",
+          "region",
+          "postal_code",
+          "country_code",
+          "primary"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "line1": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "line2": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "region": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "postal_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "country_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "primary": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
   }
 }
