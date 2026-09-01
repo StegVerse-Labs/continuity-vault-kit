@@ -1,5 +1,10 @@
 {
   "schema": "stegverse.kv.personal-contact-profile/v1",
+  "display_name": null,
+  "legal_name": null,
+  "date_of_birth": null,
+  "phone_numbers": [],
+  "postal_addresses": [],
   "email_addresses": [],
   "authority_effect": "NONE"
 }
