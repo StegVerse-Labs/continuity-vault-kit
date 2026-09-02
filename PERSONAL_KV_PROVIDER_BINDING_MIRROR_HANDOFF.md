@@ -154,3 +154,30 @@ TVC-owned provider session active
 Runtime presence/freshness is observation only. HB and HB-derived carriers grant no provider, credential, admission, execution, routing, transition, receiving, custody, publication, or consequence authority.
 
 Current exact external blocker remains the TVC credential lane. Until the authoritative TVC credential-model consistency handoff admits and activates the provider-specific ephemeral Google Drive session on an eligible resident, the downstream provider materialization and DEVICE_KV runtime observations must remain unobserved.
+
+
+## CMC-037 canonical blocker reconciliation — 2026-09-02
+
+The previously generic provider-session blocker is now classified in the canonical TVC credential-model lane:
+
+```text
+TVC issue: #286
+finding: CMC-037
+classification PR: #287
+validated head: 6be13c8fc0e17149caa73678060e38553fff5926
+TVC consistency validation: 33694240797 SUCCESS
+merge: c77b2dfce37c96c79b4999b764372366d8cce2d3
+```
+
+Exact state:
+
+```text
+Google Drive Personal-KV provider-specific requirement: PROVEN
+active TVC owner-session lifecycle implementation: NOT PRESENT
+credential authority: TV/TVC
+generalized OAuth manager: NOT AUTHORIZED
+consumer-side provider token handling: FORBIDDEN
+runtime provider session: NOT OBSERVED
+```
+
+Therefore the next transition is no longer an unspecified credential blocker: TVC must explicitly authorize this exact provider-specific credential/session class or prove an already-admitted equivalent before source/runtime activation may proceed.
