@@ -135,3 +135,40 @@ PR #176 exact head `ad7c146990df95c3eb75a461522ec44b3e0b2e10` passed:
 Merged as `40976e8ac4e9621360c036f2a2c35a48eb593776`.
 
 These runs validate source behavior only. Runtime recovery, provider interaction, physical-device observation, key provisioning, live Interlock/InTr, and production activation remain unobserved.
+
+
+## Shared HB / InTr runtime-observability binding — 2026-09-02
+
+This recovery lane is a consumer of the shared organization runtime-observability contract:
+
+`StegVerse-Labs/.github/docs/HB_RUNTIME_PRESENCE_RESIDENT_OBSERVABILITY_MIRROR_HANDOFF.md`
+
+The recovery lane does not own a separate heartbeat, runtime-presence signal, scheduler, resident executor, or liveness mechanism.
+
+Canonical observation chain for the eventual live recovery:
+
+```text
+shared HB runtime/reference
+-> resident/node freshness observation
+-> governed recovery/DEVICE_KV request
+-> Interlock admission
+-> InTr packet
+-> DEVICE_KV/resident consumption
+-> recovery state transition
+-> authentic receipt
+-> retained evidence
+-> reconstruction
+```
+
+Distinct predicates remain independent:
+- resident alive/current;
+- provider session active under TV/TVC;
+- recovery request consumed;
+- replacement-device enrollment observed;
+- Interlock/InTr transition observed;
+- key provisioning/rewrap observed;
+- final recovery receipt retained;
+- reconstruction passed;
+- physical-device observations complete.
+
+HB progression or HB-derived carrier publication cannot satisfy any execution/transition predicate.
