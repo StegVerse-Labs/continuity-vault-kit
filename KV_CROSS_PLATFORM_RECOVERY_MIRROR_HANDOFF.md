@@ -1,9 +1,9 @@
 # KV Cross-Platform Recovery Mirror Handoff
 
-Status: SOURCE_IMPLEMENTED_HOSTED_VALIDATION_PENDING
+Status: HOSTED_VALIDATED_MERGED_PHYSICAL_PROOF_OPEN
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Issue: #171
-Branch: `feat/cross-platform-kv-recovery`
+Merge: `13ec71e343856c0bb40d231576f372de08a96725`
 
 ## Goal
 
@@ -92,7 +92,27 @@ Until that evidence exists:
 
 ```text
 deterministic contract: IMPLEMENTED
-hosted validation: PENDING
+hosted validation: PASS
 physical iPhone -> Samsung proof: NOT OBSERVED
 production recovery activation: NOT CLAIMED
 ```
+
+
+## Hosted validation evidence — 2026-09-01
+
+Exact PR-head validation before merge:
+
+```text
+PR: #172
+validated head: dd7b9201b691768104c1904fe40d0b5285477584
+KV Cross-Platform Recovery run: 33583493140 SUCCESS
+Release integrity run: 33583493252 SUCCESS
+KV Guardrails run: 33583493163 SUCCESS
+Security Baseline run: 33583493195 SUCCESS
+Repository validation diagnostics run: 33583493227 SUCCESS
+merge: 13ec71e343856c0bb40d231576f372de08a96725
+```
+
+The first PR head correctly exposed a repository-wide workflow-census mismatch after adding the 48th hosted workflow. The census was updated from 47 to 48 without relaxing any forbidden authority marker; the successor exact-head run passed all repository gates.
+
+Hosted validation proves only the deterministic contract. The physical iPhone/iCloud-browser/Samsung recovery remains NOT OBSERVED and must produce separate real-device evidence before production recovery is claimed.
