@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-cross-platform-recovery-package.schema.json",
+  "title": "KnowledgeVault Cross-Platform Recovery Package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema","kv_id","provider","access_mode","package_sha256","expected_package_sha256","continuity_root","current_continuity_root","old_device","new_device","recovery","transport"],
+  "properties": {
+    "schema": {"const":"stegverse.kv.cross-platform-recovery-package/v1"},
+    "kv_id": {"type":"string","minLength":1},
+    "provider": {"type":"string","minLength":1},
+    "access_mode": {"enum":["BROWSER_ONLY","NATIVE"]},
+    "package_sha256": {"pattern":"^[a-f0-9]{64}$"},
+    "expected_package_sha256": {"pattern":"^[a-f0-9]{64}$"},
+    "continuity_root": {"pattern":"^[a-f0-9]{64}$"},
+    "current_continuity_root": {"pattern":"^[a-f0-9]{64}$"},
+    "old_device": {
+      "type":"object","additionalProperties":false,
+      "required":["device_id","status"],
+      "properties":{"device_id":{"type":"string","minLength":1},"status":{"enum":["CONFIRMED","LOST","LOST_REVOKED","REVOKED"]}}
+    },
+    "new_device": {
+      "type":"object","additionalProperties":false,
+      "required":["device_id","claims_old_device_identity"],
+      "properties":{"device_id":{"type":"string","minLength":1},"claims_old_device_identity":{"type":"boolean"}}
+    },
+    "recovery": {
+      "type":"object","additionalProperties":false,
+      "required":["cloud_account_authenticated","recovery_authority_verified","old_device_unavailable","browser_execution_requested"],
+      "properties":{
+        "cloud_account_authenticated":{"type":"boolean"},
+        "recovery_authority_verified":{"type":"boolean"},
+        "old_device_unavailable":{"type":"boolean"},
+        "browser_execution_requested":{"type":"boolean"}
+      }
+    },
+    "transport": {
+      "type":"object","additionalProperties":false,
+      "required":["protocol","interlock_verified","intr_bound","cloud_account_is_kv_authority"],
+      "properties":{
+        "protocol":{"const":"InTr"},
+        "interlock_verified":{"type":"boolean"},
+        "intr_bound":{"type":"boolean"},
+        "cloud_account_is_kv_authority":{"const":false}
+      }
+    }
+  }
+}

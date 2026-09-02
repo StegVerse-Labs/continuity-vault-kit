@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-cross-platform-recovery-receipt.schema.json",
+  "title": "KnowledgeVault Cross-Platform Recovery Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema","case_id","decision","kv_id","kv_identity_preserved","old_device_identity_preserved","new_device_identity_created","cloud_account_is_kv_authority","browser_is_execution_surface","transport_protocol","authority_effect","receipt_sha256"],
+  "properties": {
+    "schema": {"const":"stegverse.kv.cross-platform-recovery-receipt/v1"},
+    "case_id": {"type":"string","minLength":1},
+    "decision": {"enum":["ALLOW","ALLOW_WITH_SIGNOFF","DENY","FAIL_CLOSED","REDIRECT","ESCALATE"]},
+    "kv_id": {"type":"string","minLength":1},
+    "kv_identity_preserved": {"type":"boolean"},
+    "old_device_identity_preserved": {"const":false},
+    "new_device_identity_created": {"type":"boolean"},
+    "cloud_account_is_kv_authority": {"const":false},
+    "browser_is_execution_surface": {"const":false},
+    "transport_protocol": {"const":"InTr"},
+    "authority_effect": {"const":"NONE"},
+    "reason": {"type":"string","minLength":1},
+    "receipt_sha256": {"pattern":"^[a-f0-9]{64}$"}
+  }
+}

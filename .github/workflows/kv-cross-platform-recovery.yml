@@ -1,0 +1,51 @@
+name: KV Cross-Platform Recovery
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/kv-cross-platform-recovery-*.json"
+      - "runtime/cross_platform_recovery.py"
+      - "fixtures/kv_cross_platform_recovery_cases.json"
+      - "tests/test_cross_platform_recovery.py"
+      - "tools/run_cross_platform_recovery_probe.py"
+      - "KV_CROSS_PLATFORM_RECOVERY_MIRROR_HANDOFF.md"
+      - ".github/workflows/kv-cross-platform-recovery.yml"
+  pull_request:
+    paths:
+      - "schemas/kv-cross-platform-recovery-*.json"
+      - "runtime/cross_platform_recovery.py"
+      - "fixtures/kv_cross_platform_recovery_cases.json"
+      - "tests/test_cross_platform_recovery.py"
+      - "tools/run_cross_platform_recovery_probe.py"
+      - "KV_CROSS_PLATFORM_RECOVERY_MIRROR_HANDOFF.md"
+      - ".github/workflows/kv-cross-platform-recovery.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile recovery tooling
+        run: |
+          python -m py_compile runtime/cross_platform_recovery.py
+          python -m py_compile tests/test_cross_platform_recovery.py
+          python -m py_compile tools/run_cross_platform_recovery_probe.py
+      - name: Run recovery tests
+        run: python -m unittest tests.test_cross_platform_recovery -v
+      - name: Emit deterministic recovery receipt
+        run: |
+          mkdir -p recovery-evidence
+          python tools/run_cross_platform_recovery_probe.py > recovery-evidence/kv-cross-platform-recovery.receipt.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kv-cross-platform-recovery-evidence
+          path: recovery-evidence/kv-cross-platform-recovery.receipt.json
+          if-no-files-found: error
