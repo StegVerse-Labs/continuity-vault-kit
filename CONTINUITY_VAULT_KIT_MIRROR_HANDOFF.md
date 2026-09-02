@@ -865,3 +865,12 @@ Implemented canonical reusable private form data model:
 - `docs/SKAP_ESIGNATURE_PROFILE.md`
 
 Personal form facts belong in KV. Reusable e-signature/signing material belongs in SKAP Vault. KV may retain only a `skap://signing/<profile-id>` reference with `auto_apply=false`. No source artifact is runtime SKAP custody proof.
+
+
+## 2026-09-02 Personal Form Profile connected-KV closure
+
+The new reusable Personal Form Profile is now installed in the connected Google Drive KnowledgeVault under `_Entities/Self/Personal_Form_Profile.json` and exactly matches the repository template blob `c0fe6daf85199e857e05e1d3b06a5b0e37fd8433`.
+
+The bounded provider materializer now includes that canonical path in addition to the existing installation receipt, Workspace scope, and Personal Contact Profile.
+
+This closes source/template/provider-scope presence only. Live TVC provider-session materialization and current-device DEVICE_KV profile write/readback remain runtime predicates.
