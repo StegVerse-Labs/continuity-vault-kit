@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stegverse:kv:personal-form-profile:v1",
+  "title": "KnowledgeVault Personal Form Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "identity",
+    "contact",
+    "addresses",
+    "identifiers",
+    "filing_defaults",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.personal_form_profile/v1"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "legal_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "date_of_birth": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "value"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "primary": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "emails": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "value"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string",
+                "format": "email"
+              },
+              "primary": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "addresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "line1",
+          "city",
+          "region",
+          "postal_code",
+          "country_code"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "line1": {
+            "type": "string"
+          },
+          "line2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "country_code": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2
+          },
+          "primary": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "identifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "value"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TVC_UNIQUE_ID",
+              "SSN",
+              "ITIN",
+              "OTHER"
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "filing_defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "organizer_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manager_managed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "registered_agent_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "registered_office_address_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "effective_on_filing": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "accounting_year_close_month": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 12
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skap_ref"
+      ],
+      "properties": {
+        "skap_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^skap://signing/"
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "auto_apply": {
+          "const": false
+        }
+      }
+    }
+  }
+}
