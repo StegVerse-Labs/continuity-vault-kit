@@ -1,0 +1,20 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-provider-relocation-evidence.schema.json",
+  "title":"KnowledgeVault Provider Relocation Evidence",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema","relocation_id","request_sha256","source_readback_sha256","destination_readback_sha256","intr_packet_ref","intr_receipt_ref","continuity_receipt_ref","provider_credentials_exported","provider_authority_transferred"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.provider-relocation-evidence/v1"},
+    "relocation_id":{"type":"string","minLength":1},
+    "request_sha256":{"pattern":"^[a-f0-9]{64}$"},
+    "source_readback_sha256":{"pattern":"^[a-f0-9]{64}$"},
+    "destination_readback_sha256":{"pattern":"^[a-f0-9]{64}$"},
+    "intr_packet_ref":{"type":"string","minLength":1},
+    "intr_receipt_ref":{"type":"string","minLength":1},
+    "continuity_receipt_ref":{"type":"string","minLength":1},
+    "provider_credentials_exported":{"const":false},
+    "provider_authority_transferred":{"const":false}
+  }
+}

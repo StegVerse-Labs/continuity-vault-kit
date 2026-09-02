@@ -1,0 +1,29 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/kv-provider-relocation-request.schema.json",
+  "title":"KnowledgeVault Provider Relocation Request",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema","relocation_id","kv_id","source_provider","destination_provider","source_continuity_root","destination_continuity_root","kv_identity_preserved","continuity_transition","transport","authority"],
+  "properties":{
+    "schema":{"const":"stegverse.kv.provider-relocation-request/v1"},
+    "relocation_id":{"type":"string","minLength":1},
+    "kv_id":{"type":"string","minLength":1},
+    "source_provider":{"type":"string","minLength":1},
+    "destination_provider":{"type":"string","minLength":1},
+    "source_continuity_root":{"pattern":"^[a-f0-9]{64}$"},
+    "destination_continuity_root":{"pattern":"^[a-f0-9]{64}$"},
+    "kv_identity_preserved":{"type":"boolean"},
+    "continuity_transition":{"enum":["PRESERVED","GOVERNED_ADVANCE"]},
+    "transport":{"type":"object","additionalProperties":false,"required":["protocol","interlock_verified","intr_bound"],"properties":{
+      "protocol":{"const":"InTr"},
+      "interlock_verified":{"type":"boolean"},
+      "intr_bound":{"type":"boolean"}
+    }},
+    "authority":{"type":"object","additionalProperties":false,"required":["source_provider_is_kv_authority","destination_provider_is_kv_authority","credential_authority"],"properties":{
+      "source_provider_is_kv_authority":{"const":false},
+      "destination_provider_is_kv_authority":{"const":false},
+      "credential_authority":{"const":"TV/TVC"}
+    }}
+  }
+}

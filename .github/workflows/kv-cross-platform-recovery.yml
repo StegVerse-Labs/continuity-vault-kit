@@ -6,14 +6,19 @@ on:
     paths:
       - "schemas/kv-cross-platform-recovery-*.json"
       - "schemas/kv-physical-recovery-evidence.schema.json"
+      - "schemas/kv-provider-relocation-*.json"
       - "runtime/cross_platform_recovery.py"
       - "runtime/physical_recovery_evidence.py"
+      - "runtime/provider_relocation.py"
       - "fixtures/kv_cross_platform_recovery_cases.json"
       - "tests/test_cross_platform_recovery.py"
       - "tests/test_physical_recovery_evidence.py"
+      - "tests/test_provider_relocation.py"
       - "tools/run_cross_platform_recovery_probe.py"
       - "tools/run_physical_recovery_reconstruction.py"
+      - "tools/run_provider_relocation_probe.py"
       - "KV_CROSS_PLATFORM_RECOVERY_MIRROR_HANDOFF.md"
+      - "KV_PROVIDER_RELOCATION_MIRROR_HANDOFF.md"
       - ".github/workflows/kv-cross-platform-recovery.yml"
   pull_request:
     paths:
@@ -45,18 +50,23 @@ jobs:
         run: |
           python -m py_compile runtime/cross_platform_recovery.py
           python -m py_compile runtime/physical_recovery_evidence.py
+          python -m py_compile runtime/provider_relocation.py
           python -m py_compile tests/test_cross_platform_recovery.py
           python -m py_compile tests/test_physical_recovery_evidence.py
+          python -m py_compile tests/test_provider_relocation.py
           python -m py_compile tools/run_cross_platform_recovery_probe.py
           python -m py_compile tools/run_physical_recovery_reconstruction.py
+          python -m py_compile tools/run_provider_relocation_probe.py
       - name: Run recovery tests
         run: |
           python -m unittest tests.test_cross_platform_recovery -v
           python -m unittest tests.test_physical_recovery_evidence -v
+          python -m unittest tests.test_provider_relocation -v
       - name: Emit deterministic recovery receipt
         run: |
           mkdir -p recovery-evidence
           python tools/run_cross_platform_recovery_probe.py > recovery-evidence/kv-cross-platform-recovery.receipt.json
+          python tools/run_provider_relocation_probe.py > recovery-evidence/kv-provider-relocation.receipt.json
       - uses: actions/upload-artifact@v4
         with:
           name: kv-cross-platform-recovery-evidence
