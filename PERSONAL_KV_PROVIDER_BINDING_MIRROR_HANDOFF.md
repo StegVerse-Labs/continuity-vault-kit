@@ -28,6 +28,7 @@ The implemented materializer supports a Personal KnowledgeVault stored in Google
 - `_System/installation.receipt.json`
 - `_System/Workspace/**`
 - `_Entities/Self/Personal_Contact_Profile.json`
+- `_Entities/Self/Personal_Form_Profile.json`
 
 No `_Vault/**`, SKAP plaintext, arbitrary Drive tree, or provider mutation authority is admitted.
 
