@@ -1,0 +1,27 @@
+{
+  "schema": "stegverse.kv.personal_form_profile/v1",
+  "identity": {
+    "display_name": null,
+    "legal_name": null,
+    "date_of_birth": null
+  },
+  "contact": {
+    "phones": [],
+    "emails": []
+  },
+  "addresses": [],
+  "identifiers": [],
+  "filing_defaults": {
+    "organizer_name": null,
+    "manager_managed": null,
+    "registered_agent_name": null,
+    "registered_office_address_label": null,
+    "effective_on_filing": null,
+    "accounting_year_close_month": null
+  },
+  "signature": {
+    "skap_ref": null,
+    "display_name": null,
+    "auto_apply": false
+  }
+}
