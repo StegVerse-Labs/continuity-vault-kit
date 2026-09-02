@@ -105,3 +105,25 @@ provider-binding source validation: PASS
 runtime provider session observed: false
 activation inferred: false
 ```
+
+
+## 2026-09-02 reusable Personal Form Profile scope integration
+
+The bounded Google Drive Personal-KV materializer now includes:
+
+`_Entities/Self/Personal_Form_Profile.json`
+
+Source changes:
+- `runtime/personal_provider_binding.py` — scope + exact read-only materialization
+- `tests/test_personal_provider_binding.py` — bounded-scope regression
+
+Connected owner KnowledgeVault inspection found the new profile absent under `_Entities/Self`. The exact repository template was therefore installed into the existing connected Google Drive KnowledgeVault as unconverted `text/plain`:
+
+- Drive file: `Personal_Form_Profile.json`
+- Drive id: `1RjX7Vmd0HwOfrrqEYptix04uM0Pqo6Xw`
+- parent: `_Entities/Self` folder id `1Ob7OkSjm3tgtdFSWCWaV2P4LR3kzB71t`
+- repository template blob: `c0fe6daf85199e857e05e1d3b06a5b0e37fd8433`
+- direct source-vs-Drive text comparison: EXACT MATCH
+- conversion to native Google Workspace format: false
+
+This closes the missing-file/materialization-scope source and connected-KV installation gap. It does not establish a live TVC provider session or automatic DEVICE_KV runtime consumption.
