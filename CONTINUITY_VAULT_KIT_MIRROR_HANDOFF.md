@@ -855,3 +855,13 @@ Canonical specialized handoff: `PERSONAL_KV_PROVIDER_BINDING_MIRROR_HANDOFF.md`.
 Current source already contains a bounded Google Drive Personal-KV materializer under `runtime/personal_provider_binding.py`, consumed downstream by `StegVerse-Labs/.github/scripts/materialize_personal_kv_provider_root.py` before DEVICE_KV query execution when no local `STEGVERSE_KV_ROOT` exists.
 
 This does not create a new credential path. Automatic provider-backed Personal-KV execution remains blocked until an existing TVC-owned ephemeral provider session is legitimately active under the current TVC credential-model consistency rules. Missing session therefore fails closed; Site/DEVICE_KV must not invent or persist a provider token.
+
+## 2026-09-02 Personal Form Profile / SKAP signing boundary
+
+Implemented canonical reusable private form data model:
+- `KV_PERSONAL_FORM_PROFILE_MIRROR_HANDOFF.md`
+- `schemas/personal-form-profile.schema.json`
+- `vault_template/KnowledgeVault/_Entities/Self/Personal_Form_Profile.json`
+- `docs/SKAP_ESIGNATURE_PROFILE.md`
+
+Personal form facts belong in KV. Reusable e-signature/signing material belongs in SKAP Vault. KV may retain only a `skap://signing/<profile-id>` reference with `auto_apply=false`. No source artifact is runtime SKAP custody proof.
