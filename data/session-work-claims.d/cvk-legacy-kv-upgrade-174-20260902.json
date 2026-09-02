@@ -1,0 +1,33 @@
+{
+  "schema_version":"1.0.0",
+  "registry_fragment_type":"stegverse_session_work_claim_registry_fragment",
+  "repository":"StegVerse-Labs/continuity-vault-kit",
+  "claims":[{
+    "claim_id":"CVK-LEGACY-KV-UPGRADE-174-20260902",
+    "session_worker_id":"chatgpt:cvk-legacy-kv-upgrade-174-20260902",
+    "task_id":"CVK-LEGACY-KV-UPGRADE-174",
+    "originating_goal":"Use the older iCloud KnowledgeVault as a non-destructive update/reinstall test lane while preserving the newer Google Drive installation as the current canonical production candidate.",
+    "repository":"StegVerse-Labs/continuity-vault-kit",
+    "branch":"feature/legacy-kv-upgrade-test-174",
+    "role":"ACTIVE_IMPLEMENTATION",
+    "state":"CLAIMED_FOR_IMPLEMENTATION",
+    "normalized_work_key":"cvk-legacy-kv-upgrade-174",
+    "dependency_surface_keys":["kv:migration","kv:installation-receipt","kv:template-parity"],
+    "governing_dependency_keys":["kv:migration"],
+    "claimed_paths":["tools/plan_legacy_kv_upgrade.py","tests/test_legacy_kv_upgrade_plan.py","LEGACY_KV_UPGRADE_MIRROR_HANDOFF.md","data/session-work-claims.d/cvk-legacy-kv-upgrade-174-20260902.json"],
+    "handoff":"LEGACY_KV_UPGRADE_MIRROR_HANDOFF.md",
+    "handoff_revision":"PLAN_FIRST_20260902",
+    "claim_created_at":"2026-09-02T13:45:00-05:00",
+    "claim_expires_when":"Release after source validation/merge; keep runtime test open until the legacy iCloud vault is inspected and an admitted rollback-safe upgrade/reinstall is verified.",
+    "expected_evidence":["legacy manifest/version inspected","deterministic no-mutation upgrade plan produced","owner/runtime data preserved","rollback copy required","post-upgrade receipt/parity verified","owner acceptance recorded"],
+    "collision_boundaries":["Do not modify the current Google Drive production candidate","Do not silently overwrite the legacy iCloud vault","Do not treat legacy vault as authoritative automatically","Do not introduce provider credentials or hosted execution authority"],
+    "next_task_after_release":"Run the planner against an owner-selected copy of the legacy iCloud KnowledgeVault and develop the admitted apply/rollback phase from the observed delta.",
+    "credential_authority":"TV/TVC",
+    "credential_requirement":"NONE_FOR_PLAN",
+    "github_token_runtime_authority":"NONE",
+    "non_tv_tvc_secret_or_token_used":false,
+    "authority_effect":false,
+    "activation_effect":false,
+    "archive_eligible":false
+  }]
+}
