@@ -185,3 +185,12 @@ KV Guardrails run 33191143383: SUCCESS
 Source contract, schemas, runtime assembly logic, synthetic tests, and validation are merged. No live provider connection, provider login, credential resolution, or production provider monitoring is claimed.
 
 GitHub Actions remain validation-only. TV/TVC remains credential authority. These source merges do not prove resident execution, provider compatibility, private-KV user state, provider login, or external provider operation.
+
+
+## Personal KV provider-binding reconciliation — 2026-09-02
+
+Canonical specialized handoff: `PERSONAL_KV_PROVIDER_BINDING_MIRROR_HANDOFF.md`.
+
+Current source already contains a bounded Google Drive Personal-KV materializer under `runtime/personal_provider_binding.py`, consumed downstream by `StegVerse-Labs/.github/scripts/materialize_personal_kv_provider_root.py` before DEVICE_KV query execution when no local `STEGVERSE_KV_ROOT` exists.
+
+This does not create a new credential path. Automatic provider-backed Personal-KV execution remains blocked until an existing TVC-owned ephemeral provider session is legitimately active under the current TVC credential-model consistency rules. Missing session therefore fails closed; Site/DEVICE_KV must not invent or persist a provider token.
