@@ -1,6 +1,23 @@
 name: Validate KV Connection Assembly
 
 on:
+  push:
+    paths:
+      - "KV_CONNECTION_ASSEMBLY_SOURCE_MIRROR_HANDOFF.md"
+      - "PERSONAL_KV_PROVIDER_BINDING_MIRROR_HANDOFF.md"
+      - "PERSONAL_KV_PROVIDER_BINDING_MIRROR_HANDOFF.md"
+      - "schemas/kv-connection-assembly*.json"
+      - "schemas/kv-personal-provider-binding.schema.json"
+      - "schemas/kv-source-change-observation.schema.json"
+      - "specs/kv-connection-assembly-registry.v1.json"
+      - "runtime/connection_assembly.py"
+      - "runtime/personal_provider_binding.py"
+      - "runtime/source_change_monitor.py"
+      - "tests/test_connection_assembly.py"
+      - "tests/test_personal_provider_binding.py"
+      - "tests/test_source_change_monitor.py"
+      - "tools/check_kv_connection_assembly.py"
+      - ".github/workflows/kv-connection-assembly.yml"
   pull_request:
     paths:
       - "KV_CONNECTION_ASSEMBLY_SOURCE_MIRROR_HANDOFF.md"
