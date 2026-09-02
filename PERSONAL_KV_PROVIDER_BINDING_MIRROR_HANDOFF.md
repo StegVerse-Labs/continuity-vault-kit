@@ -105,3 +105,28 @@ provider-binding source validation: PASS
 runtime provider session observed: false
 activation inferred: false
 ```
+
+## Shared HB / InTr runtime-observability binding — 2026-09-02
+
+Canonical shared observability owner:
+
+`StegVerse-Labs/.github/docs/HB_RUNTIME_PRESENCE_RESIDENT_OBSERVABILITY_MIRROR_HANDOFF.md`
+
+This provider-binding lane consumes the existing shared runtime projection instead of creating any Personal-KV-specific heartbeat/liveness signal.
+
+Exact unresolved runtime predicate chain:
+
+```text
+TVC-owned provider session active
+-> exact provider-root materialization observed
+-> authentic node-origin MY_KV_INSTALLATION_STATUS request
+-> DEVICE_KV receiver consumption observed
+-> HB-derived KV->DEVICE return recovered exactly
+-> retained device-kv-query-response receipt
+-> Site readback/sync observation
+-> reconstruction evidence
+```
+
+Runtime presence/freshness is observation only. HB and HB-derived carriers grant no provider, credential, admission, execution, routing, transition, receiving, custody, publication, or consequence authority.
+
+Current exact external blocker remains the TVC credential lane. Until the authoritative TVC credential-model consistency handoff admits and activates the provider-specific ephemeral Google Drive session on an eligible resident, the downstream provider materialization and DEVICE_KV runtime observations must remain unobserved.
