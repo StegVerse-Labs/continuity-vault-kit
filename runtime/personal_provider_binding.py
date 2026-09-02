@@ -22,6 +22,7 @@ ALLOWED_SCOPES={
     "_System/installation.receipt.json",
     "_System/Workspace/**",
     "_Entities/Self/Personal_Contact_Profile.json",
+    "_Entities/Self/Personal_Form_Profile.json",
 }
 GOOGLE_DRIVE_API="https://www.googleapis.com/drive/v3/files"
 GOOGLE_FOLDER_MIME="application/vnd.google-apps.folder"
@@ -64,6 +65,7 @@ def build_binding(*,root_folder_id:str,compatibility_state:str="ASSEMBLED_UNVERI
         "_System/installation.receipt.json",
         "_System/Workspace/**",
         "_Entities/Self/Personal_Contact_Profile.json",
+        "_Entities/Self/Personal_Form_Profile.json",
     ])
     value={
         "schema":BINDING_SCHEMA,
@@ -167,6 +169,10 @@ def materialize_google_drive_scope(*,binding:dict[str,Any],token_file:Path,desti
             item=_resolve_path(root_id,"_Entities/Self/Personal_Contact_Profile.json",token)
             _require(item.get("mimeType")!=GOOGLE_FOLDER_MIME,"personal_profile_not_file")
             records.append(_write_exact(destination,"_Entities/Self/Personal_Contact_Profile.json",_drive_bytes(item["id"],token)))
+        if "_Entities/Self/Personal_Form_Profile.json" in b["materialization_scope"]:
+            item=_resolve_path(root_id,"_Entities/Self/Personal_Form_Profile.json",token)
+            _require(item.get("mimeType")!=GOOGLE_FOLDER_MIME,"personal_form_profile_not_file")
+            records.append(_write_exact(destination,"_Entities/Self/Personal_Form_Profile.json",_drive_bytes(item["id"],token)))
         if "_System/Workspace/**" in b["materialization_scope"]:
             folder=_resolve_path(root_id,"_System/Workspace",token)
             _require(folder.get("mimeType")==GOOGLE_FOLDER_MIME,"workspace_not_folder")
