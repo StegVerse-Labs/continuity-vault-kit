@@ -43,3 +43,14 @@ Possession of that reference does not authorize signature use.
 ## Runtime completion
 
 Runtime completion requires a current-device write of a validated profile into the canonical path, exact readback, and a later form-mapping read. Source presence alone is not runtime proof.
+
+
+## 2026-09-02 connected-KV template installation and provider-materialization binding
+
+The canonical `Personal_Form_Profile.json` template is now present in the connected owner KnowledgeVault at `_Entities/Self/Personal_Form_Profile.json` as exact unconverted `text/plain`.
+
+Direct comparison against repository template blob `c0fe6daf85199e857e05e1d3b06a5b0e37fd8433` returned an exact text match.
+
+The existing bounded Personal-KV Google Drive materializer has also been extended to include this path. No new provider credential path was introduced; TV/TVC remains the sole credential authority and live provider-session activation remains separately unobserved.
+
+The remaining runtime predicate for this profile is now current-device DEVICE_KV write/verify/re-read evidence rather than missing connected-KV file installation.
