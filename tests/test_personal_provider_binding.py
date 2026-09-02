@@ -13,6 +13,7 @@ def test_binding_is_deterministic_and_non_authorizing():
     assert b["provider_operation_authorized"] is False
     assert b["authority_effect"]=="NONE"
     assert b["activation_effect"] is False
+    assert "_Entities/Self/Personal_Form_Profile.json" in b["materialization_scope"]
 
 def test_scope_cannot_expand():
     try:
@@ -49,3 +50,9 @@ def test_exact_write_round_trip():
         assert receipt["path"]=="_System/installation.receipt.json"
         assert receipt["size_bytes"]==12
         assert (root/"_System/installation.receipt.json").read_bytes()==b'{"ok":true}\n'
+
+
+def test_personal_form_profile_scope_is_bounded():
+    b=m.build_binding(root_folder_id="folder-1234567890")
+    assert set(b["materialization_scope"]).issubset(m.ALLOWED_SCOPES)
+    assert "_Entities/Self/Personal_Form_Profile.json" in m.ALLOWED_SCOPES
