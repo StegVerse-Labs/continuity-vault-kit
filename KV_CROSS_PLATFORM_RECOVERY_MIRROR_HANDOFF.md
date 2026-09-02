@@ -57,7 +57,7 @@ This proves only deterministic decision behavior.
 
 Live inspection on 2026-09-02 found no separate canonical implementation for physical evidence reconstruction, replacement-device attestation capture, recovery-authority evidence binding, key-provisioning observation, or final receipt reconstruction beyond the deterministic evaluator.
 
-Branch `feature/physical-kv-recovery-ceremony-173` adds a non-authorizing evidence/reconstruction prerequisite:
+PR #176 / merge `40976e8ac4e9621360c036f2a2c35a48eb593776` installs the non-authorizing evidence/reconstruction prerequisite:
 
 - `schemas/kv-physical-recovery-evidence.schema.json`
 - `runtime/physical_recovery_evidence.py`
@@ -113,9 +113,25 @@ Current state:
 
 ```text
 deterministic contract: IMPLEMENTED / HOSTED PASS / MERGED
-physical evidence ceremony source: ON_BRANCH
-physical evidence ceremony hosted validation: PENDING
-physical evidence ceremony merged: NO
+physical evidence ceremony source: IMPLEMENTED
+physical evidence ceremony hosted validation: PASS
+physical evidence ceremony validated head: ad7c146990df95c3eb75a461522ec44b3e0b2e10
+physical evidence ceremony merge: 40976e8ac4e9621360c036f2a2c35a48eb593776
+physical evidence ceremony merged: YES
 physical iPhone -> Samsung proof: NOT OBSERVED
 production recovery activation: NOT CLAIMED
 ```
+
+
+## Physical ceremony validation and merge — 2026-09-02
+
+PR #176 exact head `ad7c146990df95c3eb75a461522ec44b3e0b2e10` passed:
+- KV Cross-Platform Recovery: 33676819294 SUCCESS
+- Release integrity: 33676819238 SUCCESS
+- KV Guardrails: 33676819116 SUCCESS
+- Security Baseline: 33676819208 SUCCESS
+- Repository validation diagnostics: 33676819222 SUCCESS
+
+Merged as `40976e8ac4e9621360c036f2a2c35a48eb593776`.
+
+These runs validate source behavior only. Runtime recovery, provider interaction, physical-device observation, key provisioning, live Interlock/InTr, and production activation remain unobserved.
