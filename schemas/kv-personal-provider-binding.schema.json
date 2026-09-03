@@ -63,7 +63,8 @@
         "enum": [
           "_System/installation.receipt.json",
           "_System/Workspace/**",
-          "_Entities/Self/Personal_Contact_Profile.json"
+          "_Entities/Self/Personal_Contact_Profile.json",
+          "_Entities/Self/Personal_Form_Profile.json"
         ]
       }
     },
@@ -71,7 +72,7 @@
       "const": "TV/TVC"
     },
     "credential_reference_class": {
-      "const": "TVC_EPHEMERAL_PROVIDER_SESSION"
+      "const": "TVC_NONSECRET_PROVIDER_MATERIALIZATION_BROKER"
     },
     "compatibility_state": {
       "enum": [
