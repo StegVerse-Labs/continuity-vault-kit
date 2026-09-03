@@ -1,31 +1,28 @@
-"""Provider-neutral Personal KnowledgeVault binding and minimal Google Drive materialization.
+"""Provider-neutral Personal KnowledgeVault binding and secret-free TVC broker materialization.
 
-This module never owns credentials. A Google Drive bearer token may only be supplied by
-a TV/TVC-owned ephemeral session file at runtime. The token is read for request use and
-is never copied into the KnowledgeVault, receipts, logs, or materialized files.
+Credential-bearing Google Drive processing occurs only inside the TV/TVC-owned
+non-exportable provider broker. This module accepts no bearer token, refresh
+token, provider credential file, or Authorization header.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
-import json
 import os
 import re
-import stat
 import tempfile
-import urllib.parse
-import urllib.request
 from pathlib import Path
 from typing import Any, Iterable
 
 BINDING_SCHEMA="stegverse.kv.personal-provider-binding/v1"
+BROKER_RESULT_SCHEMA="stegverse.tvc.google-drive-personal-kv-materialization/v1"
 ALLOWED_SCOPES={
     "_System/installation.receipt.json",
     "_System/Workspace/**",
     "_Entities/Self/Personal_Contact_Profile.json",
     "_Entities/Self/Personal_Form_Profile.json",
 }
-GOOGLE_DRIVE_API="https://www.googleapis.com/drive/v3/files"
-GOOGLE_FOLDER_MIME="application/vnd.google-apps.folder"
+CREDENTIAL_REFERENCE_CLASS="TVC_NONSECRET_PROVIDER_MATERIALIZATION_BROKER"
 
 class PersonalProviderBindingError(ValueError): pass
 
@@ -53,7 +50,7 @@ def validate_binding(value:dict[str,Any])->dict[str,Any]:
     _require(isinstance(scope,list) and scope and len(scope)==len(set(scope)),"binding_scope_invalid")
     _require(set(scope).issubset(ALLOWED_SCOPES),"binding_scope_expansion")
     _require(value["credential_authority"]=="TV/TVC","binding_credential_authority_invalid")
-    _require(value["credential_reference_class"]=="TVC_EPHEMERAL_PROVIDER_SESSION","binding_credential_reference_invalid")
+    _require(value["credential_reference_class"]==CREDENTIAL_REFERENCE_CLASS,"binding_credential_reference_invalid")
     _require(value["compatibility_state"] in {"ASSEMBLED_UNVERIFIED","VERIFIED","BLOCKED_SESSION","BLOCKED_RUNTIME","REVALIDATION_REQUIRED"},"binding_compatibility_state_invalid")
     _require(value["credential_material_present"] is False,"binding_credential_material_prohibited")
     _require(value["provider_operation_authorized"] is False,"binding_provider_authority_prohibited")
@@ -76,7 +73,7 @@ def build_binding(*,root_folder_id:str,compatibility_state:str="ASSEMBLED_UNVERI
         "canonical_root_name":"KnowledgeVault",
         "materialization_scope":scope,
         "credential_authority":"TV/TVC",
-        "credential_reference_class":"TVC_EPHEMERAL_PROVIDER_SESSION",
+        "credential_reference_class":CREDENTIAL_REFERENCE_CLASS,
         "compatibility_state":compatibility_state,
         "last_connection_proof_ref":None,
         "last_readback_proof_ref":None,
@@ -86,58 +83,6 @@ def build_binding(*,root_folder_id:str,compatibility_state:str="ASSEMBLED_UNVERI
         "activation_effect":False,
     }
     return validate_binding(value)
-
-def _read_tvc_bearer(token_file:Path)->str:
-    path=token_file.expanduser().resolve()
-    _require(path.is_file(),"tvc_provider_session_file_missing")
-    mode=stat.S_IMODE(path.stat().st_mode)
-    _require(mode & 0o077 == 0,"tvc_provider_session_file_permissions_too_broad")
-    token=path.read_text(encoding="utf-8").strip()
-    _require(bool(token) and len(token)<=8192,"tvc_provider_session_token_invalid")
-    return token
-
-def _drive_json(url:str,token:str)->dict[str,Any]:
-    request=urllib.request.Request(url,headers={"Authorization":"Bearer "+token,"Accept":"application/json"})
-    with urllib.request.urlopen(request,timeout=20) as response:
-        payload=response.read()
-    result=json.loads(payload.decode("utf-8"))
-    _require(isinstance(result,dict),"google_drive_response_invalid")
-    return result
-
-def _drive_bytes(file_id:str,token:str)->bytes:
-    url=GOOGLE_DRIVE_API+"/"+urllib.parse.quote(file_id,safe="")+"?alt=media"
-    request=urllib.request.Request(url,headers={"Authorization":"Bearer "+token})
-    with urllib.request.urlopen(request,timeout=30) as response:
-        return response.read()
-
-def _children(parent_id:str,token:str)->list[dict[str,Any]]:
-    items=[];page_token=None
-    while True:
-        params={
-            "q":f"'{parent_id}' in parents and trashed = false",
-            "fields":"nextPageToken,files(id,name,mimeType,size,modifiedTime)",
-            "pageSize":"1000",
-            "spaces":"drive",
-        }
-        if page_token: params["pageToken"]=page_token
-        result=_drive_json(GOOGLE_DRIVE_API+"?"+urllib.parse.urlencode(params),token)
-        files=result.get("files",[])
-        _require(isinstance(files,list),"google_drive_children_invalid")
-        items.extend(files)
-        page_token=result.get("nextPageToken")
-        if not page_token: return items
-
-def _child_named(parent_id:str,name:str,token:str)->dict[str,Any]:
-    matches=[item for item in _children(parent_id,token) if item.get("name")==name]
-    _require(len(matches)==1,"google_drive_path_component_not_unique:"+name)
-    return matches[0]
-
-def _resolve_path(root_id:str,path:str,token:str)->dict[str,Any]:
-    current={"id":root_id,"name":"KnowledgeVault","mimeType":GOOGLE_FOLDER_MIME}
-    for part in [p for p in path.split("/") if p]:
-        _require(current.get("mimeType")==GOOGLE_FOLDER_MIME,"google_drive_nonfolder_in_path:"+part)
-        current=_child_named(current["id"],part,token)
-    return current
 
 def _safe_destination(root:Path,relative:str)->Path:
     _require(".." not in Path(relative).parts and not Path(relative).is_absolute(),"materialization_path_escape")
@@ -154,48 +99,76 @@ def _write_exact(root:Path,relative:str,data:bytes)->dict[str,Any]:
     _require(readback==data,"materialization_exact_readback_failed")
     return {"path":relative,"sha256":"sha256:"+hashlib.sha256(data).hexdigest(),"size_bytes":len(data)}
 
-def materialize_google_drive_scope(*,binding:dict[str,Any],token_file:Path,destination_root:Path)->dict[str,Any]:
+def _path_admitted(path:str,scope:list[str])->bool:
+    if path in scope:
+        return True
+    if "_System/Workspace/**" in scope and re.fullmatch(r"_System/Workspace/[A-Za-z0-9._-]+",path):
+        return True
+    return False
+
+def validate_broker_materialization(*,binding:dict[str,Any],broker_response:dict[str,Any])->dict[str,Any]:
     b=validate_binding(binding)
-    token=_read_tvc_bearer(token_file)
-    root_id=b["root_locator"]["value"]
+    _require(isinstance(broker_response,dict),"broker_response_object_required")
+    _require(broker_response.get("decision")=="ALLOW_OPERATION_RESULT","broker_result_not_allowed")
+    result=broker_response.get("result");receipt=broker_response.get("use_receipt")
+    _require(isinstance(result,dict) and isinstance(receipt,dict),"broker_result_receipt_required")
+    _require(result.get("schema")==BROKER_RESULT_SCHEMA,"broker_result_schema_invalid")
+    _require(result.get("provider")=="GOOGLE_DRIVE","broker_result_provider_invalid")
+    _require(result.get("binding_id")==b["binding_id"],"broker_result_binding_mismatch")
+    _require(result.get("read_only") is True and result.get("provider_mutation_performed") is False,"broker_result_not_read_only")
+    _require(result.get("credential_material_returned") is False,"broker_result_credential_material_prohibited")
+    _require(result.get("credential_authority")=="TV/TVC","broker_result_credential_authority_invalid")
+    _require(result.get("authority_effect")=="NONE","broker_result_authority_invalid")
+    _require(receipt.get("provider")=="google_drive" and receipt.get("operation")=="personal_kv_materialize","broker_use_receipt_operation_invalid")
+    for key in ("secret_material_returned","secret_material_logged","secret_material_retained","wallet_contacted","signed","broadcast"):
+        _require(receipt.get(key) is False,"broker_use_receipt_boundary_invalid:"+key)
+    _require(receipt.get("single_use_consumed") is True,"broker_use_receipt_single_use_missing")
+    records=result.get("records")
+    _require(isinstance(records,list),"broker_result_records_invalid")
+    seen=set();validated=[]
+    for row in records:
+        _require(isinstance(row,dict),"broker_record_object_required")
+        path=row.get("canonical_path")
+        _require(isinstance(path,str) and _path_admitted(path,b["materialization_scope"]),"broker_record_path_not_admitted")
+        _require(path not in seen,"broker_record_duplicate_path");seen.add(path)
+        file_id=row.get("provider_file_id");encoded=row.get("content_base64");claimed_hash=row.get("sha256");size=row.get("size_bytes")
+        _require(isinstance(file_id,str) and bool(file_id),"broker_record_provider_file_id_invalid")
+        _require(isinstance(encoded,str),"broker_record_content_invalid")
+        try:data=base64.b64decode(encoded.encode("ascii"),validate=True)
+        except Exception as exc: raise PersonalProviderBindingError("broker_record_content_base64_invalid") from exc
+        _require(isinstance(size,int) and size==len(data),"broker_record_size_mismatch")
+        actual="sha256:"+hashlib.sha256(data).hexdigest()
+        _require(claimed_hash==actual,"broker_record_hash_mismatch")
+        validated.append({"path":path,"data":data,"sha256":actual,"size_bytes":len(data)})
+    for exact in (set(b["materialization_scope"])-{"_System/Workspace/**"}):
+        _require(exact in seen,"broker_result_required_path_missing:"+exact)
+    return {"binding":b,"records":validated,"broker_use_receipt":dict(receipt)}
+
+def materialize_broker_result(*,binding:dict[str,Any],broker_response:dict[str,Any],destination_root:Path)->dict[str,Any]:
+    validated=validate_broker_materialization(binding=binding,broker_response=broker_response)
+    b=validated["binding"]
     destination=destination_root.expanduser().resolve();destination.mkdir(parents=True,exist_ok=True)
-    records=[]
-    try:
-        if "_System/installation.receipt.json" in b["materialization_scope"]:
-            item=_resolve_path(root_id,"_System/installation.receipt.json",token)
-            _require(item.get("mimeType")!=GOOGLE_FOLDER_MIME,"installation_receipt_not_file")
-            records.append(_write_exact(destination,"_System/installation.receipt.json",_drive_bytes(item["id"],token)))
-        if "_Entities/Self/Personal_Contact_Profile.json" in b["materialization_scope"]:
-            item=_resolve_path(root_id,"_Entities/Self/Personal_Contact_Profile.json",token)
-            _require(item.get("mimeType")!=GOOGLE_FOLDER_MIME,"personal_profile_not_file")
-            records.append(_write_exact(destination,"_Entities/Self/Personal_Contact_Profile.json",_drive_bytes(item["id"],token)))
-        if "_Entities/Self/Personal_Form_Profile.json" in b["materialization_scope"]:
-            item=_resolve_path(root_id,"_Entities/Self/Personal_Form_Profile.json",token)
-            _require(item.get("mimeType")!=GOOGLE_FOLDER_MIME,"personal_form_profile_not_file")
-            records.append(_write_exact(destination,"_Entities/Self/Personal_Form_Profile.json",_drive_bytes(item["id"],token)))
-        if "_System/Workspace/**" in b["materialization_scope"]:
-            folder=_resolve_path(root_id,"_System/Workspace",token)
-            _require(folder.get("mimeType")==GOOGLE_FOLDER_MIME,"workspace_not_folder")
-            for item in _children(folder["id"],token):
-                _require(item.get("mimeType")!=GOOGLE_FOLDER_MIME,"workspace_nested_folder_not_supported")
-                name=str(item.get("name") or "")
-                _require(bool(re.fullmatch(r"[A-Za-z0-9._-]+",name)),"workspace_filename_invalid")
-                records.append(_write_exact(destination,"_System/Workspace/"+name,_drive_bytes(item["id"],token)))
-    finally:
-        token=""
-    receipt={
-        "schema":"stegverse.kv.provider-materialization-receipt/v1",
+    written=[]
+    for row in validated["records"]:
+        receipt=_write_exact(destination,row["path"],row["data"])
+        _require(receipt["sha256"]==row["sha256"] and receipt["size_bytes"]==row["size_bytes"],"materialization_broker_readback_binding_failed")
+        written.append(receipt)
+    return {
+        "schema":"stegverse.kv.provider-materialization-receipt/v2",
         "binding_id":b["binding_id"],
         "provider":"GOOGLE_DRIVE",
         "materialized_root":str(destination),
-        "records":records,
+        "records":written,
         "exact_readback_verified":True,
         "credential_authority":"TV/TVC",
         "credential_material_persisted":False,
-        "provider_operation":"READ_ONLY_MATERIALIZATION",
-        "provider_operation_authorized_by_session":True,
+        "consumer_received_provider_credential":False,
+        "provider_operation":"READ_ONLY_MATERIALIZATION_VIA_TVC_BROKER",
         "provider_operation_authority_transferred":False,
+        "broker_use_receipt_sha256":"sha256:"+hashlib.sha256(repr(sorted(validated["broker_use_receipt"].items())).encode("utf-8")).hexdigest(),
         "authority_effect":"NONE",
         "activation_effect":False,
     }
-    return receipt
+
+def materialize_google_drive_scope(**_:Any)->dict[str,Any]:
+    raise PersonalProviderBindingError("consumer_bearer_token_path_retired_use_tvc_broker_materialization")
