@@ -208,3 +208,47 @@ provider session observed: false
 ```
 
 Therefore no Personal-KV consumer/runtime source change is authorized yet. The next lawful change must originate from the explicit TVC #293 admit/reuse/deny/defer decision.
+
+
+## TVC broker materialization boundary — 2026-09-03
+
+The previously inactive bearer-token consumer path is retired.
+
+Upstream canonical source now exists:
+
+```text
+TVC exact-class admission:
+  28f9beb222c84dda3dd411fed6fc4ae64a19bebe
+
+TVC lease/broker contract:
+  2c0a758852b5c28190e507bdc8a8b5e2ac0141c5
+
+existing non-exportable broker Google Drive extension:
+  StegVerse-Labs/stegfin-governance 17930b3b22584248992f5f53d35199bef043b1d4
+
+TVC owner-session lifecycle core:
+  4c42636b346a9ea0fafbdf8f6696239ba339b819
+```
+
+CVK now owns only secret-free materialization verification:
+
+```text
+TVC exact lease
+-> existing non-exportable vault broker
+-> bounded Google Drive read
+-> secret-free broker result
+-> CVK verifies binding/scope/path/hash/size
+-> exact-byte temporary KV root write/readback
+```
+
+Retired from CVK:
+- bearer-token/session-file reads;
+- Authorization header construction;
+- direct Google Drive HTTP execution;
+- token-permission tests.
+
+The binding credential reference class is now
+`TVC_NONSECRET_PROVIDER_MATERIALIZATION_BROKER`.
+
+No source/validation/merge proves a live TVC session, provider read, DEVICE_KV consumption,
+HB-derived return, Site readback, reconstruction, or physical recovery.
