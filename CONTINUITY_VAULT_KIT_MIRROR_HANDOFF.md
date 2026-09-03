@@ -874,3 +874,20 @@ The new reusable Personal Form Profile is now installed in the connected Google 
 The bounded provider materializer now includes that canonical path in addition to the existing installation receipt, Workspace scope, and Personal Contact Profile.
 
 This closes source/template/provider-scope presence only. Live TVC provider-session materialization and current-device DEVICE_KV profile write/readback remain runtime predicates.
+
+
+## KV Legacy Continuity — 2026-09-03
+
+Canonical bounded handoff: `KV_LEGACY_CONTINUITY_MIRROR_HANDOFF.md`.
+Goal: `KV-LEGACY-CONTINUITY-001`.
+State: `SOURCE_IMPLEMENTED_PENDING_HOSTED_VALIDATION`.
+
+Installed source:
+- `schemas/kv-legacy-capsule.schema.json`
+- `runtime/legacy_capsule.py`
+- `tests/test_legacy_capsule.py`
+- `vault_template/KnowledgeVault/_Entities/Self/Legacy/**`
+
+The runtime provides fail-closed sealed-capsule construction and progressive disclosure evaluation. It rejects embedded plaintext/credential fields and requires explicit identity, participation, release-trigger, TVC authorization, and InTr evidence before it can report release admissibility. Capsules default to NOT_ARMED.
+
+Remaining: connected-KV template installation/readback; StegID recipient-resolution binding; TV/TVC and InTr receipt binding; Site UX; owner-authorized private payload ingestion; delivery adapters. No live capsule or token release is activated.
