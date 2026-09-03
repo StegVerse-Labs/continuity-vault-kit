@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stegverse:kv:legacy-capsule:v1",
+  "title": "KnowledgeVault Legacy Capsule",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "capsule_id",
+    "subject_ref",
+    "payload",
+    "recipient_policy_ref",
+    "release_policy_ref",
+    "participation_gate_ref",
+    "disclosure",
+    "armed",
+    "state"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.legacy_capsule/v1"},
+    "capsule_id": {"type": "string", "minLength": 1},
+    "subject_ref": {"type": "string", "minLength": 1},
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "sealed_ref", "sha256"],
+      "properties": {
+        "class": {
+          "enum": ["EULOGY", "LETTER", "INSTRUCTION", "MEMORY", "DOCUMENT", "MEDIA", "STEGCOIN", "STEGTOKEN", "MIXED", "OTHER"]
+        },
+        "sealed_ref": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "recipient_policy_ref": {"type": "string", "minLength": 1},
+    "release_policy_ref": {"type": "string", "minLength": 1},
+    "participation_gate_ref": {"type": ["string", "null"]},
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invite_reveals_originator", "qualified_reveal_stage"],
+      "properties": {
+        "invite_reveals_originator": {"type": "boolean"},
+        "qualified_reveal_stage": {
+          "enum": ["CAPSULE_EXISTS", "ORIGINATOR_IDENTITY", "ASSET_CLASS", "TERMS", "FULL_PAYLOAD"]
+        }
+      }
+    },
+    "alternate_disposition_ref": {"type": ["string", "null"]},
+    "armed": {"type": "boolean"},
+    "state": {
+      "enum": ["DRAFT", "SEALED", "NOT_ARMED", "ARMED", "TRIGGER_EVIDENCE_PENDING", "RECIPIENT_RESOLUTION_PENDING", "PARTICIPATION_PENDING", "RELEASE_ADMISSIBILITY_PENDING", "DELIVERY_PENDING", "RELEASED", "DISPUTED", "REVOKED"]
+    }
+  }
+}
