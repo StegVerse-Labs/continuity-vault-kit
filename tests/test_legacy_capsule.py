@@ -2,6 +2,7 @@ import unittest
 
 from runtime.legacy_capsule import (
     LegacyCapsuleError,
+    assert_capsule,
     build_capsule,
     evaluate_disclosure,
 )
@@ -30,18 +31,10 @@ class LegacyCapsuleTests(unittest.TestCase):
         self.assertEqual(capsule["state"], "NOT_ARMED")
 
     def test_plaintext_field_is_rejected(self):
+        capsule = self._capsule()
+        capsule["payload_text"] = "must never be embedded"
         with self.assertRaises(LegacyCapsuleError):
-            build_capsule(
-                capsule_id="bad",
-                subject_ref="kv://personal/self",
-                payload_class="LETTER",
-                sealed_ref="kv://legacy/1",
-                payload_sha256=DIGEST,
-                recipient_policy_ref="kv://recipient/1",
-                release_policy_ref="kv://policy/1",
-                qualified_reveal_stage="FULL_PAYLOAD",
-                alternate_disposition_ref=None,
-            ) | {"payload_text": "must never be embedded"}
+            assert_capsule(capsule)
 
     def test_invitation_does_not_reveal_capsule(self):
         result = evaluate_disclosure(self._capsule(), evidence={"INVITATION_DELIVERED"})
