@@ -181,3 +181,30 @@ runtime provider session: NOT OBSERVED
 ```
 
 Therefore the next transition is no longer an unspecified credential blocker: TVC must explicitly authorize this exact provider-specific credential/session class or prove an already-admitted equivalent before source/runtime activation may proceed.
+
+
+## Google Drive exact-class admission guardrail — 2026-09-03
+
+TVC successor issue: `StegVerse-Labs/TVC#293`
+
+The TVC consistency lane now carries a merged fail-closed decision task:
+
+```text
+task: TVC-PERSONAL-KV-GOOGLE-DRIVE-SESSION-037A
+PR: StegVerse-Labs/TVC#294
+validated head: a6c799dd8dadcbabd1fce198cdb4daf6ed273d91
+consistency validation: 33766549021 SUCCESS
+merge: e0bf077809fa0c63f030b6f1cbabc75b3236cd11
+```
+
+Current state remains:
+
+```text
+exact provider credential/session class decision: OPEN
+implementation_allowed_now: false
+runtime_activation_allowed_now: false
+credential_entry_allowed_now: false
+provider session observed: false
+```
+
+Therefore no Personal-KV consumer/runtime source change is authorized yet. The next lawful change must originate from the explicit TVC #293 admit/reuse/deny/defer decision.
