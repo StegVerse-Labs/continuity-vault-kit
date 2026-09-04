@@ -11,6 +11,10 @@
     "Recipients"
   ],
   "direct_readback_verified": true,
+  "directory_structure_materialized": true,
+  "template_readme_required": true,
+  "template_readme_installed": false,
+  "full_legacy_template_parity": false,
   "provider_identifiers_persisted_publicly": false,
   "payload_ingested": false,
   "recipient_identity_persisted": false,
@@ -24,5 +28,5 @@
   "site_activation_performed": false,
   "authority_effect": "NONE_LOCAL_MATERIALIZATION_ONLY",
   "activation_effect": false,
-  "evidence_class": "DIRECT_CONNECTED_KV_FOLDER_CREATE_AND_READBACK"
+  "evidence_class": "DIRECT_CONNECTED_KV_DIRECTORY_CREATE_AND_READBACK_PARTIAL_TEMPLATE_PARITY"
 }
