@@ -1,6 +1,6 @@
 # KV Legacy Continuity Mirror Handoff
 
-Status: CONNECTED_KV_LEGACY_DIRECTORY_MATERIALIZED_READBACK_VERIFIED_SOURCE_VALIDATION_PENDING
+Status: CONNECTED_KV_LEGACY_DIRECTORIES_MATERIALIZED_READBACK_VERIFIED_FULL_PARITY_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Parent handoff: `CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md`
 Upstream contract: `StegVerse-Labs/Continuity/docs/LEGACY_CONTINUITY_MIRROR_HANDOFF.md`
@@ -26,7 +26,7 @@ Make Personal KnowledgeVault a private custody surface for governed legacy artif
 
 The connected KnowledgeVault root was directly inspected through the authorized connected Drive surface. `_Entities/Self` did not contain a `Legacy` folder before this continuation.
 
-This continuation created only the inactive folder structure:
+This continuation created the inactive directory structure:
 
 ```text
 KnowledgeVault/_Entities/Self/Legacy/
@@ -35,15 +35,33 @@ KnowledgeVault/_Entities/Self/Legacy/
   Recipients/
 ```
 
-A direct provider readback immediately after creation observed exactly those three children.
+A direct provider readback immediately after creation observed exactly those three directories.
 
 Repository evidence:
 
 `evidence/legacy/connected-kv-legacy-directory-readback-2026-09-04.json`
 
-Provider object identifiers are intentionally not copied into this repository evidence record.
+Provider object identifiers are intentionally not copied into this bounded evidence record.
 
-This establishes **connected-KV directory materialization/readback only**. It does not establish payload custody, a legacy recipient, a release policy, authentic capsule arming, death evidence, TVC authorization, InTr admissibility, recipient notification, Site activation, or economic transfer.
+### Exact-template parity boundary
+
+The repository template also requires:
+
+`KnowledgeVault/_Entities/Self/Legacy/README.md`
+
+That exact unconverted text file has **not** yet been installed through the available Drive file-import path in this continuation. Therefore:
+
+```text
+Legacy directory structure materialized: true
+Legacy directory readback verified: true
+Legacy README source present: true
+Legacy README connected-KV install observed: false
+full Legacy template parity: false
+```
+
+Do not promote directory presence into full template-parity completion.
+
+This establishes **connected-KV directory materialization/readback only**. It does not establish sealed payload custody, a legacy recipient, a release policy, authentic capsule arming, death evidence, TVC authorization, InTr admissibility, recipient notification, Site activation, or economic transfer.
 
 ## Custody rule
 
@@ -82,16 +100,17 @@ A capsule may reference a `STEGCOIN` or `STEGTOKEN` bequest class, but this KV s
 
 ## Remaining work
 
-1. Validate the KV legacy source through a credential-compliant exact-source validation path; do not infer source validation from the connected folder materialization.
-2. Add an owner-authorized private capsule write/readback path after the sealed payload storage representation is admitted.
-3. Bind recipient identity evidence from StegID.
-4. Bind TV/TVC authorization and InTr release-admissibility receipts after their governing prerequisites clear.
-5. Bind participation evidence to existing ecosystem activity/standing receipts.
-6. Add Site Legacy & Continuity UX only after Site orchestrator admission.
-7. Add delivery only after disclosure authorization.
-8. Ingest actual private legacy payloads only through an owner-authorized KV write path.
-9. Keep all authentic capsules NOT_ARMED until explicit participant activation and applicable legal disposition requirements are satisfied.
+1. Install exact unconverted `Legacy/README.md` into the already-materialized connected Legacy folder and verify direct filename/MIME/content-size readback.
+2. Validate the KV legacy source through an existing credential-compliant validation surface; do not infer source validation from Drive materialization.
+3. Add an owner-authorized private capsule write/readback path only after the sealed payload storage representation is admitted.
+4. Bind recipient identity evidence from StegID.
+5. Bind TV/TVC authorization and InTr release-admissibility receipts after their governing prerequisites clear.
+6. Bind participation evidence to existing ecosystem activity/standing receipts.
+7. Add Site Legacy & Continuity UX only after Site orchestrator admission.
+8. Add delivery only after disclosure authorization.
+9. Ingest actual private legacy payloads only through an owner-authorized KV write path.
+10. Keep all authentic capsules NOT_ARMED until explicit participant activation and applicable legal disposition requirements are satisfied.
 
 ## Completion boundary
 
-The Legacy directory structure is now genuinely present in the connected private KV and directly read back. Source validation and authentic payload custody remain separate incomplete predicates. No authentic bequest has been armed or released.
+The Legacy directory structure is genuinely present in the connected private KV and directly read back. Full template parity, source validation, and authentic payload custody remain separate incomplete predicates. No authentic bequest has been armed or released.
