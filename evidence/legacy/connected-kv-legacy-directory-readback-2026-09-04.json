@@ -1,0 +1,28 @@
+{
+  "schema": "stegverse.kv.legacy_directory_readback/v1",
+  "observed_at": "2026-09-04T20:00:04Z",
+  "goal_id": "KV-LEGACY-CONTINUITY-001",
+  "connected_private_kv_observed": true,
+  "provider_backed_root_observed": true,
+  "installed_path": "KnowledgeVault/_Entities/Self/Legacy",
+  "direct_children": [
+    "Capsules",
+    "Policies",
+    "Recipients"
+  ],
+  "direct_readback_verified": true,
+  "provider_identifiers_persisted_publicly": false,
+  "payload_ingested": false,
+  "recipient_identity_persisted": false,
+  "release_policy_armed": false,
+  "authentic_capsule_armed": false,
+  "governed_external_action_performed": false,
+  "tvc_authorization_created": false,
+  "intr_release_admissibility_created": false,
+  "recipient_notification_performed": false,
+  "economic_transfer_performed": false,
+  "site_activation_performed": false,
+  "authority_effect": "NONE_LOCAL_MATERIALIZATION_ONLY",
+  "activation_effect": false,
+  "evidence_class": "DIRECT_CONNECTED_KV_FOLDER_CREATE_AND_READBACK"
+}
