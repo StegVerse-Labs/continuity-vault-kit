@@ -4,7 +4,12 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from runtime.historical_provenance import build_artifact_record
 from runtime.historical_corpus_import import (
@@ -17,7 +22,6 @@ from runtime.historical_corpus_import import (
     build_site_status_projection,
 )
 
-ROOT = Path(__file__).resolve().parents[1]
 HANDOFF = ROOT / "KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md"
 README = ROOT / "README.md"
 SCHEMAS = {
