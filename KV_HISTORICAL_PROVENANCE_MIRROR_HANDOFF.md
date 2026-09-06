@@ -1,6 +1,6 @@
 # KV Historical Provenance Mirror Handoff
 
-Status: ACTIVE_IMPLEMENTATION / SOURCE_ONLY  
+Status: SOURCE_IMPLEMENTED / VALIDATION_IN_PROGRESS  
 Repository: `StegVerse-Labs/continuity-vault-kit`  
 Issue: `#188`  
 Branch: `feature/kv-historical-provenance-188`  
@@ -44,9 +44,9 @@ Resolved state before functional mutation:
 
 README change required: **YES**.
 
-Reason: issue #188 materially expands documented KnowledgeVault capability meaning by defining multi-provider historical evidence references, exact-byte historical identity, and lineage semantics. The repository README must explain that KV may index evidence across owner-controlled providers without treating storage location, copies, or imported historical artifacts as current authority.
+Reason: issue #188 materially expands documented KnowledgeVault capability meaning by defining multi-provider historical evidence references, exact-byte historical identity, and lineage semantics. The repository README now explains that KV may index evidence across owner-controlled providers without treating storage location, copies, or imported historical artifacts as current authority.
 
-The README update must be part of the same source change set as the capability implementation.
+The README update is part of the same source change set as the capability implementation.
 
 ## Governing invariants
 
@@ -95,17 +95,32 @@ Historical provenance ingestion grants none of the following:
 
 Provider credentials remain behind SKAP.
 
-## Initial source implementation
-
-Planned bounded files:
+## Implemented source surfaces
 
 - `schemas/kv-historical-artifact-record.schema.json`
 - `runtime/historical_provenance.py`
 - `tests/test_historical_provenance.py`
+- `tools/check_kv_historical_provenance.py`
+- `.github/workflows/kv-historical-provenance.yml`
+- `tests/test_global_hosted_workflow_authority.py` — intentional workflow census advanced from 48 to 49 for the added read-only validation workflow
 - `README.md`
+- `data/session-work-claims.d/cvk-historical-provenance-188-20260905.json`
 - this handoff
 
 The runtime helper is pure/local and accepts caller-supplied metadata plus exact bytes. It does not connect to iCloud, Google Drive, or any network provider.
+
+## Validation evidence to date
+
+On PR #189 head `4c8e59576214bdf9b9e9711a21ead50707151672`:
+
+- `KV Historical Provenance` run `34002318687`: PASS;
+- `Repository validation diagnostics` run `34002318663`: PASS;
+- `Security Baseline` run `34002318632`: PASS;
+- `Release integrity` run `34002318676`: FAIL because the repository-wide hosted-workflow census expected 48 workflows while this task intentionally added the 49th workflow.
+
+The failure was inspected to the exact assertion `len(workflows) == 48`. The census is now advanced to 49 and included in the focused validation set. This is a task-caused completeness correction, not unrelated debt and not an authority exception.
+
+Current head after the correction must pass the applicable checks before merge. No validation is inferred from the earlier head.
 
 ## Completion boundary
 
@@ -115,6 +130,8 @@ Source completion requires:
 2. deterministic artifact-record builder installed;
 3. validation covering exact-byte hashing, source/copy relationships, authority posture, and fail-closed invalid lineage;
 4. README updated in the same change set;
-5. source review/validation and merge.
+5. repository-wide hosted-workflow census remains exact after adding the validation workflow;
+6. applicable current-head validation passes;
+7. source merge.
 
 Live activation remains separate and requires owner-authorized provider access plus authentic observation of source artifacts. No live iCloud/Google Drive access may be inferred from source completion.
