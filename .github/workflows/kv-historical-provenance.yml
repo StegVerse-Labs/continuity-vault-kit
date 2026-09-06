@@ -7,6 +7,7 @@ on:
       - 'schemas/kv-historical-artifact-record.schema.json'
       - 'runtime/historical_provenance.py'
       - 'tests/test_historical_provenance.py'
+      - 'tests/test_global_hosted_workflow_authority.py'
       - 'tools/check_kv_historical_provenance.py'
       - 'README.md'
       - 'data/session-work-claims.d/cvk-historical-provenance-188-20260905.json'
@@ -27,6 +28,6 @@ jobs:
       - name: Compile runtime helper
         run: python3 -m py_compile runtime/historical_provenance.py tools/check_kv_historical_provenance.py
       - name: Run focused tests
-        run: python3 -m unittest tests.test_historical_provenance -v
+        run: python3 -m unittest tests.test_historical_provenance tests.test_global_hosted_workflow_authority -v
       - name: Validate source contract
         run: python3 tools/check_kv_historical_provenance.py
