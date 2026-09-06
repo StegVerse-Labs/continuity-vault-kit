@@ -1,9 +1,10 @@
 # KV Historical Provenance Mirror Handoff
 
-Status: SOURCE_IMPLEMENTED / VALIDATION_IN_PROGRESS  
+Status: SOURCE_MERGED_VALIDATED / LIVE_PROVIDER_ACTIVATION_SEPARATE  
 Repository: `StegVerse-Labs/continuity-vault-kit`  
 Issue: `#188`  
-Branch: `feature/kv-historical-provenance-188`  
+Implementation PR: `#189`  
+Merge commit: `794bc9e739ef90553fe16941c2356f76469f81db`  
 Updated: 2026-09-05  
 Authority effect: NONE  
 Activation effect: false
@@ -36,17 +37,15 @@ Resolved state before functional mutation:
 1. Repository-local canonical handoff is `docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md`.
 2. Canonical ecosystem task coordination separates work intent from WorkerCoordinator execution authority and Master Records observed-reality authority.
 3. `master-records/core-lite/MASTER_RECORDS_MIRROR_HANDOFF.md` remains the current Master Records repository-wide handoff; this task does not mint Master Records custody.
-4. Existing claim `CVK-LEGACY-KV-UPGRADE-174` owns migration/upgrade paths for the older iCloud KV. Issue #188 uses distinct historical-provenance paths and must not modify either existing vault.
-5. `KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md` already defines direct-source provenance and SKAP-bounded provider access. Historical provenance must reuse that ingress model.
-6. `KV_PROVIDER_SURFACE_CAPABILITIES_MIRROR_HANDOFF.md` already owns generic provider/device capability facts. This task must not duplicate that registry.
+4. Existing claim `CVK-LEGACY-KV-UPGRADE-174` owns migration/upgrade paths for the older iCloud KV. Issue #188 uses distinct historical-provenance paths and did not modify either existing vault.
+5. `KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md` already defines direct-source provenance and SKAP-bounded provider access. Historical provenance reuses that ingress model.
+6. `KV_PROVIDER_SURFACE_CAPABILITIES_MIRROR_HANDOFF.md` already owns generic provider/device capability facts. This task did not duplicate that registry.
 
 ### README completeness predicate
 
-README change required: **YES**.
+README change required: **YES**, and satisfied in PR #189.
 
 Reason: issue #188 materially expands documented KnowledgeVault capability meaning by defining multi-provider historical evidence references, exact-byte historical identity, and lineage semantics. The repository README now explains that KV may index evidence across owner-controlled providers without treating storage location, copies, or imported historical artifacts as current authority.
-
-The README update is part of the same source change set as the capability implementation.
 
 ## Governing invariants
 
@@ -59,41 +58,7 @@ semantic_interpretation != source_bytes
 source_merge != live_provider_observation
 ```
 
-A historical artifact record must preserve the original artifact identity separately from every later copy, normalized projection, interpretation, derived claim, or canonical present-day doctrine.
-
-## Required artifact identity
-
-Every admitted historical artifact record must include at minimum:
-
-- stable artifact record ID;
-- exact-byte SHA-256;
-- original file name when available;
-- MIME/media type when known;
-- byte size;
-- source provider/storage class;
-- source locator represented without reusable credential material;
-- first-observed timestamp;
-- source-observed timestamp when available and separately labeled;
-- ingest/receipt timestamp;
-- source relationship (`ORIGINAL`, `COPY`, `MIRROR`, `DERIVED`, or `UNKNOWN`);
-- parent/source artifact references for non-original material;
-- current authority posture;
-- contradiction/uncertainty state;
-- receipt identity.
-
-## Authority boundaries
-
-Historical provenance ingestion grants none of the following:
-
-- present execution authority;
-- governance authority;
-- publication authority;
-- doctrinal authority;
-- provider write authority;
-- migration authority;
-- permission to inspect private content without owner authorization.
-
-Provider credentials remain behind SKAP.
+A historical artifact record preserves original artifact identity separately from every later copy, normalized projection, interpretation, derived claim, or canonical present-day doctrine.
 
 ## Implemented source surfaces
 
@@ -109,29 +74,70 @@ Provider credentials remain behind SKAP.
 
 The runtime helper is pure/local and accepts caller-supplied metadata plus exact bytes. It does not connect to iCloud, Google Drive, or any network provider.
 
-## Validation evidence to date
+## Authority boundaries
 
-On PR #189 head `4c8e59576214bdf9b9e9711a21ead50707151672`:
+Historical provenance ingestion grants none of the following:
 
-- `KV Historical Provenance` run `34002318687`: PASS;
-- `Repository validation diagnostics` run `34002318663`: PASS;
-- `Security Baseline` run `34002318632`: PASS;
-- `Release integrity` run `34002318676`: FAIL because the repository-wide hosted-workflow census expected 48 workflows while this task intentionally added the 49th workflow.
+- present execution authority;
+- governance authority;
+- publication authority;
+- doctrinal authority;
+- provider write authority;
+- migration authority;
+- permission to inspect private content without owner authorization.
 
-The failure was inspected to the exact assertion `len(workflows) == 48`. The census is now advanced to 49 and included in the focused validation set. This is a task-caused completeness correction, not unrelated debt and not an authority exception.
+Provider credentials remain behind SKAP.
 
-Current head after the correction must pass the applicable checks before merge. No validation is inferred from the earlier head.
+## Validation and repair evidence
 
-## Completion boundary
+Initial PR #189 validation discovered one task-caused completeness defect: the repository-wide hosted-workflow authority test hard-coded a 48-workflow census. Adding the historical provenance validator created the 49th workflow, so Release Integrity failed at `len(workflows) == 48`.
 
-Source completion requires:
+The exact census was corrected from 48 to 49 and the census test was added to the focused historical provenance validation set. No authority exception or weakening was introduced.
 
-1. schema installed;
-2. deterministic artifact-record builder installed;
-3. validation covering exact-byte hashing, source/copy relationships, authority posture, and fail-closed invalid lineage;
-4. README updated in the same change set;
-5. repository-wide hosted-workflow census remains exact after adding the validation workflow;
-6. applicable current-head validation passes;
-7. source merge.
+Final implementation head before merge: `324e23ca3974b533a0805898d2f0c10bce186a92`.
 
-Live activation remains separate and requires owner-authorized provider access plus authentic observation of source artifacts. No live iCloud/Google Drive access may be inferred from source completion.
+Applicable validation on that head:
+
+- `KV Historical Provenance` run `34002399700`: PASS; compile, focused tests including global hosted-workflow authority, and source-contract validator all PASS.
+- `Repository validation diagnostics` run `34002399732`: PASS.
+- `Security Baseline` run `34002399705`: PASS.
+- `Release integrity` run `34002399928`: PASS; repository-wide hosted-workflow authority PASS and release-evidence rebuild/manifest validation PASS.
+- `KV Guardrails` run `34002399740`: PASS; all guardrail and hosted-non-authority checks PASS.
+
+PR #189 merged as `794bc9e739ef90553fe16941c2356f76469f81db`.
+
+## Source completion
+
+```text
+schema: COMPLETE
+runtime helper: COMPLETE
+tests: COMPLETE
+source validator: COMPLETE
+read-only validation workflow: COMPLETE
+README completeness predicate: SATISFIED
+workflow authority census: 49 / 49
+applicable validation: PASS
+merge: COMPLETE
+source stubs: 0
+```
+
+## Separate activation boundary
+
+Live provider activation is not part of source completion. It requires explicit owner-authorized access plus authentic observation of historical source artifacts through the existing provider/SKAP/InTr boundaries.
+
+No live iCloud or Google Drive access is claimed from this merge.
+No historical artifact has yet been imported by this task.
+No Master Records custody has yet been minted for a historical corpus.
+
+## Next integration candidate
+
+`KV-HISTORICAL-CORPUS-IMPORT-001`:
+
+1. accept an owner-selected historical source artifact through existing direct-source/provider semantics;
+2. preserve exact source bytes and provider/source provenance;
+3. emit the historical artifact record and import receipt;
+4. preserve copy/mirror/derived lineage without silent merge;
+5. route accepted custody evidence to Master Records through the existing governed boundary;
+6. expose bounded historical provenance status to Site/MyKV without exposing private content.
+
+This successor must remain separate from `CVK-LEGACY-KV-UPGRADE-174`; historical evidence ingestion is not a vault migration or upgrade.
