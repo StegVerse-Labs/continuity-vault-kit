@@ -10,8 +10,8 @@
       "originating_goal": "Preserve exact-byte historical StegVerse evidence across owner-controlled storage providers without making provider location, copies, interpretations, or imported history current authority.",
       "repository": "StegVerse-Labs/continuity-vault-kit",
       "branch": "feature/kv-historical-provenance-188",
-      "role": "ACTIVE_IMPLEMENTATION",
-      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "role": "SOURCE_IMPLEMENTATION",
+      "state": "RELEASED_AFTER_MERGE",
       "normalized_work_key": "cvk-historical-provenance-188",
       "dependency_surface_keys": [
         "kv:historical-provenance",
@@ -31,9 +31,10 @@
         "data/session-work-claims.d/cvk-historical-provenance-188-20260905.json"
       ],
       "handoff": "KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md",
-      "handoff_revision": "SOURCE_IMPLEMENTATION_20260905",
+      "handoff_revision": "SOURCE_MERGED_VALIDATED_20260905",
       "claim_created_at": "2026-09-05T19:47:00-05:00",
-      "claim_expires_when": "Release after source validation/merge; live provider observation remains separate owner/runtime work.",
+      "claim_released_at": "2026-09-05T19:55:00-05:00",
+      "claim_expires_when": "RELEASED",
       "expected_evidence": [
         "exact-byte SHA-256 binding validated",
         "copy/mirror/derived lineage constraints validated",
@@ -41,7 +42,16 @@
         "reusable credential material rejected from locator refs",
         "README capability semantics updated in same change set",
         "hosted workflow authority census updated for intentional new validation workflow",
-        "source PR validation observed"
+        "source PR validation observed",
+        "source merge observed"
+      ],
+      "observed_evidence": [
+        "KV Historical Provenance run 34002399700 PASS",
+        "Repository validation diagnostics run 34002399732 PASS",
+        "Security Baseline run 34002399705 PASS",
+        "Release integrity run 34002399928 PASS",
+        "KV Guardrails run 34002399740 PASS",
+        "PR #189 merged as 794bc9e739ef90553fe16941c2356f76469f81db"
       ],
       "collision_boundaries": [
         "Do not modify CVK-LEGACY-KV-UPGRADE-174 claimed paths",
@@ -51,14 +61,14 @@
         "Do not create a parallel direct-source ingress authority",
         "Do not claim live provider observation from source state"
       ],
-      "next_task_after_release": "Add an owner-authorized historical-corpus import/receipt projection through the existing direct-source and InTr boundaries, then anchor accepted custody evidence into Master Records without changing historical bytes.",
+      "next_task_after_release": "KV-HISTORICAL-CORPUS-IMPORT-001: add an owner-authorized historical-corpus import/receipt projection through existing direct-source and InTr boundaries, then anchor accepted custody evidence into Master Records without changing historical bytes and expose bounded status to Site/MyKV.",
       "credential_authority": "TV/TVC",
       "credential_requirement": "NONE_FOR_SOURCE_IMPLEMENTATION",
       "github_token_runtime_authority": "NONE",
       "non_tv_tvc_secret_or_token_used": false,
       "authority_effect": false,
       "activation_effect": false,
-      "archive_eligible": false
+      "archive_eligible": true
     }
   ]
 }
