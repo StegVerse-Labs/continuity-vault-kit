@@ -4,11 +4,15 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from runtime.historical_provenance import HistoricalProvenanceError, assert_artifact_record, build_artifact_record
 
-ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "schemas" / "kv-historical-artifact-record.schema.json"
 HANDOFF = ROOT / "KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md"
 README = ROOT / "README.md"
