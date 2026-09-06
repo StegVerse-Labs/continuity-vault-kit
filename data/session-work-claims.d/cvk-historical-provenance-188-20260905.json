@@ -24,6 +24,9 @@
         "schemas/kv-historical-artifact-record.schema.json",
         "runtime/historical_provenance.py",
         "tests/test_historical_provenance.py",
+        "tests/test_global_hosted_workflow_authority.py",
+        "tools/check_kv_historical_provenance.py",
+        ".github/workflows/kv-historical-provenance.yml",
         "README.md",
         "data/session-work-claims.d/cvk-historical-provenance-188-20260905.json"
       ],
@@ -37,6 +40,7 @@
         "authority escalation rejected",
         "reusable credential material rejected from locator refs",
         "README capability semantics updated in same change set",
+        "hosted workflow authority census updated for intentional new validation workflow",
         "source PR validation observed"
       ],
       "collision_boundaries": [
