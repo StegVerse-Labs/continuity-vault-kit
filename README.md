@@ -99,6 +99,23 @@ A historical record must keep the exact source artifact separate from later copi
 
 See [`KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md`](./KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md) for the bounded source contract.
 
+## Owner-authorized historical imports and custody
+
+A historical artifact may enter the governed KV import path only when the runtime has an explicit owner-authorization evidence reference, exact bytes matching the historical artifact record, an admitted InTr receipt, and a persistence receipt. The resulting historical import receipt proves that those evidence references and exact-byte identity were bound together; it does **not** certify the historical artifact as true, current doctrine, publishable, or authoritative.
+
+A KV historical import may also produce a **Master Records custody-request candidate**. That candidate is only a request from the source repository. It must state that destination custody has not yet been accepted, destination acknowledgement has not been minted, and independent destination validation has not yet completed. Only the Master Records destination may independently validate and create its own custody acknowledgement.
+
+Site/MyKV may receive a bounded status projection containing artifact and receipt identifiers, import state, lineage/contradiction state, and custody-request state. The status projection does not contain historical source bytes or private content and grants no publication authority.
+
+```text
+owner authorization != reusable credential
+import receipt != truth certification
+custody request != destination custody acceptance
+bounded status != private historical content
+```
+
+See [`KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md`](./KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md) for the source and activation boundaries.
+
 ## Technical review
 
 Developers and reviewers should start with [`docs/TECHNICAL_REVIEW_PATH.md`](./docs/TECHNICAL_REVIEW_PATH.md), [`SECURITY.md`](./SECURITY.md), and [`stegverse.architecture.json`](./stegverse.architecture.json).

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-historical-status-projection.schema.json",
+  "title": "KnowledgeVault Historical Import Status Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","artifact_id","artifact_sha256","import_receipt_id","import_state","relationship_kind","contradiction_state","custody_requested","destination_custody_accepted","destination_acknowledgement_minted","private_content_included","publication_authority_granted","authority_effect"],
+  "properties": {
+    "schema_version": {"const": "stegverse.kv.historical-status-projection/v1"},
+    "artifact_id": {"type": "string", "minLength": 1},
+    "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "import_receipt_id": {"type": "string", "minLength": 1},
+    "import_state": {"const": "ADMITTED_PERSISTED"},
+    "relationship_kind": {"enum": ["ORIGINAL","COPY","MIRROR","DERIVED","UNKNOWN"]},
+    "contradiction_state": {"enum": ["NONE","UNRESOLVED","CONFLICTING_SOURCE","UNKNOWN"]},
+    "custody_requested": {"type": "boolean"},
+    "destination_custody_accepted": {"const": false},
+    "destination_acknowledgement_minted": {"const": false},
+    "private_content_included": {"const": false},
+    "publication_authority_granted": {"const": false},
+    "authority_effect": {"const": "NONE_STATUS_ONLY"}
+  }
+}

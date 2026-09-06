@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-historical-import-receipt.schema.json",
+  "title": "KnowledgeVault Historical Import Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","artifact_id","artifact_sha256","artifact_receipt_id","relationship_kind","contradiction_state","owner_authorization_ref","direct_source_receipt_ref","intr_admission_receipt_ref","persistence_receipt_ref","imported_at","state","truth_certified","private_content_included","authority_posture","receipt_sha256","receipt_id"],
+  "properties": {
+    "schema_version": {"const": "stegverse.kv.historical-import-receipt/v1"},
+    "artifact_id": {"type": "string", "minLength": 1},
+    "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "artifact_receipt_id": {"type": "string", "minLength": 1},
+    "relationship_kind": {"enum": ["ORIGINAL","COPY","MIRROR","DERIVED","UNKNOWN"]},
+    "contradiction_state": {"enum": ["NONE","UNRESOLVED","CONFLICTING_SOURCE","UNKNOWN"]},
+    "owner_authorization_ref": {"type": "string", "minLength": 1},
+    "direct_source_receipt_ref": {"type": ["string","null"]},
+    "intr_admission_receipt_ref": {"type": "string", "minLength": 1},
+    "persistence_receipt_ref": {"type": "string", "minLength": 1},
+    "imported_at": {"type": "string", "minLength": 1},
+    "state": {"const": "ADMITTED_PERSISTED"},
+    "truth_certified": {"const": false},
+    "private_content_included": {"const": false},
+    "authority_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution","governance","publication","doctrine","provider_write","migration","master_records_destination"],
+      "properties": {
+        "execution": {"const": false}, "governance": {"const": false}, "publication": {"const": false},
+        "doctrine": {"const": false}, "provider_write": {"const": false}, "migration": {"const": false},
+        "master_records_destination": {"const": false}
+      }
+    },
+    "receipt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "receipt_id": {"type": "string", "minLength": 1}
+  }
+}
