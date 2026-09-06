@@ -10,17 +10,11 @@
       "originating_goal": "Implement the first owner-authorized historical-corpus import/receipt path using merged historical provenance, existing direct-source/SKAP/InTr boundaries, source-only Master Records custody requests, and bounded Site/MyKV status projections.",
       "repository": "StegVerse-Labs/continuity-vault-kit",
       "branch": "feature/kv-historical-corpus-import-191",
-      "role": "ACTIVE_IMPLEMENTATION",
-      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "role": "SOURCE_IMPLEMENTATION",
+      "state": "RELEASED_AFTER_MERGE",
       "normalized_work_key": "kv-historical-corpus-import-001",
-      "dependency_surface_keys": [
-        "kv:historical-provenance",
-        "kv:direct-source-ingress",
-        "kv:intr-admission",
-        "master-records:custody-request",
-        "site:mykv-status-projection"
-      ],
-      "governing_dependency_keys": ["kv:historical-provenance", "kv:intr-admission"],
+      "dependency_surface_keys": ["kv:historical-provenance","kv:direct-source-ingress","kv:intr-admission","master-records:custody-request","site:mykv-status-projection"],
+      "governing_dependency_keys": ["kv:historical-provenance","kv:intr-admission"],
       "claimed_paths": [
         "KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md",
         "schemas/kv-historical-import-receipt.schema.json",
@@ -35,9 +29,10 @@
         "data/session-work-claims.d/cvk-historical-corpus-import-191-20260905.json"
       ],
       "handoff": "KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md",
-      "handoff_revision": "SOURCE_IMPLEMENTATION_20260905",
+      "handoff_revision": "SOURCE_MERGED_VALIDATED_20260905",
       "claim_created_at": "2026-09-05T22:41:00-05:00",
-      "claim_expires_when": "Release after source validation and merge; authentic owner-authorized corpus execution and destination Master Records custody remain separate runtime/destination evidence gates.",
+      "claim_released_at": "2026-09-05T22:46:00-05:00",
+      "claim_expires_when": "RELEASED",
       "expected_evidence": [
         "historical artifact exact-byte binding reused",
         "owner authorization evidence reference required",
@@ -49,6 +44,16 @@
         "hosted workflow authority census advanced exactly for added read-only workflow",
         "source PR exact-head validation observed"
       ],
+      "validation_evidence": {
+        "final_head": "ed18b0f0a62669247b38642eb00ce3e4d07f3acf",
+        "kv_historical_corpus_import_run": 34009779451,
+        "repository_diagnostics_run": 34009779449,
+        "security_baseline_run": 34009779452,
+        "release_integrity_run": 34009779448,
+        "historical_provenance_run": 34009779465,
+        "kv_guardrails_run": 34009779487,
+        "merge_commit": "7b84542d814ff18c132cfc4e6962f5a37d38c830"
+      },
       "collision_boundaries": [
         "Do not modify CVK-LEGACY-KV-UPGRADE-174 paths or either physical vault",
         "Do not modify PR #161 portable direct-source canonical-raw persistence paths",
@@ -57,14 +62,14 @@
         "Do not expose historical source bytes/private content to Site/MyKV",
         "Do not claim provider access or live corpus import from source state"
       ],
-      "next_task_after_release": "Execute one authentic owner-selected historical artifact import through existing provider/SKAP/InTr boundaries, then submit the resulting source-bound custody request to Master Records for independent destination validation and project only bounded status to Site/MyKV.",
+      "next_task_after_release": "Prepare independent Master Records historical-corpus custody validation and verify bounded Site/MyKV status consumption; authentic artifact execution remains blocked until owner authorization and exact source bytes are supplied through the admitted runtime path.",
       "credential_authority": "TV/TVC",
       "credential_requirement": "NONE_FOR_SOURCE_IMPLEMENTATION",
       "github_token_runtime_authority": "NONE",
       "non_tv_tvc_secret_or_token_used": false,
       "authority_effect": false,
       "activation_effect": false,
-      "archive_eligible": false
+      "archive_eligible": true
     }
   ]
 }
