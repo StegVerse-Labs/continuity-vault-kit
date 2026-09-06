@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-historical-artifact-record.schema.json",
+  "title": "KnowledgeVault Historical Artifact Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "exact_sha256",
+    "byte_size",
+    "original_filename",
+    "media_type",
+    "source",
+    "relationship",
+    "ingested_at",
+    "interpretation_refs",
+    "contradiction_state",
+    "authority_posture",
+    "receipt_id"
+  ],
+  "properties": {
+    "schema_version": { "const": "stegverse.kv.historical-artifact-record/v1" },
+    "artifact_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "exact_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "byte_size": { "type": "integer", "minimum": 0 },
+    "original_filename": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "media_type": { "type": ["string", "null"], "maxLength": 160 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "storage_class", "locator_ref", "first_observed_at", "source_observed_at"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "storage_class": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "locator_ref": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "first_observed_at": { "type": "string", "format": "date-time" },
+        "source_observed_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "parent_artifact_refs"],
+      "properties": {
+        "kind": { "enum": ["ORIGINAL", "COPY", "MIRROR", "DERIVED", "UNKNOWN"] },
+        "parent_artifact_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "ingested_at": { "type": "string", "format": "date-time" },
+    "interpretation_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+      "uniqueItems": true
+    },
+    "contradiction_state": { "enum": ["NONE", "UNRESOLVED", "CONFLICTING_SOURCE", "UNKNOWN"] },
+    "authority_posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution", "governance", "publication", "doctrine", "provider_write", "migration"],
+      "properties": {
+        "execution": { "const": false },
+        "governance": { "const": false },
+        "publication": { "const": false },
+        "doctrine": { "const": false },
+        "provider_write": { "const": false },
+        "migration": { "const": false }
+      }
+    },
+    "receipt_id": { "type": "string", "minLength": 1, "maxLength": 256 }
+  }
+}
