@@ -82,6 +82,23 @@ See:
 - [`docs/EXAMPLES.md`](./docs/EXAMPLES.md)
 - [`docs/AI_COMPATIBLE.md`](./docs/AI_COMPATIBLE.md)
 
+## Historical provenance across storage providers
+
+KnowledgeVault can represent historical evidence that remains in more than one owner-controlled storage provider. A legacy artifact may remain in iCloud, Google Drive, local storage, or another admitted source while KV records its exact-byte identity, source/provider provenance, chronology, and explicit copy/mirror/derived relationships.
+
+The governing distinction is:
+
+```text
+storage location != authority
+copy != original
+historical evidence != current doctrine
+import receipt != truth certification
+```
+
+A historical record must keep the exact source artifact separate from later copies, normalized projections, interpretations, derived claims, and present-day canonical StegVerse doctrine. Provider credentials remain behind SKAP, and source implementation does not itself authorize provider access, migration, publication, governance, or execution.
+
+See [`KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md`](./KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md) for the bounded source contract.
+
 ## Technical review
 
 Developers and reviewers should start with [`docs/TECHNICAL_REVIEW_PATH.md`](./docs/TECHNICAL_REVIEW_PATH.md), [`SECURITY.md`](./SECURITY.md), and [`stegverse.architecture.json`](./stegverse.architecture.json).
