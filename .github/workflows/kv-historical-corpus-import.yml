@@ -1,0 +1,35 @@
+name: KV Historical Corpus Import
+
+on:
+  pull_request:
+    paths:
+      - 'KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md'
+      - 'schemas/kv-historical-import-receipt.schema.json'
+      - 'schemas/kv-historical-custody-request.schema.json'
+      - 'schemas/kv-historical-status-projection.schema.json'
+      - 'runtime/historical_corpus_import.py'
+      - 'tests/test_historical_corpus_import.py'
+      - 'tests/test_global_hosted_workflow_authority.py'
+      - 'tools/check_kv_historical_corpus_import.py'
+      - 'README.md'
+      - 'data/session-work-claims.d/cvk-historical-corpus-import-191-20260905.json'
+      - '.github/workflows/kv-historical-corpus-import.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile runtime helpers
+        run: python3 -m py_compile runtime/historical_provenance.py runtime/historical_corpus_import.py tools/check_kv_historical_corpus_import.py
+      - name: Run focused tests
+        run: python3 -m unittest tests.test_historical_corpus_import tests.test_global_hosted_workflow_authority -v
+      - name: Validate source contract
+        run: python3 tools/check_kv_historical_corpus_import.py
