@@ -1,0 +1,32 @@
+name: KV Historical Provenance
+
+on:
+  pull_request:
+    paths:
+      - 'KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md'
+      - 'schemas/kv-historical-artifact-record.schema.json'
+      - 'runtime/historical_provenance.py'
+      - 'tests/test_historical_provenance.py'
+      - 'tools/check_kv_historical_provenance.py'
+      - 'README.md'
+      - 'data/session-work-claims.d/cvk-historical-provenance-188-20260905.json'
+      - '.github/workflows/kv-historical-provenance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile runtime helper
+        run: python3 -m py_compile runtime/historical_provenance.py tools/check_kv_historical_provenance.py
+      - name: Run focused tests
+        run: python3 -m unittest tests.test_historical_provenance -v
+      - name: Validate source contract
+        run: python3 tools/check_kv_historical_provenance.py
