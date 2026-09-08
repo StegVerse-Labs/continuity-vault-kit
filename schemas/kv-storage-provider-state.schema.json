@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stegverse.kv.storage-provider-state/v1",
+  "title": "KnowledgeVault Storage Provider State",
+  "type": "object",
+  "required": ["schema","instance_id","kv_set_id","providers","authority_effect","credential_material_present"],
+  "properties": {
+    "schema": {"const": "stegverse.kv.storage-provider-state/v1"},
+    "instance_id": {"type": "string", "pattern": "^kvi_"},
+    "kv_set_id": {"type": "string", "minLength": 1},
+    "providers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["connection_state","verified","last_request_id","last_operation","last_interlock_receipt_ref","last_intr_receipt_ref","last_skap_credential_ref","last_result_ref","authority_effect","credential_material_present"],
+        "properties": {
+          "connection_state": {"enum": ["DISCONNECTED","CONNECTED"]},
+          "verified": {"type": "boolean"},
+          "last_request_id": {"type": ["string","null"]},
+          "last_operation": {"enum": ["CONNECT","VERIFY","READ","WRITE","SYNC","DISCONNECT",null]},
+          "last_interlock_receipt_ref": {"type": ["string","null"]},
+          "last_intr_receipt_ref": {"type": ["string","null"]},
+          "last_skap_credential_ref": {"type": ["string","null"]},
+          "last_result_ref": {"type": ["string","null"]},
+          "authority_effect": {"const": "NONE"},
+          "credential_material_present": {"const": false}
+        },
+        "additionalProperties": false
+      }
+    },
+    "authority_effect": {"const": "NONE"},
+    "credential_material_present": {"const": false}
+  },
+  "additionalProperties": false
+}

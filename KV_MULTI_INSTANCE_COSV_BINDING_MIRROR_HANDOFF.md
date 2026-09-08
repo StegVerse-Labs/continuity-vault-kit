@@ -1,10 +1,10 @@
 # KV Multi-Instance COSV Binding Mirror Handoff
 
-Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MERGED / MYKV_PROJECTION_MERGED / STORAGE_PROVIDER_ADAPTERS_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
+Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MERGED / MYKV_PROJECTION_MERGED / STORAGE_PROVIDER_ADAPTERS_MERGED / PROVIDER_OPERATION_STATE_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
-Current branch: `kv-storage-provider-adapters`
-Merged source PRs: `#196`, `#197`, `#198`
-Merged commits: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`, `ea4da1e58e74c7f2690d26e82cb9c6a6e30aca03`, `4ee4232aec19f2bbc469bf712403185ab799ab0d`
+Current branch: `kv-provider-operation-state`
+Merged source PRs: `#196`, `#197`, `#198`, `#199`
+Merged commits: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`, `ea4da1e58e74c7f2690d26e82cb9c6a6e30aca03`, `4ee4232aec19f2bbc469bf712403185ab799ab0d`, `18067f09d16f8573797b837f5997297bc278e952`
 Updated: 2026-09-08
 Authority effect: NONE
 Activation effect: false
@@ -31,50 +31,41 @@ PR #197 is validated and merged. Relationship state is durably represented under
 
 PR #198 is validated and merged. MyKV can consume a bounded multi-instance status projection carrying identity/storage/relationship metadata and pending request identifiers while private content, credentials, provider mutation authority, relationship mutation authority, and activation remain false.
 
-## Current storage-provider adapter slice
+PR #199 is validated and merged. Provider-neutral adapters for iCloud Drive, Google Drive, Microsoft OneDrive, and Dropbox can represent deterministic `CONNECT`, `VERIFY`, `READ`, `WRITE`, `SYNC`, and `DISCONNECT` operation intents without authenticating providers or claiming provider execution.
 
-The current source slice provides a provider-neutral request adapter layer for storage providers without claiming live provider execution.
+## Current provider-operation state slice
+
+The current source slice persists provider-operation requests and already-admitted result evidence inside the relevant KV instance without broadening the existing read-only connection-assembly security contract.
 
 Current artifacts:
 
-- `runtime/kv_storage_provider_adapter.py`
-- `schemas/kv-storage-provider-operation-request.schema.json`
-- `tests/test_kv_storage_provider_adapter.py`
+- `runtime/kv_provider_operation_store.py`
+- `schemas/kv-storage-provider-state.schema.json`
+- `tests/test_kv_provider_operation_store.py`
 - `README.md`
 
-Default declarative adapters are defined for:
-
-- `icloud-drive`
-- `google-drive`
-- `onedrive`
-- `dropbox`
-
-Each adapter can represent these normalized operation intents:
+Canonical private-KV layout:
 
 ```text
-CONNECT
-VERIFY
-READ
-WRITE
-SYNC
-DISCONNECT
+_System/Instances/Providers/
+  provider-state.json
+  Requests/<request_id>.json
+  Receipts/<request_id>.json
 ```
 
-Every source request is deterministic and fixed fail-closed:
+Source invariants:
 
-```text
-governance_state: PENDING_INTERLOCK_INTR
-skap_credential_ref_required: true
-credential_material_present: false
-provider_session_established: false
-provider_operation_executed: false
-data_moved: false
-replication_started: false
-authority_effect: NONE
-activation_effect: false
-```
+1. persisting a `PENDING_INTERLOCK_INTR` request does not establish a provider session or mutate provider state;
+2. provider state is bound to one `instance_id` and `kv_set_id`;
+3. admitted result materialization requires the exact request ID, `ADMITTED` governance evidence, Interlock receipt reference, InTr receipt reference, SKAP credential reference, provider result reference, and explicit provider-operation execution evidence;
+4. raw credential material is prohibited from requests, state, and receipts;
+5. `READ`, `WRITE`, and `SYNC` fail closed unless the provider is already connected;
+6. `SYNC` additionally requires replication evidence;
+7. `CONNECT`, `VERIFY`, and `DISCONNECT` may not claim data movement or replication;
+8. the store records admitted runtime evidence but never performs authentication, remote I/O, credential resolution, provider execution, or governance admission;
+9. authority effect remains `NONE`.
 
-The adapter layer therefore defines the shape needed now for MyKV add/remove/connect/sync flows while leaving authentication, provider sessions, actual read/write/sync execution, and admission to the later SKAP + Interlock/InTr runtime binding.
+The existing `runtime/connection_assembly.py` / `runtime/connection_registry_store.py` path remains unchanged and retains its deliberate `READ_ONLY` direct-source semantics. Storage-provider execution is not permitted to weaken that existing contract.
 
 ## Canonical relationship tiers
 
@@ -108,8 +99,9 @@ AI_INTERACTION
 
 ## Remaining work
 
-- validate and merge the storage-provider adapter source slice;
-- coordinate the Site/MyKV consumer so add/remove/connect/sync UI emits these governed provider-operation requests rather than invoking provider authority directly;
+- validate and merge the provider-operation state slice;
+- extend the bounded MyKV projection to include provider connection/verification status and pending provider requests without exposing credential material;
+- coordinate Site/MyKV add/remove/connect/sync controls to emit governed provider-operation requests rather than invoking providers directly;
 - materialize a real KV #2 instance without altering KV #1 when an admissible storage/user flow is available;
 - bind actual provider sessions and CONNECTED/SYNCED/AI_INTERACTION transitions to authentic SKAP + Interlock/InTr runtime evidence;
 - implement provider-specific live execution bindings only after those authority paths are available.
