@@ -16,6 +16,7 @@ from zipfile import ZipFile
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = REPO_ROOT / "vault_template" / "KnowledgeVault"
 DIST = REPO_ROOT / "dist"
+INSTANCE_RECORD = "_System/Instances/instance.json"
 
 FORBIDDEN_INSTALLER_MARKERS = (
     "1c8OdhJeLD6E4ALmi-aR7dXvG8PjDLSfi",  # connected-user Drive root
@@ -136,22 +137,36 @@ def main() -> int:
         run([sys.executable, "tools/init_vault.py", str(initialized_parent)], env=clean_env)
         initialized = initialized_parent / "KnowledgeVault"
         receipt_path = initialized / "_System" / "installation.receipt.json"
+        instance_path = initialized / INSTANCE_RECORD
         if not receipt_path.is_file():
             raise RuntimeError("clean-room initializer did not emit installation receipt")
+        if not instance_path.is_file():
+            raise RuntimeError("clean-room initializer did not emit instance identity record")
 
         init_inventory = inventory(initialized)
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        instance = json.loads(instance_path.read_text(encoding="utf-8"))
         receipt_text = json.dumps(receipt, sort_keys=True).lower()
         for marker in FORBIDDEN_RECEIPT_MARKERS:
             if marker.lower() in receipt_text:
                 raise RuntimeError(f"installation receipt leaked creator/provider marker: {marker}")
 
-        expected_initialized_paths = set(source) | {"_System/installation.receipt.json"}
+        expected_initialized_paths = set(source) | {
+            "_System/installation.receipt.json",
+            INSTANCE_RECORD,
+        }
         if set(init_inventory) != expected_initialized_paths:
             raise RuntimeError("initialized path set includes unexpected creator/runtime state")
 
+        if instance.get("instance_number") != 1 or instance.get("logical_name") != "KV #1":
+            raise RuntimeError("default initializer did not identify the first KV instance")
+        if instance.get("relationship", {}).get("ordinal_is_authority") is not False:
+            raise RuntimeError("KV ordinal must not create authority")
+        if receipt.get("instance", {}).get("instance_id") != instance.get("instance_id"):
+            raise RuntimeError("installation receipt is not bound to instance identity")
+
         for prefix in FORBIDDEN_FRESH_RUNTIME_PREFIXES:
-            if any(path.startswith(prefix) for path in init_inventory):
+            if any(path.startswith(prefix) and path != INSTANCE_RECORD for path in init_inventory):
                 raise RuntimeError(f"fresh vault inherited connected-user runtime state: {prefix}")
 
         mutable = "_Meta/vault.manifest.json"
@@ -168,6 +183,8 @@ def main() -> int:
             raise RuntimeError("initializer receipt lacks immutable_file_hashes_match=true")
         if verification.get("overwrote_existing_vault") is not False:
             raise RuntimeError("initializer receipt does not preserve overwrite refusal")
+        if verification.get("instance_root_isolated") is not True:
+            raise RuntimeError("initializer receipt lacks instance_root_isolated=true")
 
         refused = subprocess.run(
             [sys.executable, "tools/init_vault.py", str(initialized_parent)],
@@ -190,6 +207,7 @@ def main() -> int:
                 "cloud_credentials_required": False,
                 "network_required": False,
                 "connected_user_runtime_state_inherited": False,
+                "multi_instance_identity_record": True,
                 "authority_effect": "NONE",
                 "activation_effect": False,
             },
