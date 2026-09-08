@@ -23,11 +23,12 @@
       "claimed_paths": [
         "tools/adopt_existing_kv_instance.py",
         "tools/test_adopt_existing_kv_instance.py",
+        ".github/workflows/kv-existing-instance-adoption.yml",
         "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md",
         "data/session-work-claims.d/cvk-kv1-adoption-projection-20260908.json"
       ],
       "handoff": "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md",
-      "handoff_revision": "KV1_ADOPTION_PROJECTION_SOURCE_PENDING_20260908",
+      "handoff_revision": "EXISTING_KV1_ADOPTION_SOURCE_IMPLEMENTED_20260908",
       "claim_created_at": "2026-09-08T17:43:00-05:00",
       "claim_expires_when": "Release after source validation and merge. Physical Google Drive KV #1 adoption remains owner-controlled and must bind the exact existing installation receipt before writing identity/projection files.",
       "expected_evidence": [
@@ -39,7 +40,8 @@
         "KV #1 instance identity uses canonical stegverse.kv.instance/v1 shape",
         "bounded stegverse.kv.my-kv-set-projection/v1 emitted",
         "private content and credential material excluded",
-        "provider and relationship mutation authority remain false"
+        "provider and relationship mutation authority remain false",
+        "KV Existing Instance Adoption workflow PASS"
       ],
       "collision_boundaries": [
         "Do not modify CVK-LEGACY-KV-UPGRADE-174 physical-vault lane",
