@@ -4,6 +4,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 WORKFLOW_ROOT=ROOT/".github/workflows"
+EXPECTED_WORKFLOW_COUNT=51
 
 class GlobalHostedWorkflowAuthorityTests(unittest.TestCase):
     def test_all_workflows_declare_permissions_and_no_authority_markers(self):
@@ -16,7 +17,7 @@ class GlobalHostedWorkflowAuthorityTests(unittest.TestCase):
             "helm upgrade","repository_dispatch",
         )
         workflows=sorted(WORKFLOW_ROOT.glob("*.yml"))
-        self.assertEqual(len(workflows),50)
+        self.assertEqual(len(workflows),EXPECTED_WORKFLOW_COUNT)
         for path in workflows:
             text=path.read_text(encoding="utf-8")
             self.assertIn("permissions:",text,path.name)
