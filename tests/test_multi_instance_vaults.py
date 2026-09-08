@@ -5,7 +5,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-from runtime.kv_instance_relationships import KVRelationshipTier, capabilities_for, relationship_record
+import pytest
+
+from runtime.kv_instance_relationships import (
+    KVRelationshipTier,
+    capabilities_for,
+    relationship_record,
+    transition_request,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INIT = REPO_ROOT / "tools" / "init_vault.py"
@@ -91,3 +98,63 @@ def test_relationship_record_never_claims_runtime_activation() -> None:
     assert record["unified_ai_corpus"] is True
     assert record["authority_effect"] == "NONE"
     assert record["activation_effect"] is False
+
+
+def test_transition_request_is_deterministic_and_non_authorizing() -> None:
+    args = dict(
+        kv_set_id="personal",
+        participant_instance_ids=["kvi_b", "kvi_a"],
+        current_tier="NOT_CONNECTED",
+        target_tier="CONNECTED",
+    )
+    first = transition_request(**args)
+    second = transition_request(**args)
+    assert first == second
+    assert first["participants"] == ["kvi_a", "kvi_b"]
+    assert first["direction"] == "UPGRADE"
+    assert first["governance_state"] == "PENDING_INTERLOCK_INTR"
+    assert first["authority_effect"] == "NONE"
+    assert first["activation_effect"] is False
+    assert first["data_moved"] is False
+    assert first["replication_started"] is False
+    assert first["ai_corpus_exposed"] is False
+
+
+def test_ai_interaction_request_does_not_claim_ai_exposure() -> None:
+    request = transition_request(
+        kv_set_id="personal",
+        participant_instance_ids=["kvi_1", "kvi_2", "kvi_3"],
+        current_tier="SYNCED",
+        target_tier="AI_INTERACTION",
+    )
+    assert request["requested_capabilities"]["unified_ai_corpus"] is True
+    assert request["ai_corpus_exposed"] is False
+    assert request["activation_effect"] is False
+
+
+def test_downgrade_is_representable_but_still_requires_governance() -> None:
+    request = transition_request(
+        kv_set_id="personal",
+        participant_instance_ids=["kvi_1", "kvi_2"],
+        current_tier="AI_INTERACTION",
+        target_tier="NOT_CONNECTED",
+    )
+    assert request["direction"] == "DOWNGRADE"
+    assert request["governance_state"] == "PENDING_INTERLOCK_INTR"
+
+
+def test_relationship_requires_two_unique_valid_participants() -> None:
+    with pytest.raises(ValueError):
+        transition_request(
+            kv_set_id="personal",
+            participant_instance_ids=["kvi_1", "kvi_1"],
+            current_tier="NOT_CONNECTED",
+            target_tier="CONNECTED",
+        )
+    with pytest.raises(ValueError):
+        transition_request(
+            kv_set_id="personal",
+            participant_instance_ids=["bad", "kvi_2"],
+            current_tier="NOT_CONNECTED",
+            target_tier="CONNECTED",
+        )
