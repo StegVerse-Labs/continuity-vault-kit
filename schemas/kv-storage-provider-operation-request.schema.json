@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stegverse.kv.storage-provider-operation-request/v1",
+  "type": "object",
+  "required": ["schema","request_id","provider_id","instance_id","kv_set_id","operation","storage_locator","object_ref","requested_by","governance_state","skap_credential_ref_required","credential_material_present","provider_session_established","provider_operation_executed","data_moved","replication_started","authority_effect","activation_effect"],
+  "properties": {
+    "schema": {"const": "stegverse.kv.storage-provider-operation-request/v1"},
+    "request_id": {"type": "string", "pattern": "^kvprov_"},
+    "provider_id": {"enum": ["icloud-drive","google-drive","onedrive","dropbox"]},
+    "instance_id": {"type": "string", "pattern": "^kvi_"},
+    "kv_set_id": {"type": "string", "minLength": 1},
+    "operation": {"enum": ["CONNECT","VERIFY","READ","WRITE","SYNC","DISCONNECT"]},
+    "storage_locator": {"type": ["string","null"]},
+    "object_ref": {"type": ["string","null"]},
+    "requested_by": {"type": "string", "minLength": 1},
+    "governance_state": {"const": "PENDING_INTERLOCK_INTR"},
+    "skap_credential_ref_required": {"const": true},
+    "credential_material_present": {"const": false},
+    "provider_session_established": {"const": false},
+    "provider_operation_executed": {"const": false},
+    "data_moved": {"const": false},
+    "replication_started": {"const": false},
+    "authority_effect": {"const": "NONE"},
+    "activation_effect": {"const": false}
+  },
+  "additionalProperties": false
+}
