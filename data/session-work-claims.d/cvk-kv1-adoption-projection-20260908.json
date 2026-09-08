@@ -11,56 +11,41 @@
       "repository": "StegVerse-Labs/continuity-vault-kit",
       "branch": "kv-n-adopt-existing-kv1-projection",
       "role": "SOURCE_IMPLEMENTATION",
-      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "state": "RELEASED_COMPLETE",
       "normalized_work_key": "cvk-kv1-adoption-projection",
-      "dependency_surface_keys": [
-        "kv:multi-instance-identity",
-        "kv:installation-receipt",
-        "kv:my-kv-set-projection",
-        "site:my-kv-device-kv-projection-admission"
-      ],
-      "governing_dependency_keys": ["kv:multi-instance-identity", "kv:installation-receipt"],
-      "claimed_paths": [
-        "tools/adopt_existing_kv_instance.py",
-        "tools/test_adopt_existing_kv_instance.py",
-        ".github/workflows/kv-existing-instance-adoption.yml",
-        "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md",
-        "data/session-work-claims.d/cvk-kv1-adoption-projection-20260908.json"
-      ],
+      "dependency_surface_keys": ["kv:multi-instance-identity","kv:installation-receipt","kv:my-kv-set-projection","site:my-kv-device-kv-projection-admission"],
+      "governing_dependency_keys": ["kv:multi-instance-identity","kv:installation-receipt"],
+      "claimed_paths": ["tools/adopt_existing_kv_instance.py","tools/test_adopt_existing_kv_instance.py",".github/workflows/kv-existing-instance-adoption.yml","KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md","data/session-work-claims.d/cvk-kv1-adoption-projection-20260908.json"],
       "handoff": "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md",
-      "handoff_revision": "EXISTING_KV1_ADOPTION_SOURCE_IMPLEMENTED_20260908",
+      "handoff_revision": "EXISTING_KV1_ADOPTION_PHYSICAL_MATERIALIZATION_VERIFIED_20260908",
       "claim_created_at": "2026-09-08T17:43:00-05:00",
-      "claim_expires_when": "Release after source validation and merge. Physical Google Drive KV #1 adoption remains owner-controlled and must bind the exact existing installation receipt before writing identity/projection files.",
-      "expected_evidence": [
-        "existing vault required",
-        "existing installation receipt required",
-        "exact installation receipt SHA-256 binding required for apply",
-        "existing instance identity never overwritten",
-        "existing projection never silently overwritten",
-        "KV #1 instance identity uses canonical stegverse.kv.instance/v1 shape",
-        "bounded stegverse.kv.my-kv-set-projection/v1 emitted",
-        "private content and credential material excluded",
-        "provider and relationship mutation authority remain false",
-        "KV Existing Instance Adoption workflow PASS"
-      ],
-      "collision_boundaries": [
-        "Do not modify CVK-LEGACY-KV-UPGRADE-174 physical-vault lane",
-        "Do not alter the existing installation receipt",
-        "Do not rewrite private KV content",
-        "Do not create KV #2",
-        "Do not authenticate or execute any provider operation",
-        "Do not materialize relationship tiers beyond NOT_CONNECTED",
-        "No NON-TV/TVC secret/token",
-        "No GitHub-token runtime authority"
-      ],
-      "next_task_after_release": "Run owner-controlled KV #1 adoption against the existing Google Drive KnowledgeVault, admit the emitted bounded projection into DEVICE_KV, verify Site readback, then proceed to real KV #2 provider authorization.",
+      "claim_released_at": "2026-09-08T18:42:00-05:00",
+      "claim_expires_when": "RELEASED",
+      "expected_evidence": ["existing vault required","existing installation receipt required","exact installation receipt SHA-256 binding required for apply","existing instance identity never overwritten","existing projection never silently overwritten","KV #1 instance identity uses canonical stegverse.kv.instance/v1 shape","bounded stegverse.kv.my-kv-set-projection/v1 emitted","private content and credential material excluded","provider and relationship mutation authority remain false","KV Existing Instance Adoption workflow PASS"],
+      "validation_evidence": {
+        "pull_request": 203,
+        "source_merge_commit": "4f2f47120ab162273abba6eae3e2155a46db2c16",
+        "source_validation": "ALL_REQUIRED_CHECKS_PASS",
+        "physical_adoption": "VERIFIED_EXACT_RAW_READBACK",
+        "installation_receipt_sha256": "sha256:f00378cd1f68e08a39c837f2a80e7e105e822a321c0eea17a91318b4b6e5ea19",
+        "instance_record_sha256": "sha256:8bf5ba7d911a52506a582f064315c9831a84c0c5fbb6ec7a031c325a79af090a",
+        "set_projection_sha256": "sha256:187ab43f0bb09d88da154af26d57e1bfe7199fd90affd2dd81af5532f0e34cf4",
+        "adoption_receipt_sha256": "sha256:64a3af27be0bd6ae36b05b35e52894581413fff048cea237d370d0ec6248b552",
+        "installation_receipt_unchanged_after_adoption": true,
+        "relationship_tier": "NOT_CONNECTED",
+        "provider_operation_executed": false,
+        "authority_effect": "NONE",
+        "activation_effect": false
+      },
+      "collision_boundaries": ["Do not modify CVK-LEGACY-KV-UPGRADE-174 physical-vault lane","Do not alter the existing installation receipt","Do not rewrite private KV content","Do not create KV #2","Do not authenticate or execute any provider operation","Do not materialize relationship tiers beyond NOT_CONNECTED","No NON-TV/TVC secret/token","No GitHub-token runtime authority"],
+      "next_task_after_release": "Complete current-device DEVICE_KV exact-readback admission of the authentic physical KV #1 set projection, then proceed to public MyKV integration and real KV #2 provider authorization only after that proof.",
       "credential_authority": "TV/TVC",
       "credential_requirement": "NONE_FOR_SOURCE_IMPLEMENTATION",
       "github_token_runtime_authority": "NONE",
       "non_tv_tvc_secret_or_token_used": false,
       "authority_effect": false,
       "activation_effect": false,
-      "archive_eligible": false
+      "archive_eligible": true
     }
   ]
 }
