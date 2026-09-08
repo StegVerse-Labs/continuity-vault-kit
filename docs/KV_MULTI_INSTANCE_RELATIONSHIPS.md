@@ -101,7 +101,41 @@ NOT_CONNECTED
     < AI_INTERACTION
 ```
 
-A higher tier includes the lower-tier capabilities, but changing tiers is a governed transition once Interlock/InTr is active. The source model can represent desired/current tier state now without claiming the runtime transition occurred.
+A higher tier includes the lower-tier capabilities, but changing tiers is a governed transition once Interlock/InTr is active.
+
+## Transition request contract
+
+The source layer can now produce a deterministic relationship transition request without pretending that the requested transition occurred. The request binds:
+
+- `kv_set_id`;
+- two or more unique `kvi_...` participant instance IDs;
+- current tier;
+- requested target tier;
+- upgrade, downgrade, or unchanged direction;
+- the capabilities implied by the requested tier.
+
+Every source-generated transition request is explicitly:
+
+```text
+governance_state: PENDING_INTERLOCK_INTR
+authority_effect: NONE
+activation_effect: false
+data_moved: false
+replication_started: false
+ai_corpus_exposed: false
+```
+
+This means even a request for `AI_INTERACTION` cannot claim that any data was exposed to an AI system. The future Interlock/InTr execution lane must admit the transition and produce separate runtime evidence before current state may change.
+
+Canonical source artifacts:
+
+```text
+runtime/kv_instance_relationships.py
+schemas/kv-relationship-transition-request.schema.json
+tests/test_multi_instance_vaults.py
+```
+
+Upgrades and downgrades are both representable. Downgrading from `AI_INTERACTION` to `NOT_CONNECTED`, for example, is a request to remove capabilities and still requires governed execution rather than silent source mutation.
 
 ## Storage relationship
 
