@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "stegverse.kv.my-kv-instance-projection/v1",
   "type": "object",
-  "required": ["schema","instance_id","instance_number","logical_name","kv_set_id","storage","relationship","management","private_content_included","credential_material_included","authority_effect","activation_effect"],
+  "required": ["schema","instance_id","instance_number","logical_name","kv_set_id","storage","relationship","providers","management","private_content_included","credential_material_included","authority_effect","activation_effect"],
   "properties": {
     "schema": {"const": "stegverse.kv.my-kv-instance-projection/v1"},
     "instance_id": {"type": "string", "pattern": "^kvi_"},
@@ -30,12 +30,53 @@
       },
       "additionalProperties": false
     },
+    "providers": {
+      "type": "object",
+      "required": ["items","pending_requests","provider_mutation_authorized","credential_material_included"],
+      "properties": {
+        "items": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["connection_state","verified","last_request_id","last_operation","last_result_ref"],
+            "properties": {
+              "connection_state": {"enum": ["DISCONNECTED","CONNECTED"]},
+              "verified": {"type": "boolean"},
+              "last_request_id": {"type": ["string","null"]},
+              "last_operation": {"enum": ["CONNECT","VERIFY","READ","WRITE","SYNC","DISCONNECT",null]},
+              "last_result_ref": {"type": ["string","null"]}
+            },
+            "additionalProperties": false
+          }
+        },
+        "pending_requests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["request_id","provider_id","operation"],
+            "properties": {
+              "request_id": {"type": "string", "pattern": "^kvprov_"},
+              "provider_id": {"type": "string", "minLength": 1},
+              "operation": {"enum": ["CONNECT","VERIFY","READ","WRITE","SYNC","DISCONNECT"]}
+            },
+            "additionalProperties": false
+          }
+        },
+        "provider_mutation_authorized": {"const": false},
+        "credential_material_included": {"const": false}
+      },
+      "additionalProperties": false
+    },
     "management": {
       "type": "object",
-      "required": ["request_connect_supported","request_disconnect_supported","request_tier_change_supported","provider_mutation_authorized","relationship_mutation_authorized"],
+      "required": ["request_connect_supported","request_disconnect_supported","request_verify_supported","request_read_supported","request_write_supported","request_sync_supported","request_tier_change_supported","provider_mutation_authorized","relationship_mutation_authorized"],
       "properties": {
         "request_connect_supported": {"const": true},
         "request_disconnect_supported": {"const": true},
+        "request_verify_supported": {"const": true},
+        "request_read_supported": {"const": true},
+        "request_write_supported": {"const": true},
+        "request_sync_supported": {"const": true},
         "request_tier_change_supported": {"const": true},
         "provider_mutation_authorized": {"const": false},
         "relationship_mutation_authorized": {"const": false}

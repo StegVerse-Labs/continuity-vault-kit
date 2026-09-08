@@ -1,10 +1,10 @@
 # KV Multi-Instance COSV Binding Mirror Handoff
 
-Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MERGED / MYKV_PROJECTION_MERGED / STORAGE_PROVIDER_ADAPTERS_MERGED / PROVIDER_OPERATION_STATE_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
+Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MERGED / MYKV_PROJECTION_MERGED / STORAGE_PROVIDER_ADAPTERS_MERGED / PROVIDER_OPERATION_STATE_MERGED / MYKV_PROVIDER_STATUS_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
-Current branch: `kv-provider-operation-state`
-Merged source PRs: `#196`, `#197`, `#198`, `#199`
-Merged commits: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`, `ea4da1e58e74c7f2690d26e82cb9c6a6e30aca03`, `4ee4232aec19f2bbc469bf712403185ab799ab0d`, `18067f09d16f8573797b837f5997297bc278e952`
+Current branch: `kv-my-kv-provider-status`
+Merged source PRs: `#196`, `#197`, `#198`, `#199`, `#200`
+Merged commits: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`, `ea4da1e58e74c7f2690d26e82cb9c6a6e30aca03`, `4ee4232aec19f2bbc469bf712403185ab799ab0d`, `18067f09d16f8573797b837f5997297bc278e952`, `009bcc2d77f65b70c9aaa890b586addf3fc4dc2e`
 Updated: 2026-09-08
 Authority effect: NONE
 Activation effect: false
@@ -33,39 +33,50 @@ PR #198 is validated and merged. MyKV can consume a bounded multi-instance statu
 
 PR #199 is validated and merged. Provider-neutral adapters for iCloud Drive, Google Drive, Microsoft OneDrive, and Dropbox can represent deterministic `CONNECT`, `VERIFY`, `READ`, `WRITE`, `SYNC`, and `DISCONNECT` operation intents without authenticating providers or claiming provider execution.
 
-## Current provider-operation state slice
+PR #200 is validated and merged. Provider-operation state is persisted under `_System/Instances/Providers/` and may only materialize already-admitted results bound to exact KV/request/Interlock/InTr/SKAP/provider-result evidence. Existing `READ_ONLY` direct-source connection assembly semantics remain unchanged.
 
-The current source slice persists provider-operation requests and already-admitted result evidence inside the relevant KV instance without broadening the existing read-only connection-assembly security contract.
+## Current MyKV provider-status slice
+
+The current source slice extends the already-merged bounded MyKV instance projection with provider connection/verification status and pending provider-operation requests.
 
 Current artifacts:
 
-- `runtime/kv_provider_operation_store.py`
-- `schemas/kv-storage-provider-state.schema.json`
-- `tests/test_kv_provider_operation_store.py`
+- `runtime/kv_my_kv_projection.py`
+- `schemas/kv-my-kv-instance-projection.schema.json`
+- `tests/test_kv_my_kv_projection.py`
 - `README.md`
 
-Canonical private-KV layout:
+Projected provider status is bounded to:
 
 ```text
-_System/Instances/Providers/
-  provider-state.json
-  Requests/<request_id>.json
-  Receipts/<request_id>.json
+provider_id
+connection_state
+verified
+last_request_id
+last_operation
+last_result_ref
+pending request_id/provider_id/operation
 ```
 
-Source invariants:
+The projection intentionally excludes:
 
-1. persisting a `PENDING_INTERLOCK_INTR` request does not establish a provider session or mutate provider state;
-2. provider state is bound to one `instance_id` and `kv_set_id`;
-3. admitted result materialization requires the exact request ID, `ADMITTED` governance evidence, Interlock receipt reference, InTr receipt reference, SKAP credential reference, provider result reference, and explicit provider-operation execution evidence;
-4. raw credential material is prohibited from requests, state, and receipts;
-5. `READ`, `WRITE`, and `SYNC` fail closed unless the provider is already connected;
-6. `SYNC` additionally requires replication evidence;
-7. `CONNECT`, `VERIFY`, and `DISCONNECT` may not claim data movement or replication;
-8. the store records admitted runtime evidence but never performs authentication, remote I/O, credential resolution, provider execution, or governance admission;
-9. authority effect remains `NONE`.
+```text
+raw credential material
+SKAP credential references
+Interlock receipt references
+InTr receipt references
+private KV content
+provider tokens/session secrets
+```
 
-The existing `runtime/connection_assembly.py` / `runtime/connection_registry_store.py` path remains unchanged and retains its deliberate `READ_ONLY` direct-source semantics. Storage-provider execution is not permitted to weaken that existing contract.
+Projection invariants:
+
+1. provider state must match the projected `instance_id` and `kv_set_id`;
+2. any provider state or request that claims credential material causes fail-closed projection;
+3. pending requests remain status-only and do not imply provider mutation;
+4. `provider_mutation_authorized` remains false;
+5. management capability flags indicate request surfaces only (`CONNECT`, `VERIFY`, `READ`, `WRITE`, `SYNC`, `DISCONNECT`), never direct execution authority;
+6. `authority_effect` remains `NONE_STATUS_ONLY` and `activation_effect` remains false.
 
 ## Canonical relationship tiers
 
@@ -99,9 +110,8 @@ AI_INTERACTION
 
 ## Remaining work
 
-- validate and merge the provider-operation state slice;
-- extend the bounded MyKV projection to include provider connection/verification status and pending provider requests without exposing credential material;
-- coordinate Site/MyKV add/remove/connect/sync controls to emit governed provider-operation requests rather than invoking providers directly;
+- validate and merge the MyKV provider-status projection slice;
+- coordinate the Site/MyKV consumer to render the bounded projection and emit governed provider-operation requests instead of invoking providers directly;
 - materialize a real KV #2 instance without altering KV #1 when an admissible storage/user flow is available;
 - bind actual provider sessions and CONNECTED/SYNCED/AI_INTERACTION transitions to authentic SKAP + Interlock/InTr runtime evidence;
 - implement provider-specific live execution bindings only after those authority paths are available.

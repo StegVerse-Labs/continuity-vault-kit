@@ -7,7 +7,9 @@ import pytest
 
 from runtime.kv_instance_relationships import transition_request
 from runtime.kv_my_kv_projection import MyKVProjectionError, build_instance_projection, build_set_projection
+from runtime.kv_provider_operation_store import initialize_store as initialize_provider_store, persist_operation_request
 from runtime.kv_relationship_state_store import initialize_store, persist_transition_request
+from runtime.kv_storage_provider_adapter import build_operation_request, default_registry
 
 
 def _make_instance(root: Path, *, number: int, instance_id: str, set_id: str = "personal") -> None:
@@ -23,6 +25,7 @@ def _make_instance(root: Path, *, number: int, instance_id: str, set_id: str = "
         "storage": {"medium": "icloud-drive", "locator": f"icloud-slot-{number}", "provider_authority_effect": "NONE"},
     }), encoding="utf-8")
     initialize_store(root, kv_set_id=set_id, instance_id=instance_id)
+    initialize_provider_store(root, kv_set_id=set_id, instance_id=instance_id)
 
 
 def test_projection_exposes_metadata_only(tmp_path: Path) -> None:
@@ -31,7 +34,11 @@ def test_projection_exposes_metadata_only(tmp_path: Path) -> None:
     projection = build_instance_projection(kv1)
     assert projection["instance_id"] == "kvi_one"
     assert projection["relationship"]["tier"] == "NOT_CONNECTED"
+    assert projection["providers"]["items"] == {}
+    assert projection["providers"]["provider_mutation_authorized"] is False
+    assert projection["providers"]["credential_material_included"] is False
     assert projection["management"]["request_connect_supported"] is True
+    assert projection["management"]["request_sync_supported"] is True
     assert projection["management"]["provider_mutation_authorized"] is False
     assert projection["private_content_included"] is False
     assert projection["credential_material_included"] is False
@@ -40,7 +47,7 @@ def test_projection_exposes_metadata_only(tmp_path: Path) -> None:
     assert "credentials" not in projection
 
 
-def test_pending_request_is_visible_without_changing_tier(tmp_path: Path) -> None:
+def test_pending_relationship_request_is_visible_without_changing_tier(tmp_path: Path) -> None:
     kv1 = tmp_path / "KnowledgeVault"
     _make_instance(kv1, number=1, instance_id="kvi_one")
     request = transition_request(
@@ -53,6 +60,59 @@ def test_pending_request_is_visible_without_changing_tier(tmp_path: Path) -> Non
     projection = build_instance_projection(kv1)
     assert projection["relationship"]["tier"] == "NOT_CONNECTED"
     assert projection["relationship"]["pending_request_ids"] == [request["request_id"]]
+
+
+def test_pending_provider_request_is_visible_without_provider_mutation(tmp_path: Path) -> None:
+    kv1 = tmp_path / "KnowledgeVault"
+    _make_instance(kv1, number=1, instance_id="kvi_one")
+    request = build_operation_request(
+        adapter=default_registry().get("icloud-drive"),
+        instance_id="kvi_one",
+        kv_set_id="personal",
+        operation="CONNECT",
+        storage_locator="icloud-slot-1",
+    )
+    persist_operation_request(kv1, request)
+    projection = build_instance_projection(kv1)
+    assert projection["providers"]["items"] == {}
+    assert projection["providers"]["pending_requests"] == [{
+        "request_id": request["request_id"],
+        "provider_id": "icloud-drive",
+        "operation": "CONNECT",
+    }]
+    assert projection["providers"]["provider_mutation_authorized"] is False
+
+
+def test_provider_status_projects_bounded_fields_only(tmp_path: Path) -> None:
+    kv1 = tmp_path / "KnowledgeVault"
+    _make_instance(kv1, number=1, instance_id="kvi_one")
+    state_path = kv1 / "_System/Instances/Providers/provider-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["providers"]["icloud-drive"] = {
+        "connection_state": "CONNECTED",
+        "verified": True,
+        "last_request_id": "kvprov_example",
+        "last_operation": "VERIFY",
+        "last_interlock_receipt_ref": "interlock:private",
+        "last_intr_receipt_ref": "intr:private",
+        "last_skap_credential_ref": "skap:private",
+        "last_result_ref": "provider:result:visible-status-ref",
+        "authority_effect": "NONE",
+        "credential_material_present": False,
+    }
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    projection = build_instance_projection(kv1)
+    row = projection["providers"]["items"]["icloud-drive"]
+    assert row == {
+        "connection_state": "CONNECTED",
+        "verified": True,
+        "last_request_id": "kvprov_example",
+        "last_operation": "VERIFY",
+        "last_result_ref": "provider:result:visible-status-ref",
+    }
+    assert "last_skap_credential_ref" not in row
+    assert "last_interlock_receipt_ref" not in row
+    assert "last_intr_receipt_ref" not in row
 
 
 def test_set_projection_orders_instances_and_requires_same_set(tmp_path: Path) -> None:
@@ -77,6 +137,23 @@ def test_relationship_identity_mismatch_fails_closed(tmp_path: Path) -> None:
     state_path = kv1 / "_System/Instances/Relationships/relationship-state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
     state["instance_id"] = "kvi_tampered"
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    with pytest.raises(MyKVProjectionError):
+        build_instance_projection(kv1)
+
+
+def test_provider_identity_or_credential_violation_fails_closed(tmp_path: Path) -> None:
+    kv1 = tmp_path / "KnowledgeVault"
+    _make_instance(kv1, number=1, instance_id="kvi_one")
+    state_path = kv1 / "_System/Instances/Providers/provider-state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["instance_id"] = "kvi_tampered"
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+    with pytest.raises(MyKVProjectionError):
+        build_instance_projection(kv1)
+
+    state["instance_id"] = "kvi_one"
+    state["credential_material_present"] = True
     state_path.write_text(json.dumps(state), encoding="utf-8")
     with pytest.raises(MyKVProjectionError):
         build_instance_projection(kv1)
