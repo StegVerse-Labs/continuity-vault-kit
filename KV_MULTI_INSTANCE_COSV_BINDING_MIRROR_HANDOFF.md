@@ -1,10 +1,10 @@
 # KV Multi-Instance COSV Binding Mirror Handoff
 
-Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MATERIALIZATION_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
+Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MERGED / MYKV_PROJECTION_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
-Current branch: `kv-relationship-state-materialization`
-Merged source PR: `#196`
-Merged source commit: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`
+Current branch: `kv-my-kv-instance-projection`
+Merged source PRs: `#196`, `#197`
+Merged commits: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`, `ea4da1e58e74c7f2690d26e82cb9c6a6e30aca03`
 Updated: 2026-09-08
 Authority effect: NONE
 Activation effect: false
@@ -25,19 +25,9 @@ The organization-level COSV handoff remains authoritative for the task vector. T
 
 ## Merged capability baseline
 
-PR #196 is validated and merged. The repository now defines:
+PR #196 is validated and merged. The repository defines isolated `KV #1`, `KV #2`, and `KV #n` roots; unique per-instance identity and receipt binding; provider-neutral storage metadata; four cumulative relationship tiers (`NOT_CONNECTED`, `CONNECTED`, `SYNCED`, `AI_INTERACTION`); default `NOT_CONNECTED`; and non-authorizing governed transition requests.
 
-- isolated `KV #1`, `KV #2`, and `KV #n` roots;
-- unique per-instance identity and installation receipt binding;
-- provider-neutral storage metadata;
-- ordinal identity with no implied authority hierarchy;
-- four cumulative relationship tiers: `NOT_CONNECTED`, `CONNECTED`, `SYNCED`, `AI_INTERACTION`;
-- default `NOT_CONNECTED` state for every new instance;
-- non-authorizing governed transition requests.
-
-## Relationship-state materialization slice
-
-The current machine-executable source slice adds durable private-KV relationship state:
+PR #197 is validated and merged. Relationship state is durably represented under:
 
 ```text
 _System/Instances/Relationships/
@@ -46,24 +36,39 @@ _System/Instances/Relationships/
   Receipts/<request_id>.json
 ```
 
-Source invariants:
+State transitions remain fail-closed and require matching `kv_set_id`, current-tier binding, `ADMITTED` evidence, and both Interlock and InTr receipt references before source materialization.
 
-1. initialization is fail-closed at `NOT_CONNECTED`;
-2. persisting a transition request does not change current relationship state;
-3. pending requests must remain `PENDING_INTERLOCK_INTR` with no claimed data movement, replication, AI exposure, authority, or activation;
-4. a relationship state change may be materialized only from `ADMITTED` runtime evidence bound to the same request;
-5. both Interlock and InTr receipt references are required before state materialization;
-6. current-tier and `kv_set_id` bindings must match persisted state;
-7. source materialization never creates credential/provider authority and retains `authority_effect: NONE` / `activation_effect: false`.
+## Current MyKV projection slice
 
-Current source artifacts include:
+The current source slice gives MyKV a bounded multi-instance status surface without exposing private KV content or granting provider/runtime authority.
 
-- `runtime/kv_relationship_state_store.py`
-- `schemas/kv-relationship-state.schema.json`
-- `tests/test_kv_relationship_state_store.py`
-- existing `runtime/kv_instance_relationships.py`
-- existing `schemas/kv-relationship-transition-request.schema.json`
-- `README.md` relationship-state documentation
+Current artifacts:
+
+- `runtime/kv_my_kv_projection.py`
+- `schemas/kv-my-kv-instance-projection.schema.json`
+- `tests/test_kv_my_kv_projection.py`
+- `README.md`
+
+The projection exposes only:
+
+- `instance_id`, `instance_number`, logical KV name, and `kv_set_id`;
+- storage medium and explicitly non-secret locator metadata already present in the instance record;
+- current relationship tier and relationship governance state;
+- last admitted relationship request ID and pending relationship request IDs;
+- request-surface capability flags for connect, disconnect, and relationship-tier-change requests.
+
+The projection fixes these boundaries:
+
+```text
+private_content_included: false
+credential_material_included: false
+provider_mutation_authorized: false
+relationship_mutation_authorized: false
+authority_effect: NONE_STATUS_ONLY
+activation_effect: false
+```
+
+MyKV may render these fields and initiate governed requests. The projection itself cannot connect/disconnect storage, change tiers, move data, replicate content, expose a unified AI corpus, authenticate a provider, or create execution/governance authority.
 
 ## Canonical relationship tiers
 
@@ -97,10 +102,11 @@ AI_INTERACTION
 
 ## Remaining work
 
-- validate and merge the relationship-state materialization source slice;
+- validate and merge the MyKV projection source slice;
+- coordinate the Site/MyKV consumer against this bounded projection contract without inventing a parallel provider/relationship authority;
 - materialize a real KV #2 instance without altering KV #1 when an admissible storage/user flow is available;
 - bind actual CONNECTED/SYNCED/AI_INTERACTION transitions to authentic Interlock/InTr runtime evidence;
-- project instance list, storage bindings, health, and four-tier relationship state into MyKV add/remove/manage-drive UX.
+- add real provider adapters and MyKV add/remove-drive request execution only when the corresponding admitted runtime paths exist.
 
 ## Manual work
 
