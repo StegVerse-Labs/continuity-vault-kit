@@ -28,7 +28,7 @@ That creates **KV #2** at `KnowledgeVault-2/`. The same rule extends to any posi
 
 **Any device:** copy or unzip `vault_template/KnowledgeVault/` somewhere you control.
 
-The initializer refuses to overwrite an existing instance root, verifies the installed template file set and immutable hashes, writes `_System/installation.receipt.json`, and creates `_System/Instances/instance.json` with a unique instance ID and storage metadata.
+The initializer refuses to overwrite an existing instance root, verifies the installed template file set and immutable hashes, writes `_System/installation.receipt.json`, and creates `_System/Instances/instance.json` with a unique instance ID, storage metadata, and an initial `NOT_CONNECTED` relationship state.
 
 ### KV #1 / KV #2 / KV #n relationship
 
@@ -42,9 +42,32 @@ Owner continuity set
 └── KV #n  -> any admitted owner-controlled storage medium
 ```
 
-All instances in the same `kv_set_id` are peers by default. KV #2 does not inherit authority from KV #1, and a higher or lower instance number does not make one vault canonical, subordinate, primary, backup, or replica. Those roles, if desired, are separate governed relationships established by policy/Interlock/InTr rather than by the instance ordinal.
+Instances sharing a `kv_set_id` belong to the same owner continuity set but begin **NOT_CONNECTED**. Sharing a set ID or storage provider does not itself authorize inter-instance communication.
 
-This separation allows same-provider multi-instance use immediately—for example KV #1 and KV #2 can both live in iCloud Drive—while provider-specific adapters and governed add/remove transitions can be integrated later without changing the instance identity model.
+The relationship model has four cumulative capability tiers:
+
+```text
+NOT_CONNECTED
+  no inter-comms; no data movement; no replication; no unified AI corpus
+
+CONNECTED
+  inter-comms aware; admitted data can move between separately rooted KVs
+
+SYNCED
+  CONNECTED capabilities plus admitted replication between participating KVs
+
+AI_INTERACTION
+  SYNCED capabilities plus all participating KV data considered one logical corpus
+  for the authorized AI interaction
+```
+
+`AI_INTERACTION` does not physically merge the vaults, erase provenance, or make the AI canonical authority. Physical roots and source identity remain distinct even when retrieval/reasoning treats the admitted set as one logical corpus.
+
+KV #2 does not inherit authority from KV #1, and a higher or lower instance number does not make one vault canonical, subordinate, primary, backup, or replica. Operational roles are a separate dimension from relationship tier and are established by policy/Interlock/InTr rather than by instance ordinal.
+
+This separation allows same-provider multi-instance use immediately—for example KV #1 and KV #2 can both live in iCloud Drive—while provider-specific adapters and governed relationship transitions can be integrated later without changing the instance identity model.
+
+See [`docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md`](./docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md) for the complete relationship contract.
 
 ### Use
 
