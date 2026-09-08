@@ -67,6 +67,8 @@ KV #2 does not inherit authority from KV #1, and a higher or lower instance numb
 
 This separation allows same-provider multi-instance use immediately—for example KV #1 and KV #2 can both live in iCloud Drive—while provider-specific adapters and governed relationship transitions can be integrated later without changing the instance identity model.
 
+Relationship state is durably represented inside each KV at `_System/Instances/Relationships/relationship-state.json`. Transition requests are stored separately under `_System/Instances/Relationships/Requests/`. Persisting a request never changes the current tier. A state transition can be materialized only from an already-admitted request carrying both Interlock and InTr receipt references; source code does not decide admission and does not claim runtime activation, provider authority, data movement, replication, or AI exposure by itself.
+
 See [`docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md`](./docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md) for the complete relationship contract.
 
 ### Use

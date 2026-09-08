@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-relationship-state.schema.json",
+  "title": "KnowledgeVault Relationship State",
+  "type": "object",
+  "required": [
+    "schema",
+    "kv_set_id",
+    "instance_id",
+    "relationship",
+    "governance_state",
+    "authority_effect",
+    "activation_effect"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.relationship-state/v1"},
+    "kv_set_id": {"type": "string", "minLength": 1},
+    "instance_id": {"type": "string", "pattern": "^kvi_[A-Za-z0-9]+$"},
+    "relationship": {
+      "type": "object",
+      "required": ["tier", "tier_order", "inter_comms", "data_movement", "replication", "unified_ai_corpus", "authority_effect", "activation_effect"],
+      "properties": {
+        "tier": {"enum": ["NOT_CONNECTED", "CONNECTED", "SYNCED", "AI_INTERACTION"]},
+        "tier_order": {"type": "integer", "minimum": 0, "maximum": 3},
+        "inter_comms": {"type": "boolean"},
+        "data_movement": {"type": "boolean"},
+        "replication": {"type": "boolean"},
+        "unified_ai_corpus": {"type": "boolean"},
+        "authority_effect": {"const": "NONE"},
+        "activation_effect": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "governance_state": {"enum": ["NOT_CONNECTED", "ADMITTED"]},
+    "last_admitted_request_id": {"type": ["string", "null"]},
+    "last_interlock_receipt_ref": {"type": ["string", "null"]},
+    "last_intr_receipt_ref": {"type": ["string", "null"]},
+    "authority_effect": {"const": "NONE"},
+    "activation_effect": {"const": false}
+  },
+  "additionalProperties": false
+}
