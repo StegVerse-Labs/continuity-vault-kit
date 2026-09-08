@@ -14,9 +14,37 @@ Baseline use is file-based. No account, hosted service, SDK, or AI provider is r
 python3 tools/init_vault.py /path/to/parent-folder
 ```
 
+The default command creates **KV #1** at `KnowledgeVault/`.
+
+A second isolated instance can be created beside it without overwriting KV #1:
+
+```bash
+python3 tools/init_vault.py /path/to/parent-folder --instance 2 --storage-medium icloud-drive
+```
+
+That creates **KV #2** at `KnowledgeVault-2/`. The same rule extends to any positive instance number: KV #n is created at `KnowledgeVault-n/` unless `--vault-name` supplies another isolated folder name.
+
+`--storage-medium` is descriptive metadata and may identify any owner-controlled storage medium, such as `icloud-drive`, `google-drive`, `onedrive`, `dropbox`, `local-disk`, or `removable-encrypted-volume`. It does not activate a provider session or grant provider authority. `--storage-locator` may record a non-secret path/provider locator; credentials and tokens must never be supplied there.
+
 **Any device:** copy or unzip `vault_template/KnowledgeVault/` somewhere you control.
 
-The initializer refuses to overwrite an existing vault, verifies the installed file set and immutable hashes, and writes `_System/installation.receipt.json`.
+The initializer refuses to overwrite an existing instance root, verifies the installed template file set and immutable hashes, writes `_System/installation.receipt.json`, and creates `_System/Instances/instance.json` with a unique instance ID and storage metadata.
+
+### KV #1 / KV #2 / KV #n relationship
+
+KV numbering identifies **instances**, not authority.
+
+```text
+Owner continuity set
+├── KV #1  -> storage medium A
+├── KV #2  -> storage medium A or B
+├── KV #3  -> storage medium C
+└── KV #n  -> any admitted owner-controlled storage medium
+```
+
+All instances in the same `kv_set_id` are peers by default. KV #2 does not inherit authority from KV #1, and a higher or lower instance number does not make one vault canonical, subordinate, primary, backup, or replica. Those roles, if desired, are separate governed relationships established by policy/Interlock/InTr rather than by the instance ordinal.
+
+This separation allows same-provider multi-instance use immediately—for example KV #1 and KV #2 can both live in iCloud Drive—while provider-specific adapters and governed add/remove transitions can be integrated later without changing the instance identity model.
 
 ### Use
 
@@ -43,7 +71,7 @@ KnowledgeVault/
 ├── _Index/        indexes and cross-references
 ├── _Meta/         manifest and integrity metadata
 ├── _Policy/       vault policy
-├── _System/       receipts, execution state, guides, migrations
+├── _System/       receipts, instance identity, execution state, guides, migrations
 ├── _Templates/    reusable templates
 └── docs/          vault-local documentation
 ```
