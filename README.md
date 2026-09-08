@@ -69,6 +69,8 @@ This separation allows same-provider multi-instance use immediately—for exampl
 
 Relationship state is durably represented inside each KV at `_System/Instances/Relationships/relationship-state.json`. Transition requests are stored separately under `_System/Instances/Relationships/Requests/`. Persisting a request never changes the current tier. A state transition can be materialized only from an already-admitted request carrying both Interlock and InTr receipt references; source code does not decide admission and does not claim runtime activation, provider authority, data movement, replication, or AI exposure by itself.
 
+MyKV-facing source may consume a bounded multi-instance projection rather than private KV content. `runtime/kv_my_kv_projection.py` projects instance identity, storage metadata, current relationship tier, governance state, and pending relationship request IDs while fixing `private_content_included=false`, `credential_material_included=false`, provider/relationship mutation authority to false, and `authority_effect=NONE_STATUS_ONLY`. The projection supports rendering and request initiation; it does not itself connect/disconnect storage, change tiers, move data, replicate content, or expose a unified AI corpus.
+
 See [`docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md`](./docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md) for the complete relationship contract.
 
 ### Use
