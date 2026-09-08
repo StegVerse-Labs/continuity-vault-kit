@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stegverse.kv.my-kv-instance-projection/v1",
+  "type": "object",
+  "required": ["schema","instance_id","instance_number","logical_name","kv_set_id","storage","relationship","management","private_content_included","credential_material_included","authority_effect","activation_effect"],
+  "properties": {
+    "schema": {"const": "stegverse.kv.my-kv-instance-projection/v1"},
+    "instance_id": {"type": "string", "pattern": "^kvi_"},
+    "instance_number": {"type": "integer", "minimum": 1},
+    "logical_name": {"type": "string", "minLength": 1},
+    "kv_set_id": {"type": "string", "minLength": 1},
+    "storage": {
+      "type": "object",
+      "required": ["medium","locator","provider_authority_effect"],
+      "properties": {
+        "medium": {"type": ["string","null"]},
+        "locator": {"type": ["string","null"]},
+        "provider_authority_effect": {"const": "NONE"}
+      },
+      "additionalProperties": false
+    },
+    "relationship": {
+      "type": "object",
+      "required": ["tier","governance_state","last_admitted_request_id","pending_request_ids"],
+      "properties": {
+        "tier": {"enum": ["NOT_CONNECTED","CONNECTED","SYNCED","AI_INTERACTION"]},
+        "governance_state": {"type": "string", "minLength": 1},
+        "last_admitted_request_id": {"type": ["string","null"]},
+        "pending_request_ids": {"type": "array", "items": {"type": "string", "pattern": "^kvrel_"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "management": {
+      "type": "object",
+      "required": ["request_connect_supported","request_disconnect_supported","request_tier_change_supported","provider_mutation_authorized","relationship_mutation_authorized"],
+      "properties": {
+        "request_connect_supported": {"const": true},
+        "request_disconnect_supported": {"const": true},
+        "request_tier_change_supported": {"const": true},
+        "provider_mutation_authorized": {"const": false},
+        "relationship_mutation_authorized": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "private_content_included": {"const": false},
+    "credential_material_included": {"const": false},
+    "authority_effect": {"const": "NONE_STATUS_ONLY"},
+    "activation_effect": {"const": false}
+  },
+  "additionalProperties": false
+}
