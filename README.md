@@ -71,6 +71,8 @@ Relationship state is durably represented inside each KV at `_System/Instances/R
 
 MyKV-facing source may consume a bounded multi-instance projection rather than private KV content. `runtime/kv_my_kv_projection.py` projects instance identity, storage metadata, current relationship tier, governance state, and pending relationship request IDs while fixing `private_content_included=false`, `credential_material_included=false`, provider/relationship mutation authority to false, and `authority_effect=NONE_STATUS_ONLY`. The projection supports rendering and request initiation; it does not itself connect/disconnect storage, change tiers, move data, replicate content, or expose a unified AI corpus.
 
+The storage-provider adapter layer in `runtime/kv_storage_provider_adapter.py` now provides a provider-neutral request contract for iCloud Drive, Google Drive, Microsoft OneDrive, and Dropbox. Each adapter can represent `CONNECT`, `VERIFY`, `READ`, `WRITE`, `SYNC`, and `DISCONNECT` intents without embedding credentials or claiming provider execution. Every request remains `PENDING_INTERLOCK_INTR`, requires a SKAP credential reference at runtime, fixes raw credential material absent, and fixes provider-session/operation/data-movement/replication effects false until an admitted runtime performs them.
+
 See [`docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md`](./docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md) for the complete relationship contract.
 
 ### Use
