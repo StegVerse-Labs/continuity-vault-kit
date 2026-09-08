@@ -14,9 +14,60 @@ Baseline use is file-based. No account, hosted service, SDK, or AI provider is r
 python3 tools/init_vault.py /path/to/parent-folder
 ```
 
+The default command creates **KV #1** at `KnowledgeVault/`.
+
+A second isolated instance can be created beside it without overwriting KV #1:
+
+```bash
+python3 tools/init_vault.py /path/to/parent-folder --instance 2 --storage-medium icloud-drive
+```
+
+That creates **KV #2** at `KnowledgeVault-2/`. The same rule extends to any positive instance number: KV #n is created at `KnowledgeVault-n/` unless `--vault-name` supplies another isolated folder name.
+
+`--storage-medium` is descriptive metadata and may identify any owner-controlled storage medium, such as `icloud-drive`, `google-drive`, `onedrive`, `dropbox`, `local-disk`, or `removable-encrypted-volume`. It does not activate a provider session or grant provider authority. `--storage-locator` may record a non-secret path/provider locator; credentials and tokens must never be supplied there.
+
 **Any device:** copy or unzip `vault_template/KnowledgeVault/` somewhere you control.
 
-The initializer refuses to overwrite an existing vault, verifies the installed file set and immutable hashes, and writes `_System/installation.receipt.json`.
+The initializer refuses to overwrite an existing instance root, verifies the installed template file set and immutable hashes, writes `_System/installation.receipt.json`, and creates `_System/Instances/instance.json` with a unique instance ID, storage metadata, and an initial `NOT_CONNECTED` relationship state.
+
+### KV #1 / KV #2 / KV #n relationship
+
+KV numbering identifies **instances**, not authority.
+
+```text
+Owner continuity set
+├── KV #1  -> storage medium A
+├── KV #2  -> storage medium A or B
+├── KV #3  -> storage medium C
+└── KV #n  -> any admitted owner-controlled storage medium
+```
+
+Instances sharing a `kv_set_id` belong to the same owner continuity set but begin **NOT_CONNECTED**. Sharing a set ID or storage provider does not itself authorize inter-instance communication.
+
+The relationship model has four cumulative capability tiers:
+
+```text
+NOT_CONNECTED
+  no inter-comms; no data movement; no replication; no unified AI corpus
+
+CONNECTED
+  inter-comms aware; admitted data can move between separately rooted KVs
+
+SYNCED
+  CONNECTED capabilities plus admitted replication between participating KVs
+
+AI_INTERACTION
+  SYNCED capabilities plus all participating KV data considered one logical corpus
+  for the authorized AI interaction
+```
+
+`AI_INTERACTION` does not physically merge the vaults, erase provenance, or make the AI canonical authority. Physical roots and source identity remain distinct even when retrieval/reasoning treats the admitted set as one logical corpus.
+
+KV #2 does not inherit authority from KV #1, and a higher or lower instance number does not make one vault canonical, subordinate, primary, backup, or replica. Operational roles are a separate dimension from relationship tier and are established by policy/Interlock/InTr rather than by instance ordinal.
+
+This separation allows same-provider multi-instance use immediately—for example KV #1 and KV #2 can both live in iCloud Drive—while provider-specific adapters and governed relationship transitions can be integrated later without changing the instance identity model.
+
+See [`docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md`](./docs/KV_MULTI_INSTANCE_RELATIONSHIPS.md) for the complete relationship contract.
 
 ### Use
 
@@ -43,7 +94,7 @@ KnowledgeVault/
 ├── _Index/        indexes and cross-references
 ├── _Meta/         manifest and integrity metadata
 ├── _Policy/       vault policy
-├── _System/       receipts, execution state, guides, migrations
+├── _System/       receipts, instance identity, execution state, guides, migrations
 ├── _Templates/    reusable templates
 └── docs/          vault-local documentation
 ```

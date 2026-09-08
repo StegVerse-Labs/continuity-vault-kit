@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-relationship-transition-request.schema.json",
+  "title": "KnowledgeVault Relationship Transition Request",
+  "type": "object",
+  "required": [
+    "schema",
+    "request_id",
+    "kv_set_id",
+    "participants",
+    "current_tier",
+    "target_tier",
+    "direction",
+    "requested_capabilities",
+    "governance_state",
+    "authority_effect",
+    "activation_effect",
+    "data_moved",
+    "replication_started",
+    "ai_corpus_exposed"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.relationship-transition-request/v1"},
+    "request_id": {"type": "string", "pattern": "^kvrel_[a-f0-9]{24}$"},
+    "kv_set_id": {"type": "string", "minLength": 1},
+    "participants": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^kvi_"}
+    },
+    "current_tier": {"enum": ["NOT_CONNECTED", "CONNECTED", "SYNCED", "AI_INTERACTION"]},
+    "target_tier": {"enum": ["NOT_CONNECTED", "CONNECTED", "SYNCED", "AI_INTERACTION"]},
+    "direction": {"enum": ["UNCHANGED", "UPGRADE", "DOWNGRADE"]},
+    "requested_by": {"type": "string", "minLength": 1},
+    "requested_capabilities": {"type": "object"},
+    "governance_state": {"const": "PENDING_INTERLOCK_INTR"},
+    "authority_effect": {"const": "NONE"},
+    "activation_effect": {"const": false},
+    "data_moved": {"const": false},
+    "replication_started": {"const": false},
+    "ai_corpus_exposed": {"const": false}
+  },
+  "additionalProperties": true
+}
