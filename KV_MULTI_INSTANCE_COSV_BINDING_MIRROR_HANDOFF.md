@@ -1,10 +1,10 @@
 # KV Multi-Instance COSV Binding Mirror Handoff
 
-Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MERGED / MYKV_PROJECTION_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
+Status: SOURCE_MULTI_INSTANCE_MERGED / RELATIONSHIP_STATE_MERGED / MYKV_PROJECTION_MERGED / STORAGE_PROVIDER_ADAPTERS_IN_PROGRESS / CANONICAL_COSV_BOUND / RUNTIME_ACTIVATION_PENDING
 Repository: `StegVerse-Labs/continuity-vault-kit`
-Current branch: `kv-my-kv-instance-projection`
-Merged source PRs: `#196`, `#197`
-Merged commits: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`, `ea4da1e58e74c7f2690d26e82cb9c6a6e30aca03`
+Current branch: `kv-storage-provider-adapters`
+Merged source PRs: `#196`, `#197`, `#198`
+Merged commits: `2a2a5273a684fedfaf10f6c4ea93d195d9d9ae6f`, `ea4da1e58e74c7f2690d26e82cb9c6a6e30aca03`, `4ee4232aec19f2bbc469bf712403185ab799ab0d`
 Updated: 2026-09-08
 Authority effect: NONE
 Activation effect: false
@@ -27,48 +27,54 @@ The organization-level COSV handoff remains authoritative for the task vector. T
 
 PR #196 is validated and merged. The repository defines isolated `KV #1`, `KV #2`, and `KV #n` roots; unique per-instance identity and receipt binding; provider-neutral storage metadata; four cumulative relationship tiers (`NOT_CONNECTED`, `CONNECTED`, `SYNCED`, `AI_INTERACTION`); default `NOT_CONNECTED`; and non-authorizing governed transition requests.
 
-PR #197 is validated and merged. Relationship state is durably represented under:
+PR #197 is validated and merged. Relationship state is durably represented under `_System/Instances/Relationships/`, with transition materialization gated by matching set/current-tier state and authentic admitted Interlock/InTr receipt references.
 
-```text
-_System/Instances/Relationships/
-  relationship-state.json
-  Requests/<request_id>.json
-  Receipts/<request_id>.json
-```
+PR #198 is validated and merged. MyKV can consume a bounded multi-instance status projection carrying identity/storage/relationship metadata and pending request identifiers while private content, credentials, provider mutation authority, relationship mutation authority, and activation remain false.
 
-State transitions remain fail-closed and require matching `kv_set_id`, current-tier binding, `ADMITTED` evidence, and both Interlock and InTr receipt references before source materialization.
+## Current storage-provider adapter slice
 
-## Current MyKV projection slice
-
-The current source slice gives MyKV a bounded multi-instance status surface without exposing private KV content or granting provider/runtime authority.
+The current source slice provides a provider-neutral request adapter layer for storage providers without claiming live provider execution.
 
 Current artifacts:
 
-- `runtime/kv_my_kv_projection.py`
-- `schemas/kv-my-kv-instance-projection.schema.json`
-- `tests/test_kv_my_kv_projection.py`
+- `runtime/kv_storage_provider_adapter.py`
+- `schemas/kv-storage-provider-operation-request.schema.json`
+- `tests/test_kv_storage_provider_adapter.py`
 - `README.md`
 
-The projection exposes only:
+Default declarative adapters are defined for:
 
-- `instance_id`, `instance_number`, logical KV name, and `kv_set_id`;
-- storage medium and explicitly non-secret locator metadata already present in the instance record;
-- current relationship tier and relationship governance state;
-- last admitted relationship request ID and pending relationship request IDs;
-- request-surface capability flags for connect, disconnect, and relationship-tier-change requests.
+- `icloud-drive`
+- `google-drive`
+- `onedrive`
+- `dropbox`
 
-The projection fixes these boundaries:
+Each adapter can represent these normalized operation intents:
 
 ```text
-private_content_included: false
-credential_material_included: false
-provider_mutation_authorized: false
-relationship_mutation_authorized: false
-authority_effect: NONE_STATUS_ONLY
+CONNECT
+VERIFY
+READ
+WRITE
+SYNC
+DISCONNECT
+```
+
+Every source request is deterministic and fixed fail-closed:
+
+```text
+governance_state: PENDING_INTERLOCK_INTR
+skap_credential_ref_required: true
+credential_material_present: false
+provider_session_established: false
+provider_operation_executed: false
+data_moved: false
+replication_started: false
+authority_effect: NONE
 activation_effect: false
 ```
 
-MyKV may render these fields and initiate governed requests. The projection itself cannot connect/disconnect storage, change tiers, move data, replicate content, expose a unified AI corpus, authenticate a provider, or create execution/governance authority.
+The adapter layer therefore defines the shape needed now for MyKV add/remove/connect/sync flows while leaving authentication, provider sessions, actual read/write/sync execution, and admission to the later SKAP + Interlock/InTr runtime binding.
 
 ## Canonical relationship tiers
 
@@ -102,11 +108,11 @@ AI_INTERACTION
 
 ## Remaining work
 
-- validate and merge the MyKV projection source slice;
-- coordinate the Site/MyKV consumer against this bounded projection contract without inventing a parallel provider/relationship authority;
+- validate and merge the storage-provider adapter source slice;
+- coordinate the Site/MyKV consumer so add/remove/connect/sync UI emits these governed provider-operation requests rather than invoking provider authority directly;
 - materialize a real KV #2 instance without altering KV #1 when an admissible storage/user flow is available;
-- bind actual CONNECTED/SYNCED/AI_INTERACTION transitions to authentic Interlock/InTr runtime evidence;
-- add real provider adapters and MyKV add/remove-drive request execution only when the corresponding admitted runtime paths exist.
+- bind actual provider sessions and CONNECTED/SYNCED/AI_INTERACTION transitions to authentic SKAP + Interlock/InTr runtime evidence;
+- implement provider-specific live execution bindings only after those authority paths are available.
 
 ## Manual work
 
