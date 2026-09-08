@@ -1,0 +1,67 @@
+name: KV Existing Instance Adoption
+
+on:
+  pull_request:
+    paths:
+      - "tools/adopt_existing_kv_instance.py"
+      - "tools/test_adopt_existing_kv_instance.py"
+      - "runtime/kv_my_kv_projection.py"
+      - "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md"
+      - "data/session-work-claims.d/cvk-kv1-adoption-projection-20260908.json"
+      - ".github/workflows/kv-existing-instance-adoption.yml"
+  push:
+    paths:
+      - "tools/adopt_existing_kv_instance.py"
+      - "tools/test_adopt_existing_kv_instance.py"
+      - "runtime/kv_my_kv_projection.py"
+      - "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md"
+      - "data/session-work-claims.d/cvk-kv1-adoption-projection-20260908.json"
+      - ".github/workflows/kv-existing-instance-adoption.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate existing-KV adoption contract
+        run: python3 tools/test_adopt_existing_kv_instance.py
+      - name: Validate direct CLI import path
+        run: python3 tools/adopt_existing_kv_instance.py --help >/dev/null
+      - name: Prove fail-closed migration boundary
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('tools/adopt_existing_kv_instance.py').read_text(encoding='utf-8')
+          required=[
+            'installation receipt SHA-256 mismatch; refusing adoption',
+            'would be overwritten',
+            'private_content_modified": False',
+            'installation_receipt_modified": False',
+            'provider_operation_executed": False',
+            'relationship_tier": "NOT_CONNECTED"',
+            'credential_material_present": False',
+            'provider_mutation_authorized": False',
+            'relationship_mutation_authorized": False',
+            'NONE_STATUS_ONLY',
+            '_System/my-kv-set-projection.json',
+          ]
+          missing=[x for x in required if x not in src]
+          if missing:
+            raise SystemExit('missing fail-closed adoption markers: '+', '.join(missing))
+          forbidden=['provider_operation_executed": True','provider_mutation_authorized": True','relationship_mutation_authorized": True','private_content_modified": True','installation_receipt_modified": True']
+          present=[x for x in forbidden if x in src]
+          if present:
+            raise SystemExit('prohibited adoption authority markers: '+', '.join(present))
+          print('KV_EXISTING_INSTANCE_ADOPTION=PASS')
+          print('KV1_INSTALLATION_RECEIPT_HASH_BINDING=REQUIRED')
+          print('KV1_PRIVATE_CONTENT_MUTATION=NONE')
+          print('KV1_PROVIDER_EXECUTION_AUTHORITY=NONE')
+          print('KV1_SET_PROJECTION=BOUNDED_STATUS_ONLY')
+          PY
