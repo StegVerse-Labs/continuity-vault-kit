@@ -28,6 +28,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
       - name: Validate adoption to provider binding
         run: python -m pytest -q tests/test_cloud_peer_adoption_provider_binding.py tests/test_kv_storage_provider_adapter.py tests/test_kv_provider_operation_store.py
       - name: Prove fail-closed provider/materialization boundary
@@ -36,7 +38,7 @@ jobs:
           from pathlib import Path
           src=Path('runtime/cloud_peer_adoption_provider_binding.py').read_text(encoding='utf-8')
           required=[
-            'SITE-CLOUD-KV-4347408852127319cbda574f02e03edb' if False else 'SITE-CLOUD-KV-',
+            'SITE-CLOUD-KV-',
             'PENDING_INTERLOCK_INTR',
             'ADMITTED_GOOGLE_DRIVE_CONNECT_RESULT',
             'ADMITTED_GOOGLE_DRIVE_VERIFY_RESULT',
