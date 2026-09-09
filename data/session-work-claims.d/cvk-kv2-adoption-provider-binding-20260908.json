@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0.0",
+  "registry_fragment_type": "stegverse_session_work_claim_registry_fragment",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "claims": [
+    {
+      "claim_id": "CVK-KV2-ADOPTION-PROVIDER-BINDING-20260908",
+      "session_worker_id": "chatgpt:cvk-kv2-adoption-provider-binding-20260908",
+      "task_id": "KV-CONNECTION-REVALIDATION-WORKER-001",
+      "originating_goal": "Bind the authentic resident Google Drive KV #2 adoption request to the canonical provider CONNECT/VERIFY operation lane and expose a fail-closed materialization-readiness gate without executing providers or rewriting cloud identity.",
+      "repository": "StegVerse-Labs/continuity-vault-kit",
+      "branch": "kv2-adoption-provider-binding-20260908",
+      "role": "SOURCE_IMPLEMENTATION",
+      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "normalized_work_key": "cvk-kv2-adoption-provider-binding",
+      "dependency_surface_keys": ["kv:storage-provider-adapter","kv:provider-operation-state","kv:multi-instance-identity","site:google-drive-kv2-resident-ingress"],
+      "governing_dependency_keys": ["kv:provider-operation-state","kv:multi-instance-identity"],
+      "claimed_paths": [
+        "runtime/cloud_peer_adoption_provider_binding.py",
+        "tests/test_cloud_peer_adoption_provider_binding.py",
+        ".github/workflows/kv-cloud-peer-adoption-provider-binding.yml",
+        "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md",
+        "data/session-work-claims.d/cvk-kv2-adoption-provider-binding-20260908.json"
+      ],
+      "handoff": "KV_MULTI_INSTANCE_COSV_BINDING_MIRROR_HANDOFF.md",
+      "handoff_revision": "KV2_ADOPTION_PROVIDER_BINDING_IN_PROGRESS_20260908",
+      "claim_created_at": "2026-09-08T21:40:00-05:00",
+      "claim_expires_when": "Release after exact-head validation and merge. Authentic Interlock/InTr admission, SKAP resolution, Google Drive CONNECT/VERIFY execution, and KV #2 materialization remain runtime work.",
+      "expected_evidence": [
+        "authentic SITE-CLOUD-KV request binding",
+        "resident ingress evidence required",
+        "canonical Google Drive CONNECT request",
+        "canonical Google Drive VERIFY request",
+        "PENDING_INTERLOCK_INTR preserved",
+        "Interlock receipt required before readiness",
+        "InTr receipt required before readiness",
+        "SKAP credential reference required before readiness",
+        "provider result evidence required before readiness",
+        "cloud identity rewrite not required",
+        "private content rewrite false",
+        "materialization readiness false without admitted CONNECT and VERIFY",
+        "materialization mode preserves existing cloud identity",
+        "provider/materialization source tests PASS"
+      ],
+      "collision_boundaries": [
+        "Do not execute Google Drive operations from CI or repository source",
+        "Do not store raw provider credentials or private cloud locator in public evidence",
+        "Do not rewrite existing cloud instance identity or private content",
+        "Do not mark KV #2 materialized from resident ingress alone",
+        "Do not advance relationship beyond NOT_CONNECTED in this slice",
+        "Do not use GitHub token as provider/runtime authority",
+        "No NON-TV/TVC secret/token"
+      ],
+      "next_task_after_release": "Consume authentic Interlock/InTr + SKAP + Google Drive CONNECT and VERIFY results, then materialize KV #2 as a set-membership ordinal binding that preserves the existing cloud identity.",
+      "credential_authority": "TV/TVC",
+      "credential_requirement": "SKAP_REFERENCE_REQUIRED_AT_RUNTIME_PROVIDER_EXECUTION",
+      "github_token_runtime_authority": "NONE",
+      "non_tv_tvc_secret_or_token_used": false,
+      "authority_effect": false,
+      "activation_effect": false,
+      "archive_eligible": false
+    }
+  ]
+}
