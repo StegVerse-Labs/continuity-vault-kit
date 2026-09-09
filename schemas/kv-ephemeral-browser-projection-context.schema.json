@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-ephemeral-browser-projection-context.schema.json",
+  "title": "KV Ephemeral Browser Projection Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "purpose",
+    "entry_state",
+    "kv_transition_commitment",
+    "admission_commitment",
+    "browser_capability_state",
+    "browser_capability_commitment",
+    "persistence_effect",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema": {"const": "stegos.kv-bound-ephemeral-projection-context/v1"},
+    "purpose": {"const": "CURRENT_IPHONE_TESTFLIGHT_SIGNING"},
+    "entry_state": {"const": "ADMITTED"},
+    "kv_transition_commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "admission_commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "browser_capability_state": {"const": "OBSERVED_COMPATIBLE"},
+    "browser_capability_commitment": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "persistence_effect": {"const": "NONE_EPHEMERAL_CONTEXT_ONLY"},
+    "authority_effect": {"const": "NONE_PROJECTION_GATE_ONLY"}
+  }
+}
