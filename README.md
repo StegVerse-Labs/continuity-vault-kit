@@ -125,6 +125,14 @@ Each independently governed ingress boundary evaluates its own HANDOFF and, when
 
 The full runtime Interlock/InTr integration is an activation lane separate from baseline file-only KnowledgeVault use.
 
+## KV-bound ephemeral browser projection
+
+For governed browser actions, KV remains the private continuity boundary while the physical browser/container is an ephemeral capability and presentation surface. The source producer `scripts/materialize_ephemeral_browser_projection_context.py` consumes an already-admitted KV entry-transition receipt and a compatible browser-capability observation from the same KV lineage, then emits only opaque SHA-256 commitments plus purpose/state metadata for the StegOS projection gate.
+
+The producer does not decide Interlock/InTr admission, infer capability from browser identity, persist browser state, expose the KV lineage identifier, authenticate TV/TVC, or grant execution authority. Missing admission, mismatched KV lineage, non-KV continuity, or browser-identity authority fails closed.
+
+See [`docs/KV_EPHEMERAL_BROWSER_PROJECTION_MIRROR_HANDOFF.md`](./docs/KV_EPHEMERAL_BROWSER_PROJECTION_MIRROR_HANDOFF.md) and [`docs/KV_PRIVACY_STATE_TRANSITION_CONTINUITY.md`](./docs/KV_PRIVACY_STATE_TRANSITION_CONTINUITY.md).
+
 ## Safety
 
 KnowledgeVault's baseline file structure is not itself encryption. Do not place passwords, private keys, seed phrases, authentication recovery codes, or equivalent secrets into ordinary plaintext KV files. In the StegVerse architecture, those belong behind the SKAP Vault boundary.
