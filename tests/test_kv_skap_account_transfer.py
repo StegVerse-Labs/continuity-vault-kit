@@ -1,5 +1,7 @@
 import copy
+import json
 import unittest
+from pathlib import Path
 
 from runtime.kv_skap_account_transfer import (
     KVSKAPTransferError,
@@ -7,6 +9,9 @@ from runtime.kv_skap_account_transfer import (
     build_intr_request,
     build_transfer_packet,
 )
+
+
+FIXTURE = Path(__file__).parent / "fixtures" / "kv_skap_account_metadata_conformance_v1.json"
 
 
 class KVSKAPAccountTransferTests(unittest.TestCase):
@@ -64,6 +69,26 @@ class KVSKAPAccountTransferTests(unittest.TestCase):
         other["owner_selection_ref"] = "kv://selection/other"
         with self.assertRaises(KVSKAPTransferError):
             build_intr_boundary_envelope(other, req)
+
+    def test_shared_conformance_vector_is_exact_producer_output(self):
+        vector = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        packet = build_transfer_packet(
+            owner_selection_ref="kv://selection/conformance-linkedin-001",
+            provider_org_ref="org:linkedin",
+            account_class="social",
+            account_status="ACTIVE",
+            source_evidence_ref="evidence://provider-observation/conformance-linkedin-001",
+            source_evidence_sha256="sha256:" + "a" * 64,
+        )
+        self.assertEqual(packet, vector["packet"])
+        request = build_intr_request(
+            packet,
+            request_id="KVSKAP-CONFORMANCE-001",
+            authority_ref="owner://conformance",
+        )
+        self.assertEqual(request, vector["kv_interlock_request"])
+        envelope = build_intr_boundary_envelope(packet, request)
+        self.assertEqual(envelope, vector["intr_boundary_envelope"])
 
 
 if __name__ == "__main__":
