@@ -125,6 +125,23 @@ Each independently governed ingress boundary evaluates its own HANDOFF and, when
 
 The full runtime Interlock/InTr integration is an activation lane separate from baseline file-only KnowledgeVault use.
 
+### Universal inter-Entity epistemic state
+
+InTr transport and epistemic state are separate. A receipt proves carriage; it does not prove understanding, agreement, applicability, evidence acceptance, incorporation, truth, readiness, or authority. State-relevant inter-Entity communication binds to `stegverse.intr.epistemic-state/v1`, which represents `KNOWN`, `UNKNOWN`, `AMBIGUOUS`, `DISCOVERED_UNKNOWN`, and `DISPUTED` conditions plus durable acknowledgement depth.
+
+Acknowledgement is cumulative but not interchangeable: `RECEIVED -> INTERPRETED -> APPLICABILITY_RESOLVED -> EVIDENCE_ACCEPTED -> AGREED -> INCORPORATED`. The consequence class determines the minimum required acknowledgement depth. Informational exchange may remain lightweight; state-relevant, state-changing, and high-consequence communications require progressively stronger receiver evidence. Unknown applicability, ambiguity, dispute, stale evidence, or missing affected-recipient acknowledgement prevents dependent state from being treated as resolved.
+
+A newly discovered unknown carries a scope hypothesis, not sender-imposed applicability. Every affected receiver independently incorporates it, establishes `NOT_APPLICABLE`, disputes/rejects it with evidence, or enters `PROBE_REQUIRED`. Corrections and supersessions are append-only lineage and never rewrite prior epistemic history.
+
+Canonical source:
+
+```text
+schemas/intr-epistemic-state-envelope.schema.json
+runtime/intr_epistemic_state.py
+runtime/intr_epistemic_packet_binding.py
+INTER_ENTITY_EPISTEMIC_STATE_PROTOCOL_MIRROR_HANDOFF.md
+```
+
 ## KV-bound ephemeral browser projection
 
 For governed browser actions, KV remains the private continuity boundary while the physical browser/container is an ephemeral capability and presentation surface. The source producer `scripts/materialize_ephemeral_browser_projection_context.py` consumes an already-admitted KV entry-transition receipt and a compatible browser-capability observation from the same KV lineage, then emits only opaque SHA-256 commitments plus purpose/state metadata for the StegOS projection gate.
