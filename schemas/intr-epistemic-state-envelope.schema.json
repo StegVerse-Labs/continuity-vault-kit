@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/intr-epistemic-state-envelope.schema.json",
+  "title": "StegVerse InTr Inter-Entity Epistemic State Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "message_id", "conversation_id", "sender_entity", "recipient_entities",
+    "message_class", "claim_scope", "epistemic_items", "created_at", "requires_acknowledgement"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.intr.epistemic-state/v1"},
+    "message_id": {"type": "string", "minLength": 1},
+    "conversation_id": {"type": "string", "minLength": 1},
+    "caused_by_message_id": {"type": ["string", "null"]},
+    "sender_entity": {"type": "string", "minLength": 1},
+    "recipient_entities": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "message_class": {
+      "enum": ["ASSERTION", "QUESTION", "CLARIFICATION_REQUEST", "DISCOVERY", "PROBE_REQUEST", "PROBE_RESULT", "ACKNOWLEDGEMENT", "CORRECTION", "SUPERSESSION"]
+    },
+    "claim_scope": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1},
+    "requires_acknowledgement": {"type": "boolean"},
+    "epistemic_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item_id", "subject", "state", "applicability", "source_evidence_refs", "readiness_effect"],
+        "properties": {
+          "item_id": {"type": "string", "minLength": 1},
+          "subject": {"type": "string", "minLength": 1},
+          "state": {"enum": ["KNOWN", "UNKNOWN", "AMBIGUOUS", "DISCOVERED_UNKNOWN", "DISPUTED"]},
+          "applicability": {"enum": ["APPLICABLE", "NOT_APPLICABLE", "UNKNOWN"]},
+          "source_evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "readiness_effect": {"enum": ["NONE", "PROBE_REQUIRED", "BLOCKING", "RECOMPUTE_REQUIRED"]},
+          "discovery_id": {"type": ["string", "null"]},
+          "supersedes_item_id": {"type": ["string", "null"]},
+          "probe_ref": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "acknowledges_message_id": {"type": ["string", "null"]},
+    "acknowledgement_state": {"enum": ["NOT_REQUIRED", "PENDING", "RECEIVED", "REJECTED_AS_INVALID"]},
+    "authority_effect": {"const": "NONE"}
+  }
+}
