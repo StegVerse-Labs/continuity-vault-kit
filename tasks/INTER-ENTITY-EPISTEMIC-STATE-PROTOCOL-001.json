@@ -1,0 +1,31 @@
+{
+  "task_id": "INTER-ENTITY-EPISTEMIC-STATE-PROTOCOL-001",
+  "originating_goal": "Define and implement a universal Interlock/InTr epistemic-state protocol for all inter-Entity communications so knowns, unknowns, ambiguity, discoveries, probes, corrections, applicability, acknowledgement, and dependent-state recomputation are preserved across sovereign boundaries.",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "source_branch": "inter-entity-epistemic-state-protocol-001",
+  "target_branch": "main",
+  "state": "ACTIVE_SOURCE_IMPLEMENTATION",
+  "owner": "StegVerse-Labs/continuity-vault-kit",
+  "source_handoff": "INTER_ENTITY_EPISTEMIC_STATE_PROTOCOL_MIRROR_HANDOFF.md",
+  "parent_context": "SDK-READINESS-PROBE-DISCIPLINE-004 identified the need but is a downstream consumer, not protocol authority.",
+  "authority_effect": "NONE",
+  "completed": [
+    "universal epistemic envelope schema added",
+    "receiver incorporation/probe classification implemented",
+    "discovered unknown promotion with evidence provenance implemented",
+    "unresolved acknowledgement READY guard implemented",
+    "focused regression tests added",
+    "canonical mirror handoff created"
+  ],
+  "remaining": [
+    "bind protocol into existing InTr packet/boundary transfer semantics",
+    "validate acknowledgement/correction/supersession lineage",
+    "multi-recipient acknowledgement aggregation",
+    "SDK readiness adapter",
+    "cross-Entity round-trip proof",
+    "README and architecture reconciliation",
+    "canonical .github Task Registry registration",
+    "downstream propagation assessment after source merge"
+  ],
+  "manual_work_required": false
+}
