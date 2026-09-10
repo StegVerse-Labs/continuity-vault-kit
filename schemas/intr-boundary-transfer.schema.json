@@ -1,0 +1,22 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://stegverse.org/schemas/intr-boundary-transfer.schema.json",
+  "title":"Internal InTr Boundary Transfer Envelope",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema","direction","source_boundary","destination_boundary","request_id","request_sha256","transfer_id","transfer_packet_sha256","payload_sha256","intr_receipt_ref","canonical_state_changed","credential_material_transferred"],
+  "properties":{
+    "schema":{"const":"stegverse.intr.boundary-transfer/v1"},
+    "direction":{"const":"KNOWLEDGEVAULT_TO_SKAP_VAULT"},
+    "source_boundary":{"const":"KnowledgeVault"},
+    "destination_boundary":{"const":"SKAP_Vault"},
+    "request_id":{"type":"string","minLength":1},
+    "request_sha256":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},
+    "transfer_id":{"type":"string","pattern":"^kvskap_[a-f0-9]{24}$"},
+    "transfer_packet_sha256":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},
+    "payload_sha256":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},
+    "intr_receipt_ref":{"type":["string","null"]},
+    "canonical_state_changed":{"const":false},
+    "credential_material_transferred":{"const":false}
+  }
+}
