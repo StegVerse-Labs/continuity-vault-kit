@@ -13,7 +13,7 @@ class KVSKAPTransferError(ValueError):
 SECRET_TOKENS = (
     "password", "secret", "token", "private_key", "access_key", "refresh_token",
     "client_secret", "authorization", "cookie", "session_key", "account_id",
-    "provider_account_id", "raw_provider_account_identifier"
+    "provider_account_id"
 )
 
 
@@ -31,8 +31,6 @@ def _assert_no_secrets(value: Any, path: str = "packet") -> None:
         for key, child in value.items():
             lower = str(key).lower()
             if any(token in lower for token in SECRET_TOKENS):
-                if lower == "raw_provider_account_identifier_present" and child is False:
-                    continue
                 raise KVSKAPTransferError(f"secret_or_raw_identifier_field_prohibited:{path}.{key}")
             _assert_no_secrets(child, f"{path}.{key}")
     elif isinstance(value, list):
@@ -73,7 +71,7 @@ def build_transfer_packet(*, owner_selection_ref: str, provider_org_ref: str,
 def validate_transfer_packet(packet: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(packet, dict):
         raise KVSKAPTransferError("packet_not_object")
-    _assert_no_secrets(packet)
+    _assert_no_secrets({k: v for k, v in packet.items() if k != "raw_provider_account_identifier_present"})
     required = {
         "schema": "stegverse.kv-skap.account-metadata-transfer/v1",
         "direction": "KNOWLEDGEVAULT_TO_SKAP_VAULT",
@@ -118,9 +116,36 @@ def build_intr_request(packet: dict[str, Any], *, request_id: str, authority_ref
         "requester": {"module": "KnowledgeVault", "component": "SKAPAccountMetadataTransfer"},
         "purpose": "Transfer owner-selected non-secret account metadata from KnowledgeVault to the internal SKAP Vault boundary.",
         "record_class": "SKAP_ACCOUNT_METADATA_TRANSFER",
-        "scope": ["provider_org_ref", "account_class", "account_status", "source_evidence_ref", "source_evidence_sha256"],
-        "disclosure_mode": "OPAQUE_REFERENCE_AND_HASH_ONLY",
+        "requested_scope": ["provider_org_ref", "account_class", "account_status", "source_evidence_ref", "source_evidence_sha256"],
+        "minimum_necessary_justification": "Only provider class/status and evidence references are required to establish an internal SKAP account binding without exporting provider identifiers or secrets.",
         "authority_ref": authority_ref,
-        "candidate": validated,
-        "destination": {"boundary": "SKAP_Vault", "operation": "SKAP_ACCOUNT_METADATA_ADMIT"},
+        "disclosure_mode": "SOURCE_REFERENCE_ONLY",
+        "candidate_writeback": {
+            "candidate_type": "SKAP_ACCOUNT_METADATA_TRANSFER",
+            "payload_ref": validated["payload_sha256"],
+            "requested_destination": "skap://internal/account-metadata"
+        }
     }
+
+
+def build_intr_boundary_envelope(packet: dict[str, Any], request: dict[str, Any], *, intr_receipt_ref: str | None = None) -> dict[str, Any]:
+    validated = validate_transfer_packet(packet)
+    if request.get("schema_version") != "kv.interlock.request.v1" or request.get("operation") != "COMMIT_CANDIDATE":
+        raise KVSKAPTransferError("invalid_kv_interlock_request")
+    if request.get("candidate_writeback", {}).get("payload_ref") != validated["payload_sha256"]:
+        raise KVSKAPTransferError("request_packet_binding_mismatch")
+    envelope = {
+        "schema": "stegverse.intr.boundary-transfer/v1",
+        "direction": "KNOWLEDGEVAULT_TO_SKAP_VAULT",
+        "source_boundary": "KnowledgeVault",
+        "destination_boundary": "SKAP_Vault",
+        "request_id": request["request_id"],
+        "request_sha256": sha256_uri(request),
+        "transfer_id": validated["transfer_id"],
+        "transfer_packet_sha256": sha256_uri(validated),
+        "payload_sha256": validated["payload_sha256"],
+        "intr_receipt_ref": intr_receipt_ref,
+        "canonical_state_changed": False,
+        "credential_material_transferred": False,
+    }
+    return envelope
