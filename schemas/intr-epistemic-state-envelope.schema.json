@@ -6,7 +6,8 @@
   "additionalProperties": false,
   "required": [
     "schema", "message_id", "conversation_id", "sender_entity", "recipient_entities",
-    "message_class", "claim_scope", "epistemic_items", "created_at", "requires_acknowledgement"
+    "message_class", "claim_scope", "consequence_class", "epistemic_items", "created_at",
+    "requires_acknowledgement", "authority_effect"
   ],
   "properties": {
     "schema": {"const": "stegverse.intr.epistemic-state/v1"},
@@ -16,11 +17,14 @@
     "sender_entity": {"type": "string", "minLength": 1},
     "recipient_entities": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "message_class": {
-      "enum": ["ASSERTION", "QUESTION", "CLARIFICATION_REQUEST", "DISCOVERY", "PROBE_REQUEST", "PROBE_RESULT", "ACKNOWLEDGEMENT", "CORRECTION", "SUPERSESSION"]
+      "enum": ["ASSERTION", "QUESTION", "CLARIFICATION_REQUEST", "DISCOVERY", "PROBE_REQUEST", "PROBE_RESULT", "ACKNOWLEDGEMENT", "CORRECTION", "SUPERSESSION", "DISPUTE"]
     },
     "claim_scope": {"type": "string", "minLength": 1},
+    "consequence_class": {"enum": ["INFORMATIONAL", "STATE_RELEVANT", "STATE_CHANGING", "HIGH_CONSEQUENCE"]},
     "created_at": {"type": "string", "minLength": 1},
+    "valid_until": {"type": ["string", "null"]},
     "requires_acknowledgement": {"type": "boolean"},
+    "required_acknowledgement_level": {"enum": ["RECEIVED", "INTERPRETED", "APPLICABILITY_RESOLVED", "EVIDENCE_ACCEPTED", "AGREED", "INCORPORATED"]},
     "epistemic_items": {
       "type": "array",
       "minItems": 1,
@@ -37,12 +41,18 @@
           "readiness_effect": {"enum": ["NONE", "PROBE_REQUIRED", "BLOCKING", "RECOMPUTE_REQUIRED"]},
           "discovery_id": {"type": ["string", "null"]},
           "supersedes_item_id": {"type": ["string", "null"]},
-          "probe_ref": {"type": ["string", "null"]}
+          "probe_ref": {"type": ["string", "null"]},
+          "scope_hypothesis": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "valid_until": {"type": ["string", "null"]}
         }
       }
     },
     "acknowledges_message_id": {"type": ["string", "null"]},
-    "acknowledgement_state": {"enum": ["NOT_REQUIRED", "PENDING", "RECEIVED", "REJECTED_AS_INVALID"]},
+    "acknowledgement_id": {"type": ["string", "null"]},
+    "acknowledgement_level": {"enum": ["RECEIVED", "INTERPRETED", "APPLICABILITY_RESOLVED", "EVIDENCE_ACCEPTED", "AGREED", "INCORPORATED"]},
+    "acknowledgement_state": {"enum": ["NOT_REQUIRED", "PENDING", "RECEIVED", "REJECTED_AS_INVALID", "DISPUTED"]},
+    "interpretation_ref": {"type": ["string", "null"]},
+    "dispute_ref": {"type": ["string", "null"]},
     "authority_effect": {"const": "NONE"}
   }
 }
