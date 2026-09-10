@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-skap-account-metadata-transfer.schema.json",
+  "title": "KV to SKAP Account Metadata Transfer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "transfer_id",
+    "direction",
+    "source_boundary",
+    "destination_boundary",
+    "owner_selection_ref",
+    "provider_org_ref",
+    "account_class",
+    "account_status",
+    "source_evidence_ref",
+    "source_evidence_sha256",
+    "payload_sha256",
+    "contains_secret_material",
+    "raw_provider_account_identifier_present",
+    "requested_transition"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv-skap.account-metadata-transfer/v1"},
+    "transfer_id": {"type": "string", "pattern": "^kvskap_[a-f0-9]{24}$"},
+    "direction": {"const": "KNOWLEDGEVAULT_TO_SKAP_VAULT"},
+    "source_boundary": {"const": "KnowledgeVault"},
+    "destination_boundary": {"const": "SKAP_Vault"},
+    "owner_selection_ref": {"type": "string", "minLength": 1, "maxLength": 256},
+    "provider_org_ref": {"type": "string", "pattern": "^org:[a-z0-9][a-z0-9._-]*$"},
+    "account_class": {"enum": ["social", "financial", "identity", "email", "cloud", "other"]},
+    "account_status": {"enum": ["ACTIVE", "INACTIVE", "CLOSED", "UNKNOWN"]},
+    "source_evidence_ref": {"type": "string", "minLength": 1, "maxLength": 512},
+    "source_evidence_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "payload_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "contains_secret_material": {"const": false},
+    "raw_provider_account_identifier_present": {"const": false},
+    "requested_transition": {"const": "SKAP_ACCOUNT_METADATA_ADMIT"}
+  }
+}
