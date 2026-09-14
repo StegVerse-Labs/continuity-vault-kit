@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-ai-memory-context-request.schema.json",
+  "title": "KnowledgeVault AI memory context request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "request_id", "kv_class", "authority_domain", "consumer_ai_role",
+    "source_kv_instance_ids", "purpose", "query_terms", "max_items", "max_bytes",
+    "intr_admission_required", "authority_effect"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.ai-memory-context-request/v1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "kv_class": {"enum": ["PERSONAL_KV", "ORGANIZATIONAL_KV", "STEGVERSE_KV", "MACHINE_KV"]},
+    "authority_domain": {"enum": ["PERSON", "ORGANIZATION", "STEGVERSE_ECOSYSTEM", "MACHINE_EXECUTION_ENTITY"]},
+    "consumer_ai_role": {"enum": ["PERSONAL_ASSISTANT_AI", "ORGANIZATIONAL_AI", "STEGVERSE_AI", "EXECUTION_AGENT"]},
+    "source_kv_instance_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "purpose": {"type": "string", "minLength": 1},
+    "query_terms": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "max_items": {"type": "integer", "minimum": 1, "maximum": 100},
+    "max_bytes": {"type": "integer", "minimum": 256, "maximum": 1048576},
+    "intr_admission_required": {"const": true},
+    "authority_effect": {"const": "NONE_CONTEXT_REQUEST_ONLY"}
+  }
+}
