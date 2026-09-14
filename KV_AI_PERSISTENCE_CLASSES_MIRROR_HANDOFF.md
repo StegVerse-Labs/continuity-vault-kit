@@ -1,6 +1,6 @@
 # KV AI Persistence Classes Mirror Handoff
 
-Status: ACTIVE / AI-MEMORY-SOURCE-VALIDATED / LLM-BRIDGE-SOURCE-INTEGRATED / LIVE-INTR-ACTIVATION-OPEN
+Status: ACTIVE / AI-MEMORY-SOURCE-VALIDATED / PRIVATE-RESIDENT-STAGING-IMPLEMENTED / RESIDENT-PROVIDERREQUEST-BINDING-VALIDATED / LIVE-INTR-ACTIVATION-OPEN
 Repository: StegVerse-Labs/continuity-vault-kit
 Goal ID: SV-KV-AI-PERSISTENCE-001
 Canonical Task Registry: StegVerse-Labs/.github/data/canonical-task-records/SV-KV-AI-PERSISTENCE-001.json
@@ -10,28 +10,21 @@ Last updated: 2026-09-13
 
 ## Goal
 
-Formalize distinct persistent KV ecosystems for:
-- Personal Assistant AI;
-- Organizational AI;
-- StegVerse ecosystem AI;
-- machine execution agents.
-
-The AI/model/runtime is replaceable. The applicable KV is the persistent state ecosystem for the authority domain it serves.
+Formalize distinct persistent KV ecosystems for Personal Assistant AI, Organizational AI, StegVerse ecosystem AI, and machine execution agents while keeping the AI/model/runtime replaceable and the applicable KV persistent within its authority domain.
 
 The first operationalized memory profile is `PERSONAL_KV / PERSON / PERSONAL_ASSISTANT_AI`: KnowledgeVault is the durable memory substrate while Auri or another model receives only a bounded, provenance-preserving context packet. Model/provider memory is non-canonical and grants no authority.
 
 ## Canonical coordination
-
-The goal is installed in the GitHub canonical Task Registry:
 
 - canonical task record: `StegVerse-Labs/.github/data/canonical-task-records/SV-KV-AI-PERSISTENCE-001.json`;
 - source task vector: `StegVerse-Labs/.github/control/task-vectors/SV-KV-AI-PERSISTENCE-001.json`;
 - task-vector index fragment: `StegVerse-Labs/.github/control/task-vector-index.d/SV-KV-AI-PERSISTENCE-001.json`;
 - current COSV `task.v1`: `20111110110000`;
 - registry coordination state: `IN_PROGRESS`;
-- provider-ingress bridge: `StegVerse-org/LLM-adapter/docs/KV_AI_MEMORY_CONTEXT_BRIDGE_MIRROR_HANDOFF.md`.
+- provider-ingress bridge: `StegVerse-org/LLM-adapter/docs/KV_AI_MEMORY_CONTEXT_BRIDGE_MIRROR_HANDOFF.md`;
+- resident binding: `StegVerse-Labs/.github/docs/KV_AI_MEMORY_RESIDENT_EXECUTION_MIRROR_HANDOFF.md`.
 
-Task Registry, source state, COSV, and CI do not mint runtime authority. WorkerCoordinator claim/fence authority and authentic Interlock/InTr admission remain separate requirements.
+Task Registry, source state, COSV, request files, and CI do not mint runtime authority. WorkerCoordinator claim/fence authority and authentic Interlock/InTr admission remain separate requirements.
 
 ## Implemented source
 
@@ -45,7 +38,7 @@ Persistence-class foundation:
 - `specs/kv-cross-class-intr-transition.example.v1.json`
 - `scripts/validate_kv_cross_class_intr_transition.py`
 
-AI-memory substrate continuation:
+AI-memory substrate:
 
 - `schemas/kv-ai-memory-context-request.schema.json`
 - `schemas/kv-ai-memory-context-packet.schema.json`
@@ -55,34 +48,38 @@ AI-memory substrate continuation:
 - `scripts/validate_kv_ai_memory_substrate.py`
 - `tests/test_kv_ai_memory_substrate.py`
 - `docs/KV_AI_MEMORY_SUBSTRATE.md`
-- `.github/workflows/validate-kv-ai-persistence-classes.yml`
-- `README.md`
+
+Private resident-input staging:
+
+- `scripts/stage_kv_ai_memory_resident_inputs.py`
+- `tests/test_stage_kv_ai_memory_resident_inputs.py`
 
 Provider-ingress bridge in `StegVerse-org/LLM-adapter`:
 
 - `llm_adapter/kv_memory_context_bridge.py`
+- `scripts/materialize_kv_memory_provider_request.py`
 - `tests/test_kv_memory_context_bridge.py`
-- `.github/workflows/validate-kv-memory-context-bridge.yml`
+- `tests/test_kv_memory_provider_request_materializer.py`
 - `docs/KV_AI_MEMORY_CONTEXT_BRIDGE_MIRROR_HANDOFF.md`
+
+Resident execution binding in `StegVerse-Labs/.github`:
+
+- `docs/KV_AI_MEMORY_RESIDENT_EXECUTION_MIRROR_HANDOFF.md`
+- `handoffs/SV-KV-AI-PERSISTENCE-001.json`
+- `workers/kv_ai_memory_resident_worker.py`
+- `scripts/consume_kv_ai_memory_resident_request.py`
+- `control/worker-registry.d/kv-ai-memory-resident-001.json`
+- `control/process-worker-adapters.d/kv-ai-memory-resident-001.json`
+- `control/resident-execution-request.d/kv-ai-memory-resident-001.json`
+- `tests/test_kv_ai_memory_resident_binding.py`
 
 ## Canonical classes
 
 ```text
-PERSONAL_KV
-  authority: PERSON
-  AI role: PERSONAL_ASSISTANT_AI
-
-ORGANIZATIONAL_KV
-  authority: ORGANIZATION
-  AI role: ORGANIZATIONAL_AI
-
-STEGVERSE_KV
-  authority: STEGVERSE_ECOSYSTEM
-  AI role: STEGVERSE_AI
-
-MACHINE_KV
-  authority: MACHINE_EXECUTION_ENTITY
-  AI role: EXECUTION_AGENT
+PERSONAL_KV       authority: PERSON                     AI role: PERSONAL_ASSISTANT_AI
+ORGANIZATIONAL_KV authority: ORGANIZATION               AI role: ORGANIZATIONAL_AI
+STEGVERSE_KV      authority: STEGVERSE_ECOSYSTEM        AI role: STEGVERSE_AI
+MACHINE_KV        authority: MACHINE_EXECUTION_ENTITY   AI role: EXECUTION_AGENT
 ```
 
 ## Shared invariants
@@ -99,100 +96,83 @@ least authority: true
 ambiguous scope: FAIL_CLOSED
 ```
 
-## KV-backed AI memory source path
-
-The bounded source path is now concrete:
+## KV-backed Personal Assistant memory path
 
 ```text
-PERSONAL_KV
-  -> bounded context request
-  -> deterministic same-authority selection
-  -> context packet with exact content hashes + provenance
-  -> exact memory-packet Interlock/InTr admission
-  -> provider-neutral ProviderRequest with bound KV context
-  -> existing external provider-request Interlock/InTr admission
-  -> PERSONAL_ASSISTANT_AI / Auri
-  -> optional memory write proposal
-  -> Interlock/InTr target admission
-  -> PERSONAL_KV persistence/readback receipt
+PERSONAL_KV readable entry projections
+-> bounded context request
+-> deterministic same-authority selection
+-> private resident staging of exact context packet
+-> authentic memory-packet Interlock/InTr admission
+-> existing WorkerCoordinator fresh fenced execution
+-> fenced bound-state ProviderRequest materialization
+-> existing external provider-request Interlock/InTr admission
+-> existing TV/TVC provider operation when required
+-> PERSONAL_ASSISTANT_AI / Auri response
+-> exact-response egress admission
+-> optional non-authorizing memory write proposal
+-> Interlock/InTr target-KV admission
+-> exact PERSONAL_KV persistence/readback receipt
 ```
 
-`runtime/kv_ai_memory_substrate.py` implements the KV-owned source portion through context-packet and write-proposal construction. `StegVerse-org/LLM-adapter/llm_adapter/kv_memory_context_bridge.py` consumes only an already-admitted exact memory packet and binds its packet ID, canonical packet hash, entry-set hash, provenance, and InTr receipt into the existing deterministic `ProviderRequest`. The ordinary provider request still requires its own existing external ingress ALLOW before any external execution.
+`runtime/kv_ai_memory_substrate.py` owns deterministic KV context selection and write-proposal construction. `scripts/stage_kv_ai_memory_resident_inputs.py` now stages the exact context packet and provider request input into a caller-selected private resident-state root. It deliberately does **not** create `inputs/memory-packet-admission.json`; that file must come from authentic Interlock/InTr admission.
 
-Neither component authenticates storage providers, resolves SKAP/provider credentials, decides admission, or treats context as authority.
+The stager rejects provider-request credential-like fields and refuses an empty memory selection. Its staging receipt fixes admission, provider execution, provider-request materialization, and KV writeback false.
 
-### Context safety
+The resident `.github` lane uses `ProcessWorkerAdapter` fenced bound state at `~/.stegverse/state/kv-ai-memory-resident`. The non-authorizing request consumer checks only for the presence of the three required private files and does not read their bytes. Once all three exist, the existing WorkerCoordinator may claim/fence the canonical task and use the already-local LLM-adapter materializer.
 
-An entry is selectable only when its source instance is allowlisted and the entry declares `ai_context_allowed=true`. AI-eligible secret-marked content fails closed. KV-class or authority-domain crossing fails closed. Selection is deterministic and lexical; it does not claim semantic/vector retrieval. Oversized entries are skipped rather than silently truncated.
+## Context and writeback safety
 
-Every delivered packet preserves:
-- source KV instance;
-- relative path;
-- exact content;
-- SHA-256 content identity;
-- provenance reference;
-- retention class;
-- canonical request hash and selected-entry-set hash.
+An entry is selectable only when its source instance is allowlisted and `ai_context_allowed=true`. AI-eligible secret-marked content, class crossing, and authority crossing fail closed. Selection is deterministic and lexical; it does not claim semantic/vector retrieval. Oversized entries are skipped rather than silently truncated.
 
-The packet fixes `model_is_authority=false`, `context_transfers_authority=false`, `secret_material_included=false`, `cross_authority_content_included=false`, and `authority_effect=NONE_CONTEXT_ONLY`.
+Every packet preserves source KV instance, relative path, exact content SHA-256 identity, provenance reference, retention class, request hash, and selected-entry-set hash. The packet fixes `model_is_authority=false`, `context_transfers_authority=false`, `secret_material_included=false`, `cross_authority_content_included=false`, and `authority_effect=NONE_CONTEXT_ONLY`.
 
-### Writeback safety
+An AI result can become only a `stegverse.kv.ai-memory-write-proposal/v1`. It fixes `execution_authorized=false`, `model_is_authority=false`, `intr_admission_required=true`, and `authority_effect=NONE_PROPOSAL_ONLY`. A proposal is not a write receipt.
 
-An AI result can become only a `stegverse.kv.ai-memory-write-proposal/v1`. It fixes `execution_authorized=false`, `model_is_authority=false`, `intr_admission_required=true`, and `authority_effect=NONE_PROPOSAL_ONLY`.
+## Hosted validation state
 
-A proposal is not a write receipt. Target-side admission and materialization must still produce authentic governed evidence before persistence is claimed.
+KV memory source baseline:
 
-## Cross-class transition contract
+- run `34798372339` / job `103835833007` — memory persistence validation SUCCESS;
+- run `34798372325` / job `103835832752` — KV guardrails SUCCESS;
+- run `34798372302` / job `103835832491` — security baseline SUCCESS.
 
-A cross-class transition must traverse InTr + Interlock, bind source state and target admission by receipt hashes, contain no secret plaintext, and admit no authority transfer. The target KV performs its own admission; a source KV cannot directly mutate another KV's state.
+LLM bridge/materializer head `920fedd13a182636c80a30fc10d9482ee21de57a`:
 
-Example implemented path:
+- run `34803228613` / job `103849905207` — SUCCESS;
+- run `34803228620` / job `103849906564` — SUCCESS.
 
-```text
-PERSONAL_KV
-  -> InTr/Interlock
-  -> ORGANIZATIONAL_KV admission
-  -> receipt
-```
+Resident `.github` binding:
 
-The example shares context only. It grants no source authority inside the target domain.
+- run `34803483965` / job `103850649371` — SUCCESS, including `tests/test_kv_ai_memory_resident_binding.py` and Python compilation of resident worker/consumer/dispatcher.
 
-## Validation state
+The new KV private-input stager is included in the current `validate-kv-ai-persistence-classes.yml`; hosted conclusion for its latest source head must be observed before the stager itself is marked hosted-validated.
 
-Earlier deterministic persistence-class validation passed against the baseline and five negative mutations. The AI-memory continuation adds deterministic tests for relevant context selection with provenance, packet determinism, secret-material rejection, cross-class/cross-authority rejection, consumer role mismatch rejection, non-authorizing write proposals, and byte-budget handling without truncation.
-
-Hosted GitHub Actions validation is now observed for source head `4053284c203023ed75e81e3312f9c9980b61ced9`:
-
-- run `34798372339` / job `103835833007` — `validate` SUCCESS, including both new AI-memory validator and test suite;
-- run `34798372325` / job `103835832752` — `kv-guardrails` SUCCESS;
-- run `34798372302` / job `103835832491` — `validate-security-baseline` SUCCESS.
-
-The LLM-adapter memory bridge dedicated workflow initially exposed a repository-import-path CI defect, not a bridge logic defect. The workflow was repaired by binding `PYTHONPATH` to the checked-out workspace; the rerun's dedicated bridge test step then completed SUCCESS. That repair does not constitute live Auri/KV execution evidence.
+No CI result is live Auri/KV execution evidence.
 
 ## Remaining build
 
-The Personal-KV/Auri source path is now substantially implemented and source-validated. Remaining completion work is primarily authentic runtime evidence plus the broader non-Personal KV class implementations:
+For the Personal-KV/Auri lane, the implementation gap has narrowed to authentic runtime transitions and the final writeback loop:
 
-1. Observe the final post-repair LLM-adapter check-suite conclusions and record the successful run IDs in its scoped handoff.
-2. Compose the authentic resident/WorkerCoordinator path so one real Personal-KV packet receives memory-packet InTr ALLOW and then enters the existing provider-neutral request path.
-3. Preserve same-execution provider ingress, TV/TVC operation, provider response, Master Records continuation, and egress InTr evidence.
-4. Exercise one non-authorizing memory write proposal through target-KV admission and exact-byte readback.
-5. Add concrete Organizational-KV layout and policy/role/delegation semantics.
-6. Add StegVerse-KV concrete layout for ecosystem AI persistence.
-7. Add Machine-KV concrete layout for node identity, execution state, liveness, checkpoints, reconstruction, and SKAP capability references.
-8. Add positive and negative cross-class fixtures for all meaningful class pairs and provider reconstruction proof.
-9. Bind HeartBeat observations to verified KV transition receipts without granting HeartBeat state authority.
-10. When stable and release-ready, tag/release and create a separate propagation-verification task for Site, Publisher, admissibility-wiki, and stegguardian-wiki.
+1. Observe/repair hosted validation for the new private resident stager.
+2. Produce resident-local packet and provider request input from private KV/readable-entry state using the stager.
+3. Obtain authentic memory-packet InTr `ALLOW` bound to that exact packet; do not synthesize it.
+4. Allow the existing `kv_ai_memory` resident consumer + WorkerCoordinator lane to materialize the exact ProviderRequest in fenced bound state.
+5. Continue that same execution through existing provider ingress, TV/TVC, provider response, Master Records continuation, and egress InTr evidence.
+6. Exercise one non-authorizing memory write proposal through target-KV admission and exact-byte readback.
+
+Broader persistence-class work remains: concrete Organizational-KV, StegVerse-KV, and Machine-KV layouts; cross-class fixtures; provider reconstruction proof; and HeartBeat observation binding without state authority.
+
+When stable and release-ready, tag/release and create a separate propagation-verification task for Site, Publisher, admissibility-wiki, and stegguardian-wiki.
 
 ## Live activation proof required
 
-Source and CI are insufficient for activation. A live Personal Assistant memory claim requires evidence for the adjacent chain:
-
 ```text
 KV readable object(s)
--> admitted context request
--> admitted exact memory context packet
--> bound ProviderRequest
+-> deterministic context packet
+-> authentic packet admission ALLOW
+-> current WorkerCoordinator claim/fence
+-> exact ProviderRequest materialized in fenced bound state
 -> provider-request ingress ALLOW
 -> AI delivery/consumption observation
 -> provider response + egress ALLOW where external provider is used
@@ -207,22 +187,20 @@ No stage may be inferred from repository source, CI, a model response, or provid
 
 ```text
 architecture: CANONICALIZED
-canonical task registry: INSTALLED
+canonical task registry: INSTALLED / IN_PROGRESS
 COSV task.v1: 20111110110000
 persistence schema/source: IMPLEMENTED
 AI memory request/packet/write-proposal source: IMPLEMENTED
-LLM ProviderRequest memory bridge source: IMPLEMENTED
-repository documentation: UPDATED
-continuity-vault-kit README: UPDATED
-KV hosted memory validation: PASS / 34798372339
-KV guardrails: PASS / 34798372325
-KV security baseline: PASS / 34798372302
-LLM bridge dedicated test after CI repair: STEP_SUCCESS / FINAL_SUITE_RECONCILIATION_PENDING
-merged: direct commits on main
-released/tagged for this goal: NOT PERFORMED
-deployed: NOT APPLICABLE TO SOURCE CONTRACT
-live Auri/KV context delivery: NOT YET OBSERVED
-live KV writeback/readback: NOT YET OBSERVED
+private resident input stager: IMPLEMENTED / HOSTED RESULT PENDING
+LLM ProviderRequest memory bridge: IMPLEMENTED / HOSTED PASS
+LLM exact resident materializer: IMPLEMENTED / HOSTED PASS
+WorkerCoordinator resident binding: IMPLEMENTED / HOSTED PASS
+private resident input bytes: NOT OBSERVED
+memory packet live InTr admission: NOT OBSERVED
+live ProviderRequest materialization: NOT OBSERVED
+live Auri/model consumption: NOT OBSERVED
+live KV writeback/readback: NOT OBSERVED
+released/tagged: NOT PERFORMED
 activated: NOT ACTIVATED
 provider reconstruction proof: OPEN
 ```
