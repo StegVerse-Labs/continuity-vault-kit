@@ -1,0 +1,48 @@
+{
+  "schema": "stegverse.kv.ai-memory-substrate/v1",
+  "goal_id": "SV-KV-AI-PERSISTENCE-001",
+  "canonical_kv_classes_ref": "specs/kv-ai-persistence-classes.v1.json",
+  "personal_assistant_profile": {
+    "kv_class": "PERSONAL_KV",
+    "authority_domain": "PERSON",
+    "consumer_ai_role": "PERSONAL_ASSISTANT_AI",
+    "source_is_user_custodied_kv": true,
+    "model_is_authority": false,
+    "provider_is_authority": false,
+    "context_transfers_authority": false,
+    "implicit_writeback_allowed": false,
+    "cross_authority_context_allowed": false,
+    "secret_material_allowed": false,
+    "intr_admission_required": true
+  },
+  "selection_contract": {
+    "deterministic": true,
+    "semantic_claim": "LEXICAL_BOUNDED_SELECTION_ONLY",
+    "required_entry_flags": {
+      "ai_context_allowed": true,
+      "secret_material": false
+    },
+    "must_match_request_kv_class": true,
+    "must_match_request_authority_domain": true,
+    "must_match_source_instance_allowlist": true,
+    "oversized_entry_behavior": "SKIP_NO_TRUNCATION",
+    "empty_result_allowed": true,
+    "provenance_required": true,
+    "content_hash_required": true
+  },
+  "writeback_contract": {
+    "artifact_type": "PROPOSAL_ONLY",
+    "intr_admission_required": true,
+    "execution_authorized": false,
+    "model_is_authority": false,
+    "direct_kv_mutation": false,
+    "cross_class_mutation": false
+  },
+  "runtime_boundary": {
+    "source_implementation_proves_runtime": false,
+    "hosted_ci_proves_runtime": false,
+    "live_context_delivery_requires_authentic_intr_receipt": true,
+    "live_write_requires_target_kv_admission": true,
+    "credential_material_belongs_in_skap": true
+  }
+}
