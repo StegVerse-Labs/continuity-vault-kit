@@ -149,11 +149,20 @@ For resident use, `scripts/stage_kv_ai_memory_resident_inputs.py` stages the exa
 
 The return path is also source-complete without making model output authoritative. The companion memory path creates only a `NONE_PROPOSAL_ONLY` write proposal. `runtime/kv_ai_memory_writeback_store.py` will persist that proposal only after supplied target-side evidence is `ADMITTED` / `ALLOW`, matches the exact proposal ID, target KV instance and content hash, includes Interlock and InTr receipt references, and explicitly authorizes the persistence consequence. It performs a write-once/idempotent materialization, exact-byte readback, SHA-256 verification, and receipt creation; different-byte collisions fail closed.
 
-This makes KV—not the model session—the durable StegVerse memory substrate while keeping the AI replaceable. Source implementation and hosted CI do not prove a live Auri↔KV read/write path. Live delivery still requires authentic memory-packet admission, current WorkerCoordinator execution, provider ingress/response/egress evidence where applicable, target-KV admission, and the resulting exact-byte readback receipt.
+The persistence model now defines concrete provider-neutral layouts for all four authority classes: Personal KV, Organizational KV, StegVerse KV, and Machine KV. Organizational state is separated into policy, roles, delegations, shared resources, workflows, institutional memory, and receipts; StegVerse state is separated into ecosystem, service-registry, governance-reference, worker, evidence, recovery, and receipt domains; Machine KV separates identity, workloads, assignments, execution state, liveness, checkpoints, reconstruction, and receipts. Every state domain remains mutable only after applicable InTr admission, and the model/provider is never the authority.
+
+All 12 directed cross-class source→target combinations are explicitly covered by the canonical fixture matrix. Cross-class context or state movement requires Interlock/InTr, source-state and target-admission hash binding, and a receipt; direct mutation and authority transfer fail closed.
+
+Machine-KV continuity has a provider-neutral reconstruction verifier in `runtime/machine_kv_reconstruction.py`. It can prove exact manifest and machine-identity continuity only when distinct source and target providers independently observe the same manifest hash under their own InTr `ALLOW` receipts. The verifier performs no provider I/O and cannot turn source validation into authentic two-provider reconstruction evidence.
+
+HeartBeat integration is deliberately observation-only. `runtime/kv_heartbeat_receipt_observer.py` can bind freshness/timing/correlation to the exact hash of an already-verified KV receipt, but it cannot admit a transition, mutate KV state, mint a KV transition receipt, or grant execution/transition/state authority. A verified KV transition exists first; HeartBeat may observe it second.
+
+This makes KV—not the model session—the durable StegVerse memory substrate while keeping the AI replaceable. Source implementation and hosted CI do not prove a live Auri↔KV read/write path, authentic Machine-KV cross-provider reconstruction, or an authentic HB observation. Live delivery still requires authentic memory-packet admission, current WorkerCoordinator execution, provider ingress/response/egress evidence where applicable, target-KV admission, and the resulting exact-byte readback receipt.
 
 See:
 
 - [`docs/KV_AI_MEMORY_SUBSTRATE.md`](./docs/KV_AI_MEMORY_SUBSTRATE.md)
+- [`docs/KV_AI_PERSISTENCE_LAYOUTS.md`](./docs/KV_AI_PERSISTENCE_LAYOUTS.md)
 - [`KV_AI_PERSISTENCE_CLASSES_MIRROR_HANDOFF.md`](./KV_AI_PERSISTENCE_CLASSES_MIRROR_HANDOFF.md)
 - [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md)
 - [`docs/EXAMPLES.md`](./docs/EXAMPLES.md)
