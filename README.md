@@ -143,9 +143,13 @@ For repository and deployment security posture, see [`SECURITY.md`](./SECURITY.m
 
 KnowledgeVault can preserve reloadable conversation and project state without making an AI system canonical authority over the vault.
 
-The governed KV-backed AI memory substrate now has a concrete source contract. `runtime/kv_ai_memory_substrate.py` accepts a bounded context request, deterministically selects only explicitly AI-eligible same-authority KV entries, preserves per-entry provenance and SHA-256 identity, and produces a context packet whose authority effect is fixed to `NONE_CONTEXT_ONLY`. Secret-marked content and cross-class/cross-authority content fail closed. The companion write path creates only a `NONE_PROPOSAL_ONLY` memory write proposal; it cannot directly mutate KV and still requires target-side Interlock/InTr admission.
+The governed KV-backed AI memory substrate has a concrete end-to-end **source** contract for the Personal-KV profile. `runtime/kv_ai_memory_substrate.py` accepts a bounded context request, deterministically selects only explicitly AI-eligible same-authority KV entries, preserves per-entry provenance and SHA-256 identity, and produces a context packet whose authority effect is fixed to `NONE_CONTEXT_ONLY`. Secret-marked content and cross-class/cross-authority content fail closed.
 
-This makes KV—not the model session—the durable StegVerse memory substrate while keeping the AI replaceable. Source implementation and hosted CI do not prove a live Auri↔KV read/write path; live delivery and writeback require authentic runtime receipts.
+For resident use, `scripts/stage_kv_ai_memory_resident_inputs.py` stages the exact context packet and provider-request input into private resident state. It deliberately does not create a memory-packet InTr admission file. The canonical resident binding in `StegVerse-Labs/.github` keeps those bytes under fenced bound state and uses the provider-neutral LLM-adapter bridge only after an authentic packet admission exists.
+
+The return path is also source-complete without making model output authoritative. The companion memory path creates only a `NONE_PROPOSAL_ONLY` write proposal. `runtime/kv_ai_memory_writeback_store.py` will persist that proposal only after supplied target-side evidence is `ADMITTED` / `ALLOW`, matches the exact proposal ID, target KV instance and content hash, includes Interlock and InTr receipt references, and explicitly authorizes the persistence consequence. It performs a write-once/idempotent materialization, exact-byte readback, SHA-256 verification, and receipt creation; different-byte collisions fail closed.
+
+This makes KV—not the model session—the durable StegVerse memory substrate while keeping the AI replaceable. Source implementation and hosted CI do not prove a live Auri↔KV read/write path. Live delivery still requires authentic memory-packet admission, current WorkerCoordinator execution, provider ingress/response/egress evidence where applicable, target-KV admission, and the resulting exact-byte readback receipt.
 
 See:
 
