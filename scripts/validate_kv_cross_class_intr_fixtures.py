@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 from scripts.validate_kv_cross_class_intr_transition import DOMAIN, validate as validate_transition
 
-ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "specs/kv-cross-class-intr-transition-fixtures.v1.json"
 CLASSES = tuple(DOMAIN)
 
