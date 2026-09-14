@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-ai-memory-context-packet.schema.json",
+  "title": "KnowledgeVault AI memory context packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "packet_id", "request_id", "request_sha256", "kv_class", "authority_domain",
+    "consumer_ai_role", "purpose", "entries", "entries_sha256", "selected_item_count",
+    "selected_content_bytes", "secret_material_included", "cross_authority_content_included",
+    "intr_admission_required", "model_is_authority", "context_transfers_authority", "authority_effect"
+  ],
+  "properties": {
+    "schema": {"const": "stegverse.kv.ai-memory-context-packet/v1"},
+    "packet_id": {"type": "string", "minLength": 1},
+    "request_id": {"type": "string", "minLength": 1},
+    "request_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "kv_class": {"enum": ["PERSONAL_KV", "ORGANIZATIONAL_KV", "STEGVERSE_KV", "MACHINE_KV"]},
+    "authority_domain": {"enum": ["PERSON", "ORGANIZATION", "STEGVERSE_ECOSYSTEM", "MACHINE_EXECUTION_ENTITY"]},
+    "consumer_ai_role": {"enum": ["PERSONAL_ASSISTANT_AI", "ORGANIZATIONAL_AI", "STEGVERSE_AI", "EXECUTION_AGENT"]},
+    "purpose": {"type": "string", "minLength": 1},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entry_id", "source_kv_instance_id", "relative_path", "title", "content",
+          "content_sha256", "tags", "retention_class", "provenance_ref"
+        ],
+        "properties": {
+          "entry_id": {"type": "string", "minLength": 1},
+          "source_kv_instance_id": {"type": "string", "minLength": 1},
+          "relative_path": {"type": "string", "minLength": 1},
+          "title": {"type": "string"},
+          "content": {"type": "string"},
+          "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "retention_class": {"enum": ["SESSION", "PROJECT", "DURABLE"]},
+          "provenance_ref": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "entries_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "selected_item_count": {"type": "integer", "minimum": 0},
+    "selected_content_bytes": {"type": "integer", "minimum": 0},
+    "secret_material_included": {"const": false},
+    "cross_authority_content_included": {"const": false},
+    "intr_admission_required": {"const": true},
+    "model_is_authority": {"const": false},
+    "context_transfers_authority": {"const": false},
+    "authority_effect": {"const": "NONE_CONTEXT_ONLY"}
+  }
+}
