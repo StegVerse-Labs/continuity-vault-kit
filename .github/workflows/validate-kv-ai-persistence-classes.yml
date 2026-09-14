@@ -49,6 +49,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: python -m pip install --upgrade pip pytest
       - run: python scripts/validate_kv_ai_persistence_classes.py
       - run: python tests/test_kv_ai_persistence_classes.py
       - run: python scripts/validate_kv_ai_memory_substrate.py
