@@ -143,8 +143,14 @@ For repository and deployment security posture, see [`SECURITY.md`](./SECURITY.m
 
 KnowledgeVault can preserve reloadable conversation and project state without making an AI system canonical authority over the vault.
 
+The governed KV-backed AI memory substrate now has a concrete source contract. `runtime/kv_ai_memory_substrate.py` accepts a bounded context request, deterministically selects only explicitly AI-eligible same-authority KV entries, preserves per-entry provenance and SHA-256 identity, and produces a context packet whose authority effect is fixed to `NONE_CONTEXT_ONLY`. Secret-marked content and cross-class/cross-authority content fail closed. The companion write path creates only a `NONE_PROPOSAL_ONLY` memory write proposal; it cannot directly mutate KV and still requires target-side Interlock/InTr admission.
+
+This makes KV—not the model session—the durable StegVerse memory substrate while keeping the AI replaceable. Source implementation and hosted CI do not prove a live Auri↔KV read/write path; live delivery and writeback require authentic runtime receipts.
+
 See:
 
+- [`docs/KV_AI_MEMORY_SUBSTRATE.md`](./docs/KV_AI_MEMORY_SUBSTRATE.md)
+- [`KV_AI_PERSISTENCE_CLASSES_MIRROR_HANDOFF.md`](./KV_AI_PERSISTENCE_CLASSES_MIRROR_HANDOFF.md)
 - [`docs/CONVERSATION_CONTINUITY.md`](./docs/CONVERSATION_CONTINUITY.md)
 - [`docs/EXAMPLES.md`](./docs/EXAMPLES.md)
 - [`docs/AI_COMPATIBLE.md`](./docs/AI_COMPATIBLE.md)
