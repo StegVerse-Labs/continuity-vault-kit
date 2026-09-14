@@ -11,6 +11,12 @@ on:
       - "specs/kv-ai-persistence-layouts.v1.json"
       - "scripts/validate_kv_ai_persistence_layouts.py"
       - "tests/test_kv_ai_persistence_layouts.py"
+      - "schemas/kv-cross-class-intr-transition.schema.json"
+      - "specs/kv-cross-class-intr-transition.example.v1.json"
+      - "specs/kv-cross-class-intr-transition-fixtures.v1.json"
+      - "scripts/validate_kv_cross_class_intr_transition.py"
+      - "scripts/validate_kv_cross_class_intr_fixtures.py"
+      - "tests/test_kv_cross_class_intr_fixtures.py"
       - "schemas/kv-ai-memory-context-request.schema.json"
       - "schemas/kv-ai-memory-context-packet.schema.json"
       - "schemas/kv-ai-memory-write-proposal.schema.json"
@@ -35,6 +41,12 @@ on:
       - "specs/kv-ai-persistence-layouts.v1.json"
       - "scripts/validate_kv_ai_persistence_layouts.py"
       - "tests/test_kv_ai_persistence_layouts.py"
+      - "schemas/kv-cross-class-intr-transition.schema.json"
+      - "specs/kv-cross-class-intr-transition.example.v1.json"
+      - "specs/kv-cross-class-intr-transition-fixtures.v1.json"
+      - "scripts/validate_kv_cross_class_intr_transition.py"
+      - "scripts/validate_kv_cross_class_intr_fixtures.py"
+      - "tests/test_kv_cross_class_intr_fixtures.py"
       - "schemas/kv-ai-memory-context-request.schema.json"
       - "schemas/kv-ai-memory-context-packet.schema.json"
       - "schemas/kv-ai-memory-write-proposal.schema.json"
@@ -66,6 +78,9 @@ jobs:
       - run: python tests/test_kv_ai_persistence_classes.py
       - run: python scripts/validate_kv_ai_persistence_layouts.py
       - run: python -m pytest -q tests/test_kv_ai_persistence_layouts.py
+      - run: python scripts/validate_kv_cross_class_intr_transition.py
+      - run: python scripts/validate_kv_cross_class_intr_fixtures.py
+      - run: python -m pytest -q tests/test_kv_cross_class_intr_fixtures.py
       - run: python scripts/validate_kv_ai_memory_substrate.py
       - run: python tests/test_kv_ai_memory_substrate.py
       - run: python -m pytest -q tests/test_stage_kv_ai_memory_resident_inputs.py
