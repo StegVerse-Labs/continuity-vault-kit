@@ -1,6 +1,6 @@
 # KV AI Persistence Classes Mirror Handoff
 
-Status: ACTIVE / FOUR-CLASS-LAYOUTS-VALIDATED / CROSS-CLASS-MATRIX-VALIDATED / PERSONAL-KV-MEMORY-SOURCE-COMPLETE / LIVE-INTR-ACTIVATION-OPEN
+Status: ACTIVE / FOUR-CLASS-SOURCE-COMPLETE / PERSONAL-KV-MEMORY-SOURCE-COMPLETE / MACHINE-RECONSTRUCTION-VERIFIER-VALIDATED / HB-RECEIPT-OBSERVER-VALIDATED / LIVE-EVIDENCE-OPEN
 Repository: StegVerse-Labs/continuity-vault-kit
 Goal ID: SV-KV-AI-PERSISTENCE-001
 Canonical Task Registry: StegVerse-Labs/.github/data/canonical-task-records/SV-KV-AI-PERSISTENCE-001.json
@@ -22,16 +22,17 @@ The first fully source-complete operational profile is `PERSONAL_KV / PERSON / P
 - provider-ingress bridge: `StegVerse-org/LLM-adapter/docs/KV_AI_MEMORY_CONTEXT_BRIDGE_MIRROR_HANDOFF.md`;
 - resident binding: `StegVerse-Labs/.github/docs/KV_AI_MEMORY_RESIDENT_EXECUTION_MIRROR_HANDOFF.md`.
 
-Task Registry, source state, COSV, request files, layouts, fixtures, and CI do not mint runtime authority. WorkerCoordinator claim/fence authority and authentic Interlock/InTr admission remain separate requirements.
+Task Registry, source state, COSV, request files, layouts, fixtures, reconstruction verifiers, HeartBeat observers, and CI do not mint runtime authority. WorkerCoordinator claim/fence authority and authentic Interlock/InTr admission remain separate requirements.
 
-## Canonical classes and concrete layouts
+## Four canonical classes and concrete layouts
 
-The four persistence classes now have explicit provider-neutral logical layouts in:
+Machine-readable source:
 
 - `schemas/kv-ai-persistence-layouts.schema.json`;
 - `specs/kv-ai-persistence-layouts.v1.json`;
 - `scripts/validate_kv_ai_persistence_layouts.py`;
-- `tests/test_kv_ai_persistence_layouts.py`.
+- `tests/test_kv_ai_persistence_layouts.py`;
+- `docs/KV_AI_PERSISTENCE_LAYOUTS.md`.
 
 ```text
 PERSONAL_KV / PERSON / PERSONAL_ASSISTANT_AI
@@ -70,36 +71,19 @@ MACHINE_KV / MACHINE_EXECUTION_ENTITY / EXECUTION_AGENT
   _Machine/Receipts
 ```
 
-Each state domain is mutable only after InTr admission. Provider authority, model authority, and direct cross-class state mutation are false. The paths are logical provider-neutral KV layout contracts; source validation does not instantiate or activate any physical provider copy.
+Each state domain is mutable only after applicable InTr admission. Provider authority, model authority, and direct cross-class mutation are false. These are logical provider-neutral layouts; validation does not instantiate provider storage or activate an AI/runtime.
 
 ## Complete directed cross-class matrix
 
-Cross-class transfer is no longer represented by a single Personal→Organization example. The source now covers all 12 directed class pairs through:
+All 12 directed source→target class pairs are implemented in:
 
 - `specs/kv-cross-class-intr-transition-fixtures.v1.json`;
 - `scripts/validate_kv_cross_class_intr_fixtures.py`;
 - `tests/test_kv_cross_class_intr_fixtures.py`.
 
-For every source class and every different target class, the expanded fixture requires:
-
-```text
-protocol = InTr
-Interlock required = true
-direct state mutation = false
-authority transfer = false
-context share grants authority = false
-model output grants authority = false
-provider grants authority = false
-receipt required = true
-secret plaintext in receipt = false
-exact source-state hash + exact target-admission hash required
-```
-
-Negative tests reject missing/duplicate/same-class pairs, authority transfer, direct mutation, secret receipt plaintext, and disabled receipt requirements.
+Every pair requires InTr + Interlock, exact source-state and target-admission hash binding, and a receipt. Direct mutation, authority transfer, context-as-authority, model/provider authority, and secret plaintext in receipts are forbidden. Negative tests reject missing/duplicate/same-class pairs and each authority weakening.
 
 ## Personal-KV/Auri source path
-
-Implemented source includes bounded context selection, private resident staging, exact memory-packet admission binding, fenced WorkerCoordinator ProviderRequest materialization, non-authorizing write proposals, and evidence-gated target-KV exact-byte writeback/readback.
 
 ```text
 PERSONAL_KV readable entry projections
@@ -114,24 +98,44 @@ PERSONAL_KV readable entry projections
 -> exact-byte readback receipt
 ```
 
-Key source surfaces:
+Source surfaces include `runtime/kv_ai_memory_substrate.py`, `scripts/stage_kv_ai_memory_resident_inputs.py`, `runtime/kv_ai_memory_writeback_store.py`, the LLM-adapter memory bridge/materializer, and the `.github` fenced resident worker. No source module decides admission, authenticates a provider, resolves provider credentials, mints a WorkerCoordinator claim/fence, or promotes model output into KV authority.
 
-- `runtime/kv_ai_memory_substrate.py`;
-- `scripts/stage_kv_ai_memory_resident_inputs.py`;
-- `runtime/kv_ai_memory_writeback_store.py`;
-- `StegVerse-org/LLM-adapter/llm_adapter/kv_memory_context_bridge.py`;
-- `StegVerse-org/LLM-adapter/scripts/materialize_kv_memory_provider_request.py`;
-- `StegVerse-Labs/.github/workers/kv_ai_memory_resident_worker.py`.
+## Machine-KV provider-neutral reconstruction
 
-No source module decides InTr admission, authenticates a provider, resolves provider credentials, grants a WorkerCoordinator claim/fence, or promotes a model response into KV authority.
+`runtime/machine_kv_reconstruction.py` now implements the deterministic reconstruction decision contract for Machine-KV. It requires:
 
-## Safety invariants
+- distinct source and target providers;
+- provider authority false on both sides;
+- one exact canonical Machine-KV state-manifest hash observed on both sides;
+- the same `machine_kv_id` at source, manifest, and target;
+- separate source and target InTr `ALLOW` receipt references;
+- credential material absent;
+- provider sessions unable to transfer Machine-KV identity.
+
+It performs no provider I/O and grants no transition authority. Passing tests prove the verifier contract only. The goal still requires authentic observations from two real provider executions before `MACHINE_KV_CROSS_PROVIDER_RECONSTRUCTION_OBSERVED` can be satisfied.
+
+## HeartBeat receipt observation
+
+`runtime/kv_heartbeat_receipt_observer.py` binds HeartBeat timing/freshness/correlation only to the exact hash of an already-verified KV receipt. It rejects any HeartBeat claim to execution, transition, or KV-state authority and performs no admission, state mutation, or receipt minting.
+
+```text
+verified KV receipt first
+-> exact receipt hash
+-> HeartBeat observation second
+-> FRESH / STALE / UNKNOWN correlation projection
+-> NONE_OBSERVATION_ONLY
+```
+
+The observer source is validated. An authentic HB observation bound to a real verified KV transition remains an evidence predicate and is not inferred from tests.
+
+## Shared safety invariants
 
 ```text
 SKAP required: true
 InTr required: true
 provider is authority: false
 model is authority: false
+HeartBeat is state authority: false
 context sharing transfers authority: false
 direct cross-class state mutation: false
 memory packet source != memory packet admission
@@ -144,36 +148,36 @@ ambiguous scope: FAIL_CLOSED
 
 ## Hosted validation evidence
 
-Existing validated Personal-KV path:
+Previously validated source:
 
-- KV memory baseline run `34798372339` — SUCCESS;
-- KV guardrails run `34798372325` — SUCCESS;
-- security baseline run `34798372302` — SUCCESS;
-- LLM bridge/materializer runs `34803228613` and `34803228620` — SUCCESS;
-- resident `.github` binding run `34803483965` — SUCCESS;
-- staging/writeback validation run `34803817371` — SUCCESS.
+- KV memory baseline `34798372339` — SUCCESS;
+- LLM bridge/materializer `34803228613`, `34803228620` — SUCCESS;
+- resident `.github` binding `34803483965` — SUCCESS;
+- private staging/writeback `34803817371` — SUCCESS;
+- four-class layouts + 12-pair matrix `34804237690` — SUCCESS; security `34804237681` and guardrails `34804237711` — SUCCESS.
 
-Four-class layout and complete cross-class matrix head `64edbec6db816b112c85ce9c721233f62c07439c`:
+Machine reconstruction + HB observer combined source head `f00401fa2e0fda6c285acf3d32b30e2d9d6d8fa6`:
 
-- validation run `34804237690` / job `103852803777` — SUCCESS;
-- security baseline run `34804237681` / job `103852803761` — SUCCESS;
-- KV guardrails run `34804237711` / job `103852803979` — SUCCESS.
+- validation run `34804394797` / job `103853270280` — SUCCESS;
+- security baseline `34804394870` / job `103853270510` — SUCCESS;
+- KV guardrails `34804394755` / job `103853270143` — SUCCESS;
+- release integrity `34804394746` / job `103853270230` — SUCCESS;
+- release-readiness validation `34804406677` / job `103853304092` — SUCCESS;
+- outcome observation `34804416022` / job `103853334399` — SUCCESS.
 
-The successful validation run covered persistence classes, 9 concrete-layout tests, the canonical cross-class transition validator, all 12 directed fixtures and their negative tests, the Personal-KV memory substrate, private staging, and evidence-gated writeback.
+The validation run passed persistence classes, concrete layouts, all cross-class fixtures, seven Machine-KV reconstruction tests, seven HeartBeat observer tests, Personal-KV memory substrate, resident staging, and evidence-gated writeback.
 
-The immediately preceding matrix run failed only because the new fixture validator executed as a script without repository-root import resolution. Adding the same fail-safe root insertion pattern used by existing validators repaired the invocation; the repaired head then passed all checks.
-
-No CI result is live Auri/KV execution evidence.
+No CI result is live Auri/KV execution, provider reconstruction, or HeartBeat observation evidence.
 
 ## Remaining work
 
-The major remaining predicates are now runtime/reconstruction integration rather than missing class definitions:
+Source construction for the original persistence-class checklist is now materially complete. Remaining goal completion is evidence/integration:
 
 1. **Personal-KV live proof:** real packet admission → current WorkerCoordinator ProviderRequest materialization → provider/model path → target-KV admitted writeback/readback.
-2. **Machine-KV reconstruction proof:** reuse existing provider-neutral/cross-platform recovery mechanisms to prove Machine-KV identity and exact state continuity across two storage providers without provider authority.
-3. **HeartBeat observation binding:** bind HB observations only to verified KV transition receipts, preserving HB as timing/freshness/observability rather than state authority.
-4. Instantiate/use Organizational-KV and StegVerse-KV layouts only through their own authority/admission paths; layout source is validated but runtime instances are not claimed.
-5. Release/tag only after the applicable evidence predicates are satisfied; then create a separate propagation-verification task for Site, Publisher, admissibility-wiki, and stegguardian-wiki.
+2. **Machine-KV authentic reconstruction:** obtain source and target provider observations for the same exact Machine-KV state manifest and verify them with the source-complete reconstruction verifier.
+3. **Authentic HeartBeat observation:** bind an actual HB observation to a verified KV transition receipt using the source-complete observer.
+4. Instantiate/use Organizational-KV and StegVerse-KV layouts only through their own authority/admission paths; source layout validity does not claim runtime instances.
+5. Do not release/tag until applicable runtime evidence predicates are satisfied. When release-ready, create the required separate propagation-verification task for Site, Publisher, admissibility-wiki, and stegguardian-wiki.
 
 ## State distinctions
 
@@ -184,18 +188,17 @@ COSV task.v1: 20111110110000
 four persistence classes: CANONICALIZED
 four concrete logical layouts: IMPLEMENTED / HOSTED VALIDATED
 all 12 directed cross-class fixtures: IMPLEMENTED / HOSTED VALIDATED
-Personal-KV context/packet source: IMPLEMENTED / VALIDATED
-private resident stager: IMPLEMENTED / VALIDATED
-LLM memory bridge + exact ProviderRequest materializer: IMPLEMENTED / VALIDATED
-WorkerCoordinator resident binding: IMPLEMENTED / VALIDATED
-evidence-gated target-KV writeback/readback source: IMPLEMENTED / VALIDATED
+Personal-KV memory source loop: IMPLEMENTED / HOSTED VALIDATED
+fenced resident ProviderRequest binding: IMPLEMENTED / HOSTED VALIDATED
+Machine-KV reconstruction verifier: IMPLEMENTED / HOSTED VALIDATED
+HeartBeat verified-receipt observer: IMPLEMENTED / HOSTED VALIDATED
 private resident input bytes: NOT OBSERVED
 live memory-packet InTr admission: NOT OBSERVED
 live ProviderRequest materialization: NOT OBSERVED
 live Auri/model consumption: NOT OBSERVED
 live target-KV writeback/readback: NOT OBSERVED
-Machine-KV cross-provider reconstruction proof: OPEN
-HB receipt observation binding: OPEN
+Machine-KV authentic cross-provider reconstruction: NOT OBSERVED
+authentic HB-to-KV receipt observation: NOT OBSERVED
 released/tagged: NOT PERFORMED
 activated: NOT ACTIVATED
 ```
