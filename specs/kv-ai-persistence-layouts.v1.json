@@ -1,0 +1,91 @@
+{
+  "schema": "stegverse.kv.ai-persistence-layouts/v1",
+  "layouts": [
+    {
+      "kv_class": "PERSONAL_KV",
+      "authority_domain": "PERSON",
+      "ai_role": "PERSONAL_ASSISTANT_AI",
+      "root": ".",
+      "state_domains": [
+        {"name": "continuity", "relative_path": "01_Notes", "purpose": "durable personal notes and continuity context", "mutable_only_after_intr_admission": true},
+        {"name": "personal_resources", "relative_path": "03_Records", "purpose": "durable personal records and resources", "mutable_only_after_intr_admission": true},
+        {"name": "personal_modules", "relative_path": "05_Projects", "purpose": "owner projects and module state", "mutable_only_after_intr_admission": true},
+        {"name": "ai_review", "relative_path": "_AI", "purpose": "AI suggestions, proposals, and review state", "mutable_only_after_intr_admission": true},
+        {"name": "receipts", "relative_path": "_System/AI/Memory/Receipts", "purpose": "governed AI-memory receipts", "mutable_only_after_intr_admission": true}
+      ],
+      "receipt_root": "_System/AI/Memory/Receipts",
+      "capability_ref_root": "_System/Capabilities",
+      "direct_cross_class_mutation": false,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    },
+    {
+      "kv_class": "ORGANIZATIONAL_KV",
+      "authority_domain": "ORGANIZATION",
+      "ai_role": "ORGANIZATIONAL_AI",
+      "root": "_Organization",
+      "state_domains": [
+        {"name": "policy", "relative_path": "_Organization/Policy", "purpose": "organization policy and policy lineage", "mutable_only_after_intr_admission": true},
+        {"name": "roles", "relative_path": "_Organization/Roles", "purpose": "organizational roles and role state", "mutable_only_after_intr_admission": true},
+        {"name": "delegations", "relative_path": "_Organization/Delegations", "purpose": "bounded delegation records and receipts", "mutable_only_after_intr_admission": true},
+        {"name": "shared_resources", "relative_path": "_Organization/SharedResources", "purpose": "organization-owned shared knowledge and resources", "mutable_only_after_intr_admission": true},
+        {"name": "workflows", "relative_path": "_Organization/Workflows", "purpose": "workflow definitions and durable state", "mutable_only_after_intr_admission": true},
+        {"name": "institutional_memory", "relative_path": "_Organization/InstitutionalMemory", "purpose": "organization-authorized persistent AI/human continuity", "mutable_only_after_intr_admission": true},
+        {"name": "receipts", "relative_path": "_Organization/Receipts", "purpose": "organization KV transition receipts", "mutable_only_after_intr_admission": true}
+      ],
+      "receipt_root": "_Organization/Receipts",
+      "capability_ref_root": "_Organization/CapabilityRefs",
+      "direct_cross_class_mutation": false,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    },
+    {
+      "kv_class": "STEGVERSE_KV",
+      "authority_domain": "STEGVERSE_ECOSYSTEM",
+      "ai_role": "STEGVERSE_AI",
+      "root": "_StegVerse",
+      "state_domains": [
+        {"name": "ecosystem_state", "relative_path": "_StegVerse/EcosystemState", "purpose": "durable ecosystem state projections", "mutable_only_after_intr_admission": true},
+        {"name": "service_registry", "relative_path": "_StegVerse/ServiceRegistry", "purpose": "service identities, capabilities, and availability evidence", "mutable_only_after_intr_admission": true},
+        {"name": "governance_state", "relative_path": "_StegVerse/GovernanceState", "purpose": "governance artifacts and state references without granting AI governance authority", "mutable_only_after_intr_admission": true},
+        {"name": "worker_state", "relative_path": "_StegVerse/WorkerState", "purpose": "worker/task execution state projections", "mutable_only_after_intr_admission": true},
+        {"name": "evidence", "relative_path": "_StegVerse/Evidence", "purpose": "ecosystem evidence references and exact-byte identity metadata", "mutable_only_after_intr_admission": true},
+        {"name": "recovery", "relative_path": "_StegVerse/Recovery", "purpose": "ecosystem reconstruction and recovery state", "mutable_only_after_intr_admission": true},
+        {"name": "receipts", "relative_path": "_StegVerse/Receipts", "purpose": "ecosystem KV transition receipts", "mutable_only_after_intr_admission": true}
+      ],
+      "receipt_root": "_StegVerse/Receipts",
+      "capability_ref_root": "_StegVerse/CapabilityRefs",
+      "direct_cross_class_mutation": false,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    },
+    {
+      "kv_class": "MACHINE_KV",
+      "authority_domain": "MACHINE_EXECUTION_ENTITY",
+      "ai_role": "EXECUTION_AGENT",
+      "root": "_Machine",
+      "state_domains": [
+        {"name": "node_identity", "relative_path": "_Machine/Identity", "purpose": "machine/node identity and lineage references", "mutable_only_after_intr_admission": true},
+        {"name": "workloads", "relative_path": "_Machine/Workloads", "purpose": "admitted workload descriptors", "mutable_only_after_intr_admission": true},
+        {"name": "assignments", "relative_path": "_Machine/Assignments", "purpose": "worker/task assignment projections", "mutable_only_after_intr_admission": true},
+        {"name": "execution_state", "relative_path": "_Machine/ExecutionState", "purpose": "durable execution state and bounded local results", "mutable_only_after_intr_admission": true},
+        {"name": "liveness", "relative_path": "_Machine/Liveness", "purpose": "liveness observations without execution authority", "mutable_only_after_intr_admission": true},
+        {"name": "checkpoints", "relative_path": "_Machine/Checkpoints", "purpose": "reconstructable execution checkpoints", "mutable_only_after_intr_admission": true},
+        {"name": "reconstruction", "relative_path": "_Machine/Reconstruction", "purpose": "machine reconstruction manifests and evidence", "mutable_only_after_intr_admission": true},
+        {"name": "receipts", "relative_path": "_Machine/Receipts", "purpose": "machine KV transition receipts", "mutable_only_after_intr_admission": true}
+      ],
+      "receipt_root": "_Machine/Receipts",
+      "capability_ref_root": "_Machine/CapabilityRefs",
+      "direct_cross_class_mutation": false,
+      "provider_is_authority": false,
+      "model_is_authority": false
+    }
+  ],
+  "shared_invariants": {
+    "skap_required": true,
+    "intr_required": true,
+    "cross_class_receipt_required": true,
+    "least_authority": true,
+    "fail_closed_on_ambiguous_scope": true
+  }
+}
