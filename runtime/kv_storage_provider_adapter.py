@@ -1,8 +1,8 @@
-"""Provider-neutral storage adapter contract for KnowledgeVault.
+"""Provider-neutral storage endpoint adapter contract for KnowledgeVault.
 
-Adapters in this module construct normalized provider-operation intents only. They do
-not authenticate, open provider sessions, read/write remote storage, synchronize data,
-or grant Interlock/InTr authority. Provider credentials remain outside ordinary KV state.
+Adapters in this module construct normalized storage-operation intents only. They do
+not authenticate, open provider sessions, read/write storage, synchronize data, or
+grant Interlock/InTr authority. Credentials remain outside ordinary KV state.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Iterable, Protocol
+from typing import Any, Protocol
 
 
 SUPPORTED_OPERATIONS = (
@@ -22,6 +22,7 @@ SUPPORTED_OPERATIONS = (
     "DISCONNECT",
 )
 REQUEST_SCHEMA = "stegverse.kv.storage-provider-operation-request/v1"
+STORAGE_ENDPOINT_SCHEMA = "stegverse.kv.storage-endpoint-descriptor/v2"
 
 
 class KVStorageProviderError(ValueError):
@@ -43,18 +44,32 @@ class DeclarativeStorageProviderAdapter:
     display_name: str
     provider_family: str
     operations: tuple[str, ...] = SUPPORTED_OPERATIONS
+    storage_class: str = "CLOUD"
+    locator_kind: str = "PATH_OR_PROVIDER_LOCATOR"
+    session_requirement: str = "REQUIRED"
+    credential_requirement: str = "SKAP_REFERENCE"
+    access_adapter: str | None = None
 
     def supports(self, operation: str) -> bool:
         return operation.upper() in self.operations
 
     def descriptor(self) -> dict[str, Any]:
+        credential_required = self.credential_requirement != "NONE"
+        session_required = self.session_requirement == "REQUIRED"
         return {
+            "schema": STORAGE_ENDPOINT_SCHEMA,
             "provider_id": self.provider_id,
+            "adapter_id": self.provider_id,
             "display_name": self.display_name,
             "provider_family": self.provider_family,
+            "storage_class": self.storage_class,
+            "locator_kind": self.locator_kind,
+            "session_requirement": self.session_requirement,
+            "credential_requirement": self.credential_requirement,
+            "access_adapter": self.access_adapter,
             "operations": list(self.operations),
-            "credential_material_location": "SKAP_ONLY",
-            "provider_session_required": True,
+            "credential_material_location": "SKAP_ONLY" if credential_required else "NONE",
+            "provider_session_required": session_required,
             "provider_execution_implemented": False,
             "authority_effect": "NONE",
         }
@@ -72,7 +87,7 @@ class StorageProviderRegistry:
     def get(self, provider_id: str) -> KVStorageProviderAdapter:
         matches = [adapter for adapter in self.adapters if adapter.provider_id == provider_id]
         if len(matches) != 1:
-            raise KVStorageProviderError("provider adapter unavailable or ambiguous")
+            raise KVStorageProviderError("storage endpoint adapter unavailable or ambiguous")
         return matches[0]
 
     def descriptors(self) -> list[dict[str, Any]]:
@@ -89,6 +104,7 @@ def build_operation_request(
     requested_by: str = "owner",
     object_ref: str | None = None,
 ) -> dict[str, Any]:
+    """Build the existing v1 operation request without changing legacy request hashes."""
     op = operation.upper().strip()
     if op not in SUPPORTED_OPERATIONS:
         raise KVStorageProviderError("unsupported provider operation")
@@ -111,12 +127,14 @@ def build_operation_request(
         "requested_by": requested_by.strip(),
     }
     digest = hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    descriptor = adapter.descriptor()
+    credential_required = descriptor.get("credential_requirement", "SKAP_REFERENCE") != "NONE"
     return {
         "schema": REQUEST_SCHEMA,
         "request_id": f"kvprov_{digest[:24]}",
         **canonical,
         "governance_state": "PENDING_INTERLOCK_INTR",
-        "skap_credential_ref_required": True,
+        "skap_credential_ref_required": credential_required,
         "credential_material_present": False,
         "provider_session_established": False,
         "provider_operation_executed": False,
@@ -129,8 +147,11 @@ def build_operation_request(
 
 def default_registry() -> StorageProviderRegistry:
     return StorageProviderRegistry([
-        DeclarativeStorageProviderAdapter("icloud-drive", "iCloud Drive", "apple-cloud-storage"),
-        DeclarativeStorageProviderAdapter("google-drive", "Google Drive", "google-cloud-storage"),
-        DeclarativeStorageProviderAdapter("onedrive", "Microsoft OneDrive", "microsoft-cloud-storage"),
-        DeclarativeStorageProviderAdapter("dropbox", "Dropbox", "dropbox-cloud-storage"),
+        DeclarativeStorageProviderAdapter("device-local", "This Device", "device-local-storage", storage_class="DEVICE", locator_kind="LOCAL_ROOT", session_requirement="NONE", credential_requirement="NONE", access_adapter="resident-device-local"),
+        DeclarativeStorageProviderAdapter("icloud-drive", "iCloud Drive", "apple-cloud-storage", access_adapter="provider-or-file-provider"),
+        DeclarativeStorageProviderAdapter("google-drive", "Google Drive", "google-cloud-storage", access_adapter="provider-or-file-provider"),
+        DeclarativeStorageProviderAdapter("onedrive", "Microsoft OneDrive", "microsoft-cloud-storage", access_adapter="provider-or-file-provider"),
+        DeclarativeStorageProviderAdapter("dropbox", "Dropbox", "dropbox-cloud-storage", access_adapter="provider-native"),
+        DeclarativeStorageProviderAdapter("nas", "NAS / Network Storage", "network-storage", storage_class="NETWORK", locator_kind="NETWORK_PATH", session_requirement="ADAPTER_DEFINED", credential_requirement="ADAPTER_DEFINED", access_adapter="network-storage-adapter"),
+        DeclarativeStorageProviderAdapter("removable-storage", "Removable Storage", "removable-storage", storage_class="REMOVABLE", locator_kind="MOUNTED_PATH", session_requirement="NONE", credential_requirement="ADAPTER_DEFINED", access_adapter="mounted-volume-adapter"),
     ])
