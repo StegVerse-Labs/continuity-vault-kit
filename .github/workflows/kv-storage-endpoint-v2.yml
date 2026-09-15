@@ -31,7 +31,7 @@ jobs:
       - name: Compile storage adapter
         run: python -m py_compile runtime/kv_storage_provider_adapter.py
       - name: Run storage endpoint v2 tests
-        run: python -m pytest -q tests/test_storage_endpoint_v2.py
+        run: python -m unittest -v tests.test_storage_endpoint_v2
       - name: Prove legacy request contract and authority boundaries
         run: |
           python - <<'PY'
