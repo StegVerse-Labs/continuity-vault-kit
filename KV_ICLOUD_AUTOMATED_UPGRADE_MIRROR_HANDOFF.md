@@ -4,9 +4,9 @@ Goal Task ID: `KV-ICLOUD-AUTOMATED-UPGRADE-001`
 COSV ID: `40000100100000`  
 Repository: `StegVerse-Labs/continuity-vault-kit`  
 Issue: `#215`  
-Pull request: `#216`  
-Branch: `feature/kv-icloud-automated-upgrade-215`  
-Status: `ACTIVE / SOURCE_IMPLEMENTED / HOSTED_VALIDATION_PASS / RUNTIME_NOT_EXECUTED`  
+Implementation PR: `#216`  
+Implementation merge commit: `4c426925a354a5f2d71b8becd92896917247e74f`  
+Status: `ACTIVE / SOURCE_MERGED_VALIDATED / RUNTIME_OWNER_SELECTION_PENDING`  
 Updated: 2026-09-15  
 Authority effect: `NONE_SOURCE_AND_COORDINATION_ONLY`
 
@@ -49,23 +49,25 @@ No manual file-by-file comparison is part of the intended runtime path.
 - `tools/verify_legacy_kv_upgrade_package.py` independently checks updated ZIP SHA-256 and exact content-inventory SHA-256 after safe re-extraction.
 - `tests/test_automated_legacy_kv_upgrade.py` covers non-destructive success, rollback presence, exact private/runtime preservation, conflict staging, pre-replacement preservation, repeat-output collision refusal, ZIP traversal refusal, independent verification, and tamper failure.
 - `.github/workflows/automated-kv-upgrade-validation.yml` is read-only hosted validation; it grants no runtime or iCloud authority.
-- `docs/IOS_VAULT_UPDATE_GUIDE.md` now makes this automated path the preferred iOS flow and retains the manual path only as a fallback.
+- `README.md` and `docs/IOS_VAULT_UPDATE_GUIDE.md` make this automated path the preferred update flow while preserving the runtime/non-authority boundary.
 
-## Validation evidence
+## Exact-head validation and merge evidence
 
-At commit `5044e17d66571f81013882ec337a4e1be6999170`, the following hosted workflow groups completed successfully:
+The final implementation head was `89035d3f64d3864f7193d95434faab30285a05eb`. All observed pull-request workflow groups at that exact head completed successfully before merge:
 
-- Automated KV Upgrade Validation run `34974111606`: SUCCESS.
-- Release integrity run `34974111617`: SUCCESS.
-- Security Baseline run `34974111648`: SUCCESS.
-- Repository validation diagnostics run `34974111591`: SUCCESS.
-- KV Guardrails run `34974111596`: SUCCESS.
-- KV Historical Corpus Import run `34974111578`: SUCCESS.
-- KV Historical Provenance run `34974111647`: SUCCESS.
+- Automated KV Upgrade Validation run `34974590734`: SUCCESS.
+- Release integrity run `34974590775`: SUCCESS.
+- Security Baseline run `34974590761`: SUCCESS.
+- Repository validation diagnostics run `34974590829`: SUCCESS.
+- KV Guardrails run `34974590756`: SUCCESS.
+- KV Historical Corpus Import run `34974590839`: SUCCESS.
+- KV Historical Provenance run `34974590792`: SUCCESS.
+- Validate KV AI Persistence Classes run `34974590785`: SUCCESS.
+- KV Storage Endpoint v2 run `34974590735`: SUCCESS.
 
-The immediately preceding release-integrity run failed only because repository-wide hosted-workflow authority validation still expected 53 workflow files after the new read-only validation workflow made the actual count 54. `tests/test_global_hosted_workflow_authority.py` was reconciled to the new exact count; the subsequent release-integrity run above passed. This was a repository inventory invariant, not an updater safety/runtime failure.
+PR #216 was merged only after that exact-head green observation. Merge commit: `4c426925a354a5f2d71b8becd92896917247e74f`.
 
-Any commits after `5044e17...` require a new exact-head validation observation before merge.
+An earlier release-integrity run failed only because repository-wide hosted-workflow authority validation still expected 53 workflow files after the new read-only validation workflow made the actual count 54. `tests/test_global_hosted_workflow_authority.py` was reconciled to the new exact count; subsequent release-integrity validation passed. This was a repository inventory invariant, not an updater safety/runtime failure.
 
 ## Hard boundaries
 
@@ -84,15 +86,13 @@ Any commits after `5044e17...` require a new exact-head validation observation b
 - canonical coordination handoff: `StegVerse-Labs/.github/docs/KV_ICLOUD_AUTOMATED_UPGRADE_MIRROR_HANDOFF.md`;
 - canonical Task Registry record: `StegVerse-Labs/.github/data/canonical-task-records/KV-ICLOUD-AUTOMATED-UPGRADE-001.json`;
 - canonical COSV vector: `StegVerse-Labs/.github/control/task-vectors/KV-ICLOUD-AUTOMATED-UPGRADE-001.json`;
-- coordination registration PR: `StegVerse-Labs/.github#1933`.
+- coordination registration PR: `StegVerse-Labs/.github#1933`, merged as `4e71d5a193d545a2f51d6b91df286ff89968e2e1`.
 
-## Remaining source/integration work
+## Remaining work
 
-- Maintain root `README.md` with the automated update surface and non-runtime boundary.
-- Re-run exact-head validation after documentation/handoff reconciliation.
-- Merge PR #216 only after preserved green exact-head validation.
-- Merge `.github` PR #1933 after canonical registration reconciliation.
-- Reconcile merged commit evidence into this handoff and canonical coordination handoff.
+Repository implementation, documentation, validation, and merge are complete for the automated update source. The Goal remains ACTIVE because the private iCloud runtime predicate cannot be satisfied from repository evidence.
+
+The next execution consumes one authentic owner-selected iCloud KnowledgeVault copy/archive. It must produce and retain the rollback archive, verified updated package, upgrade receipt, independent verification report, exact readback evidence, and owner acceptance. Only those runtime artifacts can support a claim that the iCloud KV was actually updated.
 
 ## Runtime completion boundary
 
@@ -100,4 +100,4 @@ Runtime completion requires authentic owner-selected iCloud KnowledgeVault bytes
 
 ## Manual work
 
-None for source implementation. Private iCloud bytes cannot be selected by repository automation; after source completion, the minimum unavoidable owner action is one source selection/attachment from iCloud Drive.
+Minimum unavoidable owner action: select or attach the private iCloud KnowledgeVault source copy/archive once. No manual file-by-file comparison, framework copying, rollback construction, or hash verification is required.
