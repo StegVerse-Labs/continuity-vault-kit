@@ -30,6 +30,21 @@ That creates **KV #2** at `KnowledgeVault-2/`. The same rule extends to any posi
 
 The initializer refuses to overwrite an existing instance root, verifies the installed template file set and immutable hashes, writes `_System/installation.receipt.json`, and creates `_System/Instances/instance.json` with a unique instance ID, storage metadata, and an initial `NOT_CONNECTED` relationship state.
 
+### Automated upgrade of an existing iCloud KnowledgeVault
+
+For an existing owner-controlled KnowledgeVault, prefer the rollback-safe automated updater instead of manually comparing/copying framework files:
+
+```bash
+python3 tools/apply_legacy_kv_upgrade.py \
+  /path/to/owner-selected-KnowledgeVault-or.zip \
+  /path/to/output \
+  --owner-authorized
+```
+
+The selected source is never mutated in place. The updater creates rollback evidence first, reuses the deterministic legacy-upgrade planner, builds an isolated updated copy, exact-byte preserves owner-only/private and protected runtime state, stages unsafe incoming conflicts under `_System/Upgrade/Candidates/`, preserves replaced framework bytes under `_System/Upgrade/Preserved/`, emits upgrade/verification receipts, packages the result, and re-reads the package to verify its hashes. The resulting ZIP can be independently checked with `tools/verify_legacy_kv_upgrade_package.py`.
+
+This is a file-only packaging path: it requires no provider credential and grants no iCloud/provider, Interlock/InTr, relationship, synchronization, AI-corpus, or activation authority. Private iCloud bytes must be explicitly selected by the owner and must not be uploaded to GitHub. Source/CI/merge does not prove that a private vault was upgraded. See [`KV_ICLOUD_AUTOMATED_UPGRADE_MIRROR_HANDOFF.md`](./KV_ICLOUD_AUTOMATED_UPGRADE_MIRROR_HANDOFF.md) and [`docs/IOS_VAULT_UPDATE_GUIDE.md`](./docs/IOS_VAULT_UPDATE_GUIDE.md).
+
 ### KV #1 / KV #2 / KV #n relationship
 
 KV numbering identifies **instances**, not authority.
