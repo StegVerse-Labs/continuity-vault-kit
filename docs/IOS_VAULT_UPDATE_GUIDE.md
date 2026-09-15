@@ -1,122 +1,70 @@
 # 📱 iOS Guide — Updating Your KnowledgeVault Safely
 
-This guide explains how to update your **private KnowledgeVault** using a new Continuity Vault Kit release **without risking your personal files**.
+This guide describes the minimum-burden iPhone/iPad path for updating a private KnowledgeVault without manually comparing or copying framework files.
 
-⚠️ Important:
-The **GitHub repository and release ZIP are starter kits only**.  
-Your real notes, documents, and records should live in a **separate private vault folder** on your device or cloud storage.
+## Preferred path: automated, rollback-safe update
 
----
+The current updater is `tools/apply_legacy_kv_upgrade.py`, with independent verification in `tools/verify_legacy_kv_upgrade_package.py`.
 
-## 🧱 First: Understand the Difference
+The owner-facing path is intentionally small:
 
-| Kit Release | Your Personal Vault |
-|------------|---------------------|
-| Public framework | Private data |
-| Templates & structure | Your notes, PDFs, media |
-| Safe to replace | Must be preserved |
-| Versioned (0.1.0 → 0.1.1…) | Continuous over decades |
+1. In Files, select the existing iCloud KnowledgeVault copy or a ZIP of that vault.
+2. Hand that owner-selected source to the trusted local/package execution surface.
+3. The updater automatically creates rollback evidence **before** building an updated copy, computes the deterministic legacy-upgrade plan, preserves owner-only/private and protected runtime bytes, applies only bounded framework-managed changes, stages unsafe conflicts instead of deleting owner bytes, emits an upgrade receipt and verification report, packages the result, and re-reads the package to verify its hashes.
+4. Replace or promote a live vault only after the verified result is observed and explicitly accepted by the owner.
 
-**Never unzip a new release directly over your personal vault.**
+No manual file-by-file comparison is required by this path.
 
----
+## Important safety boundaries
 
-## 📥 Step 1 — Download the New Release
+- Never unzip a kit or update package directly over a live personal vault without the verified updater/acceptance path.
+- The selected source is never mutated in place by the updater.
+- A rollback archive is created before output mutation.
+- Owner-only/private content is preserved exact-byte.
+- Existing protected runtime state such as instance identity, execution/continuity state, provider state, receipts, recovery state, SKAP state, and the installation receipt is not generically overwritten by incoming template bytes.
+- If an incoming framework file conflicts with personal/protected content, the incoming version is staged under `_System/Upgrade/Candidates/` instead of replacing the owner bytes.
+- If a bounded framework-managed file is replaced, the pre-update bytes are first preserved under `_System/Upgrade/Preserved/`.
+- Provider credentials are not required for this file-only update package flow.
+- Personal vault bytes must not be uploaded to GitHub or repository artifacts.
 
-1. Open the repository **Releases** page
-2. Download the latest **ZIP** asset
-3. Save it to **Files → iCloud Drive → Downloads** (or similar temporary folder)
+## Outputs
 
----
+A successful run produces:
 
-## 📦 Step 2 — Unzip the Release
+- a rollback ZIP;
+- an isolated updated vault directory;
+- a verified updated vault ZIP;
+- `_System/Upgrade/latest-upgrade.receipt.json` inside the updated copy;
+- `_System/Upgrade/latest-upgrade.verification.json` inside the updated copy;
+- an external verification sidecar binding the updated ZIP hash and exact content inventory hash.
 
-Tap the ZIP file in the Files app.  
-iOS will create a new folder like:
+The package can be independently checked with:
 
-```
-  KnowledgeVault_v0.1.1/
-```
-
-This is just the **new kit version**, not your vault.
-
----
-
-## 🔍 Step 3 — Compare With Your Private Vault
-
-Your real vault might live at:
-
-```
-iCloud Drive/
-└── KnowledgeVault/
+```bash
+python3 tools/verify_legacy_kv_upgrade_package.py \
+  KnowledgeVault-updated-<timestamp>.zip \
+  KnowledgeVault-updated-<timestamp>.verification.json
 ```
 
-Open **both folders side-by-side** (Split View helps).
+## Command-line execution
 
-You are looking for:
+For an owner-selected folder or ZIP:
 
-### ✅ Things you SHOULD copy into your vault
+```bash
+python3 tools/apply_legacy_kv_upgrade.py \
+  /path/to/owner-selected-KnowledgeVault-or.zip \
+  /path/to/output \
+  --owner-authorized
+```
 
-| If the release contains… | Put it here in your vault |
-|--------------------------|----------------------------|
-| New files in `_Templates/` | `KnowledgeVault/_Templates/` |
-| New files in `_Policy/` | `KnowledgeVault/_Policy/` |
-| New files in `_Index/` | `KnowledgeVault/_Index/` |
-| Improvements to `_AI/README.md` etc. | Optional but helpful |
+`--owner-authorized` is required so private-source access is never inferred merely because a path is technically reachable.
 
-### 🚫 Things you should NOT replace
+## Manual fallback
 
-Never overwrite these folders in your vault:
+If the automated updater is unavailable, do not overwrite the private vault with a release ZIP. Preserve a full rollback copy first, use `tools/plan_legacy_kv_upgrade.py` to classify the delta, and apply only reviewed framework changes while preserving owner data. The automated path is preferred because it performs those checks and receipts consistently and eliminates manual file-by-file work.
 
-- `01_Notes`
-- `02_Research`
-- `03_Records`
-- `04_Media`
-- `05_Projects`
-- `06_Archive`
+## Why this matters
 
-These contain your **actual life data**.
+The KnowledgeVault is intended to remain continuous for years while the public framework evolves. The update process therefore treats the kit and the owner’s data as different authority/custody classes: framework evolution may propose changes, but it cannot silently replace private history or runtime identity.
 
----
-
-## 🧠 Rule of Thumb
-
-**Copy structure, never replace content.**
-
-If a folder contains your personal files, leave it alone.
-
----
-
-## 🗑 Step 4 — Delete the Temporary Kit Folder
-
-Once you’ve copied any new templates or policies:
-
-1. Go back to the unzipped release folder
-2. Delete it
-
-You don’t need to keep old kit versions on your device.
-
----
-
-## 🔒 Safety Reminder
-
-The public repository is a **framework**, not a storage location.
-
-Never upload personal vault content back to GitHub unless the repo is private and you fully understand the risks.
-
----
-
-## 🧭 Why This Matters
-
-Your KnowledgeVault is designed to last **decades**.  
-The kit will evolve, but your vault should remain stable.
-
-This process ensures:
-- Your data is never accidentally overwritten
-- You benefit from structural improvements
-- You stay platform-independent
-
----
-
-Future versions may include an automated update helper.  
-For now, manual updates are the safest approach.
+See `KV_ICLOUD_AUTOMATED_UPGRADE_MIRROR_HANDOFF.md` and `LEGACY_KV_UPGRADE_MIRROR_HANDOFF.md` for the current source/runtime completion boundaries.
