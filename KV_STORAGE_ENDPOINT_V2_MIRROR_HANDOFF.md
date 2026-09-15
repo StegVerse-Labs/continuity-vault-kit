@@ -1,8 +1,9 @@
 # KV Storage Endpoint v2 Mirror Handoff
 
-Status: SOURCE_IMPLEMENTED / VALIDATION_PENDING / RUNTIME_UNPROVEN
+Status: SOURCE_IMPLEMENTED / README_RECONCILED / HOSTED_VALIDATION_PASS_ON_IMPLEMENTATION_HEAD / PR_OPEN / RUNTIME_UNPROVEN
 Repository: `StegVerse-Labs/continuity-vault-kit`
 Branch: `kv/storage-endpoint-v2`
+Implementation PR: `#214`
 Updated: 2026-09-15
 Goal Task ID: `KV-CONNECTION-REVALIDATION-WORKER-001`
 COSV ID: `50000000102000`
@@ -24,9 +25,9 @@ Storage endpoint identity is distinct from access mechanism. For example, the sa
 
 ## Implemented source
 
-`runtime/kv_storage_provider_adapter.py` now exposes `stegverse.kv.storage-endpoint-descriptor/v2` descriptors while retaining the existing `stegverse.kv.storage-provider-operation-request/v1` operation request shape.
+`runtime/kv_storage_provider_adapter.py` exposes additive `stegverse.kv.storage-endpoint-descriptor/v2` descriptors while retaining the existing `stegverse.kv.storage-provider-operation-request/v1` operation request shape.
 
-The default registry now includes:
+The default registry includes:
 
 - `device-local` / DEVICE;
 - `icloud-drive`, `google-drive`, `onedrive`, `dropbox` / CLOUD;
@@ -49,29 +50,34 @@ No existing Google Drive KV #2 request is regenerated, rehashed, renamed, or tre
 
 The storage-endpoint descriptor is additive metadata. It does not grant provider access, establish a session, move data, materialize a KV instance, mutate relationship state, synchronize state, or expose an AI corpus.
 
-## Validation
-
-Added `tests/test_storage_endpoint_v2.py` covering:
-
-- device/cloud/network/removable registry coverage;
-- adapter-specific session and credential requirements;
-- preservation of legacy v1 cloud operation request semantics;
-- device-local request behavior without fabricated provider credentials;
-- no authority or activation effect.
-
-Hosted CI evidence remains pending until the implementation PR runs.
-
 ## README maintenance
 
-The existing root README already states that `--storage-medium` may identify any owner-controlled storage medium including local/removable media, and that KV identity is provider-neutral. The implementation PR must update the storage-adapter paragraph before merge to reflect the expanded default endpoint registry and adapter-specific credential/session requirements. Do not merge without that README reconciliation.
+Root `README.md` is reconciled on PR #214. It now documents device/cloud/NAS/removable endpoint selection, storage-endpoint versus access-adapter separation, adapter-specific credential/session requirements, the unchanged six-operation vocabulary, and the non-authorizing runtime boundary.
+
+## Validation evidence
+
+Focused source validation is implemented in `tests/test_storage_endpoint_v2.py` using stdlib `unittest`, with `.github/workflows/kv-storage-endpoint-v2.yml` as a read-only hosted validation carrier.
+
+Implementation head `42d9aae820bb13fefc6c6cdc85b6609842f2410f` produced:
+
+- KV Storage Endpoint v2 run `34941488757`: SUCCESS;
+- Release integrity run `34941488697`: SUCCESS;
+- Security Baseline run `34941488754`: SUCCESS;
+- KV Guardrails run `34941488920`: SUCCESS;
+- KV Historical Corpus Import run `34941488741`: SUCCESS;
+- KV Historical Provenance run `34941488656`: SUCCESS;
+- Validate KV AI Persistence Classes run `34941488727`: SUCCESS.
+
+The earlier Release integrity failure was remediated without weakening authority policy: adding the new read-only validation workflow changed the repository workflow inventory from 52 to 53, so `tests/test_global_hosted_workflow_authority.py` was reconciled to the new exact count. All hosted-authority retirement checks themselves remained PASS.
+
+A handoff-only commit follows the implementation head; exact-head checks must remain green before PR #214 is marked ready or merged. Hosted CI proves source/control-plane conformance only and does not prove provider execution or KV materialization.
 
 ## Remaining sequence
 
-1. Run repository validation on the exact implementation head.
-2. Update the root README storage-adapter paragraph on the PR branch without weakening existing authority boundaries.
-3. Merge only after required checks pass.
-4. Site consumer must use its v2 storage-endpoint UI while preserving legacy v1 Google Drive KV #2 lineage.
-5. Do not promote source/CI success to provider runtime evidence.
+1. Confirm exact-head required checks after this handoff reconciliation.
+2. Mark PR #214 ready for review only when required checks are green.
+3. Keep provider execution/materialization under the existing canonical runtime lane; do not promote source/CI/merge to runtime evidence.
+4. Site consumer uses its v2 storage-endpoint UI while preserving legacy v1 Google Drive KV #2 lineage.
 
 ## Manual work
 
