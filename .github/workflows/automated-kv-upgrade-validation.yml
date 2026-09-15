@@ -1,0 +1,58 @@
+name: Automated KV Upgrade Validation
+
+on:
+  pull_request:
+    paths:
+      - "tools/apply_legacy_kv_upgrade.py"
+      - "tools/verify_legacy_kv_upgrade_package.py"
+      - "tools/plan_legacy_kv_upgrade.py"
+      - "tests/test_automated_legacy_kv_upgrade.py"
+      - "tests/test_legacy_kv_upgrade_plan.py"
+      - "KV_ICLOUD_AUTOMATED_UPGRADE_MIRROR_HANDOFF.md"
+      - ".github/workflows/automated-kv-upgrade-validation.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/apply_legacy_kv_upgrade.py"
+      - "tools/verify_legacy_kv_upgrade_package.py"
+      - "tools/plan_legacy_kv_upgrade.py"
+      - "tests/test_automated_legacy_kv_upgrade.py"
+      - "tests/test_legacy_kv_upgrade_plan.py"
+      - "KV_ICLOUD_AUTOMATED_UPGRADE_MIRROR_HANDOFF.md"
+      - ".github/workflows/automated-kv-upgrade-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile automated upgrade tools and tests
+        run: |
+          python3 -m py_compile \
+            tools/plan_legacy_kv_upgrade.py \
+            tools/apply_legacy_kv_upgrade.py \
+            tools/verify_legacy_kv_upgrade_package.py \
+            tests/test_legacy_kv_upgrade_plan.py \
+            tests/test_automated_legacy_kv_upgrade.py
+      - name: Validate plan-only predecessor
+        run: python3 -m unittest tests.test_legacy_kv_upgrade_plan -v
+      - name: Validate rollback-safe automated upgrade
+        run: python3 -m unittest tests.test_automated_legacy_kv_upgrade -v
+      - name: Prove hosted validation is non-authorizing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          text=Path('.github/workflows/automated-kv-upgrade-validation.yml').read_text(encoding='utf-8')
+          assert 'contents: read' in text
+          for marker in ('contents:' + ' write', 'git' + ' push', 'secrets' + '.'):
+              assert marker not in text, marker
+          print('AUTOMATED_KV_UPGRADE_HOSTED_VALIDATION_NON_AUTHORIZING_PASS')
+          PY
