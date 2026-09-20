@@ -49,7 +49,8 @@ jobs:
               "git_push_performed": False,
               "github_actions_role": "VALIDATION_TRANSPORT_ONLY",
               "non_tv_tvc_cross_repo_credential_used": False,
-              "canonical_next_transition": "AWAIT_ADMITTED_STEGDB_SOURCE_MATERIALIZATION",
+              "canonical_next_transition": "NON_HOSTED_REPOSITORY_SYNC_REQUIRED",
+              "source_transport_release_condition": "ADMITTED_STEGDB_SOURCE_MATERIALIZATION",
               "authority_effect": "NONE",
               "observed_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
           }
