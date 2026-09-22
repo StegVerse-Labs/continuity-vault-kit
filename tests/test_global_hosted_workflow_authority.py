@@ -4,7 +4,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 WORKFLOW_ROOT=ROOT/".github/workflows"
-EXPECTED_WORKFLOW_COUNT=54
+EXPECTED_WORKFLOW_COUNT=55
 
 class GlobalHostedWorkflowAuthorityTests(unittest.TestCase):
     def test_all_workflows_declare_permissions_and_no_authority_markers(self):

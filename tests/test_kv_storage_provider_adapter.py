@@ -13,12 +13,32 @@ from runtime.kv_storage_provider_adapter import (
 def test_default_registry_contains_expected_provider_adapters() -> None:
     registry = default_registry()
     ids = [item["provider_id"] for item in registry.descriptors()]
-    assert ids == ["dropbox", "google-drive", "icloud-drive", "onedrive"]
+    assert ids == [
+        "device-local",
+        "dropbox",
+        "google-drive",
+        "icloud-drive",
+        "nas",
+        "onedrive",
+        "removable-storage",
+    ]
     for descriptor in registry.descriptors():
-        assert descriptor["credential_material_location"] == "SKAP_ONLY"
-        assert descriptor["provider_session_required"] is True
+        # Credential material never lives outside SKAP. Device-local, NAS and
+        # removable targets need no credential at all; every remote provider
+        # keeps its material in SKAP only. No third option is admissible.
+        assert descriptor["credential_material_location"] in {"SKAP_ONLY", "NONE"}
+        if descriptor["credential_material_location"] == "NONE":
+            assert descriptor["provider_session_required"] is False
         assert descriptor["provider_execution_implemented"] is False
         assert descriptor["authority_effect"] == "NONE"
+
+    # Every remote provider adapter requires a provider session.
+    remote = {
+        d["provider_id"]
+        for d in registry.descriptors()
+        if d["provider_session_required"]
+    }
+    assert remote == {"dropbox", "google-drive", "icloud-drive", "onedrive"}
 
 
 def test_operation_request_is_non_authorizing_and_deterministic() -> None:

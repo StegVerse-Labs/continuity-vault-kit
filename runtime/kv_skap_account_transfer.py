@@ -5,6 +5,8 @@ import json
 from copy import deepcopy
 from typing import Any
 
+from runtime.secret_field_policy import find_forbidden_field
+
 
 class KVSKAPTransferError(ValueError):
     pass
@@ -27,15 +29,9 @@ def sha256_uri(value: Any) -> str:
 
 
 def _assert_no_secrets(value: Any, path: str = "packet") -> None:
-    if isinstance(value, dict):
-        for key, child in value.items():
-            lower = str(key).lower()
-            if any(token in lower for token in SECRET_TOKENS):
-                raise KVSKAPTransferError(f"secret_or_raw_identifier_field_prohibited:{path}.{key}")
-            _assert_no_secrets(child, f"{path}.{key}")
-    elif isinstance(value, list):
-        for idx, child in enumerate(value):
-            _assert_no_secrets(child, f"{path}[{idx}]")
+    offending = find_forbidden_field(value, SECRET_TOKENS, path)
+    if offending is not None:
+        raise KVSKAPTransferError(f"secret_or_raw_identifier_field_prohibited:{offending}")
 
 
 def build_transfer_packet(*, owner_selection_ref: str, provider_org_ref: str,
@@ -71,7 +67,7 @@ def build_transfer_packet(*, owner_selection_ref: str, provider_org_ref: str,
 def validate_transfer_packet(packet: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(packet, dict):
         raise KVSKAPTransferError("packet_not_object")
-    _assert_no_secrets({k: v for k, v in packet.items() if k != "raw_provider_account_identifier_present"})
+    _assert_no_secrets(packet)
     required = {
         "schema": "stegverse.kv-skap.account-metadata-transfer/v1",
         "direction": "KNOWLEDGEVAULT_TO_SKAP_VAULT",
