@@ -124,17 +124,23 @@ def build_intr_request(packet: dict[str, Any], *, request_id: str, authority_ref
     }
 
 
-def build_intr_boundary_envelope(packet: dict[str, Any], request: dict[str, Any], *, intr_receipt_ref: str | None = None) -> dict[str, Any]:
+def build_intr_boundary_envelope(packet: dict[str, Any], request: dict[str, Any], *, task_id: str, intr_receipt_ref: str | None = None) -> dict[str, Any]:
     validated = validate_transfer_packet(packet)
     if request.get("schema_version") != "kv.interlock.request.v1" or request.get("operation") != "COMMIT_CANDIDATE":
         raise KVSKAPTransferError("invalid_kv_interlock_request")
     if request.get("candidate_writeback", {}).get("payload_ref") != validated["payload_sha256"]:
         raise KVSKAPTransferError("request_packet_binding_mismatch")
+    # The receiving boundary binds its retained InTr posture instance to this
+    # task_id and refuses the envelope without it, so it is required here
+    # rather than added downstream.
+    if not isinstance(task_id, str) or not task_id.strip():
+        raise KVSKAPTransferError("task_id_required")
     envelope = {
         "schema": "stegverse.intr.boundary-transfer/v1",
         "direction": "KNOWLEDGEVAULT_TO_SKAP_VAULT",
         "source_boundary": "KnowledgeVault",
         "destination_boundary": "SKAP_Vault",
+        "task_id": task_id.strip(),
         "request_id": request["request_id"],
         "request_sha256": sha256_uri(request),
         "transfer_id": validated["transfer_id"],

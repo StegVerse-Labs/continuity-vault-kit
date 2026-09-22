@@ -44,7 +44,7 @@ class KVSKAPAccountTransferTests(unittest.TestCase):
     def test_boundary_envelope_binds_exact_request_and_packet(self):
         packet = self.packet()
         req = build_intr_request(packet, request_id="REQ-2", authority_ref="intr://owner-selection/REQ-2")
-        env = build_intr_boundary_envelope(packet, req)
+        env = build_intr_boundary_envelope(packet, req, task_id="SS-SKAP-AUTHENTIC-ACCOUNT-METADATA-POPULATION-001")
         self.assertEqual(env["direction"], "KNOWLEDGEVAULT_TO_SKAP_VAULT")
         self.assertFalse(env["canonical_state_changed"])
         self.assertFalse(env["credential_material_transferred"])
@@ -68,7 +68,7 @@ class KVSKAPAccountTransferTests(unittest.TestCase):
         other = copy.deepcopy(packet)
         other["owner_selection_ref"] = "kv://selection/other"
         with self.assertRaises(KVSKAPTransferError):
-            build_intr_boundary_envelope(other, req)
+            build_intr_boundary_envelope(other, req, task_id="SS-SKAP-AUTHENTIC-ACCOUNT-METADATA-POPULATION-001")
 
     def test_shared_conformance_vector_is_exact_producer_output(self):
         vector = json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -87,8 +87,22 @@ class KVSKAPAccountTransferTests(unittest.TestCase):
             authority_ref="owner://conformance",
         )
         self.assertEqual(request, vector["kv_interlock_request"])
-        envelope = build_intr_boundary_envelope(packet, request)
+        envelope = build_intr_boundary_envelope(packet, request, task_id="SS-SKAP-AUTHENTIC-ACCOUNT-METADATA-POPULATION-001")
         self.assertEqual(envelope, vector["intr_boundary_envelope"])
+
+    def test_envelope_requires_task_id_the_receiving_boundary_binds_to(self):
+        """TVC binds its retained InTr posture instance to envelope task_id.
+
+        Without it the receiving consumer raises task_id_required, so an
+        envelope that omits it cannot reach SKAP at all.
+        """
+        packet = self.packet()
+        request = build_intr_request(packet, request_id="REQ-1", authority_ref="kv://owner/session")
+        for bad in ("", "   "):
+            with self.assertRaises(KVSKAPTransferError):
+                build_intr_boundary_envelope(packet, request, task_id=bad)
+        env = build_intr_boundary_envelope(packet, request, task_id="  SS-SKAP-AUTHENTIC-ACCOUNT-METADATA-POPULATION-001  ")
+        self.assertEqual(env["task_id"], "SS-SKAP-AUTHENTIC-ACCOUNT-METADATA-POPULATION-001")
 
 
 if __name__ == "__main__":

@@ -1,17 +1,18 @@
 {
   "intr_boundary_envelope": {
-    "canonical_state_changed": false,
-    "credential_material_transferred": false,
-    "destination_boundary": "SKAP_Vault",
+    "schema": "stegverse.intr.boundary-transfer/v1",
     "direction": "KNOWLEDGEVAULT_TO_SKAP_VAULT",
-    "intr_receipt_ref": null,
-    "payload_sha256": "sha256:f77c77ac19d5d70039de92d21989bbb7b48feac62663f461314bc120bfe46807",
+    "source_boundary": "KnowledgeVault",
+    "destination_boundary": "SKAP_Vault",
+    "task_id": "SS-SKAP-AUTHENTIC-ACCOUNT-METADATA-POPULATION-001",
     "request_id": "KVSKAP-CONFORMANCE-001",
     "request_sha256": "sha256:00e3da1080ad45b4dfe76081dc6e8cdfed5ae7c7c3c65ddb1697da9576201f27",
-    "schema": "stegverse.intr.boundary-transfer/v1",
-    "source_boundary": "KnowledgeVault",
     "transfer_id": "kvskap_c8564db385394db07006317f",
-    "transfer_packet_sha256": "sha256:d2a76f6d30dc04d404f183e1113dda46b501d4c3870cd57223ebca99028e33d8"
+    "transfer_packet_sha256": "sha256:d2a76f6d30dc04d404f183e1113dda46b501d4c3870cd57223ebca99028e33d8",
+    "payload_sha256": "sha256:f77c77ac19d5d70039de92d21989bbb7b48feac62663f461314bc120bfe46807",
+    "intr_receipt_ref": null,
+    "canonical_state_changed": false,
+    "credential_material_transferred": false
   },
   "intr_receipt": {
     "decision": "ADMITTED",
