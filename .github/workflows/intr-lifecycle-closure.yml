@@ -1,0 +1,96 @@
+name: InTr Lifecycle Closure
+
+# The far end of an InTr materialization must produce the last receipt of the
+# lifecycle. Without it the node's outbox flags stay unanswerable and the
+# organization's Universal Interlock review stays blocked on
+# MASTER_RECORDS_CUSTODY_RECEIPT_MISSING and
+# MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED.
+
+on:
+  push:
+    paths:
+      - "runtime/intr_lifecycle_closure.py"
+      - "runtime/secret_field_policy.py"
+      - "tests/test_intr_lifecycle_closure.py"
+      - ".github/workflows/intr-lifecycle-closure.yml"
+  pull_request:
+    paths:
+      - "runtime/intr_lifecycle_closure.py"
+      - "runtime/secret_field_policy.py"
+      - "tests/test_intr_lifecycle_closure.py"
+      - ".github/workflows/intr-lifecycle-closure.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check pytest
+
+      - name: Lifecycle closure contract
+        run: python -m pytest -q tests/test_intr_lifecycle_closure.py
+
+      - name: Secret field policy still admits governance assertions
+        run: python -m pytest -q tests/test_secret_field_policy.py
+
+      - name: Terminal receipt is records-only and grants nothing
+        run: |
+          python - <<'PY'
+          from runtime.intr_lifecycle_closure import close_lifecycle, sha_uri
+          mid = "MR-CI-CLOSURE-CHECK"
+          entry = {
+              "schema": "stegos.node_intr_outbox_entry.v1",
+              "state": "LOCAL_OUTBOX_PENDING_NETWORK_DELIVERY",
+              "materialization_id": mid,
+              "node_id": "stegnode-web-ci",
+              "interlock_id": "SV-IL-ci",
+              "network_delivery_observed": False,
+              "runtime_materialization_observed": False,
+              "receiver_receipt_observed": False,
+              "tvc_receipt_observed": False,
+              "claim_or_fence_minted": False,
+              "credential_authority": "TV/TVC",
+              "github_token_runtime_authority": "NONE",
+              "authority_effect": "NONE_LOCAL_CONTINUITY_ONLY",
+          }
+          entry["outbox_entry_hash"] = sha_uri(entry)
+          ingress = {
+              "schema": "stegverse.stegbrowser-intr-materialization-ingress/v1",
+              "state": "INGRESS_ADMITTED",
+              "materialization_id": mid,
+              "outbox_entry_hash": entry["outbox_entry_hash"],
+              "claim_or_fence_minted": False,
+              "credential_authority": "TV/TVC",
+              "authority_effect": "NONE_INGRESS_ONLY",
+          }
+          materialization = {
+              "schema": "stegverse.stegbrowser-intr-materialization-consumption/v1",
+              "state": "MATERIALIZATION_EXECUTION_ATTEMPTED",
+              "materialization_id": mid,
+              "claim_or_fence_minted": False,
+              "credential_authority": "TV/TVC",
+              "authority_effect": "NONE_CONSUMPTION_ONLY",
+          }
+          result = close_lifecycle(
+              outbox_entry=entry,
+              ingress_receipt=ingress,
+              materialization_receipt=materialization,
+          )
+          receipt = result["terminal_receipt"]
+          assert receipt["terminal_state"]["records_only"] is True
+          assert receipt["terminal_state"]["continued_authority"] is False
+          assert receipt["closure_grants_execution_authority"] is False
+          assert receipt["claim_or_fence_minted"] is False
+          assert receipt["authority_effect"] == "NONE_RECORDING_ONLY"
+          assert result["far_end_observation"]["authority_effect"] == "NONE_OBSERVATION_ONLY"
+          assert entry["receiver_receipt_observed"] is False, "node entry must not be mutated"
+          print("INTR_LIFECYCLE_CLOSURE_NON_AUTHORIZING_PASS")
+          PY
