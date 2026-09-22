@@ -6,6 +6,8 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Callable
 
+from runtime.secret_field_policy import field_name_is_forbidden
+
 
 REQUEST_SCHEMA = "kv.interlock.request.v1"
 RESPONSE_SCHEMA = "kv.interlock.response.v1"
@@ -62,16 +64,15 @@ def _unique_strings(value: Any) -> bool:
     )
 
 
-def _contains_forbidden_name(name: str) -> bool:
-    lower = name.lower()
-    return any(token in lower for token in FORBIDDEN_FIELD_TOKENS)
+def _contains_forbidden_name(name: str, value: Any = None) -> bool:
+    return field_name_is_forbidden(name, value, FORBIDDEN_FIELD_TOKENS)
 
 
 def _context_is_safe(value: Any) -> bool:
     if isinstance(value, dict):
         return all(
             isinstance(key, str)
-            and not _contains_forbidden_name(key)
+            and not _contains_forbidden_name(key, child)
             and _context_is_safe(child)
             for key, child in value.items()
         )

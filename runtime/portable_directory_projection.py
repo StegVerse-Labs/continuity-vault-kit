@@ -101,7 +101,7 @@ def _safe_root(kv_data_root:Path)->Path:
 
 def _safe_canonical_path(root:Path,canonical_path:str)->Path:
     _require(isinstance(canonical_path,str) and canonical_path,"canonical_path_required")
-    _require(not canonical_path.startswith("/") and "\" not in canonical_path,"canonical_path_invalid")
+    _require(not canonical_path.startswith("/") and "\\" not in canonical_path,"canonical_path_invalid")
     parts=canonical_path.split("/")
     _require(all(part not in {"",".",".."} for part in parts),"canonical_path_traversal_forbidden")
     _require(parts[0] in ALLOWED_ROOTS,"canonical_path_root_not_admitted")
