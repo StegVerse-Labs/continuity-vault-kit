@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/kv-auri-peripheral-capability-profiles.schema.json",
+  "title": "Non-authorizing reusable Auri MyKV peripheral capability profiles",
+  "type": "object",
+  "required": [
+    "schema",
+    "state",
+    "authority_effect",
+    "runtime_activation_claimed",
+    "user_verifier",
+    "node_role",
+    "device_identity_gate",
+    "credential_authority",
+    "transition_authority",
+    "custody_reconstruction",
+    "registry_bindings",
+    "transport_registry_ref",
+    "profiles",
+    "modes",
+    "mode_semantics",
+    "source_validation_is_not_runtime_proof"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.kv.auri-peripheral-capability-profiles/v1"
+    },
+    "state": {
+      "const": "DEFINED_INACTIVE"
+    },
+    "authority_effect": {
+      "const": "NONE"
+    },
+    "runtime_activation_claimed": {
+      "const": false
+    },
+    "user_verifier": {
+      "const": "KV/SKAP Vault"
+    },
+    "node_role": {
+      "const": "INTERCHANGEABLE_TRANSPORT_OR_EXECUTION"
+    },
+    "device_identity_gate": {
+      "const": "NONE_PROHIBITED"
+    },
+    "credential_authority": {
+      "const": "TV/TVC"
+    },
+    "transition_authority": {
+      "const": "Interlock/InTr"
+    },
+    "custody_reconstruction": {
+      "const": "Master Records"
+    },
+    "registry_bindings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "uniqueItems": true
+    },
+    "transport_registry_ref": {
+      "const": "specs/kv-transport-capability-registry.v1.json"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "direction",
+          "capabilities",
+          "actual_hardware_observation_required"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "enum": [
+              "INPUT",
+              "OUTPUT",
+              "COMPOSITE_OPTIONAL"
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "capture": {
+            "type": "boolean"
+          },
+          "separate_consent_scope": {
+            "type": "string"
+          },
+          "actual_hardware_observation_required": {
+            "const": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "modes": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "utterance",
+          "required_profiles",
+          "capture_scopes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "utterance": {
+            "type": "string"
+          },
+          "required_profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "uniqueItems": true
+          },
+          "capture_scopes": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "audio_capture",
+                "video_capture"
+              ]
+            },
+            "uniqueItems": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mode_semantics": {
+      "type": "object",
+      "additionalProperties": {
+        "const": true
+      }
+    },
+    "source_validation_is_not_runtime_proof": {
+      "const": true
+    }
+  },
+  "additionalProperties": false
+}
