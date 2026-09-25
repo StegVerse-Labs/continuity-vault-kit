@@ -217,6 +217,28 @@ bounded status != private historical content
 
 See [`KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md`](./KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md) for the source and activation boundaries.
 
+## Native InTr lifecycle custody boundary
+
+The KV InTr helper reconstructs the observed device outbox, admitted ingress,
+and materialization-attempt chain as a **non-authorizing custody proposal**.
+Without the existing canonical native Master Records client,
+`close_lifecycle(...)` returns `PENDING_MASTER_RECORDS_CUSTODY` with no
+terminal receipt or far-end completion observation. When an admitted resident
+supplies the three existing native methods (`build_state_receipt`,
+`submit_state_receipt`, `reconstruct_state_receipt`) and all returned exact
+digest, predecessor, reference and readback checks pass, the helper returns
+`MASTER_RECORDS_CUSTODY_RECORDED_AWAITING_INTR_REPLAY`—**still without**
+`COMPLETE` or a far-end success projection.
+
+The existing Universal InTr runtime, not KV or the Master Records client, must
+independently replay the full governed graph and bind the SDK's exact manifest
+and result lineage. There is no `replay_state_receipt` method on the canonical
+Master Records client, and none is invented here. Synthetic source fixtures
+never prove production Master Records acceptance or runtime replay. This
+internal helper does not authorize KV provider operations, Google consent,
+CONNECT/VERIFY or KV #2 materialization. See [the native custody boundary
+handoff](./docs/KV_INTR_NATIVE_CUSTODY_BOUNDARY_MIRROR_HANDOFF.md).
+
 ## Technical review
 
 Developers and reviewers should start with [`docs/TECHNICAL_REVIEW_PATH.md`](./docs/TECHNICAL_REVIEW_PATH.md), [`SECURITY.md`](./SECURITY.md), and [`stegverse.architecture.json`](./stegverse.architecture.json).
