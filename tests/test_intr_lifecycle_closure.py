@@ -239,7 +239,7 @@ class TestFarEndObservation:
         )
         assert (
             observation["master_records_record_hash"]
-            == result["master_records_custody_record"]["record_hash"]
+            == result["proposed_custody_record"]["record_hash"]
         )
 
     def test_tvc_receipt_stays_false_with_a_stated_reason(self, lane):
