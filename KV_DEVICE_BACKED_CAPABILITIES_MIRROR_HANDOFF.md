@@ -130,7 +130,7 @@ device/StegOS supplies activity
 
 ## Auri / StegWhisper reusable peripheral profiles — source proposal 2026-09-25
 
-Source-review-only extension under the existing device-backed capability owner (issue #53) and typed transport owner (issue #124). This proposed branch does not modify the connected owner's KV, execute any MyKV/SKAP registration or obtain a new task checkout. Current canonical Registry source observed generation 243. Its global device-interchangeability and KV/SKAP user-verification invariants remain unchanged.
+Source-review-only extension under the existing device-backed capability owner (issue #53) and typed transport owner (issue #124). This proposed branch does not modify the connected owner's KV, execute any MyKV/SKAP registration or obtain a new task checkout. Canonical Registry main reconciled through generation 248 on 2026-09-25; recheck latest generation before any canonical state mutation. Source edits/tests/reviewed merge proceed independently of any unavailable AI_SESSION_GATE interface; authentic Interlock/InTr receipts remain mandatory for real transitions. Its global device-interchangeability and KV/SKAP user-verification invariants remain unchanged.
 
 New source contract:
 - `specs/kv-auri-peripheral-capability-profiles.v1.json`: independently scoped display, touch/gesture, microphone input, speaker output, camera input, visual/AR output and optional flexible-glass capability composition.
