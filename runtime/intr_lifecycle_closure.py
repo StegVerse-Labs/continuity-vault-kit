@@ -340,6 +340,7 @@ def verify_native_master_records_confirmation(
     confirmation objects and fixture outputs are not runtime evidence.
     """
     _require(isinstance(confirmation, Mapping), "CANONICAL_MASTER_RECORDS_CONFIRMATION_REQUIRED")
+    _verify_no_secret_material(confirmation, "canonical_master_records_confirmation")
     receipt = confirmation.get("canonical_state_receipt")
     recorded = confirmation.get("recording_result")
     reconstructed = confirmation.get("reconstruction_result")
@@ -575,14 +576,14 @@ def close_lifecycle(
     ingress_receipt: Mapping[str, Any],
     materialization_receipt: Mapping[str, Any],
     source_commit: str = "UNPINNED",
-    native_confirmation: Mapping[str, Any] | None = None,
+    native_custody_client: Any = None,
 ) -> dict[str, Any]:
-    """Prepare locally; close only on externally accepted native custody proof.
+    """Prepare locally; invoke only the installed native custody client.
 
-    Without a genuine canonical Master Records return and independently checked
-    readback/replay, this function emits a proposal and NO terminal receipt or
-    far-end completion observation. The resident authority, not CVK, obtains the
-    native confirmation via the existing canonical custody adapter.
+    No caller-provided JSON acknowledgement is accepted by this entry point.
+    The authorized resident must inject the EXISTING canonical Master Records
+    state-transition client and independently verified InTr replay binding.
+    In all other cases no terminal receipt or far-end observation is emitted.
     """
     closures = build_closure_chain(
         outbox_entry=outbox_entry,
@@ -605,14 +606,47 @@ def close_lifecycle(
         "far_end_observation": None,
         "authority_effect": "NONE_PROPOSAL_ONLY",
     }
-    if native_confirmation is None:
+    if native_custody_client is None:
         return pending
+    methods = ("build_state_receipt", "submit_state_receipt",
+               "reconstruct_state_receipt", "replay_state_receipt")
+    _require(all(callable(getattr(native_custody_client, name, None)) for name in methods),
+             "CANONICAL_MASTER_RECORDS_AND_INTR_REPLAY_CLIENT_REQUIRED")
+    canonical_receipt = native_custody_client.build_state_receipt(
+        transition_id="MASTER_RECORDS_CUSTODY_RECORDED",
+        transition_sequence=len(closures),
+        subject_or_correlation_id=materialization_id,
+        transition_outcome="OBSERVED",
+        prior_state_ref_or_hash=str(closures[-1]["receipt_sha256"]),
+        resulting_state_ref_or_hash=str(proposal["record_hash"]),
+        governance_decision_ref_where_applicable=None,
+        transition_evidence={
+            "proposed_custody_record_sha256": proposal["record_hash"],
+        },
+        required_evidence_manifest=[],
+    )
+    _require(isinstance(canonical_receipt, Mapping),
+             "CANONICAL_MASTER_RECORDS_RECEIPT_BUILDER_INVALID")
+    receipt_hash = sha256_hex(dict(canonical_receipt))
+    recording = native_custody_client.submit_state_receipt(canonical_receipt)
+    # The existing canonical service must independently reconstruct persisted
+    # bytes; the nonauthorizing proposal cannot claim that readback happened.
+    reconstruction = native_custody_client.reconstruct_state_receipt(receipt_hash)
+    # InTr owns replay, not CVK. The resident adapter supplies its authentic
+    # replay/readback result without creating another custody authority.
+    replay = native_custody_client.replay_state_receipt(receipt_hash)
+    confirmation = {
+        "canonical_state_receipt": canonical_receipt,
+        "recording_result": recording,
+        "reconstruction_result": reconstruction,
+        "replay_result": replay,
+    }
     terminal_receipt = build_terminal_receipt(
         materialization_id=materialization_id,
         closures=closures,
         custody_record=proposal,
         outbox_entry=outbox_entry,
-        native_confirmation=native_confirmation,
+        native_confirmation=confirmation,
     )
     verify_terminal_receipt(terminal_receipt)
     observation = build_far_end_observation(
@@ -625,7 +659,7 @@ def close_lifecycle(
         "state": "LIFECYCLE_RECORDED",
         "materialization_id": materialization_id,
         "proposed_custody_record": proposal,
-        "master_records_custody_record": dict(native_confirmation["recording_result"]),
+        "master_records_custody_record": dict(recording),
         "terminal_receipt": terminal_receipt,
         "far_end_observation": observation,
         "authority_effect": "NONE_RECORDING_ONLY",
