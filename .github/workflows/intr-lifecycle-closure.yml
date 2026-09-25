@@ -41,7 +41,7 @@ jobs:
       - name: Secret field policy still admits governance assertions
         run: python -m pytest -q tests/test_secret_field_policy.py
 
-      - name: Terminal receipt is records-only and grants nothing
+      - name: Proposed KV custody cannot self-complete without native Master Records
         run: |
           python - <<'PY'
           from runtime.intr_lifecycle_closure import close_lifecycle, sha_uri
@@ -84,13 +84,11 @@ jobs:
               ingress_receipt=ingress,
               materialization_receipt=materialization,
           )
-          receipt = result["terminal_receipt"]
-          assert receipt["terminal_state"]["records_only"] is True
-          assert receipt["terminal_state"]["continued_authority"] is False
-          assert receipt["closure_grants_execution_authority"] is False
-          assert receipt["claim_or_fence_minted"] is False
-          assert receipt["authority_effect"] == "NONE_RECORDING_ONLY"
-          assert result["far_end_observation"]["authority_effect"] == "NONE_OBSERVATION_ONLY"
+          assert result["state"] == "PENDING_MASTER_RECORDS_CUSTODY"
+          assert result["proposed_custody_record"]["custody"]["status"] == "PROPOSED_FOR_CUSTODY"
+          assert result["terminal_receipt"] is None
+          assert result["master_records_custody_record"] is None
+          assert result["far_end_observation"] is None
           assert entry["receiver_receipt_observed"] is False, "node entry must not be mutated"
-          print("INTR_LIFECYCLE_CLOSURE_NON_AUTHORIZING_PASS")
+          print("INTR_LIFECYCLE_NATIVE_CUSTODY_REQUIRED_PASS")
           PY
