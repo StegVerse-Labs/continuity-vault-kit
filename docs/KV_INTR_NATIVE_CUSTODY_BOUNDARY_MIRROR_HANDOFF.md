@@ -23,27 +23,33 @@ The candidate now returns `PENDING_MASTER_RECORDS_CUSTODY` and a
 master_records_custody_record=null, far_end_observation=null. It never promotes
 an absent destination acknowledgement. The existing canonical Master Records
 state-transition client, not CVK, must be supplied by the authorized resident
-through the `native_custody_client` interface. The native client must expose
-its existing `build_state_receipt`, `submit_state_receipt` and
-`reconstruct_state_receipt`; the same authorized runtime must additionally
-supply its already-governed InTr replay validation via `replay_state_receipt`.
-This is an adapter contract for existing authorities, **not** an installed
-adapter or a second custody authority. Until all four native methods exist on
-the admitted runtime, keep the proposal pending.
+through the `native_custody_client` interface. The native client exposes exactly its existing three functions:
+`build_state_receipt`, `submit_state_receipt` and
+`reconstruct_state_receipt`. It does **not** expose
+`replay_state_receipt`; the draft originally expected that nonexistent method.
+The repaired CVK source invokes exactly these three functions. It returns
+`MASTER_RECORDS_CUSTODY_RECORDED_AWAITING_INTR_REPLAY` only when the
+real recording and independent reconstruction both verify exact digest,
+proposal, predecessor and materialization identity. Even then it emits
+**no terminal receipt or far-end completion observation**. The existing
+Universal InTr/SDK manifest-result path separately owns full replay,
+transition-closure equality and result lineage. That existing replay interface
+is not replaced, mocked as live or added to the MR client.
 
 The candidate checks the native receipt's canonical schema, exact source
 proposal SHA-256, exact materialization identity, immediate predecessor,
 no authority grant, returned RECORDED and required-evidence/reconstruction
 PASS, exact receipt/reconstructed digest equality, independent destination
-readback of the original receipt, retained native master_record_ref and
-independent replay PASS. It uses the native receipt digest—not the proposed
-record hash—as the terminal custody transition digest.
+readback of the original receipt and retained native master_record_ref.
+Native receipt digest is distinct from the nonauthorizing proposal digest.
+The existing Universal InTr/SDK route must independently verify complete
+graph replay before any terminal result can be returned.
 
-The resulting terminal includes the non-secret exact native acceptance
-and can be independently rechecked. The local `master_records_record_hash`
-is explicitly a proposed-record hash, not the accepted native state receipt
-digest. Synthetic positive test fixtures emulate the client API but are labeled
-TEST_ONLY_NOT_AUTHENTIC_MASTER_RECORDS and cannot satisfy a production predicate.
+The public function does not emit a terminal receipt from native acceptance
+alone. The local proposed record hash and the native accepted state-transition
+receipt digest are separately retained. The pure terminal-shape verifier is
+exercised only with inert TEST_ONLY_NOT_AUTHENTIC_MASTER_RECORDS fixtures;
+it cannot satisfy production runtime predicates.
 
 ## Existing owners and boundaries
 
