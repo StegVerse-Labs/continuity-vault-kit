@@ -20,6 +20,8 @@ from runtime.intr_lifecycle_closure import (
     LifecycleClosureError,
     build_closure_chain,
     build_custody_record,
+    build_terminal_receipt,
+    build_far_end_observation,
     sha256_hex,
     close_lifecycle,
     sha_uri,
@@ -171,24 +173,50 @@ class FixtureNativeCustodyClient:
     def reconstruct_state_receipt(self, digest):
         return copy.deepcopy(self.confirmation.get("reconstruction_result"))
 
-    def replay_state_receipt(self, digest):
-        return copy.deepcopy(self.confirmation["replay_result"])
-
 
 def close(lane, **kwargs):
+    """Legacy terminal-shape fixture, NEVER a public production completion.
+
+    Positive terminal verifier tests exercise the pure builder with explicit
+    inert synthetic test data. Production close_lifecycle never uses this
+    fixture and only returns native custody pending the existing InTr replay.
+    """
     entry, ingress, materialization = lane
-    if "native_custody_client" not in kwargs:
-        kwargs["native_custody_client"] = FixtureNativeCustodyClient(
-            fixture_native_confirmation(
-                lane, source_commit=kwargs.get("source_commit", "UNPINNED")
-            )
+    if "native_confirmation" in kwargs:
+        raise TypeError("public lifecycle refuses caller-authored confirmation")
+    if "native_custody_client" in kwargs:
+        return close_lifecycle(
+            outbox_entry=entry, ingress_receipt=ingress,
+            materialization_receipt=materialization, **kwargs,
         )
-    return close_lifecycle(
-        outbox_entry=entry,
-        ingress_receipt=ingress,
+    source_commit = kwargs.get("source_commit", "UNPINNED")
+    closures = build_closure_chain(
+        outbox_entry=entry, ingress_receipt=ingress,
         materialization_receipt=materialization,
-        **kwargs,
     )
+    proposal = build_custody_record(
+        materialization_id=entry["materialization_id"],
+        closures=closures, outbox_entry=entry, source_commit=source_commit,
+    )
+    confirmation = fixture_native_confirmation(lane, source_commit=source_commit)
+    terminal = build_terminal_receipt(
+        materialization_id=entry["materialization_id"], closures=closures,
+        custody_record=proposal, outbox_entry=entry,
+        native_confirmation=confirmation,
+    )
+    verify_terminal_receipt(terminal)
+    observation = build_far_end_observation(
+        materialization_id=entry["materialization_id"], outbox_entry=entry,
+        terminal_receipt_id=terminal["manifest_receipt_id"],
+        custody_record_hash=proposal["record_hash"],
+    )
+    return {
+        "state": "LIFECYCLE_RECORDED",
+        "terminal_receipt": terminal,
+        "proposed_custody_record": proposal,
+        "master_records_custody_record": confirmation["recording_result"],
+        "far_end_observation": observation,
+    }
 
 
 class TestClosure:
@@ -450,13 +478,40 @@ class TestNativeMasterRecordsAuthorityBoundary:
             slot = slot[part]
         slot[pieces[-1]] = value
         with pytest.raises(LifecycleClosureError, match=reason):
-            close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
+            if which.startswith("replay_result."):
+                entry, ingress, materialization = lane
+                closures = build_closure_chain(outbox_entry=entry,
+                    ingress_receipt=ingress, materialization_receipt=materialization)
+                proposal = build_custody_record(materialization_id=entry["materialization_id"],
+                    closures=closures, outbox_entry=entry, source_commit="UNPINNED")
+                build_terminal_receipt(materialization_id=entry["materialization_id"],
+                    closures=closures, custody_record=proposal, outbox_entry=entry,
+                    native_confirmation=confirmation)
+            else:
+                close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
 
     def test_unverified_native_confirmation_is_rejected(self, lane):
         confirmation = fixture_native_confirmation(lane)
         confirmation.pop("reconstruction_result")
         with pytest.raises(LifecycleClosureError, match="MASTER_RECORDS_NATIVE_RECONSTRUCTION_REQUIRED"):
             close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
+
+    def test_actual_three_method_native_api_records_but_does_not_claim_intr_replay(self, lane):
+        client = FixtureNativeCustodyClient(fixture_native_confirmation(lane))
+        assert not hasattr(client, "replay_state_receipt")
+        result = close(lane, native_custody_client=client)
+        assert result["state"] == "MASTER_RECORDS_CUSTODY_RECORDED_AWAITING_INTR_REPLAY"
+        assert result["master_records_custody_record"]["state"] == "RECORDED"
+        assert result["native_reconstruction_result"]["state"] == "PASS"
+        assert result["terminal_receipt"] is None
+        assert result["far_end_observation"] is None
+
+    def test_undeclared_replay_claim_does_not_promote_native_custody(self, lane):
+        confirmation = fixture_native_confirmation(lane)
+        confirmation["replay_result"]["replay_status"] = "FAIL"
+        result = close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
+        assert result["state"] == "MASTER_RECORDS_CUSTODY_RECORDED_AWAITING_INTR_REPLAY"
+        assert result["terminal_receipt"] is None
 
     def test_standalone_terminal_requires_native_proof(self, lane):
         result = close(lane)
@@ -471,7 +526,7 @@ class TestNativeMasterRecordsAuthorityBoundary:
             close(lane, native_confirmation=fixture_native_confirmation(lane))
 
     def test_missing_native_client_api_refuses_terminal(self, lane):
-        with pytest.raises(LifecycleClosureError, match="CANONICAL_MASTER_RECORDS_AND_INTR_REPLAY_CLIENT_REQUIRED"):
+        with pytest.raises(LifecycleClosureError, match="CANONICAL_MASTER_RECORDS_NATIVE_CLIENT_REQUIRED"):
             close(lane, native_custody_client=object())
 
     def test_test_fixture_is_not_runtime_evidence(self, lane):
