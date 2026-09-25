@@ -93,7 +93,8 @@
         "Interlock transport admission",
         "recipient/session resolution when required"
       ],
-      "authority_effect": "NONE"
+      "authority_effect": "NONE",
+      "peripheral_capability_profile_ref": "specs/kv-auri-peripheral-capability-profiles.v1.json"
     },
     {
       "module_id": "steghealth",
@@ -242,7 +243,8 @@
         "actionable-handoff-first policy",
         "minimum-necessary record admission"
       ],
-      "authority_effect": "NONE"
+      "authority_effect": "NONE",
+      "peripheral_capability_profile_ref": "specs/kv-auri-peripheral-capability-profiles.v1.json"
     },
     {
       "module_id": "stegteacher-onboarding",

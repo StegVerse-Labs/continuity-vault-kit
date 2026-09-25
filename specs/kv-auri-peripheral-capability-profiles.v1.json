@@ -1,0 +1,155 @@
+{
+  "schema": "stegverse.kv.auri-peripheral-capability-profiles/v1",
+  "state": "DEFINED_INACTIVE",
+  "authority_effect": "NONE",
+  "runtime_activation_claimed": false,
+  "user_verifier": "KV/SKAP Vault",
+  "node_role": "INTERCHANGEABLE_TRANSPORT_OR_EXECUTION",
+  "device_identity_gate": "NONE_PROHIBITED",
+  "credential_authority": "TV/TVC",
+  "transition_authority": "Interlock/InTr",
+  "custody_reconstruction": "Master Records",
+  "registry_bindings": [
+    "stegwhisper",
+    "auri-ecosystem-chat"
+  ],
+  "transport_registry_ref": "specs/kv-transport-capability-registry.v1.json",
+  "profiles": [
+    {
+      "id": "visual_display",
+      "direction": "OUTPUT",
+      "capabilities": [
+        "display"
+      ],
+      "capture": false,
+      "exposes_private_content": true,
+      "actual_hardware_observation_required": true
+    },
+    {
+      "id": "touch_gesture",
+      "direction": "INPUT",
+      "capabilities": [
+        "touch",
+        "gesture"
+      ],
+      "capture": false,
+      "consequential_action_authority": false,
+      "actual_hardware_observation_required": true
+    },
+    {
+      "id": "audio_input",
+      "direction": "INPUT",
+      "capabilities": [
+        "microphone"
+      ],
+      "capture": true,
+      "separate_consent_scope": "audio_capture",
+      "actual_hardware_observation_required": true
+    },
+    {
+      "id": "audio_output",
+      "direction": "OUTPUT",
+      "capabilities": [
+        "speaker",
+        "headphones"
+      ],
+      "capture": false,
+      "privacy_and_interruption_controls_required": true,
+      "actual_hardware_observation_required": true
+    },
+    {
+      "id": "video_input",
+      "direction": "INPUT",
+      "capabilities": [
+        "camera"
+      ],
+      "capture": true,
+      "separate_consent_scope": "video_capture",
+      "actual_hardware_observation_required": true
+    },
+    {
+      "id": "video_output",
+      "direction": "OUTPUT",
+      "capabilities": [
+        "display",
+        "ar_projection"
+      ],
+      "capture": false,
+      "exposes_private_content": true,
+      "actual_hardware_observation_required": true
+    },
+    {
+      "id": "flexible_glass",
+      "direction": "COMPOSITE_OPTIONAL",
+      "capabilities": [],
+      "composition_of": [
+        "visual_display",
+        "touch_gesture",
+        "audio_input",
+        "audio_output",
+        "video_input",
+        "video_output"
+      ],
+      "requires_actual_observed_components": true,
+      "photovoltaic_power_optional": true,
+      "photovoltaic_is_not_display": true,
+      "standalone_compute_or_network_not_assumed": true,
+      "actual_hardware_observation_required": true
+    }
+  ],
+  "modes": [
+    {
+      "id": "live_audio",
+      "utterance": "Auri, let's enter live audio mode",
+      "required_profiles": [
+        "audio_input",
+        "audio_output"
+      ],
+      "capture_scopes": [
+        "audio_capture"
+      ]
+    },
+    {
+      "id": "live_video",
+      "utterance": "Auri, let's enter live video mode",
+      "required_profiles": [
+        "video_input",
+        "video_output"
+      ],
+      "capture_scopes": [
+        "video_capture"
+      ]
+    },
+    {
+      "id": "live_audio_video",
+      "utterance": "Auri, let's enter live audio and live video modes",
+      "required_profiles": [
+        "audio_input",
+        "audio_output",
+        "video_input",
+        "video_output"
+      ],
+      "capture_scopes": [
+        "audio_capture",
+        "video_capture"
+      ]
+    }
+  ],
+  "mode_semantics": {
+    "preserve_my_kv_session_identity": true,
+    "fresh_scoped_manifest_for_changed_capture_or_transport": true,
+    "eligible_interchangeable_nodes_only": true,
+    "separate_input_output_consent": true,
+    "registration_does_not_grant_capture": true,
+    "each_actual_intr_hop_requires_authentic_disposition": true,
+    "transport_type_distinct_from_carrier": true,
+    "revocation_stops_affected_capture_and_egress": true,
+    "unaffected_admitted_modality_may_continue": true,
+    "raw_audio_video_transcripts_ephemeral_by_default": true,
+    "stop_and_mute_independent_of_inference": true,
+    "ordinary_pairing_is_not_user_verification": true,
+    "no_second_user_operated_device": true,
+    "no_external_runtime_requirement": true
+  },
+  "source_validation_is_not_runtime_proof": true
+}

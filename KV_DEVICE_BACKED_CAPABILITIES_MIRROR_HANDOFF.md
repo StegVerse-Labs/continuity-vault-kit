@@ -127,3 +127,20 @@ service installation does not grant authority
 service data remains in existing semantic KV surfaces
 device/StegOS supplies activity
 ```
+
+## Auri / StegWhisper reusable peripheral profiles — source proposal 2026-09-25
+
+Source-review-only extension under the existing device-backed capability owner (issue #53) and typed transport owner (issue #124). This proposed branch does not modify the connected owner's KV, execute any MyKV/SKAP registration or obtain a new task checkout. Canonical Registry main reconciled through generation 248 on 2026-09-25; recheck latest generation before any canonical state mutation. Source edits/tests/reviewed merge proceed independently of any unavailable AI_SESSION_GATE interface; authentic Interlock/InTr receipts remain mandatory for real transitions. Its global device-interchangeability and KV/SKAP user-verification invariants remain unchanged.
+
+New source contract:
+- `specs/kv-auri-peripheral-capability-profiles.v1.json`: independently scoped display, touch/gesture, microphone input, speaker output, camera input, visual/AR output and optional flexible-glass capability composition.
+- `schemas/kv-auri-peripheral-capability-profiles.schema.json`: non-authorizing schema.
+- `scripts/validate_kv_auri_peripheral_profiles.py` and `tests/test_kv_auri_peripheral_profiles.py`: deterministic source-only invariant/mode checks.
+- Existing `auri-ecosystem-chat` and `stegwhisper` registry entries now reference the reusable profile contract, preserving their original module IDs, KV surfaces, `INSTALLED_INACTIVE` states and `authority_effect=NONE`.
+
+Three candidate mode intents use one existing KV conversation and require a freshly scoped manifest for changes:
+`live_audio` (microphone + audio output), `live_video` (camera + visual output), and `live_audio_video` (independent admission for both). Direct stop/mute is independent of inference. Input permission is never inferred from output permission, device pairing or registration.
+
+The source-only evaluator deliberately returns `CANDIDATE_ALLOW_REQUIRES_REAL_RUNTIME_DISPOSITION` or `CANDIDATE_NON_ALLOW`; it cannot mint authentic ALLOW/DENY or Master Records receipts. Existing checked-out `STEGOS-DEVICE-KV-SKAP-ROUNDTRIP-001`, `KV-BOUND-EPHEMERAL-BROWSER-PROJECTION-001`, Ecosystem Chat and the shared voice owners retain all implementation/runtime custody. Existing typed transport classes must be observed and each actual adjacent hop admitted through Interlock/InTr. TV/TVC remains credential authority; MyKV/SKAP remains sole user verifier. Flexible glass is an optional hardware composition with unobserved material/electrical/capture capabilities, not an activation dependency or proof that photovoltaics make a display.
+
+This document records a non-authorizing source proposal only; exact-head CI, canonical existing-owner source approval/merge, authentic device/peripheral execution, SKAP relationship readback, transport/transition dispositions and Master Records reconstruction remain separate evidence classes.
