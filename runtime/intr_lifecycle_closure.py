@@ -275,7 +275,7 @@ def build_custody_record(
     outbox_entry: Mapping[str, Any],
     source_commit: str,
 ) -> dict[str, Any]:
-    """Project the closed lifecycle into a Master Records custody record."""
+    """Prepare a locally reconstructed proposal; only Master Records can accept it."""
     record = {
         "schema": CUSTODY_SCHEMA,
         "custody_id": f"INTR-LIFECYCLE-{materialization_id}",
@@ -294,7 +294,8 @@ def build_custody_record(
         "lifecycle": {
             "ordered_transitions": list(ORDERED_TRANSITIONS),
             "observed_transitions": [c["transition_id"] for c in closures],
-            "terminal_transition_id": ORDERED_TRANSITIONS[-1],
+            "terminal_transition_id": None,
+            "pending_terminal_transition_id": ORDERED_TRANSITIONS[-1],
             "transition_closures": [dict(c) for c in closures],
         },
         "validation": {
@@ -305,8 +306,8 @@ def build_custody_record(
             "runtime_execution_claimed": False,
         },
         "custody": {
-            "status": "ACCEPTED_FOR_CUSTODY",
-            "reconstruction_status": "PASS",
+            "status": "PROPOSED_FOR_CUSTODY",
+            "reconstruction_status": "LOCAL_ONLY",
             "authority_effect": "NONE",
         },
         "boundaries": [
@@ -322,6 +323,71 @@ def build_custody_record(
     }
     record["record_hash"] = sha256_hex(record)
     return record
+
+
+
+def verify_native_master_records_confirmation(
+    confirmation: Mapping[str, Any],
+    *,
+    custody_record: Mapping[str, Any],
+    preceding_receipt_sha256: str,
+    materialization_id: str,
+) -> str:
+    """Validate the *existing native* custody result and independent readback.
+
+    The resident caller must obtain this bundle through the authorized canonical
+    Master Records state-transition client and independent replay; caller-authored
+    confirmation objects and fixture outputs are not runtime evidence.
+    """
+    _require(isinstance(confirmation, Mapping), "CANONICAL_MASTER_RECORDS_CONFIRMATION_REQUIRED")
+    receipt = confirmation.get("canonical_state_receipt")
+    recorded = confirmation.get("recording_result")
+    reconstructed = confirmation.get("reconstruction_result")
+    replay = confirmation.get("replay_result")
+    for label, item in (("receipt", receipt), ("recording", recorded),
+                        ("reconstruction", reconstructed), ("replay", replay)):
+        _require(isinstance(item, Mapping), f"MASTER_RECORDS_NATIVE_{label.upper()}_REQUIRED")
+    _require(
+        receipt.get("schema") == "stegverse.canonical-state-transition-receipt/v1",
+        "MASTER_RECORDS_CANONICAL_STATE_RECEIPT_REQUIRED",
+    )
+    _require(receipt.get("transition_id") == "MASTER_RECORDS_CUSTODY_RECORDED",
+             "MASTER_RECORDS_TRANSITION_ID_MISMATCH")
+    _require(receipt.get("subject_or_correlation_id") == materialization_id,
+             "MASTER_RECORDS_MATERIALIZATION_ID_MISMATCH")
+    _require(receipt.get("prior_state_ref_or_hash") == preceding_receipt_sha256,
+             "MASTER_RECORDS_PREDECESSOR_MISMATCH")
+    evidence = receipt.get("transition_evidence")
+    _require(isinstance(evidence, Mapping) and
+             evidence.get("proposed_custody_record_sha256") == custody_record.get("record_hash"),
+             "MASTER_RECORDS_PROPOSAL_DIGEST_MISMATCH")
+    _require(receipt.get("master_records_may_grant_transition_authority") is False and
+             receipt.get("master_records_may_grant_execution_authority") is False,
+             "MASTER_RECORDS_AUTHORITY_CLAIM")
+    digest = sha256_hex(dict(receipt))
+    _require(recorded.get("state") == "RECORDED" and
+             recorded.get("reconstruction_status") == "PASS" and
+             recorded.get("required_evidence_validation_status") == "PASS",
+             "MASTER_RECORDS_NATIVE_RECORDING_NOT_VERIFIED")
+    _require(recorded.get("receipt_sha256") == digest and
+             recorded.get("reconstructed_receipt_sha256") == digest,
+             "MASTER_RECORDS_NATIVE_RECORDING_HASH_MISMATCH")
+    _require(recorded.get("master_records_grants_transition_authority") is False,
+             "MASTER_RECORDS_NATIVE_AUTHORITY_ESCALATION")
+    master_ref = recorded.get("master_record_ref")
+    _require(isinstance(master_ref, str) and bool(master_ref),
+             "MASTER_RECORDS_NATIVE_RECORD_REFERENCE_REQUIRED")
+    _require(reconstructed.get("state") == "PASS" and
+             reconstructed.get("required_evidence_validation_status") == "PASS" and
+             reconstructed.get("receipt_sha256") == digest and
+             reconstructed.get("reconstructed_receipt_sha256") == digest and
+             reconstructed.get("receipt") == receipt and
+             reconstructed.get("master_record_ref") == master_ref,
+             "MASTER_RECORDS_INDEPENDENT_RECONSTRUCTION_REQUIRED")
+    _require(replay.get("replay_status") == "PASS" and
+             replay.get("receipt_sha256") == digest,
+             "MASTER_RECORDS_INDEPENDENT_REPLAY_REQUIRED")
+    return digest
 
 
 def build_far_end_observation(
@@ -368,16 +434,22 @@ def build_terminal_receipt(
     closures: Sequence[Mapping[str, Any]],
     custody_record: Mapping[str, Any],
     outbox_entry: Mapping[str, Any],
+    native_confirmation: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Build the last receipt of the lifecycle."""
+    """Build a terminal receipt only after genuine native custody and replay."""
+    native_digest = verify_native_master_records_confirmation(
+        native_confirmation,
+        custody_record=custody_record,
+        preceding_receipt_sha256=str(closures[-1]["receipt_sha256"]),
+        materialization_id=materialization_id,
+    )
     custody_closure = _closure(
         transition_id="MASTER_RECORDS_CUSTODY_RECORDED",
-        receipt_digest=sha_uri(dict(custody_record)),
+        receipt_digest=native_digest,
         predecessor=closures[-1]["receipt_sha256"],
-        evidence_ref=str(custody_record.get("custody_id")),
+        evidence_ref=str(native_confirmation["recording_result"]["master_record_ref"]),
     )
     full_chain = [dict(c) for c in closures] + [custody_closure]
-
     receipt = {
         "schema": TERMINAL_SCHEMA,
         "state": "COMPLETE",
@@ -389,6 +461,7 @@ def build_terminal_receipt(
         "replay_status": "PASS",
         "reconstruction_status": "PASS",
         "master_records_record_hash": custody_record.get("record_hash"),
+        "master_records_acceptance": dict(native_confirmation),
         "terminal_state": {
             "records_only": True,
             "continued_authority": False,
@@ -464,6 +537,29 @@ def verify_terminal_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
         "TERMINAL_CONTINUED_AUTHORITY_FALSE_REQUIRED",
     )
 
+    confirmation = receipt.get("master_records_acceptance")
+    proposal_digest = receipt.get("master_records_record_hash")
+    _require(isinstance(proposal_digest, str) and bool(proposal_digest),
+             "MASTER_RECORDS_PROPOSAL_DIGEST_REQUIRED")
+    _require(isinstance(confirmation, Mapping),
+             "MASTER_RECORDS_NATIVE_ACCEPTANCE_EVIDENCE_REQUIRED")
+    _require(len(closures) >= 2, "MASTER_RECORDS_PREDECESSOR_CLOSURE_REQUIRED")
+    native = confirmation.get("canonical_state_receipt")
+    _require(isinstance(native, Mapping), "MASTER_RECORDS_NATIVE_RECEIPT_REQUIRED")
+    # Verify exact native digest and predecessor without trusting the locally
+    # authored last closure. Native recording/readback must also be correlated.
+    verified_digest = verify_native_master_records_confirmation(
+        confirmation,
+        custody_record={"record_hash": proposal_digest},
+        preceding_receipt_sha256=str(closures[-2]["receipt_sha256"]),
+        materialization_id=str(receipt.get("materialization_id")),
+    )
+    _require(closures[-1]["receipt_sha256"] == verified_digest,
+             "MASTER_RECORDS_TERMINAL_NATIVE_DIGEST_MISMATCH")
+    _require(closures[-1]["evidence_ref"] ==
+             confirmation["recording_result"]["master_record_ref"],
+             "MASTER_RECORDS_TERMINAL_RECORD_REF_MISMATCH")
+
     receipt_id = receipt.get("manifest_receipt_id")
     _require(
         isinstance(receipt_id, str) and bool(receipt_id), "MANIFEST_RECEIPT_ID_REQUIRED"
@@ -479,11 +575,14 @@ def close_lifecycle(
     ingress_receipt: Mapping[str, Any],
     materialization_receipt: Mapping[str, Any],
     source_commit: str = "UNPINNED",
+    native_confirmation: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Close one InTr lifecycle, or refuse naming the stage that broke.
+    """Prepare locally; close only on externally accepted native custody proof.
 
-    Returns the terminal receipt, the Master Records custody record, and the
-    far-end observation that makes the node's pending flags answerable.
+    Without a genuine canonical Master Records return and independently checked
+    readback/replay, this function emits a proposal and NO terminal receipt or
+    far-end completion observation. The resident authority, not CVK, obtains the
+    native confirmation via the existing canonical custody adapter.
     """
     closures = build_closure_chain(
         outbox_entry=outbox_entry,
@@ -491,30 +590,43 @@ def close_lifecycle(
         materialization_receipt=materialization_receipt,
     )
     materialization_id = str(outbox_entry["materialization_id"])
-    custody_record = build_custody_record(
+    proposal = build_custody_record(
         materialization_id=materialization_id,
         closures=closures,
         outbox_entry=outbox_entry,
         source_commit=source_commit,
     )
+    pending = {
+        "state": "PENDING_MASTER_RECORDS_CUSTODY",
+        "materialization_id": materialization_id,
+        "proposed_custody_record": proposal,
+        "master_records_custody_record": None,
+        "terminal_receipt": None,
+        "far_end_observation": None,
+        "authority_effect": "NONE_PROPOSAL_ONLY",
+    }
+    if native_confirmation is None:
+        return pending
     terminal_receipt = build_terminal_receipt(
         materialization_id=materialization_id,
         closures=closures,
-        custody_record=custody_record,
+        custody_record=proposal,
         outbox_entry=outbox_entry,
+        native_confirmation=native_confirmation,
     )
     verify_terminal_receipt(terminal_receipt)
     observation = build_far_end_observation(
         materialization_id=materialization_id,
         outbox_entry=outbox_entry,
         terminal_receipt_id=str(terminal_receipt["manifest_receipt_id"]),
-        custody_record_hash=str(custody_record["record_hash"]),
+        custody_record_hash=str(proposal["record_hash"]),
     )
     return {
         "state": "LIFECYCLE_RECORDED",
         "materialization_id": materialization_id,
+        "proposed_custody_record": proposal,
+        "master_records_custody_record": dict(native_confirmation["recording_result"]),
         "terminal_receipt": terminal_receipt,
-        "master_records_custody_record": custody_record,
         "far_end_observation": observation,
         "authority_effect": "NONE_RECORDING_ONLY",
     }
@@ -533,4 +645,5 @@ __all__ = [
     "build_terminal_receipt",
     "close_lifecycle",
     "verify_terminal_receipt",
+    "verify_native_master_records_confirmation",
 ]
