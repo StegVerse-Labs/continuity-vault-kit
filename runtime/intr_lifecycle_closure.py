@@ -332,8 +332,9 @@ def verify_native_master_records_confirmation(
     custody_record: Mapping[str, Any],
     preceding_receipt_sha256: str,
     materialization_id: str,
+    require_replay: bool = True,
 ) -> str:
-    """Validate the *existing native* custody result and independent readback.
+    """Validate the existing native custody result and independent readback.
 
     The resident caller must obtain this bundle through the authorized canonical
     Master Records state-transition client and independent replay; caller-authored
@@ -346,7 +347,7 @@ def verify_native_master_records_confirmation(
     reconstructed = confirmation.get("reconstruction_result")
     replay = confirmation.get("replay_result")
     for label, item in (("receipt", receipt), ("recording", recorded),
-                        ("reconstruction", reconstructed), ("replay", replay)):
+                        ("reconstruction", reconstructed)):
         _require(isinstance(item, Mapping), f"MASTER_RECORDS_NATIVE_{label.upper()}_REQUIRED")
     _require(
         receipt.get("schema") == "stegverse.canonical-state-transition-receipt/v1",
@@ -385,9 +386,11 @@ def verify_native_master_records_confirmation(
              reconstructed.get("receipt") == receipt and
              reconstructed.get("master_record_ref") == master_ref,
              "MASTER_RECORDS_INDEPENDENT_RECONSTRUCTION_REQUIRED")
-    _require(replay.get("replay_status") == "PASS" and
-             replay.get("receipt_sha256") == digest,
-             "MASTER_RECORDS_INDEPENDENT_REPLAY_REQUIRED")
+    if require_replay:
+        _require(isinstance(replay, Mapping), "MASTER_RECORDS_NATIVE_REPLAY_REQUIRED")
+        _require(replay.get("replay_status") == "PASS" and
+                 replay.get("receipt_sha256") == digest,
+                 "MASTER_RECORDS_INDEPENDENT_REPLAY_REQUIRED")
     return digest
 
 
@@ -578,12 +581,11 @@ def close_lifecycle(
     source_commit: str = "UNPINNED",
     native_custody_client: Any = None,
 ) -> dict[str, Any]:
-    """Prepare locally; invoke only the installed native custody client.
+    """Prepare locally, optionally record using the EXISTING native MR client.
 
-    No caller-provided JSON acknowledgement is accepted by this entry point.
-    The authorized resident must inject the EXISTING canonical Master Records
-    state-transition client and independently verified InTr replay binding.
-    In all other cases no terminal receipt or far-end observation is emitted.
+    Source evidence may close the single native custody transition, but this
+    function cannot attest to a full Universal InTr graph replay. The existing
+    Universal InTr runtime owns final replay, return lineage, and COMPLETE.
     """
     closures = build_closure_chain(
         outbox_entry=outbox_entry,
@@ -608,10 +610,13 @@ def close_lifecycle(
     }
     if native_custody_client is None:
         return pending
+    # These three functions are the ACTUAL, existing canonical custody API
+    # in .github/workers/canonical_state_transition_custody.py. That client
+    # has no replay_state_receipt: InTr replay is a distinct owner/receipt.
     methods = ("build_state_receipt", "submit_state_receipt",
-               "reconstruct_state_receipt", "replay_state_receipt")
+               "reconstruct_state_receipt")
     _require(all(callable(getattr(native_custody_client, name, None)) for name in methods),
-             "CANONICAL_MASTER_RECORDS_AND_INTR_REPLAY_CLIENT_REQUIRED")
+             "CANONICAL_MASTER_RECORDS_NATIVE_CLIENT_REQUIRED")
     canonical_receipt = native_custody_client.build_state_receipt(
         transition_id="MASTER_RECORDS_CUSTODY_RECORDED",
         transition_sequence=len(closures),
@@ -620,49 +625,40 @@ def close_lifecycle(
         prior_state_ref_or_hash=str(closures[-1]["receipt_sha256"]),
         resulting_state_ref_or_hash=str(proposal["record_hash"]),
         governance_decision_ref_where_applicable=None,
-        transition_evidence={
-            "proposed_custody_record_sha256": proposal["record_hash"],
-        },
+        transition_evidence={"proposed_custody_record_sha256": proposal["record_hash"]},
         required_evidence_manifest=[],
     )
     _require(isinstance(canonical_receipt, Mapping),
              "CANONICAL_MASTER_RECORDS_RECEIPT_BUILDER_INVALID")
     receipt_hash = sha256_hex(dict(canonical_receipt))
     recording = native_custody_client.submit_state_receipt(canonical_receipt)
-    # The existing canonical service must independently reconstruct persisted
-    # bytes; the nonauthorizing proposal cannot claim that readback happened.
+    _require(isinstance(recording, Mapping),
+             "MASTER_RECORDS_NATIVE_RECORDING_REQUIRED")
+    _require(recording.get("state") == "RECORDED",
+             "MASTER_RECORDS_NATIVE_RECORDING_NOT_VERIFIED")
     reconstruction = native_custody_client.reconstruct_state_receipt(receipt_hash)
-    # InTr owns replay, not CVK. The resident adapter supplies its authentic
-    # replay/readback result without creating another custody authority.
-    replay = native_custody_client.replay_state_receipt(receipt_hash)
     confirmation = {
         "canonical_state_receipt": canonical_receipt,
         "recording_result": recording,
         "reconstruction_result": reconstruction,
-        "replay_result": replay,
     }
-    terminal_receipt = build_terminal_receipt(
-        materialization_id=materialization_id,
-        closures=closures,
+    verified = verify_native_master_records_confirmation(
+        confirmation,
         custody_record=proposal,
-        outbox_entry=outbox_entry,
-        native_confirmation=confirmation,
-    )
-    verify_terminal_receipt(terminal_receipt)
-    observation = build_far_end_observation(
+        preceding_receipt_sha256=str(closures[-1]["receipt_sha256"]),
         materialization_id=materialization_id,
-        outbox_entry=outbox_entry,
-        terminal_receipt_id=str(terminal_receipt["manifest_receipt_id"]),
-        custody_record_hash=str(proposal["record_hash"]),
+        require_replay=False,
     )
     return {
-        "state": "LIFECYCLE_RECORDED",
+        "state": "MASTER_RECORDS_CUSTODY_RECORDED_AWAITING_INTR_REPLAY",
         "materialization_id": materialization_id,
         "proposed_custody_record": proposal,
         "master_records_custody_record": dict(recording),
-        "terminal_receipt": terminal_receipt,
-        "far_end_observation": observation,
-        "authority_effect": "NONE_RECORDING_ONLY",
+        "native_master_records_receipt_sha256": verified,
+        "native_reconstruction_result": dict(reconstruction),
+        "terminal_receipt": None,
+        "far_end_observation": None,
+        "authority_effect": "NONE_CUSTODY_ONLY",
     }
 
 
