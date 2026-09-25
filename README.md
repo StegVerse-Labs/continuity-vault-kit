@@ -219,20 +219,25 @@ See [`KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md`](./KV_HISTORICAL_CORPUS_IMP
 
 ## Native InTr lifecycle custody boundary
 
-The KV InTr lifecycle helper reconstructs the observed device outbox, admitted ingress,
+The KV InTr helper reconstructs the observed device outbox, admitted ingress,
 and materialization-attempt chain as a **non-authorizing custody proposal**.
-`close_lifecycle(...)` emits `PENDING_MASTER_RECORDS_CUSTODY`, with no terminal
-receipt or far-end completion observation, unless the authorized resident injects
-the existing native canonical Master Records state-transition client and separately
-verified InTr replay binding. A caller-authored JSON acceptance is not supported
-by the public `close_lifecycle` path. The native result must prove exact
-proposal/predecessor identity, `RECORDED`, required-evidence PASS, independently
-reconstructed equal digests, records-only terminal status and no authority grant.
+Without the existing canonical native Master Records client,
+`close_lifecycle(...)` returns `PENDING_MASTER_RECORDS_CUSTODY` with no
+terminal receipt or far-end completion observation. When an admitted resident
+supplies the three existing native methods (`build_state_receipt`,
+`submit_state_receipt`, `reconstruct_state_receipt`) and all returned exact
+digest, predecessor, reference and readback checks pass, the helper returns
+`MASTER_RECORDS_CUSTODY_RECORDED_AWAITING_INTR_REPLAY`—**still without**
+`COMPLETE` or a far-end success projection.
 
-Source validation and synthetic unit fixtures do not prove that native Master
-Records accepted any actual receipt. This internal helper does not authorize KV
-provider operations, Google consent, CONNECT/VERIFY or KV #2 materialization.
-See [the native custody boundary handoff](./docs/KV_INTR_NATIVE_CUSTODY_BOUNDARY_MIRROR_HANDOFF.md).
+The existing Universal InTr runtime, not KV or the Master Records client, must
+independently replay the full governed graph and bind the SDK's exact manifest
+and result lineage. There is no `replay_state_receipt` method on the canonical
+Master Records client, and none is invented here. Synthetic source fixtures
+never prove production Master Records acceptance or runtime replay. This
+internal helper does not authorize KV provider operations, Google consent,
+CONNECT/VERIFY or KV #2 materialization. See [the native custody boundary
+handoff](./docs/KV_INTR_NATIVE_CUSTODY_BOUNDARY_MIRROR_HANDOFF.md).
 
 ## Technical review
 
