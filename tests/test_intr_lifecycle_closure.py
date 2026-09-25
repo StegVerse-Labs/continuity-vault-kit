@@ -19,6 +19,8 @@ from runtime.intr_lifecycle_closure import (
     TERMINAL_SCHEMA,
     LifecycleClosureError,
     build_closure_chain,
+    build_custody_record,
+    sha256_hex,
     close_lifecycle,
     sha_uri,
     verify_terminal_receipt,
@@ -108,8 +110,59 @@ def lane():
     return entry, make_ingress_receipt(entry), make_materialization_receipt(entry)
 
 
+def test_only_native_confirmation(lane, *, source_commit="UNPINNED"):
+    """Synthetic fake native readback for unit tests ONLY; never runtime proof."""
+    entry, ingress, materialization = lane
+    closures = build_closure_chain(
+        outbox_entry=entry, ingress_receipt=ingress,
+        materialization_receipt=materialization,
+    )
+    proposal = build_custody_record(
+        materialization_id=entry["materialization_id"],
+        closures=closures, outbox_entry=entry, source_commit=source_commit,
+    )
+    receipt = {
+        "schema": "stegverse.canonical-state-transition-receipt/v1",
+        "transition_id": "MASTER_RECORDS_CUSTODY_RECORDED",
+        "subject_or_correlation_id": entry["materialization_id"],
+        "prior_state_ref_or_hash": closures[-1]["receipt_sha256"],
+        "transition_evidence": {
+            "proposed_custody_record_sha256": proposal["record_hash"],
+        },
+        "master_records_may_grant_transition_authority": False,
+        "master_records_may_grant_execution_authority": False,
+    }
+    digest = sha256_hex(receipt)
+    ref = "TEST_ONLY_NOT_AUTHENTIC_MASTER_RECORDS"
+    return {
+        "canonical_state_receipt": receipt,
+        "recording_result": {
+            "state": "RECORDED",
+            "reconstruction_status": "PASS",
+            "required_evidence_validation_status": "PASS",
+            "receipt_sha256": digest,
+            "reconstructed_receipt_sha256": digest,
+            "master_record_ref": ref,
+            "master_records_grants_transition_authority": False,
+        },
+        "reconstruction_result": {
+            "state": "PASS",
+            "required_evidence_validation_status": "PASS",
+            "receipt_sha256": digest,
+            "reconstructed_receipt_sha256": digest,
+            "receipt": copy.deepcopy(receipt),
+            "master_record_ref": ref,
+        },
+        "replay_result": {"replay_status": "PASS", "receipt_sha256": digest},
+    }
+
+
 def close(lane, **kwargs):
     entry, ingress, materialization = lane
+    if "native_confirmation" not in kwargs:
+        kwargs["native_confirmation"] = test_only_native_confirmation(
+            lane, source_commit=kwargs.get("source_commit", "UNPINNED")
+        )
     return close_lifecycle(
         outbox_entry=entry,
         ingress_receipt=ingress,
@@ -149,12 +202,12 @@ class TestClosure:
         for previous, current in zip(closures, closures[1:]):
             assert current["predecessor_receipt_sha256"] == previous["receipt_sha256"]
 
-    def test_master_records_custody_record_is_written_and_self_hashed(self, lane):
+    def test_local_custody_proposal_is_self_hashed_not_authoritative(self, lane):
         from runtime.intr_lifecycle_closure import sha256_hex
 
-        record = close(lane, source_commit="deadbeef")["master_records_custody_record"]
+        record = close(lane, source_commit="deadbeef")["proposed_custody_record"]
         assert record["schema"] == CUSTODY_SCHEMA
-        assert record["custody"]["status"] == "ACCEPTED_FOR_CUSTODY"
+        assert record["custody"]["status"] == "PROPOSED_FOR_CUSTODY"
         assert record["validation"]["runtime_execution_claimed"] is False
         assert record["source"]["source_commit"] == "deadbeef"
         body = {k: v for k, v in record.items() if k != "record_hash"}
@@ -164,7 +217,7 @@ class TestClosure:
         result = close(lane)
         assert (
             result["terminal_receipt"]["master_records_record_hash"]
-            == result["master_records_custody_record"]["record_hash"]
+            == result["proposed_custody_record"]["record_hash"]
         )
 
     def test_closure_is_deterministic(self, lane):
@@ -343,3 +396,55 @@ class TestSdkContractConvergence:
         assert isinstance(ordered, list) and ordered
         assert all(isinstance(x, str) and x for x in ordered)
         assert len(receipt["transition_closures"]) == len(ordered)
+
+
+class TestNativeMasterRecordsAuthorityBoundary:
+    def test_local_evidence_never_self_issues_terminal_receipt(self, lane):
+        entry, ingress, materialization = lane
+        result = close_lifecycle(outbox_entry=entry, ingress_receipt=ingress,
+                                 materialization_receipt=materialization)
+        assert result["state"] == "PENDING_MASTER_RECORDS_CUSTODY"
+        assert result["proposed_custody_record"]["custody"]["status"] == "PROPOSED_FOR_CUSTODY"
+        assert result["terminal_receipt"] is None
+        assert result["master_records_custody_record"] is None
+        assert result["far_end_observation"] is None
+        assert entry["receiver_receipt_observed"] is False
+
+    @pytest.mark.parametrize("which,value,reason", [
+        ("recording_result.state", "BOUNDARY", "MASTER_RECORDS_NATIVE_RECORDING_NOT_VERIFIED"),
+        ("recording_result.receipt_sha256", "0" * 64, "MASTER_RECORDS_NATIVE_RECORDING_HASH_MISMATCH"),
+        ("recording_result.master_records_grants_transition_authority", True, "MASTER_RECORDS_NATIVE_AUTHORITY_ESCALATION"),
+        ("reconstruction_result.state", "BOUNDARY", "MASTER_RECORDS_INDEPENDENT_RECONSTRUCTION_REQUIRED"),
+        ("reconstruction_result.receipt_sha256", "0" * 64, "MASTER_RECORDS_INDEPENDENT_RECONSTRUCTION_REQUIRED"),
+        ("reconstruction_result.master_record_ref", "another-record", "MASTER_RECORDS_INDEPENDENT_RECONSTRUCTION_REQUIRED"),
+        ("replay_result.replay_status", "UNKNOWN", "MASTER_RECORDS_INDEPENDENT_REPLAY_REQUIRED"),
+        ("canonical_state_receipt.prior_state_ref_or_hash", "0" * 64, "MASTER_RECORDS_PREDECESSOR_MISMATCH"),
+        ("canonical_state_receipt.subject_or_correlation_id", "other-materialization", "MASTER_RECORDS_MATERIALIZATION_ID_MISMATCH"),
+        ("canonical_state_receipt.transition_evidence.proposed_custody_record_sha256", "0" * 64, "MASTER_RECORDS_PROPOSAL_DIGEST_MISMATCH"),
+    ])
+    def test_adversarial_native_confirmation_rejected(self, lane, which, value, reason):
+        confirmation = test_only_native_confirmation(lane)
+        slot = confirmation
+        pieces = which.split(".")
+        for part in pieces[:-1]:
+            slot = slot[part]
+        slot[pieces[-1]] = value
+        with pytest.raises(LifecycleClosureError, match=reason):
+            close(lane, native_confirmation=confirmation)
+
+    def test_unverified_native_confirmation_is_rejected(self, lane):
+        confirmation = test_only_native_confirmation(lane)
+        confirmation.pop("reconstruction_result")
+        with pytest.raises(LifecycleClosureError, match="MASTER_RECORDS_NATIVE_RECONSTRUCTION_REQUIRED"):
+            close(lane, native_confirmation=confirmation)
+
+    def test_standalone_terminal_requires_native_proof(self, lane):
+        result = close(lane)
+        receipt = result["terminal_receipt"]
+        receipt.pop("master_records_acceptance")
+        with pytest.raises(LifecycleClosureError, match="MASTER_RECORDS_NATIVE_ACCEPTANCE_EVIDENCE_REQUIRED"):
+            verify_terminal_receipt(receipt)
+
+    def test_test_fixture_is_not_runtime_evidence(self, lane):
+        confirmation = test_only_native_confirmation(lane)
+        assert confirmation["recording_result"]["master_record_ref"] == "TEST_ONLY_NOT_AUTHENTIC_MASTER_RECORDS"
