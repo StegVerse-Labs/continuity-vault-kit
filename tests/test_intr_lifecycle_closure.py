@@ -157,11 +157,31 @@ def test_only_native_confirmation(lane, *, source_commit="UNPINNED"):
     }
 
 
+class FixtureNativeCustodyClient:
+    """Inert, entirely synthetic API fixture; NOT a production custody client."""
+    def __init__(self, confirmation):
+        self.confirmation = copy.deepcopy(confirmation)
+
+    def build_state_receipt(self, **kwargs):
+        return copy.deepcopy(self.confirmation["canonical_state_receipt"])
+
+    def submit_state_receipt(self, receipt):
+        return copy.deepcopy(self.confirmation["recording_result"])
+
+    def reconstruct_state_receipt(self, digest):
+        return copy.deepcopy(self.confirmation["reconstruction_result"])
+
+    def replay_state_receipt(self, digest):
+        return copy.deepcopy(self.confirmation["replay_result"])
+
+
 def close(lane, **kwargs):
     entry, ingress, materialization = lane
-    if "native_confirmation" not in kwargs:
-        kwargs["native_confirmation"] = test_only_native_confirmation(
-            lane, source_commit=kwargs.get("source_commit", "UNPINNED")
+    if "native_custody_client" not in kwargs:
+        kwargs["native_custody_client"] = FixtureNativeCustodyClient(
+            test_only_native_confirmation(
+                lane, source_commit=kwargs.get("source_commit", "UNPINNED")
+            )
         )
     return close_lifecycle(
         outbox_entry=entry,
@@ -430,13 +450,13 @@ class TestNativeMasterRecordsAuthorityBoundary:
             slot = slot[part]
         slot[pieces[-1]] = value
         with pytest.raises(LifecycleClosureError, match=reason):
-            close(lane, native_confirmation=confirmation)
+            close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
 
     def test_unverified_native_confirmation_is_rejected(self, lane):
         confirmation = test_only_native_confirmation(lane)
         confirmation.pop("reconstruction_result")
         with pytest.raises(LifecycleClosureError, match="MASTER_RECORDS_NATIVE_RECONSTRUCTION_REQUIRED"):
-            close(lane, native_confirmation=confirmation)
+            close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
 
     def test_standalone_terminal_requires_native_proof(self, lane):
         result = close(lane)
@@ -444,6 +464,15 @@ class TestNativeMasterRecordsAuthorityBoundary:
         receipt.pop("master_records_acceptance")
         with pytest.raises(LifecycleClosureError, match="MASTER_RECORDS_NATIVE_ACCEPTANCE_EVIDENCE_REQUIRED"):
             verify_terminal_receipt(receipt)
+
+
+    def test_caller_authored_confirmation_cannot_bypass_native_client(self, lane):
+        with pytest.raises(TypeError):
+            close(lane, native_confirmation=test_only_native_confirmation(lane))
+
+    def test_missing_native_client_api_refuses_terminal(self, lane):
+        with pytest.raises(LifecycleClosureError, match="CANONICAL_MASTER_RECORDS_AND_INTR_REPLAY_CLIENT_REQUIRED"):
+            close(lane, native_custody_client=object())
 
     def test_test_fixture_is_not_runtime_evidence(self, lane):
         confirmation = test_only_native_confirmation(lane)
