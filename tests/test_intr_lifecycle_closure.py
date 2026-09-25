@@ -110,7 +110,7 @@ def lane():
     return entry, make_ingress_receipt(entry), make_materialization_receipt(entry)
 
 
-def test_only_native_confirmation(lane, *, source_commit="UNPINNED"):
+def fixture_native_confirmation(lane, *, source_commit="UNPINNED"):
     """Synthetic fake native readback for unit tests ONLY; never runtime proof."""
     entry, ingress, materialization = lane
     closures = build_closure_chain(
@@ -169,7 +169,7 @@ class FixtureNativeCustodyClient:
         return copy.deepcopy(self.confirmation["recording_result"])
 
     def reconstruct_state_receipt(self, digest):
-        return copy.deepcopy(self.confirmation["reconstruction_result"])
+        return copy.deepcopy(self.confirmation.get("reconstruction_result"))
 
     def replay_state_receipt(self, digest):
         return copy.deepcopy(self.confirmation["replay_result"])
@@ -179,7 +179,7 @@ def close(lane, **kwargs):
     entry, ingress, materialization = lane
     if "native_custody_client" not in kwargs:
         kwargs["native_custody_client"] = FixtureNativeCustodyClient(
-            test_only_native_confirmation(
+            fixture_native_confirmation(
                 lane, source_commit=kwargs.get("source_commit", "UNPINNED")
             )
         )
@@ -443,7 +443,7 @@ class TestNativeMasterRecordsAuthorityBoundary:
         ("canonical_state_receipt.transition_evidence.proposed_custody_record_sha256", "0" * 64, "MASTER_RECORDS_PROPOSAL_DIGEST_MISMATCH"),
     ])
     def test_adversarial_native_confirmation_rejected(self, lane, which, value, reason):
-        confirmation = test_only_native_confirmation(lane)
+        confirmation = fixture_native_confirmation(lane)
         slot = confirmation
         pieces = which.split(".")
         for part in pieces[:-1]:
@@ -453,7 +453,7 @@ class TestNativeMasterRecordsAuthorityBoundary:
             close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
 
     def test_unverified_native_confirmation_is_rejected(self, lane):
-        confirmation = test_only_native_confirmation(lane)
+        confirmation = fixture_native_confirmation(lane)
         confirmation.pop("reconstruction_result")
         with pytest.raises(LifecycleClosureError, match="MASTER_RECORDS_NATIVE_RECONSTRUCTION_REQUIRED"):
             close(lane, native_custody_client=FixtureNativeCustodyClient(confirmation))
@@ -468,12 +468,12 @@ class TestNativeMasterRecordsAuthorityBoundary:
 
     def test_caller_authored_confirmation_cannot_bypass_native_client(self, lane):
         with pytest.raises(TypeError):
-            close(lane, native_confirmation=test_only_native_confirmation(lane))
+            close(lane, native_confirmation=fixture_native_confirmation(lane))
 
     def test_missing_native_client_api_refuses_terminal(self, lane):
         with pytest.raises(LifecycleClosureError, match="CANONICAL_MASTER_RECORDS_AND_INTR_REPLAY_CLIENT_REQUIRED"):
             close(lane, native_custody_client=object())
 
     def test_test_fixture_is_not_runtime_evidence(self, lane):
-        confirmation = test_only_native_confirmation(lane)
+        confirmation = fixture_native_confirmation(lane)
         assert confirmation["recording_result"]["master_record_ref"] == "TEST_ONLY_NOT_AUTHENTIC_MASTER_RECORDS"
