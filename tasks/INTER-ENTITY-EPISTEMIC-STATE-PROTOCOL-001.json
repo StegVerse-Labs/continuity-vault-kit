@@ -1,0 +1,39 @@
+{
+  "task_id": "INTER-ENTITY-EPISTEMIC-STATE-PROTOCOL-001",
+  "originating_goal": "Define and implement a universal Interlock/InTr epistemic-state protocol for all inter-Entity communications so knowns, unknowns, ambiguity, discoveries, probes, corrections, applicability, acknowledgement, freshness, dispute, and dependent-state recomputation are preserved across sovereign boundaries.",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "source_branch": "inter-entity-epistemic-state-protocol-001",
+  "target_branch": "main",
+  "state": "ACTIVE_SOURCE_IMPLEMENTATION_VALIDATION_PENDING",
+  "owner": "StegVerse-Labs/continuity-vault-kit",
+  "source_handoff": "INTER_ENTITY_EPISTEMIC_STATE_PROTOCOL_MIRROR_HANDOFF.md",
+  "parent_context": "SDK-READINESS-PROBE-DISCIPLINE-004 identified the need but is a downstream consumer, not protocol authority.",
+  "authority_effect": "NONE",
+  "completed": [
+    "universal epistemic envelope schema added",
+    "receiver incorporation/probe classification implemented",
+    "acknowledgement depth separated into RECEIVED, INTERPRETED, APPLICABILITY_RESOLVED, EVIDENCE_ACCEPTED, AGREED, and INCORPORATED",
+    "consequence-scaled acknowledgement requirements implemented",
+    "discovered unknown promotion with evidence provenance and sender-only scope hypothesis implemented",
+    "DISPUTED receiver state and readiness blocking implemented",
+    "append-only correction/supersession lineage helper implemented",
+    "epistemic freshness/expiry check implemented",
+    "multi-recipient acknowledgement aggregation implemented",
+    "InTr packet epistemic hash/reference binding implemented with fail-closed requirement for state-relevant communication",
+    "unresolved acknowledgement READY guard implemented",
+    "focused regression tests expanded",
+    "README reconciled",
+    "canonical mirror handoff created",
+    "canonical .github Task Registry registration PR #1330 opened"
+  ],
+  "remaining": [
+    "validate exact branch head",
+    "add executable cross-Entity discovery -> incorporation/probe -> acknowledgement -> dependent-state recomputation round-trip proof",
+    "SDK readiness adapter consuming this canonical protocol",
+    "architecture artifact reconciliation where applicable",
+    "merge source PR only after validation",
+    "merge/reconcile canonical Task Registry only after validation",
+    "downstream propagation assessment after source merge"
+  ],
+  "manual_work_required": false
+}
