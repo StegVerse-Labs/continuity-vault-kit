@@ -1,67 +1,66 @@
 # KV Ephemeral Browser Projection Mirror Handoff
 
-Updated: 2026-09-09
+Updated: 2026-09-14
 
 Goal Task ID: `KV-BOUND-EPHEMERAL-BROWSER-PROJECTION-001`
 Canonical issue: `StegVerse-Labs/.github#1299`
-Consumer PR: `StegVerse-Labs/StegOS#314`
+Status: `ACTIVE / DEVICE-BOUND PURPOSE LABEL SUPERSEDED / PROVIDER-NEUTRAL ANY-DEVICE CONTINUITY REQUIRED`
+
+## Mandatory device-replaceability rule
+
+The canonical `.github` device-replaceability invariant governs this handoff. Any historical use of `CURRENT_IPHONE_TESTFLIGHT_SIGNING`, `current-iPhone`, or `same-device` in producer/consumer symbols is a non-normative implementation label only.
+
+KV continuity is provider-neutral and device-independent. A KV instance hosted in Google Drive, iCloud, or another configured provider is the same continuity source regardless of whether it is accessed from iOS, Android, macOS, Windows, Linux, or another authorized client.
+
+No browser, OS, phone, service worker, IndexedDB instance, or local browser session may become the continuity root or required continuation surface.
 
 ## Purpose
 
-Produce the narrow, non-authorizing, purpose-bound projection context consumed by the current-iPhone TestFlight bootstrap only after KV has an admitted entry transition and a compatible browser-capability observation from the same KV lineage.
+Produce a narrow, non-authorizing, purpose-bound projection context only after KV has an admitted entry transition and compatible client-capability evidence from the same KV lineage.
+
+The canonical purpose class is now:
+
+```text
+AUTHORIZED_USER_DEVICE_TESTFLIGHT_SIGNING
+```
+
+Legacy alias accepted only for compatibility/historical evidence:
+
+```text
+CURRENT_IPHONE_TESTFLIGHT_SIGNING
+```
+
+The legacy alias MUST NOT be interpreted as requiring an iPhone.
 
 ## Producer contract
 
-`script/materialize_ephemeral_browser_projection_context.py` does not decide admission and does not observe a browser. It consumes two already-established KV receipts:
+`script/materialize_ephemeral_browser_projection_context.py` does not decide admission and does not own provider access. It consumes already-established KV receipts bound to one KV lineage and emits only an ephemeral projection gate.
 
-```text
-stegverse.kv.entry-transition-admission/v1
-stegverse.kv.browser-capability-observation/v1
-```
+Required authority semantics:
 
-Both receipts must:
-
-- be bound to purpose `CURRENT_IPHONE_TESTFLIGHT_SIGNING`;
-- name `KV` as the continuity boundary;
-- have `authority_effect=NONE`;
-- carry the same non-empty `kv_lineage_id`.
-
-The entry receipt must be `ADMITTED` and carry an exact SHA-256 transition commitment. The capability receipt must be `OBSERVED_COMPATIBLE`, carry an exact SHA-256 capability commitment, and explicitly set `browser_identity_authority=false`.
-
-The producer emits only:
-
-```text
-stegos.kv-bound-ephemeral-projection-context/v1
-purpose=CURRENT_IPHONE_TESTFLIGHT_SIGNING
-entry_state=ADMITTED
-kv_transition_commitment=<opaque sha256>
-admission_commitment=<derived opaque sha256>
-browser_capability_state=OBSERVED_COMPATIBLE
-browser_capability_commitment=<opaque sha256>
-persistence_effect=NONE_EPHEMERAL_CONTEXT_ONLY
-authority_effect=NONE_PROJECTION_GATE_ONLY
-```
-
-The raw KV lineage identifier is deliberately not exported into the browser projection.
+- `KV` is the continuity boundary;
+- provider access is normalized through the provider-neutral KV adapter contract;
+- browser/device identity has no continuity or user-verification authority;
+- projection persistence effect remains ephemeral only;
+- changing devices must not invalidate previously authentic KV/claim/transition evidence.
 
 ## Authority boundary
 
-The producer cannot mint an Interlock/InTr admission, cannot infer browser compatibility from user-agent identity, cannot persist browser state, cannot authenticate TV/TVC, cannot sign an IPA, and cannot claim TestFlight/runtime execution.
+The producer cannot mint Interlock/InTr admission, cannot infer authority from browser/device identity, cannot persist canonical continuity in browser-local state, cannot authenticate TV/TVC, cannot sign an IPA, and cannot claim TestFlight/runtime execution.
 
-The emitted context is a one-purpose projection gate input only. Missing, mismatched, cross-lineage, non-KV, non-admitted, or browser-authorizing source evidence fails closed.
+The user device is an interchangeable access/transport endpoint only.
 
-## Files
+## Existing source compatibility
 
-- `scripts/materialize_ephemeral_browser_projection_context.py`
-- `schemas/kv-ephemeral-browser-projection-context.schema.json`
-- `tests/test_materialize_ephemeral_browser_projection_context.py`
+Existing source/schema fields may retain `CURRENT_IPHONE_TESTFLIGHT_SIGNING` until consumer migration is complete. Those values are compatibility labels only and may not be used to enforce device identity.
+
+Any future source mutation must move toward the canonical `AUTHORIZED_USER_DEVICE_TESTFLIGHT_SIGNING` semantic without changing already-authentic evidence bytes or inventing a second continuity/runtime authority.
 
 ## Remaining integration
 
-1. Establish the authentic runtime producers of the KV entry-transition admission receipt and browser-capability observation receipt.
-2. Package or transfer the resulting projection context to the StegOS current-iPhone bootstrap without browser-local durable storage.
-3. Validate consumer/producer exact-schema compatibility.
-4. Merge both source slices only after CI is green.
-5. Continue TVC signing/upload and authentic current-iPhone execution separately.
+1. Rebind the consumer to provider-neutral KV reconstruction rather than one browser/device session.
+2. Preserve exact KV lineage and retained canonical receipts across device replacement.
+3. Project ephemeral signing context to whichever authorized user device is currently used, or to another admitted execution surface, without binding continuity to that endpoint.
+4. Continue TV/TVC signing/upload and authentic runtime observation separately.
 
-No runtime admission, browser observation, signing, TestFlight installation, or resident execution is claimed by this source contract.
+No specific device, browser, signing, TestFlight installation, or resident execution is claimed by this source contract.
