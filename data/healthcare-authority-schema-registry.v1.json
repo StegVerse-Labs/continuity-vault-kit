@@ -1,0 +1,81 @@
+{
+  "schema": "stegverse.healthcare-authority-schema-registry/v1",
+  "as_of": "2026-09-28",
+  "authority_effect": "NONE",
+  "invariants": {
+    "governing_vocabulary_precedence": true,
+    "no_compliance_inference_before_applicability": true,
+    "machine_readable_source_is_not_self_authenticating": true,
+    "member_specific_estimate_is_distinct_from_public_rate_mrf": true
+  },
+  "authorities": [
+    {
+      "authority_id": "CMS-HPT-2026",
+      "jurisdiction": "US_FEDERAL",
+      "entity_classes": [
+        "HOSPITAL"
+      ],
+      "evidence_purposes": [
+        "PROVIDER_STANDARD_CHARGE",
+        "PROVIDER_CASH_PRICE",
+        "PROVIDER_PAYER_SPECIFIC_PRICE"
+      ],
+      "regulator": "Centers for Medicare & Medicaid Services",
+      "regime": "Hospital Price Transparency",
+      "effective_from": "2026-01-01",
+      "enforcement_from": "2026-04-01",
+      "schema_version": "CMS HPT Data Dictionary current 2026 requirements",
+      "authoritative_resources": [
+        "https://www.cms.gov/priorities/key-initiatives/hospital-price-transparency/resources",
+        "https://github.com/CMSgov/hospital-price-transparency"
+      ],
+      "required_surface": "PUBLIC_MACHINE_READABLE_FILE",
+      "vocabulary_policy": "PRESERVE_GOVERNING_FIELDS"
+    },
+    {
+      "authority_id": "CMS-TIC-MRF-2.0",
+      "jurisdiction": "US_FEDERAL",
+      "entity_classes": [
+        "GROUP_HEALTH_PLAN",
+        "GROUP_HEALTH_INSURANCE_ISSUER",
+        "INDIVIDUAL_HEALTH_INSURANCE_ISSUER"
+      ],
+      "evidence_purposes": [
+        "PAYER_IN_NETWORK_RATE",
+        "PAYER_OUT_OF_NETWORK_ALLOWED_AMOUNT"
+      ],
+      "regulator": "Departments administering Transparency in Coverage",
+      "regime": "Transparency in Coverage",
+      "effective_from": "2026-02-02",
+      "schema_version": "2.0",
+      "authoritative_resources": [
+        "https://www.cms.gov/priorities/healthplan-price-transparency/overview/resources",
+        "https://www.cms.gov/healthplan-price-transparency/resources/technical-clarification"
+      ],
+      "required_surface": "PUBLIC_MACHINE_READABLE_FILE",
+      "vocabulary_policy": "PRESERVE_GOVERNING_FIELDS"
+    },
+    {
+      "authority_id": "CMS-TIC-COST-COMPARISON",
+      "jurisdiction": "US_FEDERAL",
+      "entity_classes": [
+        "GROUP_HEALTH_PLAN",
+        "GROUP_HEALTH_INSURANCE_ISSUER",
+        "INDIVIDUAL_HEALTH_INSURANCE_ISSUER"
+      ],
+      "evidence_purposes": [
+        "MEMBER_SPECIFIC_COST_SHARING_ESTIMATE"
+      ],
+      "regulator": "Departments administering Transparency in Coverage",
+      "regime": "Transparency in Coverage",
+      "effective_from": "2024-01-01",
+      "schema_version": "APPLICABLE_PLAN_OR_ISSUER_TOOL_CONTRACT",
+      "authoritative_resources": [
+        "https://www.cms.gov/priorities/healthplan-price-transparency/overview/consumers",
+        "https://www.cms.gov/priorities/healthplan-price-transparency/overview/plans-and-issuers"
+      ],
+      "required_surface": "MEMBER_AUTHORIZED_PRICE_COMPARISON_SURFACE",
+      "vocabulary_policy": "PRESERVE_GOVERNING_FIELDS"
+    }
+  ]
+}
