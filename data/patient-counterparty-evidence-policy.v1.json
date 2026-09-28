@@ -1,0 +1,30 @@
+{
+  "schema": "stegverse.patient-counterparty-evidence-policy/v1",
+  "policy_id": "MYKV-HEALTHCARE-COUNTERPARTY-EVIDENCE-001",
+  "authority_effect": "NONE",
+  "patient_decision_authority": "PATIENT",
+  "terms": [
+    {
+      "predicate": "ASSERTED_PATIENT_OBLIGATION_SUBSTANTIATED",
+      "rule": "A party asserting an economic obligation against the patient must provide evidence sufficient to substantiate the assertion."
+    },
+    {
+      "predicate": "AMBIGUITY_NOT_AUTHORITY",
+      "rule": "Ambiguity, missing evidence, or a later billing assertion does not by itself establish patient responsibility."
+    },
+    {
+      "predicate": "PRE_SERVICE_TERMS_PRESERVED",
+      "rule": "Patient transaction terms presented before service and evidence of their receipt must be preserved."
+    },
+    {
+      "predicate": "PERFORMANCE_PRESERVED_AS_EVIDENCE",
+      "rule": "Subsequent provider performance after receipt is preserved as transaction evidence; StegVerse does not independently adjudicate its legal effect."
+    },
+    {
+      "predicate": "PATIENT_CHOICE_NOT_INFERRED",
+      "rule": "MyKV evaluates evidenced economic pathways and presents them to the patient; it does not select a pathway for the patient."
+    }
+  ],
+  "unsupported_assertion_state": "PRESUMPTIVE_FRAUD / VALIDATION_REQUIRED",
+  "legal_adjudication_effect": "NONE"
+}
