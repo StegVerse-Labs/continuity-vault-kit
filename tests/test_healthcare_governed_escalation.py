@@ -20,10 +20,13 @@ class TestHealthcareGovernedEscalation(unittest.TestCase):
  def test_intr_deny_is_preserved(self):
   x=record_egress_result(self.candidate(),{"disposition":"DENY","receipt_ref":"intr#1","failed_predicate":"DESTINATION_NOT_ADMITTED"})
   self.assertEqual(x["disposition"],"DENY"); self.assertEqual(x["failed_predicate"],"DESTINATION_NOT_ADMITTED")
- def test_allow_requires_org_and_master_records_custody(self):
+ def test_allow_requires_organization_receipt(self):
   x=record_egress_result(self.candidate(),{"disposition":"ALLOW","receipt_ref":"intr#1"})
-  self.assertEqual(x["disposition"],"FAIL_CLOSED"); self.assertEqual(x["predicate"],"EGRESS_CUSTODY_RECONSTRUCTED")
+  self.assertEqual(x["disposition"],"FAIL_CLOSED"); self.assertEqual(x["predicate"],"EGRESS_ORGANIZATION_RECEIPT_RECORDED")
+ def test_master_records_reconstruction_is_optional_non_gating(self):
+  x=record_egress_result(self.candidate(),{"disposition":"ALLOW","receipt_ref":"intr#1"},{"receipt_ref":"org#1"})
+  self.assertEqual(x["disposition"],"ALLOW"); self.assertEqual(x["master_records_reconstruction"],"OPTIONAL_NON_GATING"); self.assertNotIn(None,x["evidence_refs"])
  def test_complete_chain_proves_submission(self):
   x=record_egress_result(self.candidate(),{"disposition":"ALLOW","receipt_ref":"intr#1"},{"receipt_ref":"org#1"},{"reconstruction_ref":"mr#1"})
-  self.assertEqual(x["disposition"],"ALLOW"); self.assertEqual(x["submission_effect"],"AUTHENTIC_SUBMISSION_EVIDENCED")
+  self.assertEqual(x["disposition"],"ALLOW"); self.assertEqual(x["submission_effect"],"AUTHENTIC_SUBMISSION_EVIDENCED"); self.assertIn("mr#1",x["evidence_refs"])
 if __name__=="__main__":unittest.main()

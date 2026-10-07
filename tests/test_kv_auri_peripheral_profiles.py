@@ -73,6 +73,10 @@ class ModeTransitionProposalTests(unittest.TestCase):
                 result["candidate_disposition"],
                 "CANDIDATE_ALLOW_REQUIRES_REAL_RUNTIME_DISPOSITION",
             )
+            self.assertEqual(
+                result["first_missing_predicate"],
+                "AUTHENTIC_RUNTIME_PROOF_REQUIRED; MASTER_RECORDS_RECONSTRUCTION_NON_GATING",
+            )
 
     def test_audio_never_infers_camera(self):
         result = self.evaluate("live_audio", current_capture_consents=["audio_capture"],
