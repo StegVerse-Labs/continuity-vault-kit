@@ -34,6 +34,9 @@ def record_egress_result(candidate,intr_receipt=None,organization_receipt=None,m
         return {"disposition":"FAIL_CLOSED","predicate":"INTR_EGRESS_DISPOSITION_VALID","failed_predicate":"INTR_EGRESS_DISPOSITION_VALID","evidence_refs":[intr_receipt.get("receipt_ref")]}
     if decision!="ALLOW":
         return {"disposition":decision,"predicate":"INTR_EGRESS_ADMITTED","failed_predicate":intr_receipt.get("failed_predicate"),"evidence_refs":[intr_receipt.get("receipt_ref")]}
-    if not organization_receipt or not master_records:
-        return {"disposition":"FAIL_CLOSED","predicate":"EGRESS_CUSTODY_RECONSTRUCTED","failed_predicate":"ORGANIZATION_AND_MASTER_RECORDS_EVIDENCE_PRESENT","evidence_refs":[intr_receipt.get("receipt_ref")]}
-    return {"disposition":"ALLOW","predicate":"EGRESS_CUSTODY_RECONSTRUCTED","submission_effect":"AUTHENTIC_SUBMISSION_EVIDENCED","evidence_refs":[intr_receipt.get("receipt_ref"),organization_receipt.get("receipt_ref"),master_records.get("reconstruction_ref")],"packet_sha256":candidate["packet_sha256"]}
+    if not organization_receipt:
+        return {"disposition":"FAIL_CLOSED","predicate":"EGRESS_ORGANIZATION_RECEIPT_RECORDED","failed_predicate":"ORGANIZATION_RECEIPT_PRESENT","evidence_refs":[intr_receipt.get("receipt_ref")]}
+    evidence_refs=[intr_receipt.get("receipt_ref"),organization_receipt.get("receipt_ref")]
+    if master_records and master_records.get("reconstruction_ref"):
+        evidence_refs.append(master_records.get("reconstruction_ref"))
+    return {"disposition":"ALLOW","predicate":"EGRESS_ORGANIZATION_RECEIPT_RECORDED","submission_effect":"AUTHENTIC_SUBMISSION_EVIDENCED","master_records_reconstruction":"OPTIONAL_NON_GATING","evidence_refs":evidence_refs,"packet_sha256":candidate["packet_sha256"]}
