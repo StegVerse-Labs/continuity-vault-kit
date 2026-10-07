@@ -162,7 +162,7 @@ def propose_live_mode(request: Mapping[str, Any]) -> dict[str, Any]:
     if not request.get("scope_bound_manifest"):
         return result("CANDIDATE_NON_ALLOW", "SCOPE_BOUND_MANIFEST_NOT_OBSERVED", [])
     return result("CANDIDATE_ALLOW_REQUIRES_REAL_RUNTIME_DISPOSITION",
-                  "AUTHENTIC_RUNTIME_AND_MASTER_RECORDS_PROOF_REQUIRED",
+                  "AUTHENTIC_RUNTIME_PROOF_REQUIRED; MASTER_RECORDS_RECONSTRUCTION_NON_GATING",
                   list(EXPECTED_SCOPES[mode]))
 
 
