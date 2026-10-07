@@ -13,9 +13,9 @@ the node's outbox entry kept ``runtime_materialization_observed``,
 ``receiver_receipt_observed`` and ``tvc_receipt_observed`` at ``False``
 forever — not because a writer was forgotten, but because no artifact existed
 at that boundary to set them from. The organization's own readiness facts name
-the consequence: ``MASTER_RECORDS_CUSTODY_RECEIPT_MISSING`` and
-``MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED`` block the Universal Interlock
-adoption review, which holds ``production_interlock_runtime_activated`` false,
+Master Records custody/reconstruction findings remain available for explicit
+reconstruction, but they do not block the Universal Interlock adoption review
+or control ``production_interlock_runtime_activated``,
 which leaves every installed KV module and personal service
 ``INSTALLED_INACTIVE``.
 
