@@ -134,7 +134,7 @@ Source construction for the original persistence-class and first Personal-KV mem
 1. materialize real private Personal-KV packet + provider request input;
 2. observe the shared Universal InTr listener return an authentic exact-packet `ALLOW` and preserve it in private bound state;
 3. let the existing `kv_ai_memory` consumer + WorkerCoordinator materialize the exact ProviderRequest under a current claim/fence;
-4. continue through provider-request ingress, TV/TVC operation where applicable, response, Master Records continuation, and egress admission;
+4. continue through provider-request ingress, TV/TVC operation where applicable, response, and Interlock/InTr egress admission, with Master Records keeping the organization record afterwards;
 5. obtain target-KV admission for the resulting write proposal and preserve exact-byte readback;
 6. obtain authentic two-provider Machine-KV reconstruction evidence;
 7. bind one authentic HeartBeat observation to an already-verified KV receipt;

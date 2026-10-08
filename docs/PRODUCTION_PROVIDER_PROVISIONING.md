@@ -57,7 +57,7 @@ Activation remains denied unless:
 
 ## 6. Rollback
 
-A failed activation attempt must not destroy evidence or silently weaken custody. Disable endpoint access, revoke workload identity, stop new writes, preserve unresolved Master-Records exports, and follow the governed KMS deletion window only after recovery and evidence-retention requirements are satisfied.
+A failed activation attempt must not destroy the Organization's evidence or silently weaken its protection. Disable endpoint access, revoke workload identity, stop new writes, preserve unresolved Master-Records exports, and follow the governed KMS deletion window only after recovery and evidence-retention requirements are satisfied.
 
 ---
 

@@ -18,7 +18,7 @@
   "universal_interlock_adoption_review_state": "BLOCKED",
   "universal_interlock_adoption_review_blockers": [
     "AUTHENTIC_RUNTIME_BINDING_MISSING",
-    "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING",
+    "MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING",
     "MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED"
   ],
   "transport_capabilities_observed": {

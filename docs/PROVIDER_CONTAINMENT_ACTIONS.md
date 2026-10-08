@@ -9,7 +9,7 @@ Continuous conformance drift must produce enforceable containment, not only a di
 - freeze authoritative replicated-state writes;
 - suspend the affected SPIFFE workload identity;
 - quarantine Ecosystem Chat endpoint access;
-- quarantine Master-Records endpoint access.
+- quarantine Master-Records organization-record endpoint access.
 
 Each command binds the incident commitment, canonical provider role, resource identity, action, and reason commitment. Each receipt binds the command commitment, actor, evidence commitment, timestamp, and bounded status.
 

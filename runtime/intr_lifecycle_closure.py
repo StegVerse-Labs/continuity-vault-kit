@@ -12,12 +12,13 @@ short of being recorded:
 the node's outbox entry kept ``runtime_materialization_observed``,
 ``receiver_receipt_observed`` and ``tvc_receipt_observed`` at ``False``
 forever — not because a writer was forgotten, but because no artifact existed
-at that boundary to set them from. The organization's own readiness facts name
-Master Records custody/reconstruction findings remain available for explicit
-reconstruction, but they do not block the Universal Interlock adoption review
-or control ``production_interlock_runtime_activated``,
-which leaves every installed KV module and personal service
-``INSTALLED_INACTIVE``.
+at that boundary to set them from. The organization's own readiness facts keep
+Master Records organization records/reconstruction findings available for
+explicit reconstruction, but they do not block the Universal Interlock adoption
+review or control ``production_interlock_runtime_activated``; Interlock/InTr
+admits the transition and Master Records keeps the organization record
+afterwards. Without the receipt, every installed KV module and personal service
+stays ``INSTALLED_INACTIVE``.
 
 This module writes that last receipt.
 
@@ -45,7 +46,12 @@ from typing import Any, Iterable, Mapping, Sequence
 from .secret_field_policy import find_forbidden_field
 
 TERMINAL_SCHEMA = "stegverse.intr-lifecycle-closure-receipt/v1"
-CUSTODY_SCHEMA = "stegverse.master_records.intr_lifecycle_custody/v1"
+ORGANIZATION_RECORD_SCHEMA = "stegverse.master_records.intr_lifecycle_organization_record/v1"
+#: Master Records boundary migration (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002):
+#: records written before the rename carry this schema id. Readers accept it
+#: (``organization_record_schema_accepted``); writers emit only
+#: ``ORGANIZATION_RECORD_SCHEMA``.
+LEGACY_ORGANIZATION_RECORD_SCHEMA = "stegverse.master_records.intr_lifecycle_custody/v1"
 OBSERVATION_SCHEMA = "stegverse.intr-outbox-far-end-observation/v1"
 
 OUTBOX_SCHEMA = "stegos.node_intr_outbox_entry.v1"
@@ -56,8 +62,15 @@ ORDERED_TRANSITIONS: tuple[str, ...] = (
     "NODE_OUTBOX_ENTRY_WRITTEN",
     "INTR_INGRESS_ADMITTED",
     "MATERIALIZATION_EXECUTION_ATTEMPTED",
-    "MASTER_RECORDS_CUSTODY_RECORDED",
+    "MASTER_RECORDS_ORGANIZATION_RECORD_RECORDED",
 )
+
+#: Master Records boundary migration (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002):
+#: terminal receipts written before the rename name their last transition with
+#: this id. ``verify_terminal_receipt`` checks a receipt against its own
+#: ``resolved_ordered_transitions``, so such receipts still verify; writers emit
+#: only ``MASTER_RECORDS_ORGANIZATION_RECORD_RECORDED``.
+LEGACY_TERMINAL_TRANSITION_ID = "MASTER_RECORDS_CUSTODY_RECORDED"
 
 #: Required on every closure. Mirrors ``_REQUIRED_CLOSURE`` in the SDK's
 #: ``manifest_state_transition_runtime``; the two InTr clients must agree.
@@ -268,17 +281,26 @@ def build_closure_chain(
     ]
 
 
-def build_custody_record(
+def organization_record_schema_accepted(schema: Any) -> bool:
+    """True for the current organization-record schema id or its legacy id."""
+    return schema in (ORGANIZATION_RECORD_SCHEMA, LEGACY_ORGANIZATION_RECORD_SCHEMA)
+
+
+def build_organization_record(
     *,
     materialization_id: str,
     closures: Sequence[Mapping[str, Any]],
     outbox_entry: Mapping[str, Any],
     source_commit: str,
 ) -> dict[str, Any]:
-    """Project the closed lifecycle into a Master Records custody record."""
+    """Project the completed InTr lifecycle into a Master Records organization record.
+
+    Interlock/InTr has already admitted and closed every stage; Master Records
+    keeps this organization record afterwards.
+    """
     record = {
-        "schema": CUSTODY_SCHEMA,
-        "custody_id": f"INTR-LIFECYCLE-{materialization_id}",
+        "schema": ORGANIZATION_RECORD_SCHEMA,
+        "record_id": f"INTR-LIFECYCLE-{materialization_id}",
         "source": {
             "materialization_id": materialization_id,
             "node_id": outbox_entry.get("node_id"),
@@ -304,8 +326,8 @@ def build_custody_record(
             "immediate_predecessor_linked": True,
             "runtime_execution_claimed": False,
         },
-        "custody": {
-            "status": "ACCEPTED_FOR_CUSTODY",
+        "organization_record": {
+            "status": "RECORDED_AS_ORGANIZATION_RECORD",
             "reconstruction_status": "PASS",
             "authority_effect": "NONE",
         },
@@ -329,7 +351,7 @@ def build_far_end_observation(
     materialization_id: str,
     outbox_entry: Mapping[str, Any],
     terminal_receipt_id: str,
-    custody_record_hash: str,
+    organization_record_hash: str,
 ) -> dict[str, Any]:
     """State the promoted observations, as a far-end record with its evidence.
 
@@ -351,7 +373,7 @@ def build_far_end_observation(
         "tvc_receipt_observed": False,
         "tvc_receipt_pending_reason": "TVC_RECEIPT_IS_A_SEPARATE_PROVIDER_BOUNDARY",
         "terminal_receipt_id": terminal_receipt_id,
-        "master_records_record_hash": custody_record_hash,
+        "master_records_record_hash": organization_record_hash,
         "observation_grants_execution_authority": False,
         "claim_or_fence_minted": False,
         "credential_authority": "TV/TVC",
@@ -366,17 +388,17 @@ def build_terminal_receipt(
     *,
     materialization_id: str,
     closures: Sequence[Mapping[str, Any]],
-    custody_record: Mapping[str, Any],
+    organization_record: Mapping[str, Any],
     outbox_entry: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Build the last receipt of the lifecycle."""
-    custody_closure = _closure(
-        transition_id="MASTER_RECORDS_CUSTODY_RECORDED",
-        receipt_digest=sha_uri(dict(custody_record)),
+    record_closure = _closure(
+        transition_id=ORDERED_TRANSITIONS[-1],
+        receipt_digest=sha_uri(dict(organization_record)),
         predecessor=closures[-1]["receipt_sha256"],
-        evidence_ref=str(custody_record.get("custody_id")),
+        evidence_ref=str(organization_record.get("record_id")),
     )
-    full_chain = [dict(c) for c in closures] + [custody_closure]
+    full_chain = [dict(c) for c in closures] + [record_closure]
 
     receipt = {
         "schema": TERMINAL_SCHEMA,
@@ -388,7 +410,7 @@ def build_terminal_receipt(
         "transition_closures": full_chain,
         "replay_status": "PASS",
         "reconstruction_status": "PASS",
-        "master_records_record_hash": custody_record.get("record_hash"),
+        "master_records_record_hash": organization_record.get("record_hash"),
         "terminal_state": {
             "records_only": True,
             "continued_authority": False,
@@ -421,39 +443,39 @@ def verify_terminal_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
     closures = receipt.get("transition_closures")
     _require(
         isinstance(closures, list) and len(closures) == len(ordered),
-        "MASTER_RECORDS_TRANSITION_CLOSURE_COUNT_MISMATCH",
+        "INTR_LIFECYCLE_TRANSITION_CLOSURE_COUNT_MISMATCH",
     )
 
     previous: str | None = None
     for index, (expected, closure) in enumerate(zip(ordered, closures)):
-        _require(isinstance(closure, Mapping), f"MASTER_RECORDS_CLOSURE_OBJECT_REQUIRED:{index}")
+        _require(isinstance(closure, Mapping), f"INTR_LIFECYCLE_CLOSURE_OBJECT_REQUIRED:{index}")
         _require(
             closure.get("transition_id") == expected,
-            f"MASTER_RECORDS_TRANSITION_ORDER_MISMATCH:{index}",
+            f"INTR_LIFECYCLE_TRANSITION_ORDER_MISMATCH:{index}",
         )
         for key, value in REQUIRED_CLOSURE.items():
             _require(
                 closure.get(key) == value,
-                f"MASTER_RECORDS_CLOSURE_REQUIRED:{expected}:{key}",
+                f"INTR_LIFECYCLE_CLOSURE_REQUIRED:{expected}:{key}",
             )
         digest = closure.get("receipt_sha256")
         _require(
             isinstance(digest, str)
             and bool(digest)
             and digest == closure.get("reconstructed_receipt_sha256"),
-            f"MASTER_RECORDS_RECEIPT_RECONSTRUCTION_MISMATCH:{expected}",
+            f"INTR_LIFECYCLE_RECEIPT_RECONSTRUCTION_MISMATCH:{expected}",
         )
         if index:
             _require(
                 closure.get("predecessor_receipt_sha256") == previous,
-                f"MASTER_RECORDS_IMMEDIATE_PREDECESSOR_MISMATCH:{expected}",
+                f"INTR_LIFECYCLE_IMMEDIATE_PREDECESSOR_MISMATCH:{expected}",
             )
         previous = str(digest)
 
-    _require(receipt.get("replay_status") == "PASS", "MASTER_RECORDS_REPLAY_REQUIRED")
+    _require(receipt.get("replay_status") == "PASS", "INTR_LIFECYCLE_REPLAY_REQUIRED")
     _require(
         receipt.get("reconstruction_status") == "PASS",
-        "MASTER_RECORDS_RECONSTRUCTION_REQUIRED",
+        "INTR_LIFECYCLE_RECONSTRUCTION_REQUIRED",
     )
 
     terminal = receipt.get("terminal_state")
@@ -482,7 +504,7 @@ def close_lifecycle(
 ) -> dict[str, Any]:
     """Close one InTr lifecycle, or refuse naming the stage that broke.
 
-    Returns the terminal receipt, the Master Records custody record, and the
+    Returns the terminal receipt, the Master Records organization record, and the
     far-end observation that makes the node's pending flags answerable.
     """
     closures = build_closure_chain(
@@ -491,7 +513,7 @@ def close_lifecycle(
         materialization_receipt=materialization_receipt,
     )
     materialization_id = str(outbox_entry["materialization_id"])
-    custody_record = build_custody_record(
+    organization_record = build_organization_record(
         materialization_id=materialization_id,
         closures=closures,
         outbox_entry=outbox_entry,
@@ -500,7 +522,7 @@ def close_lifecycle(
     terminal_receipt = build_terminal_receipt(
         materialization_id=materialization_id,
         closures=closures,
-        custody_record=custody_record,
+        organization_record=organization_record,
         outbox_entry=outbox_entry,
     )
     verify_terminal_receipt(terminal_receipt)
@@ -508,29 +530,32 @@ def close_lifecycle(
         materialization_id=materialization_id,
         outbox_entry=outbox_entry,
         terminal_receipt_id=str(terminal_receipt["manifest_receipt_id"]),
-        custody_record_hash=str(custody_record["record_hash"]),
+        organization_record_hash=str(organization_record["record_hash"]),
     )
     return {
         "state": "LIFECYCLE_RECORDED",
         "materialization_id": materialization_id,
         "terminal_receipt": terminal_receipt,
-        "master_records_custody_record": custody_record,
+        "master_records_organization_record_record": organization_record,
         "far_end_observation": observation,
         "authority_effect": "NONE_RECORDING_ONLY",
     }
 
 
 __all__ = [
-    "CUSTODY_SCHEMA",
+    "LEGACY_ORGANIZATION_RECORD_SCHEMA",
+    "LEGACY_TERMINAL_TRANSITION_ID",
     "OBSERVATION_SCHEMA",
     "ORDERED_TRANSITIONS",
+    "ORGANIZATION_RECORD_SCHEMA",
     "REQUIRED_CLOSURE",
     "TERMINAL_SCHEMA",
     "LifecycleClosureError",
     "build_closure_chain",
-    "build_custody_record",
+    "build_organization_record",
     "build_far_end_observation",
     "build_terminal_receipt",
     "close_lifecycle",
+    "organization_record_schema_accepted",
     "verify_terminal_receipt",
 ]

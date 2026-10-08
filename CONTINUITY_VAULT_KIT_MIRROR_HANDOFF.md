@@ -688,7 +688,7 @@ issue #16 completion: OPEN / NOT ACTIVATED
 authority_effect: NONE
 ```
 
-Issue #16's canonical operator instructions now require TVC-admitted resident provider activation. GitHub environment/OIDC/APPLY instructions are retired. Six live probes, Master-Records acknowledgement, rollback/revocation evidence, and a signed deployment receipt remain unobserved runtime gates.
+Issue #16's canonical operator instructions now require TVC-admitted resident provider activation. GitHub environment/OIDC/APPLY instructions are retired. Six live probes, a verified acknowledgement from the Master-Records organization-record endpoint (evidence that the endpoint records organization records), rollback/revocation evidence, and a signed deployment receipt remain unobserved runtime evidence for the TVC-admitted activation.
 
 
 ### Release reconciliation + downstream hosted authority retirement — completion

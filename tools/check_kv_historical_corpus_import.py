@@ -15,10 +15,10 @@ from runtime.historical_provenance import build_artifact_record
 from runtime.historical_corpus_import import (
     HistoricalCorpusImportError,
     assert_import_receipt,
-    assert_master_records_custody_request,
+    assert_master_records_organization_record_request,
     assert_site_status_projection,
     build_import_receipt,
-    build_master_records_custody_request,
+    build_master_records_organization_record_request,
     build_site_status_projection,
 )
 
@@ -41,14 +41,14 @@ def main() -> int:
     readme = README.read_text(encoding="utf-8")
     for invariant in (
         "import_receipt != truth_certification",
-        "custody_request != destination_custody_acceptance",
+        "organization_record_request != destination_record_acceptance",
         "site_status_projection != private_content",
         "source_merge != live_provider_observation",
     ):
         if invariant not in handoff:
             raise SystemExit(f"handoff invariant missing: {invariant}")
-    if "Owner-authorized historical imports and custody" not in readme:
-        raise SystemExit("README historical import/custody section missing")
+    if "Owner-authorized historical imports and organization records" not in readme:
+        raise SystemExit("README historical import/organization-record section missing")
 
     payload = b"historical-corpus-import-validation-vector"
     artifact = build_artifact_record(
@@ -74,15 +74,15 @@ def main() -> int:
     )
     assert_import_receipt(receipt, artifact_record=artifact)
 
-    custody = build_master_records_custody_request(
+    record_request = build_master_records_organization_record_request(
         import_receipt=receipt,
         requested_at="2026-09-05T22:03:00-05:00",
     )
-    assert_master_records_custody_request(custody)
-    if custody["destination_custody_accepted"] or custody["destination_acknowledgement_minted"]:
+    assert_master_records_organization_record_request(record_request)
+    if record_request["destination_custody_accepted"] or record_request["destination_acknowledgement_minted"]:
         raise SystemExit("source validator may not mint Master Records destination state")
 
-    projection = build_site_status_projection(import_receipt=receipt, custody_request=custody)
+    projection = build_site_status_projection(import_receipt=receipt, record_request=record_request)
     assert_site_status_projection(projection)
     if projection["private_content_included"]:
         raise SystemExit("bounded Site projection contains private content")

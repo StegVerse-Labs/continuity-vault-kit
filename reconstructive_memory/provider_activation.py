@@ -147,7 +147,7 @@ def default_aws_profile(*, created_at: int) -> ProductionActivationProfile:
         key_custody=ProviderSelection("key-custody", "AWS", "KMS customer-managed key", "kms-key-arn:UNCONFIGURED", "us-east-1"),
         state_store=ProviderSelection("replicated-state", "AWS", "DynamoDB conditional write", "table-arn:UNCONFIGURED", "us-east-1"),
         chat_transport=ProviderSelection("ecosystem-chat", "StegVerse", "authenticated chat endpoint", "endpoint:UNCONFIGURED", "global"),
-        master_records=ProviderSelection("master-records", "StegVerse", "receipt ingestion endpoint", "endpoint:UNCONFIGURED", "global"),
+        master_records=ProviderSelection("master-records", "StegVerse", "organization-record ingestion endpoint", "endpoint:UNCONFIGURED", "global"),
         rollback_ref="docs/PRODUCTION_PROVIDER_ACTIVATION.md#rollback-and-revocation",
         created_at=created_at,
     ).with_hash()

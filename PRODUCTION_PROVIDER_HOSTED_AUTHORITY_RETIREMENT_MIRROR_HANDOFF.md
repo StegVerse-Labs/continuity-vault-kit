@@ -64,7 +64,7 @@ Issue #16 remains open until a non-hosted admitted runtime performs and proves:
 1. TVC-authorized provider identity/capability admission.
 2. Sovereign execution of provider provisioning/mutation.
 3. Six live probes against actual configured services.
-4. Master-Records acknowledgement.
+4. a verified acknowledgement from the Master-Records organization-record endpoint (conformance evidence that the endpoint records organization records).
 5. rollback/revocation evidence.
 6. signed deployment receipt.
 7. repository readback of non-secret runtime evidence where admitted.
@@ -122,4 +122,4 @@ Issue #16 remains OPEN. Its canonical operator/runtime instructions now point to
 
 ## Current next boundary
 
-The hosted-authority source correction is COMPLETE. Actual provider activation remains blocked on TVC-admitted resident execution plus six live probes, Master-Records acknowledgement, rollback/revocation evidence, and a signed deployment receipt.
+The hosted-authority source correction is COMPLETE. Actual provider activation remains blocked on TVC-admitted resident execution plus six live probes, a verified Master-Records organization-record endpoint acknowledgement, rollback/revocation evidence, and a signed deployment receipt.

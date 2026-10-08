@@ -21,6 +21,21 @@ class SourceContractTests(unittest.TestCase):
         self.assertEqual(result["modes"], 3)
         self.assertFalse(result["authentic_runtime_evidence"])
 
+    def test_organization_records_reconstruction_key_new_and_legacy(self):
+        profiles = module.load_json(module.PROFILES)
+        self.assertEqual(profiles["organization_records_reconstruction"], "Master Records")
+        self.assertNotIn("custody_reconstruction", profiles)
+        legacy = copy.deepcopy(profiles)
+        legacy[module.LEGACY_ORGANIZATION_RECORDS_RECONSTRUCTION_KEY] = legacy.pop(
+            "organization_records_reconstruction"
+        )
+        self.assertEqual(module.LEGACY_ORGANIZATION_RECORDS_RECONSTRUCTION_KEY, "custody_reconstruction")
+        self.assertEqual(module.validate_source_contract(profiles=legacy)["state"], "SOURCE_CONTRACT_VALID")
+        broken = copy.deepcopy(profiles)
+        broken["organization_records_reconstruction"] = "Other"
+        with self.assertRaisesRegex(ValueError, "invalid_invariant:organization_records_reconstruction"):
+            module.validate_source_contract(profiles=broken)
+
     def test_glass_composition_does_not_assume_hardware(self):
         profiles = module.load_json(module.PROFILES)
         glass = next(p for p in profiles["profiles"] if p["id"] == "flexible_glass")

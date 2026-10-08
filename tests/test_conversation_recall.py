@@ -31,8 +31,8 @@ def make_event(event_id, event_type, topic, subject_id, content, fidelity="exact
 
 def chain(complete=False):
     e1 = make_event("e1", "decision_accepted", "ingestion storage", "storage-v1", {"decision": "store bundles in every repository"})
-    e2 = make_event("e2", "decision_superseded", "ingestion storage", "storage-v2", {"reason": "custody and reconstruction"}, supersedes="storage-v1", previous=event_hash(e1))
-    e3 = make_event("e3", "decision_accepted", "ingestion storage", "storage-v2", {"decision": "master-records retains full bundles; downstream retains hashes and receipts"}, previous=event_hash(e2))
+    e2 = make_event("e2", "decision_superseded", "ingestion storage", "storage-v2", {"reason": "organization records and reconstruction"}, supersedes="storage-v1", previous=event_hash(e1))
+    e3 = make_event("e3", "decision_accepted", "ingestion storage", "storage-v2", {"decision": "master-records keeps full bundles as organization records; downstream retains hashes and receipts"}, previous=event_hash(e2))
     implementation = {"status": "complete", "remaining": []} if complete else {"status": "partial", "remaining": ["propagation verification"]}
     e4 = make_event("e4", "implementation_recorded", "ingestion storage", "storage-v2", implementation, fidelity="semantic_reconstruction", previous=event_hash(e3))
     return [e1, e2, e3, e4]
@@ -41,7 +41,7 @@ def chain(complete=False):
 class ConversationRecallTests(unittest.TestCase):
     def test_current_decision_excludes_superseded_version(self):
         result = recall(chain(), "what changed about ingestion storage")
-        self.assertEqual(result["historical_conclusion"]["decision"], "master-records retains full bundles; downstream retains hashes and receipts")
+        self.assertEqual(result["historical_conclusion"]["decision"], "master-records keeps full bundles as organization records; downstream retains hashes and receipts")
         self.assertTrue(result["implemented"])
         self.assertFalse(result["superseded"])
         self.assertEqual(result["verification"], "chain_confirmed")

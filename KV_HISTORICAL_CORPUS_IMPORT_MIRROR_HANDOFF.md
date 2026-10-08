@@ -23,7 +23,7 @@ This work consumes rather than replaces:
 - `KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md` and `runtime/direct_source_ingress.py` — provider/source provenance and SKAP-bounded direct-source semantics;
 - `KV_PROVIDER_SURFACE_CAPABILITIES_MIRROR_HANDOFF.md` — generic provider/device capability facts;
 - existing Interlock/InTr boundaries for governed ingress/egress;
-- Master Records destination custody semantics, which remain independently validating and non-authorizing.
+- Master Records destination organization-record semantics, which remain independently validating and non-authorizing.
 
 No parallel provider ingress, historical identity, credential authority, task authority, or Master Records authority was introduced.
 
@@ -36,7 +36,7 @@ Resolved before functional mutation:
 1. The repository-wide canonical handoff remained `docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md`.
 2. The predecessor `KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md` was source-complete and named this task as its next integration candidate.
 3. Canonical ecosystem task registry generation 15 preserved the authority split: Task Registry = work intent/coordination; WorkerCoordinator = execution claim/fence authority; Master Records = organization records/reconstruction; Interlock/InTr = governed task ingress/egress.
-4. `master-records/core-lite/MASTER_RECORDS_MIRROR_HANDOFF.md` remained the current Master Records repository-wide handoff and required independent destination validation before acknowledgement/custody acceptance.
+4. `master-records/core-lite/MASTER_RECORDS_MIRROR_HANDOFF.md` remained the current Master Records repository-wide handoff and required independent destination validation before acknowledgement or acceptance as an organization record.
 5. No duplicate historical-corpus import handoff/implementation existed on `main` before this task.
 6. `CVK-LEGACY-KV-UPGRADE-174` remained a separate migration/reinstall lane and neither physical KV was modified.
 7. Open PR #161 owned portable direct-source canonical-raw persistence paths; this task did not modify those paths.
@@ -46,7 +46,7 @@ Resolved before functional mutation:
 
 README change required: **YES**, and satisfied in PR #193.
 
-The README now documents owner-authorized historical import receipts, source-only Master Records custody requests, bounded Site/MyKV status projection, and the non-authority boundaries around truth, publication, governance, execution, migration, provider write, and destination custody acknowledgement.
+The README now documents owner-authorized historical import receipts, source-only Master Records organization-record requests, bounded Site/MyKV status projection, and the non-authority boundaries around truth, publication, governance, execution, migration, provider write, and destination organization-record acknowledgement.
 
 ## Implemented source behavior
 
@@ -58,7 +58,7 @@ The merged implementation:
 4. emits a Master Records organization-record request candidate with destination acceptance/acknowledgement and independent validation fixed false;
 5. preserves ORIGINAL/COPY/MIRROR/DERIVED lineage and contradiction state without silent merge;
 6. emits a bounded Site/MyKV status projection with identifiers/state only and `private_content_included=false`;
-7. fails closed on byte/hash mismatch, missing or secret-bearing authorization references, authority escalation, receipt tamper, invalid destination custody assertions, and custody/import mismatch;
+7. fails closed on byte/hash mismatch, missing or secret-bearing authorization references, authority escalation, receipt tamper, invalid destination organization-record assertions, and organization-record request/import mismatch;
 8. advances the exact read-only hosted workflow census from 49 to 50 for the added validation workflow.
 
 ## Governing invariants
@@ -67,8 +67,8 @@ The merged implementation:
 owner_authorization_ref != reusable_secret
 import_receipt != truth_certification
 import_receipt != publication_authority
-custody_request != destination_custody_acceptance
-custody_request != master_records_acknowledgement
+organization_record_request != destination_record_acceptance
+organization_record_request != master_records_acknowledgement
 historical_evidence != current_doctrine
 site_status_projection != private_content
 source_merge != live_provider_observation
@@ -78,7 +78,7 @@ source_merge != live_provider_observation
 
 - `KV_HISTORICAL_CORPUS_IMPORT_MIRROR_HANDOFF.md`
 - `schemas/kv-historical-import-receipt.schema.json`
-- `schemas/kv-historical-custody-request.schema.json`
+- `schemas/kv-historical-custody-request.schema.json` (published path kept; the schema describes a Master Records organization-record request)
 - `schemas/kv-historical-status-projection.schema.json`
 - `runtime/historical_corpus_import.py`
 - `tests/test_historical_corpus_import.py`
@@ -126,16 +126,16 @@ source stubs: 0
 No live iCloud or Google Drive access is claimed from source completion.
 No private historical artifact was accessed by this source build.
 No authentic owner-authorized corpus import has yet executed.
-No Master Records destination custody acknowledgement has yet been minted.
+No Master Records destination organization-record acknowledgement has yet been minted.
 No Site/MyKV live projection has yet been observed.
 
-Authentic execution requires an owner-selected historical artifact plus explicit owner authorization through the existing provider/SKAP/InTr path. Master Records must then independently validate any source custody request before minting destination custody/acknowledgement.
+Authentic execution requires an owner-selected historical artifact plus explicit owner authorization through the existing provider/SKAP/InTr path. Master Records must then independently validate any source organization-record request before recording it as an organization record and minting its acknowledgement.
 
 ## Next integration goal
 
-The next machine-executable integration is the destination/runtime preparation for authentic custody and bounded projection:
+The next machine-executable integration is the destination/runtime preparation for an authentic organization record and bounded projection:
 
-1. install/verify the Master Records historical-corpus custody validator/contract without minting a live custody record;
+1. install/verify the Master Records historical-corpus organization-record validator/contract without minting a live organization record;
 2. verify Site/MyKV can consume only the bounded status projection without private source content;
 3. keep authentic provider/artifact execution blocked until owner authorization and exact source bytes are actually supplied through the admitted runtime path.
 

@@ -11,7 +11,7 @@ Record the exact identifiers for:
 - DynamoDB authoritative-state table ARN and region;
 - SPIFFE trust domain, workload SPIFFE ID, and workload API socket;
 - Ecosystem Chat absolute HTTPS endpoint;
-- Master-Records absolute HTTPS endpoint.
+- Master-Records organization-record absolute HTTPS endpoint.
 
 Do not commit credentials, bearer tokens, private keys, plaintext chat, reconstructed context, or decrypted protected objects.
 
@@ -34,7 +34,7 @@ Provide the operator environment with:
 - AWS workload credentials authorized only for the required KMS and DynamoDB metadata operations;
 - `SPIFFE_ENDPOINT_SOCKET` for the registered workload;
 - `ECOSYSTEM_CHAT_PROBE_TOKEN` with probe-only endpoint authority;
-- `MASTER_RECORDS_PROBE_TOKEN` with probe-only endpoint authority.
+- `MASTER_RECORDS_PROBE_TOKEN` with probe-only authority on the organization-record endpoint.
 
 Use short-lived workload credentials where possible. Never copy secret values into issue comments, artifacts, receipts, or probe evidence.
 
@@ -64,7 +64,7 @@ The deployment receipt must bind:
 - trusted issuance time;
 - authorized deployment signer.
 
-A successful network request is not custody confirmation. Master-Records acceptance requires its verified destination acknowledgement.
+A successful network request does not confirm an organization record. Master-Records records it as an organization record only with its verified destination acknowledgement.
 
 ## 6. Retain evidence
 

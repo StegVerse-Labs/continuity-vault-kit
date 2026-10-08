@@ -219,7 +219,7 @@ None of the following grants governance, execution, credential, publication, or 
 - static WASM availability;
 - a successful prior session.
 
-Interlock/InTr remains responsible for governed transition admission, TV/TVC remains credential authority, WorkerCoordinator remains fresh claim/fence authority where applicable, and Master Records remains the reality/custody/reconstruction authority for evidence assigned to it.
+Interlock/InTr remains responsible for governed transition admission, TV/TVC remains credential authority, WorkerCoordinator remains fresh claim/fence authority where applicable, the Organization owns runtime/observed reality and its evidence, and Master Records keeps organization records/reconstruction for the records assigned to it.
 
 ## Implementation consequence
 

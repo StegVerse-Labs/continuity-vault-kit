@@ -1,19 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stegverse.org/schemas/kv-historical-custody-request.schema.json",
-  "title": "KnowledgeVault Historical Master Records Custody Request",
+  "title": "KnowledgeVault Historical Master Records Organization Record Request",
+  "description": "Source-only request that Master Records record a historical import as an organization record. The $id URL and file path keep their published names; schema_version, record_requested and authority_effect use the organization-record names (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002), and runtime readers also accept the legacy custody names.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version","source_repository","artifact_id","artifact_sha256","import_receipt_id","import_receipt_sha256","requested_at","custody_requested","destination_repository","destination_custody_accepted","destination_acknowledgement_minted","independent_validation_complete","runtime_activation","execution_authority_granted","continuity_receipt_minted","publication_authority_granted","authority_effect"],
+  "required": ["schema_version","source_repository","artifact_id","artifact_sha256","import_receipt_id","import_receipt_sha256","requested_at","record_requested","destination_repository","destination_custody_accepted","destination_acknowledgement_minted","independent_validation_complete","runtime_activation","execution_authority_granted","continuity_receipt_minted","publication_authority_granted","authority_effect"],
   "properties": {
-    "schema_version": {"const": "stegverse.kv.historical-custody-request/v1"},
+    "schema_version": {"const": "stegverse.kv.historical-organization-record-request/v1"},
     "source_repository": {"const": "StegVerse-Labs/continuity-vault-kit"},
     "artifact_id": {"type": "string", "minLength": 1},
     "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "import_receipt_id": {"type": "string", "minLength": 1},
     "import_receipt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "requested_at": {"type": "string", "minLength": 1},
-    "custody_requested": {"const": true},
+    "record_requested": {"const": true},
     "destination_repository": {"const": "master-records/core-lite"},
     "destination_custody_accepted": {"const": false},
     "destination_acknowledgement_minted": {"const": false},
@@ -22,6 +23,6 @@
     "execution_authority_granted": {"const": false},
     "continuity_receipt_minted": {"const": false},
     "publication_authority_granted": {"const": false},
-    "authority_effect": {"const": "NONE_CUSTODY_REQUEST_ONLY"}
+    "authority_effect": {"const": "NONE_ORGANIZATION_RECORD_REQUEST_ONLY"}
   }
 }

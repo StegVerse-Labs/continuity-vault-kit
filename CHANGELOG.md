@@ -20,6 +20,9 @@ The format is based on [Semantic Versioning](https://semver.org/).
 - fail-closed `KV-INTERLOCK-v1` runtime endpoint core with exact DEVICE→KV InTr admission binding, injected authority/policy/storage boundaries, bounded-context enforcement, deterministic receipts, and candidate-only `COMMIT_CANDIDATE` semantics
 - deterministic runtime endpoint tests and canonical runtime handoff for the Site/KV production backend seam
 
+### Changed
+- Master Records boundary remediation (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002): Master Records now relates only to organization records and reconstruction across code, schemas, specs, tests and prose. Interlock/InTr owns transition admission and lifecycle closure; the Organization owns runtime/observed reality and its evidence. Renamed `master_records_custody_record` to `master_records_organization_record_record`, `MASTER_RECORDS_CUSTODY_RECORDED` to `MASTER_RECORDS_ORGANIZATION_RECORD_RECORDED`, `MASTER_RECORDS_CUSTODY_RECEIPT_MISSING` to `MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING`, `custody_requested` to `record_requested` and `custody_status` to `record_status`. Writers emit only the new names; readers keep accepting the legacy names through `LEGACY_*` constants. The InTr terminal-receipt verifier now reports `INTR_LIFECYCLE_*` error codes.
+
 ### Security
 - retired GitHub-hosted release/publication and release-control-plane mutation authority from the CMC-022/CMC-023 workflow set
 - retired residual `release-integrity.yml` evidence writeback and `automated-release.yml` VERSION/changelog/tag/GitHub-release mutation authority; hosted release workflows now validate and transport non-secret evidence only

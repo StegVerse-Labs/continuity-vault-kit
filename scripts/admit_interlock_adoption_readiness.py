@@ -8,6 +8,20 @@ SOURCE_SCHEMA = "stegos.universal_interlock_adoption_readiness.v1"
 ADMISSION_SCHEMA = "stegverse.kv.interlock-adoption-readiness-admission/v1"
 PROTOCOL_ID = "SV-INTERLOCK-v0.4-candidate"
 
+#: Interlock/InTr admits the transition; Master Records keeps the organization
+#: record afterwards. This blocker reports that the organization record's
+#: receipt is not yet observed.
+ORGANIZATION_RECORD_RECEIPT_MISSING = "MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING"
+#: Master Records boundary migration (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002):
+#: already-deployed StegOS assessments may still emit this legacy blocker name.
+#: It is accepted on read and admitted into KV facts under the new name only.
+LEGACY_ORGANIZATION_RECORD_RECEIPT_MISSING = "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING"
+_BLOCKER_RENAMES = {LEGACY_ORGANIZATION_RECORD_RECEIPT_MISSING: ORGANIZATION_RECORD_RECEIPT_MISSING}
+
+
+def normalize_blocker(blocker: str) -> str:
+    return _BLOCKER_RENAMES.get(blocker, blocker)
+
 
 class AdmissionError(ValueError):
     pass
@@ -62,7 +76,9 @@ def admit_interlock_adoption_readiness(
         "facts_delta": {
             "universal_interlock_adoption_review_ready": ready,
             "universal_interlock_adoption_review_state": state,
-            "universal_interlock_adoption_review_blockers": list(blockers),
+            "universal_interlock_adoption_review_blockers": [
+                normalize_blocker(item) for item in blockers
+            ],
         },
         "production_interlock_runtime_activated_set_by_adapter": False,
         "canonical_protocol_adopted_set_by_adapter": False,

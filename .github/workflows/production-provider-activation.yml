@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       master_records_endpoint:
-        description: Expected authenticated Master-Records HTTPS endpoint
+        description: Expected authenticated Master-Records organization-record HTTPS endpoint
         required: true
         type: string
 

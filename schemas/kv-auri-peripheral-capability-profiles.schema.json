@@ -13,7 +13,7 @@
     "device_identity_gate",
     "credential_authority",
     "transition_authority",
-    "custody_reconstruction",
+    "organization_records_reconstruction",
     "registry_bindings",
     "transport_registry_ref",
     "profiles",
@@ -49,7 +49,7 @@
     "transition_authority": {
       "const": "Interlock/InTr"
     },
-    "custody_reconstruction": {
+    "organization_records_reconstruction": {
       "const": "Master Records"
     },
     "registry_bindings": {
