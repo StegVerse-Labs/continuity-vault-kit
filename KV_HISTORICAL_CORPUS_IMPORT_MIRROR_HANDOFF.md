@@ -35,7 +35,7 @@ Resolved before functional mutation:
 
 1. The repository-wide canonical handoff remained `docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md`.
 2. The predecessor `KV_HISTORICAL_PROVENANCE_MIRROR_HANDOFF.md` was source-complete and named this task as its next integration candidate.
-3. Canonical ecosystem task registry generation 15 preserved the authority split: Task Registry = work intent/coordination; WorkerCoordinator = execution claim/fence authority; Master Records = observed-reality/reconstruction authority; Interlock/InTr = governed task ingress/egress.
+3. Canonical ecosystem task registry generation 15 preserved the authority split: Task Registry = work intent/coordination; WorkerCoordinator = execution claim/fence authority; Master Records = organization records/reconstruction; Interlock/InTr = governed task ingress/egress.
 4. `master-records/core-lite/MASTER_RECORDS_MIRROR_HANDOFF.md` remained the current Master Records repository-wide handoff and required independent destination validation before acknowledgement/custody acceptance.
 5. No duplicate historical-corpus import handoff/implementation existed on `main` before this task.
 6. `CVK-LEGACY-KV-UPGRADE-174` remained a separate migration/reinstall lane and neither physical KV was modified.
@@ -55,7 +55,7 @@ The merged implementation:
 1. requires caller-supplied exact bytes plus owner-authorization, InTr admission, and persistence evidence references;
 2. reuses `assert_artifact_record()` for exact-byte historical identity;
 3. emits a deterministic historical import receipt whose canonical hash binds artifact identity, relationship/contradiction state, authorization reference, admission/persistence evidence, and time;
-4. emits a Master Records custody-request candidate with destination acceptance/acknowledgement and independent validation fixed false;
+4. emits a Master Records organization-record request candidate with destination acceptance/acknowledgement and independent validation fixed false;
 5. preserves ORIGINAL/COPY/MIRROR/DERIVED lineage and contradiction state without silent merge;
 6. emits a bounded Site/MyKV status projection with identifiers/state only and `private_content_included=false`;
 7. fails closed on byte/hash mismatch, missing or secret-bearing authorization references, authority escalation, receipt tamper, invalid destination custody assertions, and custody/import mismatch;
