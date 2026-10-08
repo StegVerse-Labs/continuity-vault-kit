@@ -1,0 +1,95 @@
+{
+  "schema": "stegverse.skap.kv-storage-layout/v2",
+  "status": "REVIEW_CANDIDATE_SOURCE_ONLY",
+  "supersession": {
+    "supersedes": "specs/skap-kv-storage-layout.v1.json",
+    "supersedes_schema": "stegverse.skap.kv-storage-layout/v1",
+    "superseded_document_preserved_unchanged": true,
+    "reason": "Portable KV/SKAP first issuance requires one wrapped (never plaintext) root-key envelope held in KV ciphertext custody and ephemeral SKAP-boundary decryption on an authenticated per-attempt execution surface; v1 forbade any root-key material in KV.",
+    "owning_goal": "TVC-CREDENTIAL-MODEL-CONSISTENCY-20260826",
+    "approval_ref": "FINAL-REVIEW-009 D2/D6",
+    "legacy_scope_preserved": "TVCResidentFileKeyProvider (tvc-resident://) is unchanged and remains valid for its existing scope."
+  },
+  "root": "_Vault",
+  "skap_root": "_Vault/SKAP",
+  "paths": {
+    "sealed_objects": "_Vault/SKAP/Sealed",
+    "lifecycle_receipts": "_Vault/SKAP/Lifecycle",
+    "access_receipts": "_Vault/SKAP/Receipts",
+    "revocation_state": "_Vault/SKAP/Revocations",
+    "root": "_Vault/SKAP/Root",
+    "wrapped_root_envelope": "_Vault/SKAP/Root/wrapped-root-envelope.json",
+    "bootstrap_anchor": "_Vault/SKAP/Root/bootstrap-anchor.sealed.json"
+  },
+  "storage_rules": {
+    "sealed_objects_ciphertext_only": true,
+    "plaintext_allowed": false,
+    "plaintext_root_key_at_rest_allowed": false,
+    "wrapped_root_key_envelope_allowed": true,
+    "wrapped_root_key_envelope_max_count": 1,
+    "recovery_secret_at_rest_allowed": false,
+    "kv_decryption_authority": false,
+    "device_durable_secret_custody": false,
+    "model_secret_access": false,
+    "authority_transfer": false,
+    "receipt_secret_plaintext_allowed": false
+  },
+  "wrapped_root_envelope_contract": {
+    "schema": "stegverse.skap.wrapped-root-envelope/v2",
+    "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+    "fields": ["schema", "kv_identity", "root_key_id", "policy_hash", "created_by_transition", "kdf", "aead"],
+    "root_key_bytes": 32,
+    "root_key_id": "sha256 hex of b\"stegverse.skap.root-key-id/v1\" || 0x00 || root_key, prefixed sha256:",
+    "recovery_secret": {
+      "bytes": 20,
+      "display": "RFC 4648 base32, no padding, 32 characters, groups of 4 separated by -",
+      "parse": "strip - and whitespace, uppercase, base32-decode, require exactly 20 bytes",
+      "custody": "owner only; never written to KV, SKAP, receipts, logs or storage"
+    },
+    "kdf": {"name": "PBKDF2-HMAC-SHA256", "salt_bytes": 16, "min_iterations": 600000, "below_min_on_unwrap": "REFUSE_DOWNGRADE"},
+    "aead": {"name": "AES-256-GCM", "nonce_bytes": 12, "tag_bytes": 16, "ciphertext_includes_tag": true},
+    "aad": "canonical JSON of {schema, kv_identity, root_key_id, kdf, policy_hash}",
+    "encoding": "base64url without padding",
+    "canonical_json": "sorted keys, no whitespace, ASCII only (non-ASCII rejected), integers only within +/-(2^53-1)",
+    "reference_implementation": "skap/portable_envelope.py",
+    "vectors": "fixtures/skap/portable-envelope-v2.vectors.json"
+  },
+  "sealed_objects_under_root": {
+    "sealed_material_format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+    "key_authority_ref": "kv-wrapped://<root_key_id>",
+    "provider_credential": {
+      "purpose": "provider-credential",
+      "object_id": "skap://provider/<openai|anthropic>/api-key",
+      "endpoint_ref": {"anthropic": "https://api.anthropic.com/v1/messages", "openai": "https://api.openai.com/v1/responses"},
+      "wrapping_policy_ref": "<policy_hash>"
+    },
+    "bootstrap_anchor": {
+      "purpose": "kv-skap-bootstrap-anchor",
+      "object_id": "skap://kv-skap/bootstrap-anchor",
+      "endpoint_ref": "kv://_Vault/SKAP/Root/bootstrap-anchor.sealed.json",
+      "wrapping_policy_ref": "<policy_hash>",
+      "plaintext": "canonical JSON of {loader_sha256, loader_source: {repository, commit, path}, policy_hash, kv_identity, genesis_manifest_digest, predecessor_state}"
+    }
+  },
+  "object_contract": {
+    "sealed_object_schema": "stegverse.skap.sealed_object/v1",
+    "sealed_material_format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+    "canonical_object_file": "<object-safe-id>.json",
+    "write_requires_owner_authorized_ingress": true,
+    "readback_verifies_ciphertext_hash_without_decryption": true
+  },
+  "relationship": "SKAP <-InTr-> KV",
+  "runtime_boundary": {
+    "kv_role": "sealed-ciphertext-and-non-secret-evidence-custody-only",
+    "skap_role": "sealed-secret-custody-and-transient-cryptographic-use",
+    "tvc_role": "credential-secret-token-and-production-root-key-authority",
+    "credential_authority": "TV/TVC",
+    "ephemeral_skap_boundary_decryption": {
+      "permitted": true,
+      "surface": "authenticated per-attempt execution surface only",
+      "root_key_lifetime": "in-process callback scope of one attempt; wiped after use",
+      "persistence_of_plaintext_or_root_key": false,
+      "kv_decryption_authority": false
+    }
+  }
+}

@@ -1,0 +1,529 @@
+{
+  "schema": "stegverse.skap.portable-envelope-vectors/v2",
+  "notice": "TEST VECTORS ONLY. Every key, secret, salt, nonce and credential below is a fixed, publicly known test value. None is or may ever be used as real recovery material, root key or provider credential.",
+  "spec_ref": "specs/skap-kv-storage-layout.v2.json",
+  "reference_implementation": "skap/portable_envelope.py",
+  "policy_hash_source": "digest(canonical TVC policy object test-lane-provider-use.v1 as given in the shared interface spec)",
+  "policy_object": {
+    "schema": "stegverse.tvc.policy-admission-policy/v1",
+    "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+    "credential_authority": "TV/TVC",
+    "derived_from_lease_schema": "stegverse.tvc.test-lane-capability-lease.v1",
+    "event_type": "POLICY_ADMISSION",
+    "transferable": false,
+    "signed": false,
+    "single_use": true,
+    "max_lease_seconds": 300,
+    "capabilities": {
+      "anthropic": "llm.measure.anthropic",
+      "openai": "llm.measure.openai"
+    },
+    "required_false_flags": [
+      "broadcast_allowed",
+      "protected_values_exposed",
+      "secret_export_allowed",
+      "secret_values_exported",
+      "signing_allowed",
+      "signing_authority",
+      "wallet_contact_allowed"
+    ],
+    "require_sdk_manifest_binding_equality": true
+  },
+  "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+  "canonical_json": [
+    {
+      "name": "sorted_nested_keys",
+      "input": {
+        "b": 1,
+        "a": {
+          "d": [
+            3,
+            2,
+            1
+          ],
+          "c": null
+        },
+        "B": true
+      },
+      "expected": "{\"B\":true,\"a\":{\"c\":null,\"d\":[3,2,1]},\"b\":1}",
+      "expected_sha256_digest": "sha256:b7afe93a46a52292d733b0e4eb30d51a594475f9151624fa5e6f19aa78f286da"
+    },
+    {
+      "name": "array_order_preserved",
+      "input": [
+        {
+          "z": 0,
+          "y": -1
+        },
+        "x",
+        false
+      ],
+      "expected": "[{\"y\":-1,\"z\":0},\"x\",false]",
+      "expected_sha256_digest": "sha256:21125238cb952758aa4a9d9c4fcf9b36987a11a140fffd7b3fb50d9839674965"
+    },
+    {
+      "name": "control_and_quote_escapes",
+      "input": {
+        "s": "a\"b\\c\n\t\u0001/\u007f"
+      },
+      "expected": "{\"s\":\"a\\\"b\\\\c\\n\\t\\u0001/\\u007f\"}",
+      "expected_sha256_digest": "sha256:c59cabb785c4f58b28e86eb7fd72950306db4e4088982f64e80f7fe6d87b74da"
+    },
+    {
+      "name": "empty_containers",
+      "input": {
+        "o": {},
+        "l": [],
+        "s": ""
+      },
+      "expected": "{\"l\":[],\"o\":{},\"s\":\"\"}",
+      "expected_sha256_digest": "sha256:5e4fa172ee0393faff0de8bef28f78089d7afd9a089c54b4402318d087cc2a50"
+    },
+    {
+      "name": "max_safe_integer",
+      "input": {
+        "n": 9007199254740991,
+        "m": -9007199254740991
+      },
+      "expected": "{\"m\":-9007199254740991,\"n\":9007199254740991}",
+      "expected_sha256_digest": "sha256:3f54c80abdfbc38f08ed5654622eea6e7d7e58cbac36cf5a0670c8aeb054703d"
+    },
+    {
+      "name": "non_ascii_string_rejected",
+      "input": {
+        "s": "caf\u00e9"
+      },
+      "expected_error": "CANONICAL_NON_ASCII"
+    },
+    {
+      "name": "non_ascii_key_rejected",
+      "input": {
+        "\u00e9": 1
+      },
+      "expected_error": "CANONICAL_NON_ASCII"
+    },
+    {
+      "name": "non_ascii_astral_rejected",
+      "input": [
+        "\ud83d\udd12"
+      ],
+      "expected_error": "CANONICAL_NON_ASCII"
+    },
+    {
+      "name": "float_rejected",
+      "input": {
+        "f": 1.5
+      },
+      "expected_error": "CANONICAL_NON_INTEGER"
+    },
+    {
+      "name": "unsafe_integer_rejected",
+      "input": {
+        "n": 9007199254740993
+      },
+      "expected_error": "CANONICAL_UNSAFE_INTEGER"
+    }
+  ],
+  "recovery_secret_parse": [
+    {
+      "name": "canonical_grouped",
+      "text": "UCQ2-FI5E-UWTK-PKFJ-VKV2-ZLNO-V6YL-DMVT",
+      "expected_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3"
+    },
+    {
+      "name": "lowercase_whitespace_no_dashes",
+      "text": "  ucq2 fi5e uwtk pkfj vkv2 zlno v6yl dmvt\n",
+      "expected_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3"
+    },
+    {
+      "name": "wrong_length_19_bytes",
+      "text": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expected_error": "RECOVERY_SECRET_INVALID"
+    },
+    {
+      "name": "wrong_length_21_bytes",
+      "text": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expected_error": "RECOVERY_SECRET_INVALID"
+    },
+    {
+      "name": "invalid_base32_alphabet",
+      "text": "00000000000000000000000000000000",
+      "expected_error": "RECOVERY_SECRET_INVALID"
+    },
+    {
+      "name": "padding_rejected",
+      "text": "UCQ2FI5EUWTKPKFJVKV2ZLNO========",
+      "expected_error": "RECOVERY_SECRET_INVALID"
+    }
+  ],
+  "root_key_id": [
+    {
+      "name": "fixed_root_key",
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "expected_root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25"
+    }
+  ],
+  "envelope_wrap": [
+    {
+      "name": "fixed_inputs_600000",
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "recovery_secret_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3",
+      "recovery_secret_text": "UCQ2-FI5E-UWTK-PKFJ-VKV2-ZLNO-V6YL-DMVT",
+      "kv_identity": "kv://test-vector/kv-identity-0001",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "iterations": 600000,
+      "salt_hex": "101112131415161718191a1b1c1d1e1f",
+      "nonce_hex": "303132333435363738393a3b",
+      "expected_aad_ascii": "{\"kdf\":{\"iterations\":600000,\"name\":\"PBKDF2-HMAC-SHA256\",\"salt_b64url\":\"EBESExQVFhcYGRobHB0eHw\"},\"kv_identity\":\"kv://test-vector/kv-identity-0001\",\"policy_hash\":\"sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609\",\"root_key_id\":\"sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25\",\"schema\":\"stegverse.skap.wrapped-root-envelope/v2\"}",
+      "expected_envelope": {
+        "schema": "stegverse.skap.wrapped-root-envelope/v2",
+        "kv_identity": "kv://test-vector/kv-identity-0001",
+        "root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+        "kdf": {
+          "name": "PBKDF2-HMAC-SHA256",
+          "iterations": 600000,
+          "salt_b64url": "EBESExQVFhcYGRobHB0eHw"
+        },
+        "aead": {
+          "name": "AES-256-GCM",
+          "nonce_b64url": "MDEyMzQ1Njc4OTo7",
+          "ciphertext_b64url": "Y-_G0hfB6FZeyqLWiL3MpTOn6yaHzVdg7MQhBJNMML9Z67vv59RKqjPYchDZ9zHR"
+        }
+      },
+      "expected_envelope_digest": "sha256:4f575d41de44aed37226264a07dbc8e980490076df588fea51ce66db6bdc076e"
+    }
+  ],
+  "envelope_wrap_negative": [
+    {
+      "name": "wrap_iterations_599999_refused",
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "recovery_secret_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3",
+      "kv_identity": "kv://test-vector/kv-identity-0001",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "iterations": 599999,
+      "salt_hex": "101112131415161718191a1b1c1d1e1f",
+      "nonce_hex": "303132333435363738393a3b",
+      "expected_error": "KDF_DOWNGRADE"
+    }
+  ],
+  "envelope_unwrap_negative": [
+    {
+      "name": "wrong_recovery_secret",
+      "envelope": {
+        "schema": "stegverse.skap.wrapped-root-envelope/v2",
+        "kv_identity": "kv://test-vector/kv-identity-0001",
+        "root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+        "kdf": {
+          "name": "PBKDF2-HMAC-SHA256",
+          "iterations": 600000,
+          "salt_b64url": "EBESExQVFhcYGRobHB0eHw"
+        },
+        "aead": {
+          "name": "AES-256-GCM",
+          "nonce_b64url": "MDEyMzQ1Njc4OTo7",
+          "ciphertext_b64url": "Y-_G0hfB6FZeyqLWiL3MpTOn6yaHzVdg7MQhBJNMML9Z67vv59RKqjPYchDZ9zHR"
+        }
+      },
+      "recovery_secret_text": "YDA4-FQ6E-YXDM-PSGJ-ZLF4-ZTOO-Z7IN-DUWT",
+      "expected_error": "ENVELOPE_AUTH_FAILED"
+    },
+    {
+      "name": "tampered_aad_kv_identity",
+      "envelope": {
+        "schema": "stegverse.skap.wrapped-root-envelope/v2",
+        "kv_identity": "kv://test-vector/kv-identity-0002",
+        "root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+        "kdf": {
+          "name": "PBKDF2-HMAC-SHA256",
+          "iterations": 600000,
+          "salt_b64url": "EBESExQVFhcYGRobHB0eHw"
+        },
+        "aead": {
+          "name": "AES-256-GCM",
+          "nonce_b64url": "MDEyMzQ1Njc4OTo7",
+          "ciphertext_b64url": "Y-_G0hfB6FZeyqLWiL3MpTOn6yaHzVdg7MQhBJNMML9Z67vv59RKqjPYchDZ9zHR"
+        }
+      },
+      "recovery_secret_text": "UCQ2-FI5E-UWTK-PKFJ-VKV2-ZLNO-V6YL-DMVT",
+      "expected_error": "ENVELOPE_AUTH_FAILED"
+    },
+    {
+      "name": "tampered_aad_policy_hash",
+      "envelope": {
+        "schema": "stegverse.skap.wrapped-root-envelope/v2",
+        "kv_identity": "kv://test-vector/kv-identity-0001",
+        "root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "policy_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+        "kdf": {
+          "name": "PBKDF2-HMAC-SHA256",
+          "iterations": 600000,
+          "salt_b64url": "EBESExQVFhcYGRobHB0eHw"
+        },
+        "aead": {
+          "name": "AES-256-GCM",
+          "nonce_b64url": "MDEyMzQ1Njc4OTo7",
+          "ciphertext_b64url": "Y-_G0hfB6FZeyqLWiL3MpTOn6yaHzVdg7MQhBJNMML9Z67vv59RKqjPYchDZ9zHR"
+        }
+      },
+      "recovery_secret_text": "UCQ2-FI5E-UWTK-PKFJ-VKV2-ZLNO-V6YL-DMVT",
+      "expected_error": "ENVELOPE_AUTH_FAILED"
+    },
+    {
+      "name": "tampered_ciphertext",
+      "envelope": {
+        "schema": "stegverse.skap.wrapped-root-envelope/v2",
+        "kv_identity": "kv://test-vector/kv-identity-0001",
+        "root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+        "kdf": {
+          "name": "PBKDF2-HMAC-SHA256",
+          "iterations": 600000,
+          "salt_b64url": "EBESExQVFhcYGRobHB0eHw"
+        },
+        "aead": {
+          "name": "AES-256-GCM",
+          "nonce_b64url": "MDEyMzQ1Njc4OTo7",
+          "ciphertext_b64url": "Yu_G0hfB6FZeyqLWiL3MpTOn6yaHzVdg7MQhBJNMML9Z67vv59RKqjPYchDZ9zHR"
+        }
+      },
+      "recovery_secret_text": "UCQ2-FI5E-UWTK-PKFJ-VKV2-ZLNO-V6YL-DMVT",
+      "expected_error": "ENVELOPE_AUTH_FAILED"
+    },
+    {
+      "name": "iterations_599999_downgrade",
+      "envelope": {
+        "schema": "stegverse.skap.wrapped-root-envelope/v2",
+        "kv_identity": "kv://test-vector/kv-identity-0001",
+        "root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+        "kdf": {
+          "name": "PBKDF2-HMAC-SHA256",
+          "iterations": 599999,
+          "salt_b64url": "EBESExQVFhcYGRobHB0eHw"
+        },
+        "aead": {
+          "name": "AES-256-GCM",
+          "nonce_b64url": "MDEyMzQ1Njc4OTo7",
+          "ciphertext_b64url": "Y-_G0hfB6FZeyqLWiL3MpTOn6yaHzVdg7MQhBJNMML9Z67vv59RKqjPYchDZ9zHR"
+        }
+      },
+      "recovery_secret_text": "UCQ2-FI5E-UWTK-PKFJ-VKV2-ZLNO-V6YL-DMVT",
+      "expected_error": "KDF_DOWNGRADE"
+    },
+    {
+      "name": "wrong_schema",
+      "envelope": {
+        "schema": "stegverse.skap.wrapped-root-envelope/v1",
+        "kv_identity": "kv://test-vector/kv-identity-0001",
+        "root_key_id": "sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "created_by_transition": "KV_SKAP_TRUST_GENESIS",
+        "kdf": {
+          "name": "PBKDF2-HMAC-SHA256",
+          "iterations": 600000,
+          "salt_b64url": "EBESExQVFhcYGRobHB0eHw"
+        },
+        "aead": {
+          "name": "AES-256-GCM",
+          "nonce_b64url": "MDEyMzQ1Njc4OTo7",
+          "ciphertext_b64url": "Y-_G0hfB6FZeyqLWiL3MpTOn6yaHzVdg7MQhBJNMML9Z67vv59RKqjPYchDZ9zHR"
+        }
+      },
+      "recovery_secret_text": "UCQ2-FI5E-UWTK-PKFJ-VKV2-ZLNO-V6YL-DMVT",
+      "expected_error": "ENVELOPE_INVALID"
+    }
+  ],
+  "sealed_objects": [
+    {
+      "name": "provider_credential_anthropic",
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "plaintext_ascii": "TEST-VECTOR-ONLY-NOT-A-PROVIDER-CREDENTIAL-0001",
+      "bindings": {
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25"
+      },
+      "kdf_salt_hex": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+      "nonce_hex": "606162636465666768696a6b",
+      "expected_sealed": {
+        "format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "kdf_salt_b64": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+        "nonce_b64": "YGFiY2RlZmdoaWpr",
+        "aad_hash": "sha256:4ba0c2df73c7eb8551d5b78b971ed4c92376a1c0a65c50e65e74cb2aeee7acfd",
+        "ciphertext_b64": "9sMhOOSzFsBYIIpKkIRhRjlYbidSriIbuV9H0ewI6l71Pr_wjBoq-fDrpyBgyX7enJPRMyuWTw9HkH6orJVO",
+        "plaintext_persisted": false,
+        "key_material_persisted": false,
+        "authority_transfer": false
+      },
+      "expected_sealed_material_hash": "sha256:f3671250f4d9b9694df06a19f92ae8c60dfdb2f179cc575add83539d7ac5d80b"
+    },
+    {
+      "name": "bootstrap_anchor",
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "plaintext_ascii": "{\"genesis_manifest_digest\":\"sha256:d84ae4e66311de957faaa25951c98b5958a60c3e06c066268bfac45cb3ddf4e0\",\"kv_identity\":\"kv://test-vector/kv-identity-0001\",\"loader_sha256\":\"c7a19fbc6b551363cebf9789e32211ce926d57607159ba1cabfa20a773f61cee\",\"loader_source\":{\"commit\":\"0000000000000000000000000000000000000000\",\"path\":\"skap/loader/kv-skap-loader.html\",\"repository\":\"StegVerse-Labs/continuity-vault-kit\"},\"policy_hash\":\"sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609\",\"predecessor_state\":\"KV_SKAP_UNINITIALIZED\"}",
+      "bindings": {
+        "object_id": "skap://kv-skap/bootstrap-anchor",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "kv-skap-bootstrap-anchor",
+        "endpoint_ref": "kv://_Vault/SKAP/Root/bootstrap-anchor.sealed.json",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25"
+      },
+      "kdf_salt_hex": "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+      "nonce_hex": "909192939495969798999a9b",
+      "expected_sealed": {
+        "format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+        "object_id": "skap://kv-skap/bootstrap-anchor",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "kv-skap-bootstrap-anchor",
+        "endpoint_ref": "kv://_Vault/SKAP/Root/bootstrap-anchor.sealed.json",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "kdf_salt_b64": "cHFyc3R1dnd4eXp7fH1-f4CBgoOEhYaHiImKi4yNjo8",
+        "nonce_b64": "kJGSk5SVlpeYmZqb",
+        "aad_hash": "sha256:67039a430627ba6cb759ee16ae6dcae8ab35687d86dece30917050b2e54ae314",
+        "ciphertext_b64": "pnTN_y7uhoVPJto43bz4I16wDN3UViLy2maJH-M6zCSGbgWuccxxKptphRSpHWYAluHZTFpj0lSsQ2etbjlXkWpC4nFO2lhcz9FqfaVLlFIW0zoQkVM6pQ8YeyWiahs2YJOTvwgFhyiSmFEuilEGVUMYfQ3Qk-ILEbhUxQn8--lXKUmE63wJ03L26SRJzAJ7XfsQZM9ljsvxyH4vhBZ6_7bt6WWcTSPStH53cJ1hDnWgWtFIQBN1BrlnwtmnGCtAKVuDTqMSAfXNY4S4BuIhYJ3H4fc0nxs4x4nXLDFTkXSVDmaOkDNnhRzWTP5NJUVyHPv9cPs8KlbVLHfOcqaxoHCnsxDT_C-1ewsx_IVXuElsTC0KP4XYRBWBy_HNUZfjBM7-8T7BseJlFqljZYV7E8UKjSxcf8Lqr7THebbG67kzWo8RQFhY8Pv-cERRp_Ey75rs0qxLXZ1AMBtv-xOsBmnpblV5VgGn5t8E2OGNtA1RyJbS33baAliW73QOYYGs2Wej71FiTvS-D-jn_nOEQfWL9Ks4ZIlsShG9rMA_jlPXDpHheKVbPoyrGvSh-8rtobHQQOLo77cDIT3UzHlx1d89il7dXcXu3rJQR09OxWfa4k5AsQn6z5LNfW7ca0geBprXk7AgqAzK_DHejFc4tx5J8fSwjYlPeFyE44LFqJ-b0ghBGGMW1VqetU-xlGv6qH9FhPUxFw9Mx2DDbDvq2g",
+        "plaintext_persisted": false,
+        "key_material_persisted": false,
+        "authority_transfer": false
+      },
+      "expected_sealed_material_hash": "sha256:a8016ac44eec00b619e7635044b60be669bd172148d9fa08582c88e2f7e22fe3"
+    }
+  ],
+  "sealed_open_negative": [
+    {
+      "name": "tampered_ciphertext",
+      "sealed": {
+        "format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "kdf_salt_b64": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+        "nonce_b64": "YGFiY2RlZmdoaWpr",
+        "aad_hash": "sha256:4ba0c2df73c7eb8551d5b78b971ed4c92376a1c0a65c50e65e74cb2aeee7acfd",
+        "ciphertext_b64": "98MhOOSzFsBYIIpKkIRhRjlYbidSriIbuV9H0ewI6l71Pr_wjBoq-fDrpyBgyX7enJPRMyuWTw9HkH6orJVO",
+        "plaintext_persisted": false,
+        "key_material_persisted": false,
+        "authority_transfer": false
+      },
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "bindings": {
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25"
+      },
+      "expected_error": "SEALED_AUTH_FAILED"
+    },
+    {
+      "name": "wrong_root_key",
+      "sealed": {
+        "format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "kdf_salt_b64": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+        "nonce_b64": "YGFiY2RlZmdoaWpr",
+        "aad_hash": "sha256:4ba0c2df73c7eb8551d5b78b971ed4c92376a1c0a65c50e65e74cb2aeee7acfd",
+        "ciphertext_b64": "9sMhOOSzFsBYIIpKkIRhRjlYbidSriIbuV9H0ewI6l71Pr_wjBoq-fDrpyBgyX7enJPRMyuWTw9HkH6orJVO",
+        "plaintext_persisted": false,
+        "key_material_persisted": false,
+        "authority_transfer": false
+      },
+      "root_key_hex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "bindings": {
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25"
+      },
+      "expected_error": "SEALED_AUTH_FAILED"
+    },
+    {
+      "name": "purpose_substitution",
+      "sealed": {
+        "format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "kv-skap-bootstrap-anchor",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "kdf_salt_b64": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+        "nonce_b64": "YGFiY2RlZmdoaWpr",
+        "aad_hash": "sha256:4ba0c2df73c7eb8551d5b78b971ed4c92376a1c0a65c50e65e74cb2aeee7acfd",
+        "ciphertext_b64": "9sMhOOSzFsBYIIpKkIRhRjlYbidSriIbuV9H0ewI6l71Pr_wjBoq-fDrpyBgyX7enJPRMyuWTw9HkH6orJVO",
+        "plaintext_persisted": false,
+        "key_material_persisted": false,
+        "authority_transfer": false
+      },
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "bindings": {
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25"
+      },
+      "expected_error": "SEALED_BINDING_MISMATCH"
+    },
+    {
+      "name": "persistence_claim",
+      "sealed": {
+        "format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25",
+        "kdf_salt_b64": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+        "nonce_b64": "YGFiY2RlZmdoaWpr",
+        "aad_hash": "sha256:4ba0c2df73c7eb8551d5b78b971ed4c92376a1c0a65c50e65e74cb2aeee7acfd",
+        "ciphertext_b64": "9sMhOOSzFsBYIIpKkIRhRjlYbidSriIbuV9H0ewI6l71Pr_wjBoq-fDrpyBgyX7enJPRMyuWTw9HkH6orJVO",
+        "plaintext_persisted": true,
+        "key_material_persisted": false,
+        "authority_transfer": false
+      },
+      "root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "bindings": {
+        "object_id": "skap://provider/anthropic/api-key",
+        "credential_version": 1,
+        "wrapping_policy_ref": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+        "purpose": "provider-credential",
+        "endpoint_ref": "https://api.anthropic.com/v1/messages",
+        "key_authority_ref": "kv-wrapped://sha256:b011ca329192b48e0f43778f64616d5e980ba6bf02569fee3d7561c4842f4a25"
+      },
+      "expected_error": "SEALED_BOUNDARY_VIOLATION"
+    }
+  ]
+}
