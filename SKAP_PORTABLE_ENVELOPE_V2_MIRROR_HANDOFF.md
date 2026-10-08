@@ -44,6 +44,20 @@ TVCResidentFileKeyProvider (tvc-resident://) is unchanged; its legacy scope is p
 TVC `policy_hash`, and `endpoint_ref` is the provider endpoint URL. The bootstrap
 anchor uses `skap://kv-skap/bootstrap-anchor`, purpose `kv-skap-bootstrap-anchor`.
 
+## KV/SKAP loader (genesis, enrollment, transient use)
+
+- `skap/loader/kv-skap-loader.html`: one self-contained file, WebCrypto only. CSP: `default-src 'none'`, `script-src` and `style-src` are the SHA-256 hashes of the single inline script and style, and `connect-src` is limited to `https://api.openai.com https://api.anthropic.com`.
+- `skap/loader/kv-skap-loader.sha256`: the expected file digest. Verify it with an independent tool before entering any secret. A digest the page computes about itself is not verification.
+- Modes:
+  - GENESIS checks existing KV state (deny on an initialized KV, fail closed when ambiguous), then verifies the owner's stage-2 inputs before generating any secret. It produces `wrapped-root-envelope.json`, `bootstrap-anchor.sealed.json` and a non-secret genesis receipt.
+  - ENROLL seals a provider API key as `provider-credential`.
+  - USE checks that the manifest and Organization receipt are present, evaluates POLICY_ADMISSION exactly as TVC does, and on ALLOW makes one bounded provider request. It then emits a non-secret attempt receipt for InTr delivery.
+- The Organization ledger append and readback of the genesis receipt is the authoritative exactly-once fence. The loader's local check is advisory.
+- `fixtures/tvc/` is a copy of TVC's POLICY_ADMISSION policy and vectors, pinned by digest (see `fixtures/tvc/PINNED.json`).
+- Tests: `tests/loader/kv_skap_loader.test.mjs` (node, run by `tests/test_skap_loader_js.py`, which skips with an explicit reason when node is absent).
+- Per approved design S11/D14, the owner reviews and merges the loader. That merge is the approval of these exact bytes. Any edit to the inline script or style changes its CSP hash, and the node test fails until the CSP and `kv-skap-loader.sha256` are recomputed.
+- Browser limits: JavaScript strings, including a pasted API key or recovery secret, cannot be overwritten in place. The loader wipes every byte buffer it controls, clears the input fields after use, keeps no references, and writes nothing to storage or logs.
+
 ## Runtime truth
 
 No KV/SKAP trust genesis is claimed. Genesis requires the owner-reviewed loader, an

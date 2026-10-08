@@ -53,6 +53,7 @@ jobs:
             tests/test_skap_crypto_lifecycle_runtime.py \
             tests/test_skap_tvc_key_provider.py \
             tests/test_skap_portable_envelope.py \
+            tests/test_skap_loader_js.py \
             tests/test_skap_owner_ingress.py \
             tests/test_hosted_release_authority_retirement.py
 
@@ -141,6 +142,14 @@ jobs:
 
       - name: Validate portable wrapped-root envelope (SKAP layout v2) and cross-implementation vectors
         run: python3 -m unittest tests.test_skap_portable_envelope -v
+
+      - name: Setup Node for the KV/SKAP loader tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate KV/SKAP loader against shared envelope and TVC POLICY_ADMISSION vectors
+        run: python3 -m unittest tests.test_skap_loader_js -v
 
       - name: Validate transient owner-authorized SKAP ingress
         run: python3 -m unittest tests.test_skap_owner_ingress -v

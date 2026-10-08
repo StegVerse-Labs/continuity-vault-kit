@@ -1,0 +1,645 @@
+[
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "ALLOW_CAPABILITY_LEASE",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000300,
+      "failed_predicate": null,
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:8d204aefefbf8389bc583cc682e5b932a5508d0f69178eabc5ede884a479834f",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "allow-anthropic",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.openai",
+      "decision": "ALLOW_CAPABILITY_LEASE",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000060,
+      "failed_predicate": null,
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "openai",
+      "receipt_sha256": "sha256:047793691714695c6a4abf35f10e0c0801ae27556c47aa5b1cc839bbed023e49",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "allow-openai-shorter",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.openai",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "openai",
+      "requested_seconds": 60,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "POLICY_ADMISSION_REQUEST_SCHEMA_VALID",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:d18adcc7b191f22c02531b3bc786600c61cf190d8dadf865f9abd22c2d9c4543",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-schema",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v0",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.deepseek",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "PROVIDER_CAPABILITY_ADMITTED",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "deepseek",
+      "receipt_sha256": "sha256:8b1ef0554a56798ccf9647ddd93e2adef138142a29ab7bab74390c2ee4d89d4f",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-unknown-provider",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.deepseek",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "deepseek",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "PROVIDER_CAPABILITY_ADMITTED",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:26a042241685ca3d3d8ea592a9dfdbf246c46288083f7c919efd7da3d3d06759",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-capability-mismatch",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.openai",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "LEASE_DURATION_WITHIN_POLICY",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:85e080f839f6cf98e1c5fd35f1fe084a65ec2bffb422276373c95cde396020c5",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-duration-over-policy",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 301,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "LEASE_DURATION_WITHIN_POLICY",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:85e080f839f6cf98e1c5fd35f1fe084a65ec2bffb422276373c95cde396020c5",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-duration-zero",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 0,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "REQUIRED_FALSE_FLAGS_FALSE",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:a9cfb268da48c76d05c8ec97a06a15d6526655d7a4ae67fbb595d73c38636594",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-flag-true",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": true,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "REQUIRED_FALSE_FLAGS_FALSE",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:a9cfb268da48c76d05c8ec97a06a15d6526655d7a4ae67fbb595d73c38636594",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-flag-missing",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "SDK_MANIFEST_BINDING_EQUAL",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:5a12c7b125a87f2fcc4c2fc1fd557a3c30148baf12d385a171c3a03f523c3898",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-binding-mismatch",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "other-route"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "SDK_MANIFEST_BINDING_EQUAL",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:5a12c7b125a87f2fcc4c2fc1fd557a3c30148baf12d385a171c3a03f523c3898",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-binding-malformed",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    }
+  },
+  {
+    "expected_receipt": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "decision": "DENY",
+      "event_type": "POLICY_ADMISSION",
+      "expires_at_epoch_seconds": 1760000000,
+      "failed_predicate": "ATTEMPT_NOT_REPLAYED",
+      "issued_at_epoch_seconds": 1760000000,
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609",
+      "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+      "protected_values_exposed": false,
+      "provider": "anthropic",
+      "receipt_sha256": "sha256:1b5840a7b8b85a13409e48b3f3825ee9f73cfd823da99996a47bf42f2398409e",
+      "schema": "stegverse.tvc.policy-admission-receipt/v1",
+      "secret_values_exported": false,
+      "signed": false,
+      "single_use": true,
+      "transferable": false
+    },
+    "name": "deny-replay",
+    "request": {
+      "attempt_id": "attempt-test-vector-0001",
+      "capability": "llm.measure.anthropic",
+      "consumed_attempt_ids": [
+        "attempt-test-vector-0001"
+      ],
+      "flags": {
+        "broadcast_allowed": false,
+        "protected_values_exposed": false,
+        "secret_export_allowed": false,
+        "secret_values_exported": false,
+        "signing_allowed": false,
+        "signing_authority": false,
+        "wallet_contact_allowed": false
+      },
+      "lease_sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      },
+      "manifest_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "now_epoch_seconds": 1760000000,
+      "provider": "anthropic",
+      "requested_seconds": 300,
+      "schema": "stegverse.tvc.policy-admission-request/v1",
+      "sdk_manifest_binding": {
+        "canonical_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "processing_capability": "llm.measure.anthropic",
+        "request_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "route_id": "kv-skap-transient-provider-use"
+      }
+    }
+  }
+]

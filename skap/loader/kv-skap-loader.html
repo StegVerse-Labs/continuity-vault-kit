@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bs3iqlFGc3D5C2rvCGNYNL0SyEzCNGBwSC6KsM/7upQ='; style-src 'sha256-aQrcq2/v4Tku4VAhAR+KMAAN1zWY804e71QiG+xxeCA='; connect-src https://api.openai.com https://api.anthropic.com; img-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>KV/SKAP Loader</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1d1d1b;--muted:#5d5d58;--line:#d9d8d2;--warn:#8a3b00;--ok:#1f5d2a;--panel:#ffffff}
+@media (prefers-color-scheme: dark){:root{--bg:#161615;--fg:#ecebe6;--muted:#a6a59e;--line:#3a3935;--warn:#f0a868;--ok:#8fd19e;--panel:#1f1f1d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:46rem;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.5rem 0}
+h2{font-size:1.1rem;margin:1.5rem 0 .5rem}
+section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:12px 0}
+label{display:block;margin:.6rem 0 .2rem;font-weight:600}
+input,select,textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+textarea{min-height:5rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem}
+button{font:inherit;padding:8px 14px;margin:.6rem .4rem 0 0;border-radius:6px;border:1px solid var(--line);background:var(--fg);color:var(--bg);cursor:pointer}
+button[disabled]{opacity:.45;cursor:not-allowed}
+.warn{color:var(--warn);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.muted{color:var(--muted)}
+.secret{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.15rem;letter-spacing:.04em;word-break:break-all;padding:10px;border:2px dashed var(--warn);border-radius:6px}
+.hidden{display:none}
+pre{white-space:pre-wrap;word-break:break-all;font-size:.8rem;background:var(--bg);border:1px solid var(--line);padding:8px;border-radius:6px}
+.tabs button{background:var(--panel);color:var(--fg)}
+.tabs button.active{background:var(--fg);color:var(--bg)}
+</style>
+</head>
+<body>
+<main>
+<h1>KV/SKAP Loader</h1>
+<p class="muted">One self-contained file. No external code, no storage, no telemetry. Network access is limited by policy to api.openai.com and api.anthropic.com, used only in USE mode.</p>
+
+<section id="verify-first">
+<p class="warn">Before entering any secret: verify this file's SHA-256 with an independent tool (for example <code>shasum -a 256 kv-skap-loader.html</code> on another device or app).</p>
+<p>The expected digest is recorded in the merged commit (<code>skap/loader/kv-skap-loader.sha256</code> and the pull request that the owner merged). A digest computed by this page about itself is <strong>not</strong> verification and this page does not offer one.</p>
+</section>
+
+<div class="tabs" role="tablist">
+<button type="button" id="tab-genesis" class="active">GENESIS</button>
+<button type="button" id="tab-enroll">ENROLL</button>
+<button type="button" id="tab-use">USE</button>
+</div>
+
+<section id="mode-genesis">
+<h2>GENESIS (KV_SKAP_TRUST_GENESIS)</h2>
+<p>Stage 1: existing state. If <code>KV/_Vault/SKAP/Root/wrapped-root-envelope.json</code> exists, paste it here. Genesis is then denied.</p>
+<label for="g-existing">Existing wrapped-root-envelope.json (if any)</label>
+<textarea id="g-existing" spellcheck="false" autocomplete="off"></textarea>
+<label><input type="checkbox" id="g-absent"> I inspected KV/_Vault/SKAP/Root/ and no wrapped-root-envelope.json exists.</label>
+<p>Stage 2: owner-supplied admission inputs (verified before any secret is generated).</p>
+<label for="g-kv">kv_identity</label><input id="g-kv" autocomplete="off" spellcheck="false">
+<label for="g-manifest">Genesis manifest digest (sha256:...)</label><input id="g-manifest" autocomplete="off" spellcheck="false">
+<label for="g-rid">Organization admission receipt id</label><input id="g-rid" autocomplete="off" spellcheck="false">
+<label for="g-rdigest">Organization admission receipt_sha256</label><input id="g-rdigest" autocomplete="off" spellcheck="false">
+<label for="g-rule">recomputation_rule_ref</label><input id="g-rule" autocomplete="off" spellcheck="false" placeholder="StegVerse-Labs/.github@&lt;40-hex&gt;:resident-runtime/organization_manifest_ingress.py">
+<label for="g-loader-sha">This loader's SHA-256, as you verified it independently (64 hex)</label><input id="g-loader-sha" autocomplete="off" spellcheck="false">
+<label for="g-loader-commit">Merged commit of this loader (40 hex)</label><input id="g-loader-commit" autocomplete="off" spellcheck="false">
+<button type="button" id="g-run">Verify inputs and generate</button>
+<div id="g-secret-box" class="hidden">
+<p class="warn">Recovery secret. Shown once. Write it down offline now. It is never stored, downloaded or sent anywhere.</p>
+<p id="g-secret" class="secret"></p>
+<label for="g-confirm">Re-enter the recovery secret to confirm you recorded it</label>
+<input id="g-confirm" type="password" autocomplete="off" spellcheck="false">
+<button type="button" id="g-confirm-btn">Confirm and hide</button>
+</div>
+<div id="g-downloads" class="hidden">
+<p class="ok">Material produced. Download all three files and place the first two in KV/_Vault/SKAP/Root/.</p>
+<button type="button" id="g-dl-envelope">wrapped-root-envelope.json</button>
+<button type="button" id="g-dl-anchor">bootstrap-anchor.sealed.json</button>
+<button type="button" id="g-dl-receipt">genesis receipt (non-secret)</button>
+</div>
+<p class="muted">The exactly-once fence for genesis is the Organization ledger append and readback of the genesis receipt. That is authoritative. This page's local check is advisory only.</p>
+<pre id="g-out"></pre>
+</section>
+
+<section id="mode-enroll" class="hidden">
+<h2>ENROLL provider credential</h2>
+<label for="e-envelope">wrapped-root-envelope.json</label><textarea id="e-envelope" spellcheck="false" autocomplete="off"></textarea>
+<label for="e-secret">Recovery secret</label><input id="e-secret" type="password" autocomplete="off" spellcheck="false">
+<label for="e-provider">Provider</label><select id="e-provider"><option value="anthropic">anthropic</option><option value="openai">openai</option></select>
+<label for="e-key">Provider API key</label><input id="e-key" type="password" autocomplete="off" spellcheck="false">
+<button type="button" id="e-run">Seal credential</button>
+<div id="e-downloads" class="hidden">
+<button type="button" id="e-dl-sealed">sealed credential</button>
+<button type="button" id="e-dl-receipt">enrollment receipt (non-secret)</button>
+</div>
+<pre id="e-out"></pre>
+</section>
+
+<section id="mode-use" class="hidden">
+<h2>USE (one bounded provider request)</h2>
+<label for="u-manifest">Manifest digest (sha256:...)</label><input id="u-manifest" autocomplete="off" spellcheck="false">
+<label for="u-rid">Organization admission receipt id</label><input id="u-rid" autocomplete="off" spellcheck="false">
+<label for="u-rdigest">Organization admission receipt_sha256</label><input id="u-rdigest" autocomplete="off" spellcheck="false">
+<label for="u-rule">recomputation_rule_ref</label><input id="u-rule" autocomplete="off" spellcheck="false">
+<label for="u-attempt">attempt_id</label><input id="u-attempt" autocomplete="off" spellcheck="false">
+<label for="u-seconds">requested_seconds (1..300)</label><input id="u-seconds" value="120" inputmode="numeric">
+<label for="u-binding">sdk_manifest_binding (JSON)</label><textarea id="u-binding" spellcheck="false"></textarea>
+<label for="u-lease-binding">lease_sdk_manifest_binding (JSON)</label><textarea id="u-lease-binding" spellcheck="false"></textarea>
+<label for="u-consumed">consumed_attempt_ids (JSON array, from the ledger)</label><textarea id="u-consumed" spellcheck="false">[]</textarea>
+<label for="u-provider">Provider</label><select id="u-provider"><option value="anthropic">anthropic</option><option value="openai">openai</option></select>
+<label for="u-model">Model</label><input id="u-model" autocomplete="off" spellcheck="false">
+<label for="u-envelope">wrapped-root-envelope.json</label><textarea id="u-envelope" spellcheck="false"></textarea>
+<label for="u-sealed">Sealed provider credential</label><textarea id="u-sealed" spellcheck="false"></textarea>
+<label for="u-secret">Recovery secret</label><input id="u-secret" type="password" autocomplete="off" spellcheck="false">
+<button type="button" id="u-run">Admit and run one request</button>
+<div id="u-downloads" class="hidden"><button type="button" id="u-dl-receipt">attempt receipt (non-secret, for InTr delivery)</button></div>
+<pre id="u-out"></pre>
+</section>
+</main>
+<script>
+"use strict";
+var KVSKAP = (function () {
+  /* ======================= CONSTANTS ======================= */
+  var ENVELOPE_SCHEMA = "stegverse.skap.wrapped-root-envelope/v2";
+  var GENESIS_TRANSITION = "KV_SKAP_TRUST_GENESIS";
+  var KDF_NAME = "PBKDF2-HMAC-SHA256";
+  var AEAD_NAME = "AES-256-GCM";
+  var MIN_ITERATIONS = 600000;
+  var ROOT_KEY_ID_DOMAIN = "stegverse.skap.root-key-id/v1";
+  var SEALED_FORMAT = "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1";
+  var HKDF_INFO_PREFIX = "stegverse-skap-aes256gcm-v1";
+  var PROVIDER_CREDENTIAL_PURPOSE = "provider-credential";
+  var BOOTSTRAP_ANCHOR_PURPOSE = "kv-skap-bootstrap-anchor";
+  var BOOTSTRAP_ANCHOR_OBJECT_ID = "skap://kv-skap/bootstrap-anchor";
+  var BOOTSTRAP_ANCHOR_ENDPOINT_REF = "kv://_Vault/SKAP/Root/bootstrap-anchor.sealed.json";
+  var LOADER_REPOSITORY = "StegVerse-Labs/continuity-vault-kit";
+  var LOADER_PATH = "skap/loader/kv-skap-loader.html";
+  var PROVIDER_ENDPOINTS = {
+    anthropic: "https://api.anthropic.com/v1/messages",
+    openai: "https://api.openai.com/v1/responses"
+  };
+  var DEFAULT_MODELS = { anthropic: "claude-opus-5-5", openai: "gpt-4.1-mini" };
+  var RETRY_ENTRYPOINT = "StegVerse-Labs/TVC:tasks/TVC-CREDENTIAL-MODEL-CONSISTENCY-20260826.json#next_executable_actions";
+  var OWNING_GOAL = "TVC-CREDENTIAL-MODEL-CONSISTENCY-20260826";
+  var POLICY = {
+    "schema": "stegverse.tvc.policy-admission-policy/v1",
+    "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+    "credential_authority": "TV/TVC",
+    "derived_from_lease_schema": "stegverse.tvc.test-lane-capability-lease.v1",
+    "event_type": "POLICY_ADMISSION",
+    "transferable": false,
+    "signed": false,
+    "single_use": true,
+    "max_lease_seconds": 300,
+    "capabilities": { "anthropic": "llm.measure.anthropic", "openai": "llm.measure.openai" },
+    "required_false_flags": ["broadcast_allowed", "protected_values_exposed", "secret_export_allowed", "secret_values_exported", "signing_allowed", "signing_authority", "wallet_contact_allowed"],
+    "require_sdk_manifest_binding_equality": true
+  };
+  var EXPECTED_POLICY_HASH = "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609";
+  var PREDICATES = ["POLICY_ADMISSION_REQUEST_SCHEMA_VALID", "PROVIDER_CAPABILITY_ADMITTED", "LEASE_DURATION_WITHIN_POLICY", "REQUIRED_FALSE_FLAGS_FALSE", "SDK_MANIFEST_BINDING_EQUAL", "ATTEMPT_NOT_REPLAYED"];
+  var SDK_BINDING_FIELDS = ["canonical_manifest_sha256", "processing_capability", "request_sha256", "route_id"];
+
+  function LoaderError(code, message) {
+    var e = new Error(code + ": " + message);
+    e.code = code;
+    return e;
+  }
+
+  /* ======================= PURE: encoding ======================= */
+  var ASCII_RE = /^[\x00-\x7f]*$/;
+  function hasOwn(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function isPlainObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v) && !(v instanceof Uint8Array); }
+  function isHex(s, n) { return typeof s === "string" && s.length === n && /^[0-9a-f]*$/.test(s); }
+  function isDigest(s) { return typeof s === "string" && s.slice(0, 7) === "sha256:" && isHex(s.slice(7), 64); }
+  function asciiBytes(s) {
+    if (!ASCII_RE.test(s)) { throw LoaderError("CANONICAL_NON_ASCII", "non-ASCII text"); }
+    var out = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) { out[i] = s.charCodeAt(i); }
+    return out;
+  }
+  function bytesToAscii(b) {
+    var s = "";
+    for (var i = 0; i < b.length; i++) {
+      if (b[i] > 0x7f) { throw LoaderError("CANONICAL_NON_ASCII", "non-ASCII bytes"); }
+      s += String.fromCharCode(b[i]);
+    }
+    return s;
+  }
+  function concatBytes(parts) {
+    var n = 0, i, off = 0;
+    for (i = 0; i < parts.length; i++) { n += parts[i].length; }
+    var out = new Uint8Array(n);
+    for (i = 0; i < parts.length; i++) { out.set(parts[i], off); off += parts[i].length; }
+    return out;
+  }
+  function wipe(b) { if (b && typeof b.fill === "function") { b.fill(0); } }
+  function hexEncode(b) { var s = ""; for (var i = 0; i < b.length; i++) { s += (b[i] < 16 ? "0" : "") + b[i].toString(16); } return s; }
+  function hexDecode(s) {
+    if (typeof s !== "string" || s.length % 2 || !/^[0-9a-f]*$/.test(s)) { throw LoaderError("FIELD_INVALID", "invalid hex"); }
+    var out = new Uint8Array(s.length / 2);
+    for (var i = 0; i < out.length; i++) { out[i] = parseInt(s.substr(i * 2, 2), 16); }
+    return out;
+  }
+  var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  function b64url(b) {
+    var s = "", i;
+    for (i = 0; i + 2 < b.length; i += 3) {
+      var n = (b[i] << 16) | (b[i + 1] << 8) | b[i + 2];
+      s += B64[(n >> 18) & 63] + B64[(n >> 12) & 63] + B64[(n >> 6) & 63] + B64[n & 63];
+    }
+    if (b.length - i === 1) { var m = b[i] << 16; s += B64[(m >> 18) & 63] + B64[(m >> 12) & 63]; }
+    else if (b.length - i === 2) { var p = (b[i] << 16) | (b[i + 1] << 8); s += B64[(p >> 18) & 63] + B64[(p >> 12) & 63] + B64[(p >> 6) & 63]; }
+    return s;
+  }
+  function unb64url(s, code) {
+    if (typeof s !== "string" || !s.length || !/^[A-Za-z0-9_-]*$/.test(s) || s.length % 4 === 1) { throw LoaderError(code || "ENVELOPE_INVALID", "invalid base64url field"); }
+    var out = [], acc = 0, bits = 0;
+    for (var i = 0; i < s.length; i++) {
+      acc = (acc << 6) | B64.indexOf(s[i]); bits += 6;
+      if (bits >= 8) { bits -= 8; out.push((acc >> bits) & 255); }
+    }
+    return new Uint8Array(out);
+  }
+  var B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  function base32Encode(b) {
+    var s = "", acc = 0, bits = 0;
+    for (var i = 0; i < b.length; i++) {
+      acc = ((acc << 8) | b[i]) & 0xffff; bits += 8;
+      while (bits >= 5) { bits -= 5; s += B32[(acc >> bits) & 31]; }
+    }
+    if (bits > 0) { s += B32[(acc << (5 - bits)) & 31]; }
+    return s;
+  }
+
+  /* ======================= PURE: canonical JSON ======================= */
+  function canonicalString(v) {
+    if (v === null) { return "null"; }
+    if (v === true) { return "true"; }
+    if (v === false) { return "false"; }
+    if (typeof v === "number") {
+      if (!Number.isInteger(v)) { throw LoaderError("CANONICAL_NON_INTEGER", "integers only"); }
+      if (!Number.isSafeInteger(v)) { throw LoaderError("CANONICAL_UNSAFE_INTEGER", "integer outside safe range"); }
+      return String(v);
+    }
+    if (typeof v === "string") {
+      if (!ASCII_RE.test(v)) { throw LoaderError("CANONICAL_NON_ASCII", "non-ASCII string"); }
+      return JSON.stringify(v).replace(/\x7f/g, "\\u007f");
+    }
+    if (Array.isArray(v)) { return "[" + v.map(canonicalString).join(",") + "]"; }
+    if (isPlainObject(v)) {
+      var keys = Object.keys(v);
+      for (var i = 0; i < keys.length; i++) {
+        if (!ASCII_RE.test(keys[i])) { throw LoaderError("CANONICAL_NON_ASCII", "non-ASCII key"); }
+      }
+      keys.sort();
+      return "{" + keys.map(function (k) { return JSON.stringify(k).replace(/\x7f/g, "\\u007f") + ":" + canonicalString(v[k]); }).join(",") + "}";
+    }
+    throw LoaderError("CANONICAL_TYPE", "type not admitted");
+  }
+  function canonicalBytes(v) { return asciiBytes(canonicalString(v)); }
+
+  /* ======================= CRYPTO (WebCrypto only) ======================= */
+  function subtle() { return globalThis.crypto.subtle; }
+  function randomBytes(n) { var b = new Uint8Array(n); globalThis.crypto.getRandomValues(b); return b; }
+  async function sha256Bytes(b) { return new Uint8Array(await subtle().digest("SHA-256", b)); }
+  async function sha256Hex(b) { return hexEncode(await sha256Bytes(b)); }
+  async function digest(v) { return "sha256:" + (await sha256Hex(canonicalBytes(v))); }
+
+  function formatRecoverySecret(secret) {
+    if (!secret || secret.length !== 20) { throw LoaderError("RECOVERY_SECRET_INVALID", "recovery secret must be exactly 20 bytes"); }
+    var t = base32Encode(secret), groups = [];
+    for (var i = 0; i < t.length; i += 4) { groups.push(t.slice(i, i + 4)); }
+    return groups.join("-");
+  }
+  function parseRecoverySecret(text) {
+    if (typeof text !== "string") { throw LoaderError("RECOVERY_SECRET_INVALID", "recovery secret must be text"); }
+    var c = text.replace(/[-\s]/g, "").toUpperCase();
+    if (c.length !== 32 || !/^[A-Z2-7]*$/.test(c)) { throw LoaderError("RECOVERY_SECRET_INVALID", "recovery secret must decode to exactly 20 bytes"); }
+    var out = new Uint8Array(20), acc = 0, bits = 0, j = 0;
+    for (var i = 0; i < c.length; i++) {
+      acc = ((acc << 5) | B32.indexOf(c[i])) & 0xffff; bits += 5;
+      if (bits >= 8) { bits -= 8; out[j++] = (acc >> bits) & 255; }
+    }
+    return out;
+  }
+
+  async function rootKeyId(rootKey) {
+    if (!rootKey || rootKey.length !== 32) { throw LoaderError("ROOT_KEY_INVALID", "root key must be exactly 256 bits"); }
+    var data = concatBytes([asciiBytes(ROOT_KEY_ID_DOMAIN), new Uint8Array([0]), rootKey]);
+    try { return "sha256:" + (await sha256Hex(data)); } finally { wipe(data); }
+  }
+  function envelopeAad(kvIdentity, keyId, kdf, policyHash) {
+    return canonicalBytes({ schema: ENVELOPE_SCHEMA, kv_identity: kvIdentity, root_key_id: keyId, kdf: kdf, policy_hash: policyHash });
+  }
+  async function deriveWrappingKey(secret, salt, iterations) {
+    if (!secret || secret.length !== 20) { throw LoaderError("RECOVERY_SECRET_INVALID", "recovery secret must be exactly 20 bytes"); }
+    if (!Number.isInteger(iterations) || iterations < MIN_ITERATIONS) { throw LoaderError("KDF_DOWNGRADE", "PBKDF2 iterations below 600000 refused (downgrade)"); }
+    if (salt.length !== 16) { throw LoaderError("ENVELOPE_INVALID", "KDF salt must be exactly 16 bytes"); }
+    var base = await subtle().importKey("raw", secret, "PBKDF2", false, ["deriveKey"]);
+    return subtle().deriveKey({ name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: iterations }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  function requireText(v, name) {
+    if (typeof v !== "string" || !v.length || !ASCII_RE.test(v)) { throw LoaderError("FIELD_INVALID", name + " must be non-empty ASCII text"); }
+    return v;
+  }
+  function requireDigest(v, name) {
+    if (!isDigest(v)) { throw LoaderError("FIELD_INVALID", name + " must be a sha256:<64 lowercase hex> digest"); }
+    return v;
+  }
+
+  /* opts.testVectorSalt / opts.testVectorNonce: TEST-VECTOR-ONLY; the UI never passes them. */
+  async function wrapRootKey(rootKey, secret, kvIdentity, policyHash, iterations, opts) {
+    requireText(kvIdentity, "kv_identity");
+    requireDigest(policyHash, "policy_hash");
+    var keyId = await rootKeyId(rootKey);
+    var salt, nonce;
+    if (opts && (opts.testVectorSalt || opts.testVectorNonce)) {
+      if (!opts.testVectorSalt || !opts.testVectorNonce || opts.testVectorSalt.length !== 16 || opts.testVectorNonce.length !== 12) { throw LoaderError("TEST_VECTOR_INJECTION_INVALID", "test-vector salt and nonce must be supplied together"); }
+      salt = opts.testVectorSalt; nonce = opts.testVectorNonce;
+    } else { salt = randomBytes(16); nonce = randomBytes(12); }
+    var kdf = { name: KDF_NAME, iterations: iterations, salt_b64url: b64url(salt) };
+    var aad = envelopeAad(kvIdentity, keyId, kdf, policyHash);
+    var wk = await deriveWrappingKey(secret, salt, iterations);
+    var ct = new Uint8Array(await subtle().encrypt({ name: "AES-GCM", iv: nonce, additionalData: aad, tagLength: 128 }, wk, rootKey));
+    return {
+      schema: ENVELOPE_SCHEMA, kv_identity: kvIdentity, root_key_id: keyId, policy_hash: policyHash,
+      created_by_transition: GENESIS_TRANSITION, kdf: kdf,
+      aead: { name: AEAD_NAME, nonce_b64url: b64url(nonce), ciphertext_b64url: b64url(ct) }
+    };
+  }
+  function sameKeys(o, keys) {
+    var k = Object.keys(o).sort(), e = keys.slice().sort();
+    return k.length === e.length && k.every(function (x, i) { return x === e[i]; });
+  }
+  function validateEnvelopeShape(env) {
+    if (!isPlainObject(env)) { throw LoaderError("ENVELOPE_INVALID", "envelope must be an object"); }
+    if (!sameKeys(env, ["schema", "kv_identity", "root_key_id", "policy_hash", "created_by_transition", "kdf", "aead"])) { throw LoaderError("ENVELOPE_INVALID", "envelope fields do not match schema"); }
+    if (env.schema !== ENVELOPE_SCHEMA) { throw LoaderError("ENVELOPE_INVALID", "unsupported envelope schema"); }
+    if (env.created_by_transition !== GENESIS_TRANSITION) { throw LoaderError("ENVELOPE_INVALID", "envelope not created by KV_SKAP_TRUST_GENESIS"); }
+    requireText(env.kv_identity, "kv_identity"); requireDigest(env.root_key_id, "root_key_id"); requireDigest(env.policy_hash, "policy_hash");
+    var kdf = env.kdf, aead = env.aead;
+    if (!isPlainObject(kdf) || !sameKeys(kdf, ["name", "iterations", "salt_b64url"]) || kdf.name !== KDF_NAME) { throw LoaderError("ENVELOPE_INVALID", "unsupported KDF"); }
+    if (!Number.isInteger(kdf.iterations) || kdf.iterations < MIN_ITERATIONS) { throw LoaderError("KDF_DOWNGRADE", "PBKDF2 iterations below 600000 refused (downgrade)"); }
+    if (!isPlainObject(aead) || !sameKeys(aead, ["name", "nonce_b64url", "ciphertext_b64url"]) || aead.name !== AEAD_NAME) { throw LoaderError("ENVELOPE_INVALID", "unsupported AEAD"); }
+  }
+  /* Root key bytes exist only inside consumer(rootKey); they are wiped afterwards. */
+  async function unwrapRootKeyTransiently(env, secret, consumer, expect) {
+    validateEnvelopeShape(env);
+    expect = expect || {};
+    if (expect.kvIdentity !== undefined && env.kv_identity !== expect.kvIdentity) { throw LoaderError("BINDING_MISMATCH", "envelope kv_identity binding mismatch"); }
+    if (expect.policyHash !== undefined && env.policy_hash !== expect.policyHash) { throw LoaderError("BINDING_MISMATCH", "envelope policy_hash binding mismatch"); }
+    var salt = unb64url(env.kdf.salt_b64url), nonce = unb64url(env.aead.nonce_b64url), ct = unb64url(env.aead.ciphertext_b64url);
+    if (nonce.length !== 12 || ct.length !== 48) { throw LoaderError("ENVELOPE_INVALID", "envelope cryptographic dimensions invalid"); }
+    var aad = envelopeAad(env.kv_identity, env.root_key_id, env.kdf, env.policy_hash);
+    var wk = await deriveWrappingKey(secret, salt, env.kdf.iterations);
+    var key;
+    try { key = new Uint8Array(await subtle().decrypt({ name: "AES-GCM", iv: nonce, additionalData: aad, tagLength: 128 }, wk, ct)); }
+    catch (e) { throw LoaderError("ENVELOPE_AUTH_FAILED", "envelope authentication/decryption failed"); }
+    try {
+      if ((await rootKeyId(key)) !== env.root_key_id) { throw LoaderError("ENVELOPE_AUTH_FAILED", "unwrapped root key does not match root_key_id"); }
+      return await consumer(key);
+    } finally { wipe(key); }
+  }
+
+  /* ---- crypto_boundary.py compatible seal/open (byte-for-byte format) ---- */
+  function aadContext(b) {
+    if (typeof b.object_id !== "string" || b.object_id.slice(0, 7) !== "skap://") { throw LoaderError("SEALED_BINDING_INVALID", "object_id must use skap://"); }
+    if (!Number.isInteger(b.credential_version) || b.credential_version < 1) { throw LoaderError("SEALED_BINDING_INVALID", "credential_version must be >= 1"); }
+    if (!b.wrapping_policy_ref || !b.purpose || !b.endpoint_ref) { throw LoaderError("SEALED_BINDING_INVALID", "wrapping policy, purpose and endpoint are required"); }
+    return { object_id: b.object_id, credential_version: b.credential_version, wrapping_policy_ref: b.wrapping_policy_ref, purpose: b.purpose, endpoint_ref: b.endpoint_ref };
+  }
+  async function deriveObjectKey(rootKey, salt, aad) {
+    if (!rootKey || rootKey.length < 32) { throw LoaderError("ROOT_KEY_INVALID", "root key material must contain at least 256 bits"); }
+    var info = concatBytes([asciiBytes(HKDF_INFO_PREFIX), new Uint8Array([0]), await sha256Bytes(aad)]);
+    var base = await subtle().importKey("raw", rootKey, "HKDF", false, ["deriveKey"]);
+    return subtle().deriveKey({ name: "HKDF", hash: "SHA-256", salt: salt, info: info }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  /* opts.testVectorSalt / opts.testVectorNonce: TEST-VECTOR-ONLY; the UI never passes them. */
+  async function sealObject(plaintext, rootKey, bindings, opts) {
+    if (!(plaintext instanceof Uint8Array) || !plaintext.length) { throw LoaderError("SEALED_BINDING_INVALID", "non-empty plaintext bytes are required"); }
+    if (!bindings.key_authority_ref) { throw LoaderError("SEALED_BINDING_INVALID", "key_authority_ref is required"); }
+    var ctx = aadContext(bindings), aad = canonicalBytes(ctx), salt, nonce;
+    if (opts && (opts.testVectorSalt || opts.testVectorNonce)) {
+      if (!opts.testVectorSalt || !opts.testVectorNonce || opts.testVectorSalt.length !== 32 || opts.testVectorNonce.length !== 12) { throw LoaderError("TEST_VECTOR_INJECTION_INVALID", "test-vector salt and nonce must be supplied together"); }
+      salt = opts.testVectorSalt; nonce = opts.testVectorNonce;
+    } else { salt = randomBytes(32); nonce = randomBytes(12); }
+    var key = await deriveObjectKey(rootKey, salt, aad);
+    var ct = new Uint8Array(await subtle().encrypt({ name: "AES-GCM", iv: nonce, additionalData: aad, tagLength: 128 }, key, plaintext));
+    return {
+      format: SEALED_FORMAT, object_id: ctx.object_id, credential_version: ctx.credential_version,
+      wrapping_policy_ref: ctx.wrapping_policy_ref, purpose: ctx.purpose, endpoint_ref: ctx.endpoint_ref,
+      key_authority_ref: bindings.key_authority_ref, kdf_salt_b64: b64url(salt), nonce_b64: b64url(nonce),
+      aad_hash: "sha256:" + (await sha256Hex(aad)), ciphertext_b64: b64url(ct),
+      plaintext_persisted: false, key_material_persisted: false, authority_transfer: false
+    };
+  }
+  async function sealedMaterialHash(sealed) { return digest(sealed); }
+  /* Plaintext exists only inside consumer(bytes); wiped afterwards. */
+  async function openObjectTransiently(sealed, rootKey, bindings, consumer) {
+    if (!isPlainObject(sealed) || sealed.format !== SEALED_FORMAT) { throw LoaderError("SEALED_FORMAT", "unsupported sealed material format"); }
+    if (["plaintext_persisted", "key_material_persisted", "authority_transfer"].some(function (f) { return sealed[f] !== false; })) { throw LoaderError("SEALED_BOUNDARY_VIOLATION", "sealed material violates non-persistence/non-authority boundary"); }
+    var expected = aadContext(bindings);
+    for (var f in expected) { if (hasOwn(expected, f) && sealed[f] !== expected[f]) { throw LoaderError("SEALED_BINDING_MISMATCH", "sealed material " + f + " binding mismatch"); } }
+    if (sealed.key_authority_ref !== bindings.key_authority_ref) { throw LoaderError("SEALED_BINDING_MISMATCH", "sealed material key authority mismatch"); }
+    var aad = canonicalBytes(expected);
+    if (sealed.aad_hash !== "sha256:" + (await sha256Hex(aad))) { throw LoaderError("SEALED_BINDING_MISMATCH", "sealed material AAD hash mismatch"); }
+    var salt = unb64url(String(sealed.kdf_salt_b64 || ""), "SEALED_FORMAT"), nonce = unb64url(String(sealed.nonce_b64 || ""), "SEALED_FORMAT"), ct = unb64url(String(sealed.ciphertext_b64 || ""), "SEALED_FORMAT");
+    if (salt.length !== 32 || nonce.length !== 12 || ct.length < 16) { throw LoaderError("SEALED_FORMAT", "sealed material cryptographic dimensions invalid"); }
+    var key = await deriveObjectKey(rootKey, salt, aad), pt;
+    try { pt = new Uint8Array(await subtle().decrypt({ name: "AES-GCM", iv: nonce, additionalData: aad, tagLength: 128 }, key, ct)); }
+    catch (e) { throw LoaderError("SEALED_AUTH_FAILED", "sealed material authentication/decryption failed"); }
+    try { return await consumer(pt); } finally { wipe(pt); }
+  }
+  function providerCredentialBindings(provider, policyHash, keyId, credentialVersion) {
+    if (!hasOwn(PROVIDER_ENDPOINTS, provider)) { throw LoaderError("FIELD_INVALID", "provider must be openai or anthropic"); }
+    requireDigest(policyHash, "policy_hash"); requireDigest(keyId, "root_key_id");
+    return { object_id: "skap://provider/" + provider + "/api-key", credential_version: credentialVersion || 1, wrapping_policy_ref: policyHash, purpose: PROVIDER_CREDENTIAL_PURPOSE, endpoint_ref: PROVIDER_ENDPOINTS[provider], key_authority_ref: "kv-wrapped://" + keyId };
+  }
+  function bootstrapAnchorBindings(policyHash, keyId) {
+    requireDigest(policyHash, "policy_hash"); requireDigest(keyId, "root_key_id");
+    return { object_id: BOOTSTRAP_ANCHOR_OBJECT_ID, credential_version: 1, wrapping_policy_ref: policyHash, purpose: BOOTSTRAP_ANCHOR_PURPOSE, endpoint_ref: BOOTSTRAP_ANCHOR_ENDPOINT_REF, key_authority_ref: "kv-wrapped://" + keyId };
+  }
+  function buildBootstrapAnchor(a) {
+    if (!isHex(a.loader_sha256, 64)) { throw LoaderError("FIELD_INVALID", "loader_sha256 must be 64 lowercase hex characters"); }
+    return canonicalBytes({
+      loader_sha256: a.loader_sha256,
+      loader_source: { repository: requireText(a.repository, "repository"), commit: requireText(a.commit, "commit"), path: requireText(a.path, "path") },
+      policy_hash: requireDigest(a.policy_hash, "policy_hash"),
+      kv_identity: requireText(a.kv_identity, "kv_identity"),
+      genesis_manifest_digest: requireDigest(a.genesis_manifest_digest, "genesis_manifest_digest"),
+      predecessor_state: requireText(a.predecessor_state, "predecessor_state")
+    });
+  }
+
+  /* ======================= PURE: POLICY_ADMISSION (mirrors TVC tvc_policy_admission.py) ======================= */
+  function wellFormedBinding(b) {
+    if (!sameKeys(b, SDK_BINDING_FIELDS)) { return false; }
+    if (!isHex(b.request_sha256, 64) || !isHex(b.canonical_manifest_sha256, 64)) { return false; }
+    return typeof b.processing_capability === "string" && b.processing_capability.length > 0 && typeof b.route_id === "string" && b.route_id.length > 0;
+  }
+  function nonEmptyString(v) { return typeof v === "string" && v.length > 0; }
+  function failedPredicate(r, policy) {
+    if (r.schema !== "stegverse.tvc.policy-admission-request/v1"
+      || !["attempt_id", "manifest_digest", "provider", "capability"].every(function (f) { return nonEmptyString(r[f]); })
+      || r.manifest_digest.slice(0, 7) !== "sha256:"
+      || !Number.isInteger(r.requested_seconds) || !Number.isInteger(r.now_epoch_seconds)
+      || !isPlainObject(r.sdk_manifest_binding) || !isPlainObject(r.lease_sdk_manifest_binding)
+      || !isPlainObject(r.flags) || !Array.isArray(r.consumed_attempt_ids)) { return PREDICATES[0]; }
+    var caps = policy.capabilities;
+    if (!hasOwn(caps, r.provider) || caps[r.provider] !== r.capability) { return PREDICATES[1]; }
+    if (!(r.requested_seconds >= 1 && r.requested_seconds <= policy.max_lease_seconds)) { return PREDICATES[2]; }
+    if (policy.required_false_flags.some(function (n) { return !hasOwn(r.flags, n) || r.flags[n] !== false; })) { return PREDICATES[3]; }
+    if (policy.require_sdk_manifest_binding_equality && (!wellFormedBinding(r.sdk_manifest_binding) || canonicalString(r.sdk_manifest_binding) !== canonicalString(r.lease_sdk_manifest_binding))) { return PREDICATES[4]; }
+    if (r.consumed_attempt_ids.indexOf(r.attempt_id) !== -1) { return PREDICATES[5]; }
+    return null;
+  }
+  async function evaluatePolicyAdmission(request, policy) {
+    policy = policy || POLICY;
+    if (!isPlainObject(request)) { throw LoaderError("CANONICAL_TYPE", "request must be an object"); }
+    canonicalString(request);
+    var failed = failedPredicate(request, policy);
+    var now = Number.isInteger(request.now_epoch_seconds) ? request.now_epoch_seconds : 0;
+    var provider = typeof request.provider === "string" ? request.provider : "";
+    var capability = hasOwn(policy.capabilities, provider) ? policy.capabilities[provider] : (typeof request.capability === "string" ? request.capability : "");
+    var seconds = failed === null ? Math.min(request.requested_seconds, policy.max_lease_seconds) : 0;
+    var receipt = {
+      schema: "stegverse.tvc.policy-admission-receipt/v1", event_type: "POLICY_ADMISSION",
+      decision: failed === null ? "ALLOW_CAPABILITY_LEASE" : "DENY", failed_predicate: failed,
+      policy_hash: await digest(policy), policy_id: policy.policy_id,
+      attempt_id: typeof request.attempt_id === "string" ? request.attempt_id : "",
+      manifest_digest: typeof request.manifest_digest === "string" ? request.manifest_digest : "",
+      provider: provider, capability: capability,
+      single_use: true, transferable: false, signed: false, secret_values_exported: false, protected_values_exposed: false,
+      issued_at_epoch_seconds: now, expires_at_epoch_seconds: now + seconds
+    };
+    receipt.receipt_sha256 = await digest(receipt);
+    return receipt;
+  }
+  /* The loader's own capability flags: it exports nothing, signs nothing, broadcasts nothing. */
+  function loaderFlags() {
+    var f = {};
+    POLICY.required_false_flags.forEach(function (n) { f[n] = false; });
+    return f;
+  }
+
+  /* ======================= PURE: non-ALLOW records and receipts ======================= */
+  function nonAllowRecord(r) {
+    var refs = Array.isArray(r.evidence_refs) && r.evidence_refs.length ? r.evidence_refs : ["kv-skap-loader:" + (r.failure_code || "UNSPECIFIED")];
+    return {
+      disposition: r.disposition || "FAIL_CLOSED",
+      failure_code: r.failure_code,
+      failed_predicate: r.failed_predicate || r.failure_code,
+      required_evidence_or_repair: r.required_evidence_or_repair,
+      retry_entrypoint: r.retry_entrypoint || RETRY_ENTRYPOINT,
+      owning_existing_goal: r.owning_existing_goal || OWNING_GOAL,
+      next_attempt: r.next_attempt || "Repair the named predicate, then start a new attempt from the retry entrypoint.",
+      evidence_refs: refs
+    };
+  }
+  /* Stage 1: existing-state check. Advisory; the Organization ledger fence is authoritative. */
+  function evaluateGenesisState(existingText, ownerAttestsAbsent) {
+    var text = typeof existingText === "string" ? existingText.trim() : "";
+    if (text.length) {
+      var parsed = null;
+      try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+      if (isPlainObject(parsed) && parsed.schema === ENVELOPE_SCHEMA) {
+        return { allow: false, record: nonAllowRecord({ disposition: "DENY", failure_code: "KV_SKAP_TRUST_GENESIS_ON_INITIALIZED_KV", failed_predicate: "KV_SKAP_ROOT_UNINITIALIZED", required_evidence_or_repair: "This KV already holds a wrapped root envelope. Use ENROLL/USE with the existing recovery secret, or follow the governed rotation path; genesis cannot run twice.", next_attempt: "None for genesis on this KV.", evidence_refs: ["kv:_Vault/SKAP/Root/wrapped-root-envelope.json", "root_key_id:" + (typeof parsed.root_key_id === "string" ? parsed.root_key_id : "unknown")] }) };
+      }
+      return { allow: false, record: nonAllowRecord({ disposition: "FAIL_CLOSED", failure_code: "KV_SKAP_GENESIS_STATE_UNVERIFIED", failed_predicate: "KV_SKAP_ROOT_STATE_DETERMINED", required_evidence_or_repair: "A file was supplied but is not a recognisable v2 wrapped-root envelope. Inspect KV/_Vault/SKAP/Root/ and resolve the ambiguity before genesis.", evidence_refs: ["kv:_Vault/SKAP/Root/wrapped-root-envelope.json"] }) };
+    }
+    if (ownerAttestsAbsent !== true) {
+      return { allow: false, record: nonAllowRecord({ disposition: "FAIL_CLOSED", failure_code: "KV_SKAP_GENESIS_STATE_UNVERIFIED", failed_predicate: "KV_SKAP_ROOT_STATE_DETERMINED", required_evidence_or_repair: "Either paste the existing wrapped-root-envelope.json or attest that KV/_Vault/SKAP/Root/ holds none.", evidence_refs: ["kv:_Vault/SKAP/Root/"] }) };
+    }
+    return { allow: true, predecessor_state: "KV_SKAP_ROOT_ABSENT_OWNER_ATTESTED" };
+  }
+  var RULE_REF_RE = /^StegVerse-Labs\/\.github@[0-9a-f]{40}:resident-runtime\/organization_manifest_ingress\.py$/;
+  function normaliseReceiptDigest(v) {
+    if (typeof v !== "string") { return null; }
+    var s = v.trim();
+    if (isHex(s, 64)) { return "sha256:" + s; }
+    return isDigest(s) ? s : null;
+  }
+  /* Stage 2: owner-supplied inputs; must pass before any secret is generated. */
+  function validateGenesisInputs(i) {
+    var problems = [];
+    if (!nonEmptyString(i.kv_identity) || !ASCII_RE.test(i.kv_identity)) { problems.push("kv_identity"); }
+    if (!isDigest(i.genesis_manifest_digest)) { problems.push("genesis_manifest_digest"); }
+    if (!nonEmptyString(i.org_receipt_id) || !ASCII_RE.test(i.org_receipt_id)) { problems.push("organization_receipt_id"); }
+    if (!normaliseReceiptDigest(i.org_receipt_sha256)) { problems.push("organization_receipt_sha256"); }
+    if (typeof i.recomputation_rule_ref !== "string" || !RULE_REF_RE.test(i.recomputation_rule_ref)) { problems.push("recomputation_rule_ref"); }
+    if (!isHex(i.loader_sha256, 64)) { problems.push("loader_sha256"); }
+    if (!isHex(i.loader_commit, 40)) { problems.push("loader_commit"); }
+    if (problems.length) {
+      return { ok: false, record: nonAllowRecord({ disposition: "FAIL_CLOSED", failure_code: "KV_SKAP_GENESIS_ADMISSION_INPUT_INVALID", failed_predicate: "GENESIS_STAGE2_INPUTS_VERIFIED", required_evidence_or_repair: "Supply valid values for: " + problems.join(", ") + ". recomputation_rule_ref must name a 40-hex StegVerse-Labs/.github revision of resident-runtime/organization_manifest_ingress.py.", evidence_refs: problems.map(function (p) { return "input:" + p; }) }) };
+    }
+    return { ok: true, org_receipt_sha256: normaliseReceiptDigest(i.org_receipt_sha256) };
+  }
+  async function buildGenesisReceipt(g) {
+    var r = {
+      schema: "stegverse.kv-skap.genesis-receipt/v1",
+      transition: GENESIS_TRANSITION,
+      disposition: "GENESIS_MATERIAL_PRODUCED_PENDING_LEDGER_FENCE",
+      kv_identity: g.kv_identity, root_key_id: g.root_key_id, policy_hash: g.policy_hash,
+      envelope_sha256: g.envelope_sha256, bootstrap_anchor_sealed_material_hash: g.anchor_hash,
+      genesis_manifest_digest: g.genesis_manifest_digest,
+      organization_admission_receipt: { receipt_id: g.org_receipt_id, receipt_sha256: g.org_receipt_sha256, recomputation_rule_ref: g.recomputation_rule_ref },
+      loader_sha256_owner_verified: g.loader_sha256,
+      loader_source: { repository: LOADER_REPOSITORY, commit: g.loader_commit, path: LOADER_PATH },
+      predecessor_state: g.predecessor_state,
+      exactly_once_fence: "Organization ledger append and readback of this receipt is authoritative; the loader-local check is advisory.",
+      ledger_fence_satisfied: false,
+      created_at_epoch_seconds: g.now,
+      recovery_secret_persisted: false, root_key_persisted: false, secret_values_exported: false
+    };
+    r.receipt_sha256 = await digest(r);
+    return r;
+  }
+
+  /* ======================= GENESIS / ENROLL (orchestration) ======================= */
+  async function runGenesis(input) {
+    var state = evaluateGenesisState(input.existing_text, input.owner_attests_absent);
+    if (!state.allow) { return { ok: false, record: state.record }; }
+    var v = validateGenesisInputs(input);
+    if (!v.ok) { return { ok: false, record: v.record }; }
+    var policyHash = await digest(POLICY);
+    if (policyHash !== EXPECTED_POLICY_HASH) { return { ok: false, record: nonAllowRecord({ failure_code: "POLICY_HASH_MISMATCH", required_evidence_or_repair: "Embedded policy does not hash to the pinned policy_hash.", evidence_refs: ["policy_hash:" + EXPECTED_POLICY_HASH] }) }; }
+    var secret = randomBytes(20), rootKey = randomBytes(32);
+    try {
+      var envelope = await wrapRootKey(rootKey, secret, input.kv_identity, policyHash, MIN_ITERATIONS);
+      var anchorPlain = buildBootstrapAnchor({ loader_sha256: input.loader_sha256, repository: LOADER_REPOSITORY, commit: input.loader_commit, path: LOADER_PATH, policy_hash: policyHash, kv_identity: input.kv_identity, genesis_manifest_digest: input.genesis_manifest_digest, predecessor_state: state.predecessor_state });
+      var anchorSealed = await sealObject(anchorPlain, rootKey, bootstrapAnchorBindings(policyHash, envelope.root_key_id));
+      var receipt = await buildGenesisReceipt({ kv_identity: input.kv_identity, root_key_id: envelope.root_key_id, policy_hash: policyHash, envelope_sha256: await digest(envelope), anchor_hash: await sealedMaterialHash(anchorSealed), genesis_manifest_digest: input.genesis_manifest_digest, org_receipt_id: input.org_receipt_id, org_receipt_sha256: v.org_receipt_sha256, recomputation_rule_ref: input.recomputation_rule_ref, loader_sha256: input.loader_sha256, loader_commit: input.loader_commit, predecessor_state: state.predecessor_state, now: input.now_epoch_seconds });
+      return { ok: true, recovery_secret_text: formatRecoverySecret(secret), envelope: envelope, anchor_sealed: anchorSealed, receipt: receipt };
+    } finally { wipe(secret); wipe(rootKey); }
+  }
+  async function runEnroll(input) {
+    var provider = input.provider;
+    var apiKeyBytes = asciiBytes(String(input.api_key || "").trim());
+    try {
+      if (!apiKeyBytes.length) { throw LoaderError("FIELD_INVALID", "provider API key is required"); }
+      var secret = parseRecoverySecret(input.recovery_secret_text);
+      try {
+        var env = input.envelope;
+        var b = providerCredentialBindings(provider, env.policy_hash, env.root_key_id, 1);
+        var sealed = await unwrapRootKeyTransiently(env, secret, function (rootKey) { return sealObject(apiKeyBytes, rootKey, b); }, { policyHash: EXPECTED_POLICY_HASH });
+        var receipt = { schema: "stegverse.kv-skap.enrollment-receipt/v1", provider: provider, object_id: b.object_id, purpose: b.purpose, endpoint_ref: b.endpoint_ref, kv_path: "_Vault/SKAP/Sealed/provider-" + provider + "-api-key.sealed.json", key_authority_ref: b.key_authority_ref, root_key_id: env.root_key_id, policy_hash: env.policy_hash, sealed_material_hash: await sealedMaterialHash(sealed), credential_persisted_plaintext: false, secret_values_exported: false, created_at_epoch_seconds: input.now_epoch_seconds };
+        receipt.receipt_sha256 = await digest(receipt);
+        return { ok: true, sealed: sealed, receipt: receipt };
+      } finally { wipe(secret); }
+    } finally { wipe(apiKeyBytes); }
+  }
+
+  /* ======================= USE: provider request (one bounded call) ======================= */
+  function buildProviderRequest(provider, model, apiKey) {
+    if (provider === "anthropic") {
+      return { url: PROVIDER_ENDPOINTS.anthropic, init: { method: "POST", credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer",
+        headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model: model, max_tokens: 64, output_config: { effort: "low" }, messages: [{ role: "user", content: "Reply with the single word OK." }] }) } };
+    }
+    if (provider === "openai") {
+      return { url: PROVIDER_ENDPOINTS.openai, init: { method: "POST", credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer",
+        headers: { "content-type": "application/json", "authorization": "Bearer " + apiKey },
+        body: JSON.stringify({ model: model, max_output_tokens: 16, input: "Reply with the single word OK." }) } };
+    }
+    throw LoaderError("FIELD_INVALID", "provider must be openai or anthropic");
+  }
+  function requestIdHeader(provider) { return provider === "anthropic" ? "request-id" : "x-request-id"; }
+  function validateUsePresence(i) {
+    var missing = [];
+    if (!isDigest(i.manifest_digest)) { missing.push("manifest_digest"); }
+    if (!nonEmptyString(i.org_receipt_id)) { missing.push("organization_receipt_id"); }
+    if (!normaliseReceiptDigest(i.org_receipt_sha256)) { missing.push("organization_receipt_sha256"); }
+    if (typeof i.recomputation_rule_ref !== "string" || !RULE_REF_RE.test(i.recomputation_rule_ref)) { missing.push("recomputation_rule_ref"); }
+    return missing;
+  }
+  /*
+   * One attempt: presence check -> POLICY_ADMISSION -> (ALLOW only) unwrap root -> unseal key ->
+   * ONE fetch inside the same scope -> wipe. Returns a non-secret attempt receipt.
+   * deps.fetch and deps.now are injectable for tests; the UI passes the browser fetch.
+   */
+  async function runUseAttempt(input, deps) {
+    var clock = deps.now;
+    var t0 = clock();
+    var missing = validateUsePresence(input);
+    if (missing.length) {
+      return { ok: false, record: nonAllowRecord({ failure_code: "KV_SKAP_USE_ADMISSION_EVIDENCE_MISSING", failed_predicate: "MANIFEST_AND_ORGANIZATION_RECEIPT_PRESENT", required_evidence_or_repair: "Supply: " + missing.join(", "), evidence_refs: missing.map(function (m) { return "input:" + m; }) }) };
+    }
+    var request = {
+      schema: "stegverse.tvc.policy-admission-request/v1", attempt_id: input.attempt_id, manifest_digest: input.manifest_digest,
+      provider: input.provider, capability: hasOwn(POLICY.capabilities, input.provider) ? POLICY.capabilities[input.provider] : String(input.provider),
+      requested_seconds: input.requested_seconds, now_epoch_seconds: Math.floor(t0 / 1000),
+      sdk_manifest_binding: input.sdk_manifest_binding, lease_sdk_manifest_binding: input.lease_sdk_manifest_binding,
+      flags: loaderFlags(), consumed_attempt_ids: input.consumed_attempt_ids
+    };
+    var admission = await evaluatePolicyAdmission(request);
+    if (admission.decision !== "ALLOW_CAPABILITY_LEASE") {
+      return { ok: false, admission: admission, record: nonAllowRecord({ disposition: "DENY", failure_code: "POLICY_ADMISSION_DENIED", failed_predicate: admission.failed_predicate, required_evidence_or_repair: "Repair " + admission.failed_predicate + " and start a new attempt with a fresh attempt_id.", evidence_refs: ["policy_admission_receipt:" + admission.receipt_sha256] }) };
+    }
+    var timings = { started_at_ms: t0 }, status = null, reqId = null, respDigest = null, transportError = null;
+    var secret = parseRecoverySecret(input.recovery_secret_text);
+    try {
+      var env = input.envelope, b = providerCredentialBindings(input.provider, env.policy_hash, env.root_key_id, input.sealed && input.sealed.credential_version);
+      await unwrapRootKeyTransiently(env, secret, function (rootKey) {
+        timings.unwrapped_at_ms = clock();
+        return openObjectTransiently(input.sealed, rootKey, b, async function (keyBytes) {
+          /* The key string lives only in this scope and in the request header. */
+          var req = buildProviderRequest(input.provider, input.model, bytesToAscii(keyBytes));
+          timings.request_started_at_ms = clock();
+          try {
+            var resp = await deps.fetch(req.url, req.init);
+            status = resp.status;
+            reqId = resp.headers && typeof resp.headers.get === "function" ? resp.headers.get(requestIdHeader(input.provider)) : null;
+            var body = new Uint8Array(await resp.arrayBuffer());
+            respDigest = "sha256:" + (await sha256Hex(body));
+            wipe(body);
+          } catch (e) {
+            transportError = (e && e.name) ? String(e.name) : "TransportError";
+          } finally {
+            req.init.headers = null; req = null;
+            timings.request_finished_at_ms = clock();
+          }
+        });
+      }, { policyHash: EXPECTED_POLICY_HASH });
+    } finally { wipe(secret); }
+    var receipt = {
+      schema: "stegverse.kv-skap.provider-attempt-receipt/v1",
+      attempt_id: input.attempt_id, provider: input.provider, endpoint: PROVIDER_ENDPOINTS[input.provider], model: input.model,
+      policy_admission_receipt: admission,
+      organization_admission_receipt: { receipt_id: input.org_receipt_id, receipt_sha256: normaliseReceiptDigest(input.org_receipt_sha256), recomputation_rule_ref: input.recomputation_rule_ref },
+      sealed_material_hash: await sealedMaterialHash(input.sealed), root_key_id: input.envelope.root_key_id,
+      provider_http_status: status, provider_request_id: reqId, response_sha256: respDigest, transport_error: transportError,
+      timings_ms: { unwrap: (timings.unwrapped_at_ms || t0) - t0, request: (timings.request_finished_at_ms || t0) - (timings.request_started_at_ms || t0), total: clock() - t0 },
+      started_at_epoch_ms: t0,
+      credential_exported: false, secret_values_exported: false,
+      intr_delivery: "PENDING_OWNER_DELIVERY"
+    };
+    receipt.receipt_sha256 = await digest(receipt);
+    return { ok: status !== null && status >= 200 && status < 300, admission: admission, receipt: receipt };
+  }
+
+  /* ======================= UI (browser only; no storage, no logging) ======================= */
+  function initUI(doc) {
+    function $(id) { return doc.getElementById(id); }
+    function show(el, on) { el.classList[on ? "remove" : "add"]("hidden"); }
+    function out(id, obj) { $(id).textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); }
+    function download(name, obj) {
+      var blob = new Blob([JSON.stringify(obj, null, 2) + "\n"], { type: "application/json" });
+      var url = URL.createObjectURL(blob), a = doc.createElement("a");
+      a.href = url; a.download = name; doc.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+    }
+    function parseJSONField(id) { try { return JSON.parse($(id).value); } catch (e) { throw LoaderError("FIELD_INVALID", id + " is not valid JSON"); } }
+    function failure(e) { return nonAllowRecord({ failure_code: (e && e.code) || "LOADER_ERROR", required_evidence_or_repair: (e && e.message) || "unexpected error" }); }
+    ["genesis", "enroll", "use"].forEach(function (m) {
+      $("tab-" + m).addEventListener("click", function () {
+        ["genesis", "enroll", "use"].forEach(function (n) { show($("mode-" + n), n === m); $("tab-" + n).classList[n === m ? "add" : "remove"]("active"); });
+      });
+    });
+    $("u-model").value = DEFAULT_MODELS.anthropic;
+    $("u-provider").addEventListener("change", function () { $("u-model").value = DEFAULT_MODELS[$("u-provider").value]; });
+
+    var genesis = null;
+    $("g-run").addEventListener("click", async function () {
+      $("g-run").disabled = true; out("g-out", "Working (PBKDF2 600000 iterations)...");
+      try {
+        var r = await runGenesis({ existing_text: $("g-existing").value, owner_attests_absent: $("g-absent").checked, kv_identity: $("g-kv").value.trim(), genesis_manifest_digest: $("g-manifest").value.trim(), org_receipt_id: $("g-rid").value.trim(), org_receipt_sha256: $("g-rdigest").value.trim(), recomputation_rule_ref: $("g-rule").value.trim(), loader_sha256: $("g-loader-sha").value.trim().toLowerCase(), loader_commit: $("g-loader-commit").value.trim().toLowerCase(), now_epoch_seconds: Math.floor(Date.now() / 1000) });
+        if (!r.ok) { out("g-out", r.record); $("g-run").disabled = false; return; }
+        genesis = { envelope: r.envelope, anchor: r.anchor_sealed, receipt: r.receipt };
+        $("g-secret").textContent = r.recovery_secret_text; r.recovery_secret_text = null;
+        show($("g-secret-box"), true); out("g-out", "Record the recovery secret, then confirm it.");
+      } catch (e) { out("g-out", failure(e)); $("g-run").disabled = false; }
+    });
+    $("g-confirm-btn").addEventListener("click", async function () {
+      try {
+        var s = parseRecoverySecret($("g-confirm").value);
+        try { await unwrapRootKeyTransiently(genesis.envelope, s, function () { return true; }); } finally { wipe(s); }
+        $("g-confirm").value = ""; $("g-secret").textContent = ""; show($("g-secret-box"), false); show($("g-downloads"), true);
+        out("g-out", { genesis_receipt: genesis.receipt });
+      } catch (e) { $("g-confirm").value = ""; out("g-out", "Recovery secret does not match. Check what you recorded and try again."); }
+    });
+    $("g-dl-envelope").addEventListener("click", function () { download("wrapped-root-envelope.json", genesis.envelope); });
+    $("g-dl-anchor").addEventListener("click", function () { download("bootstrap-anchor.sealed.json", genesis.anchor); });
+    $("g-dl-receipt").addEventListener("click", function () { download("kv-skap-genesis-receipt.json", genesis.receipt); });
+
+    var enrolled = null;
+    $("e-run").addEventListener("click", async function () {
+      $("e-run").disabled = true; out("e-out", "Working...");
+      try {
+        var r = await runEnroll({ envelope: parseJSONField("e-envelope"), recovery_secret_text: $("e-secret").value, provider: $("e-provider").value, api_key: $("e-key").value, now_epoch_seconds: Math.floor(Date.now() / 1000) });
+        enrolled = r; show($("e-downloads"), true); out("e-out", { enrollment_receipt: r.receipt });
+      } catch (e) { out("e-out", failure(e)); }
+      finally { $("e-key").value = ""; $("e-secret").value = ""; $("e-run").disabled = false; }
+    });
+    $("e-dl-sealed").addEventListener("click", function () { download("provider-" + enrolled.receipt.provider + "-api-key.sealed.json", enrolled.sealed); });
+    $("e-dl-receipt").addEventListener("click", function () { download("provider-" + enrolled.receipt.provider + "-enrollment-receipt.json", enrolled.receipt); });
+
+    var lastAttempt = null;
+    $("u-run").addEventListener("click", async function () {
+      $("u-run").disabled = true; out("u-out", "Working...");
+      try {
+        var r = await runUseAttempt({ manifest_digest: $("u-manifest").value.trim(), org_receipt_id: $("u-rid").value.trim(), org_receipt_sha256: $("u-rdigest").value.trim(), recomputation_rule_ref: $("u-rule").value.trim(), attempt_id: $("u-attempt").value.trim(), requested_seconds: parseInt($("u-seconds").value, 10), sdk_manifest_binding: parseJSONField("u-binding"), lease_sdk_manifest_binding: parseJSONField("u-lease-binding"), consumed_attempt_ids: parseJSONField("u-consumed"), provider: $("u-provider").value, model: $("u-model").value.trim(), envelope: parseJSONField("u-envelope"), sealed: parseJSONField("u-sealed"), recovery_secret_text: $("u-secret").value },
+          { fetch: function (u, i) { return globalThis.fetch(u, i); }, now: function () { return Date.now(); } });
+        lastAttempt = r.receipt || { non_allow: r.record, policy_admission_receipt: r.admission || null };
+        show($("u-downloads"), true); out("u-out", r.receipt ? r.receipt : lastAttempt);
+      } catch (e) { out("u-out", failure(e)); }
+      finally { $("u-secret").value = ""; $("u-run").disabled = false; }
+    });
+    $("u-dl-receipt").addEventListener("click", function () { download("kv-skap-attempt-receipt.json", lastAttempt); });
+  }
+  if (typeof document !== "undefined" && document.getElementById && document.getElementById("mode-genesis")) { initUI(document); }
+
+  return {
+    canonicalString: canonicalString, digest: digest, b64url: b64url, unb64url: unb64url, hexEncode: hexEncode, hexDecode: hexDecode,
+    formatRecoverySecret: formatRecoverySecret, parseRecoverySecret: parseRecoverySecret, rootKeyId: rootKeyId, envelopeAad: envelopeAad,
+    wrapRootKey: wrapRootKey, unwrapRootKeyTransiently: unwrapRootKeyTransiently, sealObject: sealObject, openObjectTransiently: openObjectTransiently,
+    sealedMaterialHash: sealedMaterialHash, providerCredentialBindings: providerCredentialBindings, bootstrapAnchorBindings: bootstrapAnchorBindings,
+    buildBootstrapAnchor: buildBootstrapAnchor, evaluatePolicyAdmission: evaluatePolicyAdmission, nonAllowRecord: nonAllowRecord,
+    evaluateGenesisState: evaluateGenesisState, validateGenesisInputs: validateGenesisInputs, runGenesis: runGenesis, runEnroll: runEnroll,
+    buildProviderRequest: buildProviderRequest, runUseAttempt: runUseAttempt, POLICY: POLICY, EXPECTED_POLICY_HASH: EXPECTED_POLICY_HASH
+  };
+})();
+</script>
+</body>
+</html>
