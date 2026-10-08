@@ -8,7 +8,7 @@
   "device_identity_gate": "NONE_PROHIBITED",
   "credential_authority": "TV/TVC",
   "transition_authority": "Interlock/InTr",
-  "custody_reconstruction": "Master Records",
+  "organization_records_reconstruction": "Master Records",
   "registry_bindings": [
     "stegwhisper",
     "auri-ecosystem-chat"

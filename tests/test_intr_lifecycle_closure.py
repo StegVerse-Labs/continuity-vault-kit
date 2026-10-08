@@ -2,7 +2,9 @@
 
 These tests pin the boundary that was missing: a materialization that reached
 ``MATERIALIZATION_EXECUTION_ATTEMPTED`` and stopped, leaving the node's outbox
-flags unanswerable and the organization's Master Records blockers standing.
+flags unanswerable and the organization's Universal Interlock review blockers
+standing. Interlock/InTr closes the lifecycle; Master Records then keeps the
+organization record.
 """
 
 from __future__ import annotations
@@ -12,14 +14,17 @@ import copy
 import pytest
 
 from runtime.intr_lifecycle_closure import (
-    CUSTODY_SCHEMA,
+    LEGACY_ORGANIZATION_RECORD_SCHEMA,
+    LEGACY_TERMINAL_TRANSITION_ID,
     OBSERVATION_SCHEMA,
     ORDERED_TRANSITIONS,
+    ORGANIZATION_RECORD_SCHEMA,
     REQUIRED_CLOSURE,
     TERMINAL_SCHEMA,
     LifecycleClosureError,
     build_closure_chain,
     close_lifecycle,
+    organization_record_schema_accepted,
     sha_uri,
     verify_terminal_receipt,
 )
@@ -132,7 +137,7 @@ class TestClosure:
         terminal = close(lane)["terminal_receipt"]["terminal_state"]
         assert terminal["records_only"] is True
         assert terminal["continued_authority"] is False
-        assert terminal["transition_id"] == "MASTER_RECORDS_CUSTODY_RECORDED"
+        assert terminal["transition_id"] == "MASTER_RECORDS_ORGANIZATION_RECORD_RECORDED"
 
     def test_all_four_transitions_are_recorded_in_order(self, lane):
         receipt = close(lane)["terminal_receipt"]
@@ -149,22 +154,44 @@ class TestClosure:
         for previous, current in zip(closures, closures[1:]):
             assert current["predecessor_receipt_sha256"] == previous["receipt_sha256"]
 
-    def test_master_records_custody_record_is_written_and_self_hashed(self, lane):
+    def test_master_records_organization_record_is_written_and_self_hashed(self, lane):
         from runtime.intr_lifecycle_closure import sha256_hex
 
-        record = close(lane, source_commit="deadbeef")["master_records_custody_record"]
-        assert record["schema"] == CUSTODY_SCHEMA
-        assert record["custody"]["status"] == "ACCEPTED_FOR_CUSTODY"
+        result = close(lane, source_commit="deadbeef")
+        assert "master_records_custody_record" not in result
+        record = result["master_records_organization_record_record"]
+        assert record["schema"] == ORGANIZATION_RECORD_SCHEMA
+        assert "custody" not in record and "custody_id" not in record
+        assert record["organization_record"]["status"] == "RECORDED_AS_ORGANIZATION_RECORD"
         assert record["validation"]["runtime_execution_claimed"] is False
         assert record["source"]["source_commit"] == "deadbeef"
         body = {k: v for k, v in record.items() if k != "record_hash"}
         assert sha256_hex(body) == record["record_hash"]
 
-    def test_terminal_receipt_binds_the_custody_record(self, lane):
+    def test_organization_record_schema_reader_accepts_new_and_legacy_ids(self):
+        assert organization_record_schema_accepted(ORGANIZATION_RECORD_SCHEMA)
+        assert organization_record_schema_accepted(LEGACY_ORGANIZATION_RECORD_SCHEMA)
+        assert LEGACY_ORGANIZATION_RECORD_SCHEMA == "stegverse.master_records.intr_lifecycle_custody/v1"
+        assert not organization_record_schema_accepted("stegverse.master_records.other/v1")
+
+    def test_legacy_terminal_transition_receipt_still_verifies(self, lane):
+        """A receipt written before the rename names its last transition with
+        the legacy id. It is checked against its own ordered transitions, so it
+        must still verify."""
+        receipt = close(lane)["terminal_receipt"]
+        assert ORDERED_TRANSITIONS[-1] != LEGACY_TERMINAL_TRANSITION_ID
+        receipt["resolved_ordered_transitions"][-1] = LEGACY_TERMINAL_TRANSITION_ID
+        receipt["transition_closures"][-1]["transition_id"] = LEGACY_TERMINAL_TRANSITION_ID
+        receipt["terminal_state"]["transition_id"] = LEGACY_TERMINAL_TRANSITION_ID
+        body = {k: v for k, v in receipt.items() if k != "manifest_receipt_id"}
+        receipt["manifest_receipt_id"] = sha_uri(body)
+        assert verify_terminal_receipt(receipt)["terminal_state"]["transition_id"] == "MASTER_RECORDS_CUSTODY_RECORDED"
+
+    def test_terminal_receipt_binds_the_organization_record(self, lane):
         result = close(lane)
         assert (
             result["terminal_receipt"]["master_records_record_hash"]
-            == result["master_records_custody_record"]["record_hash"]
+            == result["master_records_organization_record_record"]["record_hash"]
         )
 
     def test_closure_is_deterministic(self, lane):
@@ -186,7 +213,7 @@ class TestFarEndObservation:
         )
         assert (
             observation["master_records_record_hash"]
-            == result["master_records_custody_record"]["record_hash"]
+            == result["master_records_organization_record_record"]["record_hash"]
         )
 
     def test_tvc_receipt_stays_false_with_a_stated_reason(self, lane):
@@ -292,21 +319,21 @@ class TestIndependentVerification:
         )
         with pytest.raises(LifecycleClosureError) as excinfo:
             verify_terminal_receipt(receipt)
-        assert "MASTER_RECORDS_TRANSITION_ORDER_MISMATCH" in str(excinfo.value)
+        assert "INTR_LIFECYCLE_TRANSITION_ORDER_MISMATCH" in str(excinfo.value)
 
     def test_broken_predecessor_link_fails_verification(self, lane):
         receipt = close(lane)["terminal_receipt"]
         receipt["transition_closures"][2]["predecessor_receipt_sha256"] = sha_uri({"x": 1})
         with pytest.raises(LifecycleClosureError) as excinfo:
             verify_terminal_receipt(receipt)
-        assert "MASTER_RECORDS_IMMEDIATE_PREDECESSOR_MISMATCH" in str(excinfo.value)
+        assert "INTR_LIFECYCLE_IMMEDIATE_PREDECESSOR_MISMATCH" in str(excinfo.value)
 
     def test_dropped_closure_fails_verification(self, lane):
         receipt = close(lane)["terminal_receipt"]
         receipt["transition_closures"].pop()
         with pytest.raises(LifecycleClosureError) as excinfo:
             verify_terminal_receipt(receipt)
-        assert "MASTER_RECORDS_TRANSITION_CLOSURE_COUNT_MISMATCH" in str(excinfo.value)
+        assert "INTR_LIFECYCLE_TRANSITION_CLOSURE_COUNT_MISMATCH" in str(excinfo.value)
 
     def test_receipt_id_must_reconstruct(self, lane):
         receipt = close(lane)["terminal_receipt"]

@@ -1,9 +1,10 @@
 name: InTr Lifecycle Closure
 
 # The far end of an InTr materialization must produce the last receipt of the
-# lifecycle. Without it the node's outbox flags stay unanswerable and the
-# organization's Universal Interlock review stays blocked on
-# MASTER_RECORDS_CUSTODY_RECEIPT_MISSING and
+# lifecycle. Without it the node's outbox flags stay unanswerable. Interlock/InTr
+# admits and closes the transition; Master Records keeps the organization record
+# afterwards. The organization's readiness facts report the
+# missing record as MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING and
 # MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED.
 
 on:

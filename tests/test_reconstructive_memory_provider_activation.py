@@ -25,7 +25,7 @@ class ProviderActivationTests(unittest.TestCase):
             key_custody=ProviderSelection("key-custody", "AWS", "KMS customer-managed key", "arn:kms:vault", "us-east-1", "verified"),
             state_store=ProviderSelection("replicated-state", "AWS", "DynamoDB conditional write", "arn:dynamodb:table/state", "us-east-1", "verified"),
             chat_transport=ProviderSelection("ecosystem-chat", "StegVerse", "authenticated chat endpoint", "https://chat.example", "global", "verified"),
-            master_records=ProviderSelection("master-records", "StegVerse", "receipt ingestion endpoint", "https://records.example", "global", "verified"),
+            master_records=ProviderSelection("master-records", "StegVerse", "organization-record ingestion endpoint", "https://records.example", "global", "verified"),
             rollback_ref=selected.rollback_ref,
             created_at=2,
         ).with_hash()

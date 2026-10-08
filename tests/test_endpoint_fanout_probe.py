@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import unittest
 
-from tools.run_endpoint_fanout_probe import run_probe
+from tools.run_endpoint_fanout_probe import (
+    LEGACY_RECORD_RESULT_SCHEMA,
+    LEGACY_RECORD_STATUS_FIELD,
+    record_result_status,
+    run_probe,
+)
 
 
 class EndpointFanoutProbeTests(unittest.TestCase):
@@ -46,17 +51,30 @@ class EndpointFanoutProbeTests(unittest.TestCase):
                 "DEVICE->KV",
                 "KV_INTERLOCK_RUNTIME",
                 "REPORT_FANOUT",
-                "MASTER_RECORDS_TEST_CUSTODY",
+                "MASTER_RECORDS_TEST_ORGANIZATION_RECORD",
             ],
         )
+        record_result = report["master_records_result"]
+        self.assertEqual(record_result["record_status"], "TEST_ONLY_RECORDED")
+        self.assertNotIn("custody_status", record_result)
         self.assertEqual(
-            report["master_records_result"]["custody_status"],
-            "TEST_ONLY_RECORDED",
+            record_result["schema"],
+            "stegverse.master-records.test-organization-record-result.v1",
         )
-        self.assertFalse(
-            report["master_records_result"]["production_custody_claimed"]
-        )
+        self.assertFalse(record_result["production_organization_record_claimed"])
+        self.assertNotIn("production_custody_claimed", record_result)
         self.assertEqual(report["authority_effect"], "NONE")
+
+    def test_record_status_reader_accepts_legacy_result(self):
+        self.assertEqual(LEGACY_RECORD_RESULT_SCHEMA, "stegverse.master-records.test-custody-result.v1")
+        self.assertEqual(LEGACY_RECORD_STATUS_FIELD, "custody_status")
+        legacy = {"schema": LEGACY_RECORD_RESULT_SCHEMA, LEGACY_RECORD_STATUS_FIELD: "TEST_ONLY_RECORDED"}
+        self.assertEqual(record_result_status(legacy), "TEST_ONLY_RECORDED")
+        result = run_probe("alpha-probe-value", probe_id="probe-alpha")
+        current = result["reports"]["master_records_travel"]["master_records_result"]
+        self.assertEqual(record_result_status(current), "TEST_ONLY_RECORDED")
+        with self.assertRaises(ValueError):
+            record_result_status({"schema": "other", "record_status": "TEST_ONLY_RECORDED"})
 
     def test_probe_is_non_secret_and_does_not_mutate_canonical_state(self):
         result = run_probe("alpha-probe-value", probe_id="probe-alpha")

@@ -40,4 +40,4 @@ Current `device-local-browser-indexeddb` owner-observed KV state remains histori
 
 ## Authority
 
-This documentation does not itself grant Interlock/InTr admission, provider authority, credential authority, execution, publication, or custody. Interlock/InTr remains transition authority; TV/TVC remains credential authority; SKAP remains secret custody; Master Records remains reality/custody/reconstruction authority where assigned.
+This documentation does not itself grant Interlock/InTr admission, provider authority, credential authority, execution, publication, or custody. Interlock/InTr remains transition authority; TV/TVC remains credential authority; SKAP remains secret custody; the Organization owns runtime/observed reality; Master Records keeps organization records/reconstruction where assigned.

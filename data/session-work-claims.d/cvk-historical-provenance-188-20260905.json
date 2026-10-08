@@ -61,7 +61,7 @@
         "Do not create a parallel direct-source ingress authority",
         "Do not claim live provider observation from source state"
       ],
-      "next_task_after_release": "KV-HISTORICAL-CORPUS-IMPORT-001: add an owner-authorized historical-corpus import/receipt projection through existing direct-source and InTr boundaries, then anchor accepted custody evidence into Master Records without changing historical bytes and expose bounded status to Site/MyKV.",
+      "next_task_after_release": "KV-HISTORICAL-CORPUS-IMPORT-001: add an owner-authorized historical-corpus import/receipt projection through existing direct-source and InTr boundaries, then request that Master Records record the accepted import as an organization record without changing historical bytes and expose bounded status to Site/MyKV.",
       "credential_authority": "TV/TVC",
       "credential_requirement": "NONE_FOR_SOURCE_IMPLEMENTATION",
       "github_token_runtime_authority": "NONE",

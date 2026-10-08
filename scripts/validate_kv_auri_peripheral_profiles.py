@@ -27,6 +27,20 @@ EXPECTED_PROFILES = {
 }
 
 
+#: Organization = runtime/observed reality; Master Records = organization
+#: records/reconstruction. Master Records boundary migration
+#: (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002): profiles written before the
+#: rename carry the legacy key, which readers still accept.
+ORGANIZATION_RECORDS_RECONSTRUCTION_KEY = "organization_records_reconstruction"
+LEGACY_ORGANIZATION_RECORDS_RECONSTRUCTION_KEY = "custody_reconstruction"
+
+
+def organization_records_reconstruction(profiles: Mapping[str, Any]) -> Any:
+    if ORGANIZATION_RECORDS_RECONSTRUCTION_KEY in profiles:
+        return profiles[ORGANIZATION_RECORDS_RECONSTRUCTION_KEY]
+    return profiles.get(LEGACY_ORGANIZATION_RECORDS_RECONSTRUCTION_KEY)
+
+
 def load_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
@@ -53,12 +67,13 @@ def validate_source_contract(
         "device_identity_gate": "NONE_PROHIBITED",
         "credential_authority": "TV/TVC",
         "transition_authority": "Interlock/InTr",
-        "custody_reconstruction": "Master Records",
         "source_validation_is_not_runtime_proof": True,
     }
     for key, expected in required.items():
         if profiles.get(key) != expected:
             raise ValueError(f"invalid_invariant:{key}")
+    if organization_records_reconstruction(profiles) != "Master Records":
+        raise ValueError(f"invalid_invariant:{ORGANIZATION_RECORDS_RECONSTRUCTION_KEY}")
     if modules.get("schema") != "stegverse.kv.device-backed-capability-registry/v1":
         raise ValueError("existing_module_registry_missing")
     if transport.get("schema") != "stegverse.kv.transport-capability-registry/v1":

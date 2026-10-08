@@ -1,4 +1,4 @@
-"""Deterministic historical-corpus import, custody-request, and bounded status helpers.
+"""Deterministic historical-corpus import, organization-record request, and bounded status helpers.
 
 This module performs no provider access, network access, Master Records write, Site
 publication, or vault migration. It validates caller-supplied evidence references
@@ -14,7 +14,14 @@ from typing import Any, Dict
 from runtime.historical_provenance import assert_artifact_record
 
 IMPORT_SCHEMA = "stegverse.kv.historical-import-receipt/v1"
-CUSTODY_SCHEMA = "stegverse.kv.historical-custody-request/v1"
+ORGANIZATION_RECORD_REQUEST_SCHEMA = "stegverse.kv.historical-organization-record-request/v1"
+#: Master Records boundary migration (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002).
+#: Requests written before the rename carry these legacy names. Readers accept
+#: them; writers emit only the new names.
+LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA = "stegverse.kv.historical-custody-request/v1"
+LEGACY_RECORD_REQUESTED_FIELD = "custody_requested"
+REQUEST_AUTHORITY_EFFECT = "NONE_ORGANIZATION_RECORD_REQUEST_ONLY"
+LEGACY_REQUEST_AUTHORITY_EFFECT = "NONE_CUSTODY_REQUEST_ONLY"
 STATUS_SCHEMA = "stegverse.kv.historical-status-projection/v1"
 
 FORBIDDEN_REF_FRAGMENTS = (
@@ -165,18 +172,30 @@ def assert_import_receipt(
             raise HistoricalCorpusImportError("contradiction state mismatch")
 
 
-def build_master_records_custody_request(*, import_receipt: Dict[str, Any], requested_at: str) -> Dict[str, Any]:
+def _record_requested(request: Dict[str, Any]) -> Any:
+    if "record_requested" in request:
+        return request["record_requested"]
+    return request.get(LEGACY_RECORD_REQUESTED_FIELD)
+
+
+def build_master_records_organization_record_request(*, import_receipt: Dict[str, Any], requested_at: str) -> Dict[str, Any]:
+    """Build a source-only request for a Master Records organization record.
+
+    The request asks Master Records to record the import as an organization
+    record. It does not accept the record, mint an acknowledgement, or grant
+    any authority; only the Master Records destination may do that.
+    """
     assert_import_receipt(import_receipt)
     requested_at = _required_text(requested_at, "requested_at")
     return {
-        "schema_version": CUSTODY_SCHEMA,
+        "schema_version": ORGANIZATION_RECORD_REQUEST_SCHEMA,
         "source_repository": "StegVerse-Labs/continuity-vault-kit",
         "artifact_id": import_receipt["artifact_id"],
         "artifact_sha256": import_receipt["artifact_sha256"],
         "import_receipt_id": import_receipt["receipt_id"],
         "import_receipt_sha256": import_receipt["receipt_sha256"],
         "requested_at": requested_at,
-        "custody_requested": True,
+        "record_requested": True,
         "destination_repository": "master-records/core-lite",
         "destination_custody_accepted": False,
         "destination_acknowledgement_minted": False,
@@ -185,19 +204,22 @@ def build_master_records_custody_request(*, import_receipt: Dict[str, Any], requ
         "execution_authority_granted": False,
         "continuity_receipt_minted": False,
         "publication_authority_granted": False,
-        "authority_effect": "NONE_CUSTODY_REQUEST_ONLY",
+        "authority_effect": REQUEST_AUTHORITY_EFFECT,
     }
 
 
-def assert_master_records_custody_request(request: Dict[str, Any]) -> None:
-    if not isinstance(request, dict) or request.get("schema_version") != CUSTODY_SCHEMA:
-        raise HistoricalCorpusImportError("custody request schema mismatch")
+def assert_master_records_organization_record_request(request: Dict[str, Any]) -> None:
+    if not isinstance(request, dict) or request.get("schema_version") not in (
+        ORGANIZATION_RECORD_REQUEST_SCHEMA,
+        LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA,
+    ):
+        raise HistoricalCorpusImportError("organization record request schema mismatch")
     if request.get("source_repository") != "StegVerse-Labs/continuity-vault-kit":
-        raise HistoricalCorpusImportError("custody source repository mismatch")
+        raise HistoricalCorpusImportError("organization record request source repository mismatch")
     if request.get("destination_repository") != "master-records/core-lite":
-        raise HistoricalCorpusImportError("custody destination repository mismatch")
-    if request.get("custody_requested") is not True:
-        raise HistoricalCorpusImportError("custody request must declare custody_requested=true")
+        raise HistoricalCorpusImportError("organization record request destination repository mismatch")
+    if _record_requested(request) is not True:
+        raise HistoricalCorpusImportError("organization record request must declare record_requested=true")
     for key in (
         "destination_custody_accepted",
         "destination_acknowledgement_minted",
@@ -208,21 +230,21 @@ def assert_master_records_custody_request(request: Dict[str, Any]) -> None:
         "publication_authority_granted",
     ):
         if request.get(key) is not False:
-            raise HistoricalCorpusImportError(f"custody request may not assert {key}")
-    if request.get("authority_effect") != "NONE_CUSTODY_REQUEST_ONLY":
-        raise HistoricalCorpusImportError("custody request authority effect mismatch")
+            raise HistoricalCorpusImportError(f"organization record request may not assert {key}")
+    if request.get("authority_effect") not in (REQUEST_AUTHORITY_EFFECT, LEGACY_REQUEST_AUTHORITY_EFFECT):
+        raise HistoricalCorpusImportError("organization record request authority effect mismatch")
     for key in ("artifact_id", "artifact_sha256", "import_receipt_id", "import_receipt_sha256", "requested_at"):
         _required_text(request.get(key), key)
 
 
 def build_site_status_projection(
-    *, import_receipt: Dict[str, Any], custody_request: Dict[str, Any] | None = None
+    *, import_receipt: Dict[str, Any], record_request: Dict[str, Any] | None = None
 ) -> Dict[str, Any]:
     assert_import_receipt(import_receipt)
-    if custody_request is not None:
-        assert_master_records_custody_request(custody_request)
-        if custody_request["import_receipt_id"] != import_receipt["receipt_id"]:
-            raise HistoricalCorpusImportError("custody request/import receipt mismatch")
+    if record_request is not None:
+        assert_master_records_organization_record_request(record_request)
+        if record_request["import_receipt_id"] != import_receipt["receipt_id"]:
+            raise HistoricalCorpusImportError("organization record request/import receipt mismatch")
     return {
         "schema_version": STATUS_SCHEMA,
         "artifact_id": import_receipt["artifact_id"],
@@ -231,7 +253,7 @@ def build_site_status_projection(
         "import_state": import_receipt["state"],
         "relationship_kind": import_receipt["relationship_kind"],
         "contradiction_state": import_receipt["contradiction_state"],
-        "custody_requested": bool(custody_request and custody_request["custody_requested"]),
+        "record_requested": bool(record_request and _record_requested(record_request)),
         "destination_custody_accepted": False,
         "destination_acknowledgement_minted": False,
         "private_content_included": False,

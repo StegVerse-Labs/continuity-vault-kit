@@ -9,7 +9,7 @@ The first concrete activation profile uses:
 - **Key custody:** AWS KMS customer-managed keys, with separate key policy, wrapping context, rotation, disablement, and scheduled deletion procedures.
 - **Replicated state:** Amazon DynamoDB conditional writes implementing exact prior-version comparison and one-version advancement.
 - **Ecosystem Chat transport:** the StegVerse authenticated chat endpoint, identity still unconfigured.
-- **Master-Records:** the StegVerse receipt-ingestion endpoint, identity still unconfigured.
+- **Master-Records:** the StegVerse organization-record ingestion endpoint (Master Records' own record API, not a transition path), identity still unconfigured.
 
 Selection does not equal activation. `default_aws_profile()` intentionally uses `UNCONFIGURED` identity references and cannot return activation-ready status.
 
@@ -49,7 +49,7 @@ The following values cannot be produced safely inside the repository:
 - actual AWS account, KMS key, and DynamoDB table identifiers;
 - SPIFFE trust domain, SPIRE server identity, and workload selectors;
 - Ecosystem Chat endpoint identity and transport verifier configuration;
-- Master-Records endpoint identity and acknowledgement verifier configuration;
+- Master-Records organization-record endpoint identity and acknowledgement verifier configuration;
 - secrets, credentials, hardware custody evidence, and production network access.
 
 ---

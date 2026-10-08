@@ -36,7 +36,7 @@ Any future destination mutation must independently evaluate that destination rep
 
 ### Master Records — SOURCE INTEGRATION COMPLETE
 
-A new destination-side source contract was required because CVK now emits a historical-corpus custody-request candidate and Master Records previously had no historical-corpus custody class.
+A new destination-side source contract was required because CVK now emits a historical-corpus organization-record request candidate and Master Records previously had no historical-corpus organization-record class.
 
 Completed under:
 
@@ -50,9 +50,9 @@ handoff: HISTORICAL_CORPUS_CUSTODY_MIRROR_HANDOFF.md
 focused Historical Corpus Custody run 34010003874: PASS
 ```
 
-The Master Records source implementation independently rejects any CVK request that pre-asserts destination custody, acknowledgement, independent validation, runtime activation, execution, continuity, or publication authority. Only the destination validator can construct destination custody acceptance/acknowledgement, and even then runtime/execution/publication/continuity/truth/doctrine/private-byte assertions remain false.
+The Master Records source implementation independently rejects any CVK request that pre-asserts a destination organization record, acknowledgement, independent validation, runtime activation, execution, continuity, or publication authority. Only the destination validator can record the request as an organization record and construct its acknowledgement, and even then runtime/execution/publication/continuity/truth/doctrine/private-byte assertions remain false.
 
-This is source capability only. No real private historical artifact is claimed in Master Records custody.
+This is source capability only. No real private historical artifact is claimed as a Master Records organization record.
 
 ### Site / MyKV — MUTATION NOT CURRENTLY ADMISSIBLE
 
@@ -131,7 +131,7 @@ Determination: `NO_DIRECT_UPDATE_REQUIRED_NOW / WAIT_FOR_ADMISSIBILITY_PROJECTIO
 3. Publisher then uses its existing acquisition/validation contract; only a verified Publisher result may release downstream admissibility evaluation.
 4. admissibility-wiki performs bounded interpretation only after admitted Publisher evidence.
 5. StegGuardian remains last in the chain and produces interpretation only after admissibility evidence.
-6. Authentic owner-authorized historical import and real Master Records destination custody remain separate runtime evidence gates; no repository source state may substitute for them.
+6. Authentic owner-authorized historical import remains a separate runtime evidence requirement admitted through Interlock/InTr, and a real Master Records destination organization record is kept only afterwards; no repository source state may substitute for either.
 
 ## Current completion
 
@@ -144,7 +144,7 @@ admissibility-wiki determination: NO_DIRECT_UPDATE_REQUIRED_NOW
 StegGuardian determination: NO_DIRECT_UPDATE_REQUIRED_NOW
 private historical content exposed: false
 live historical import inferred: false
-live Master Records custody inferred: false
+live Master Records organization record inferred: false
 ```
 
 Issue #192 must remain open while the Site bounded-status candidate is not admitted/implemented or explicitly rejected/superseded by Site orchestration.

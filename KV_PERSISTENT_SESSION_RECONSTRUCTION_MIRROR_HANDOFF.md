@@ -138,7 +138,7 @@ COMPLETE: false
 - StegVerse-Labs/.github: authentic DEVICE_KV_INTR observation and WorkerCoordinator runtime evidence.
 - StegVerse-Labs/StegOS: canonical Universal InTr backbone / device consumer.
 - StegVerse-Labs/Site: eventual user-facing projection and recovery intent surface.
-- StegVerse-Labs/master-records or canonical evidence custody owner where reconstruction evidence requires durable cross-runtime custody.
+- StegVerse-Labs/master-records for organization records/reconstruction where reconstruction requires a cross-runtime organization record; the Organization owns the evidence itself.
 
 No second transport protocol, credential path, runtime owner, conversation-history authority, or hosted GitHub production authority may be introduced.
 

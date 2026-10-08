@@ -38,7 +38,7 @@ def verified_profile() -> ProductionActivationProfile:
         key_custody=ProviderSelection("key-custody", "AWS", "KMS CMK", "arn:aws:kms:region:acct:key/custody", "us-east-1", "verified"),
         state_store=ProviderSelection("replicated-state", "AWS", "DynamoDB conditional write", "arn:aws:dynamodb:region:acct:table/state", "us-east-1", "verified"),
         chat_transport=ProviderSelection("ecosystem-chat", "StegVerse", "authenticated endpoint", "https://chat.example.test/ingest", "global", "verified"),
-        master_records=ProviderSelection("master-records", "StegVerse", "receipt endpoint", "https://records.example.test/receipts", "global", "verified"),
+        master_records=ProviderSelection("master-records", "StegVerse", "organization-record endpoint", "https://records.example.test/receipts", "global", "verified"),
         rollback_ref="docs/PRODUCTION_PROVIDER_ACTIVATION.md#rollback-and-revocation",
         created_at=1,
     ).with_hash()

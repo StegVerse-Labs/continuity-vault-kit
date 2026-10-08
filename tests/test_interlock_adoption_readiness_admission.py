@@ -29,13 +29,13 @@ def blocked_assessment():
         "state": "BLOCKED",
         "blockers": [
             "AUTHENTIC_RUNTIME_BINDING_MISSING",
-            "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING",
+            "MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING",
             "MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED",
         ],
         "runtime_binding_id": None,
-        "master_records_custody_receipt_id": None,
+        "master_records_organization_record_receipt_id": None,
         "runtime_conformance_evidenced": False,
-        "master_records_custody_evidenced": False,
+        "master_records_organization_record_evidenced": False,
         "master_records_reconstruction_verified": False,
         "canonical_protocol_adopted": False,
         "runtime_activation": False,
@@ -66,14 +66,32 @@ def test_ready_for_review_still_cannot_activate_interlock():
     assessment["state"] = "READY_FOR_ADOPTION_REVIEW"
     assessment["blockers"] = []
     assessment["runtime_binding_id"] = "runtime-binding-1"
-    assessment["master_records_custody_receipt_id"] = "custody-receipt-1"
+    assessment["master_records_organization_record_receipt_id"] = "organization-record-receipt-1"
     assessment["runtime_conformance_evidenced"] = True
-    assessment["master_records_custody_evidenced"] = True
+    assessment["master_records_organization_record_evidenced"] = True
     assessment["master_records_reconstruction_verified"] = True
     result = admit_module.admit_interlock_adoption_readiness(assessment)
     assert result["facts_delta"]["universal_interlock_adoption_review_ready"] is True
     assert result["production_interlock_runtime_activated_set_by_adapter"] is False
     assert result["canonical_protocol_adopted_set_by_adapter"] is False
+
+
+def test_legacy_blocker_name_is_accepted_and_admitted_under_new_name():
+    assessment = blocked_assessment()
+    assessment["blockers"] = [
+        "AUTHENTIC_RUNTIME_BINDING_MISSING",
+        admit_module.LEGACY_ORGANIZATION_RECORD_RECEIPT_MISSING,
+        "MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED",
+    ]
+    del assessment["master_records_organization_record_receipt_id"]
+    del assessment["master_records_organization_record_evidenced"]
+    assessment["master_records_custody_receipt_id"] = None
+    assessment["master_records_custody_evidenced"] = False
+    assert admit_module.LEGACY_ORGANIZATION_RECORD_RECEIPT_MISSING == "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING"
+    result = admit_module.admit_interlock_adoption_readiness(assessment)
+    blockers = result["facts_delta"]["universal_interlock_adoption_review_blockers"]
+    assert "MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING" in blockers
+    assert "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING" not in blockers
 
 
 def test_adopted_or_active_source_claim_is_rejected():
@@ -100,7 +118,7 @@ def test_current_kv_snapshot_exposes_upstream_interlock_blockers_without_activat
     assert review["state"] == "BLOCKED"
     assert set(review["blockers"]) == {
         "AUTHENTIC_RUNTIME_BINDING_MISSING",
-        "MASTER_RECORDS_CUSTODY_RECEIPT_MISSING",
+        "MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING",
         "MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED",
     }
     assert review["canonical_protocol_adopted"] is False

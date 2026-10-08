@@ -48,9 +48,11 @@ current identity-continuity receipt observed: false
 governance runtime admission observed: false
 Universal Interlock adoption review ready: false
 Universal Interlock adoption review state: BLOCKED
-Universal Interlock blockers: AUTHENTIC_RUNTIME_BINDING_MISSING; MASTER_RECORDS_CUSTODY_RECEIPT_MISSING; MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED
+Universal Interlock blockers: AUTHENTIC_RUNTIME_BINDING_MISSING; MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING; MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED
 authority_effect: NONE
 ```
+
+Interlock/InTr owns admission for the Universal Interlock adoption review; Master Records keeps the organization record afterwards. `MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING` only reports that the organization record's receipt has not been observed. Before MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002 it was named `MASTER_RECORDS_CUSTODY_RECEIPT_MISSING`; the admission adapter still accepts that legacy name from StegOS and admits it under the new name.
 
 These facts deliberately preserve the current TVC activation handoff. Baseline InTr completion does not imply production resident/runtime activation.
 
@@ -404,7 +406,7 @@ universal_interlock_adoption_review_ready=false
 universal_interlock_adoption_review_state=BLOCKED
 blockers:
   AUTHENTIC_RUNTIME_BINDING_MISSING
-  MASTER_RECORDS_CUSTODY_RECEIPT_MISSING
+  MASTER_RECORDS_ORGANIZATION_RECORD_RECEIPT_MISSING
   MASTER_RECORDS_RECONSTRUCTION_NOT_VERIFIED
 production_interlock_runtime_activated=false
 ```

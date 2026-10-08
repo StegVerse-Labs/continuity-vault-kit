@@ -5,12 +5,15 @@ import unittest
 
 from runtime.historical_provenance import build_artifact_record
 from runtime.historical_corpus_import import (
+    LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA,
+    LEGACY_RECORD_REQUESTED_FIELD,
+    LEGACY_REQUEST_AUTHORITY_EFFECT,
     HistoricalCorpusImportError,
     assert_import_receipt,
-    assert_master_records_custody_request,
+    assert_master_records_organization_record_request,
     assert_site_status_projection,
     build_import_receipt,
-    build_master_records_custody_request,
+    build_master_records_organization_record_request,
     build_site_status_projection,
 )
 
@@ -80,42 +83,66 @@ class HistoricalCorpusImportTests(unittest.TestCase):
         with self.assertRaises(HistoricalCorpusImportError):
             assert_import_receipt(tampered)
 
-    def test_custody_request_cannot_mint_destination_acceptance(self):
-        request = build_master_records_custody_request(
+    def test_organization_record_request_cannot_mint_destination_acceptance(self):
+        request = build_master_records_organization_record_request(
             import_receipt=self.receipt,
             requested_at="2026-09-05T22:02:00-05:00",
         )
-        assert_master_records_custody_request(request)
-        self.assertTrue(request["custody_requested"])
+        assert_master_records_organization_record_request(request)
+        self.assertEqual(request["schema_version"], "stegverse.kv.historical-organization-record-request/v1")
+        self.assertTrue(request["record_requested"])
+        self.assertNotIn("custody_requested", request)
+        self.assertEqual(request["authority_effect"], "NONE_ORGANIZATION_RECORD_REQUEST_ONLY")
         self.assertFalse(request["destination_custody_accepted"])
         self.assertFalse(request["destination_acknowledgement_minted"])
 
         tampered = copy.deepcopy(request)
         tampered["destination_custody_accepted"] = True
         with self.assertRaises(HistoricalCorpusImportError):
-            assert_master_records_custody_request(tampered)
+            assert_master_records_organization_record_request(tampered)
 
-    def test_site_projection_is_bounded_and_non_authorizing(self):
-        request = build_master_records_custody_request(
+    def test_reader_accepts_legacy_custody_request_names(self):
+        request = build_master_records_organization_record_request(
             import_receipt=self.receipt,
             requested_at="2026-09-05T22:02:00-05:00",
         )
-        projection = build_site_status_projection(import_receipt=self.receipt, custody_request=request)
+        legacy = copy.deepcopy(request)
+        legacy["schema_version"] = LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA
+        legacy[LEGACY_RECORD_REQUESTED_FIELD] = legacy.pop("record_requested")
+        legacy["authority_effect"] = LEGACY_REQUEST_AUTHORITY_EFFECT
+        self.assertEqual(LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA, "stegverse.kv.historical-custody-request/v1")
+        self.assertEqual(LEGACY_RECORD_REQUESTED_FIELD, "custody_requested")
+        self.assertEqual(LEGACY_REQUEST_AUTHORITY_EFFECT, "NONE_CUSTODY_REQUEST_ONLY")
+        assert_master_records_organization_record_request(legacy)
+        projection = build_site_status_projection(import_receipt=self.receipt, record_request=legacy)
+        self.assertTrue(projection["record_requested"])
+        self.assertNotIn("custody_requested", projection)
+
+        legacy[LEGACY_RECORD_REQUESTED_FIELD] = False
+        with self.assertRaises(HistoricalCorpusImportError):
+            assert_master_records_organization_record_request(legacy)
+
+    def test_site_projection_is_bounded_and_non_authorizing(self):
+        request = build_master_records_organization_record_request(
+            import_receipt=self.receipt,
+            requested_at="2026-09-05T22:02:00-05:00",
+        )
+        projection = build_site_status_projection(import_receipt=self.receipt, record_request=request)
         assert_site_status_projection(projection)
-        self.assertTrue(projection["custody_requested"])
+        self.assertTrue(projection["record_requested"])
         self.assertFalse(projection["private_content_included"])
         self.assertFalse(projection["publication_authority_granted"])
         self.assertNotIn("source", projection)
         self.assertNotIn("bytes", projection)
 
-    def test_site_projection_rejects_mismatched_custody_request(self):
-        request = build_master_records_custody_request(
+    def test_site_projection_rejects_mismatched_organization_record_request(self):
+        request = build_master_records_organization_record_request(
             import_receipt=self.receipt,
             requested_at="2026-09-05T22:02:00-05:00",
         )
         request["import_receipt_id"] = "other"
         with self.assertRaises(HistoricalCorpusImportError):
-            build_site_status_projection(import_receipt=self.receipt, custody_request=request)
+            build_site_status_projection(import_receipt=self.receipt, record_request=request)
 
 
 if __name__ == "__main__":

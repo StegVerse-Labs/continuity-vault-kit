@@ -35,8 +35,8 @@ Preflight state: `PASS_FOR_BOUNDED_SOURCE_IMPLEMENTATION`.
 Resolved state before functional mutation:
 
 1. Repository-local canonical handoff is `docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md`.
-2. Canonical ecosystem task coordination separates work intent from WorkerCoordinator execution authority and Master Records observed-reality authority.
-3. `master-records/core-lite/MASTER_RECORDS_MIRROR_HANDOFF.md` remains the current Master Records repository-wide handoff; this task does not mint Master Records custody.
+2. Canonical ecosystem task coordination separates work intent from WorkerCoordinator execution authority; the Organization owns runtime/observed reality and Master Records keeps organization records/reconstruction.
+3. `master-records/core-lite/MASTER_RECORDS_MIRROR_HANDOFF.md` remains the current Master Records repository-wide handoff; this task does not mint a Master Records organization record.
 4. Existing claim `CVK-LEGACY-KV-UPGRADE-174` owns migration/upgrade paths for the older iCloud KV. Issue #188 uses distinct historical-provenance paths and did not modify either existing vault.
 5. `KV_DIRECT_SOURCE_INGRESS_MIRROR_HANDOFF.md` already defines direct-source provenance and SKAP-bounded provider access. Historical provenance reuses that ingress model.
 6. `KV_PROVIDER_SURFACE_CAPABILITIES_MIRROR_HANDOFF.md` already owns generic provider/device capability facts. This task did not duplicate that registry.
@@ -127,7 +127,7 @@ Live provider activation is not part of source completion. It requires explicit 
 
 No live iCloud or Google Drive access is claimed from this merge.
 No historical artifact has yet been imported by this task.
-No Master Records custody has yet been minted for a historical corpus.
+No Master Records organization record has yet been minted for a historical corpus.
 
 ## Next integration candidate
 
@@ -137,7 +137,7 @@ No Master Records custody has yet been minted for a historical corpus.
 2. preserve exact source bytes and provider/source provenance;
 3. emit the historical artifact record and import receipt;
 4. preserve copy/mirror/derived lineage without silent merge;
-5. route accepted custody evidence to Master Records through the existing governed boundary;
+5. request, through the existing Interlock/InTr boundary, that Master Records record the accepted import as an organization record;
 6. expose bounded historical provenance status to Site/MyKV without exposing private content.
 
 This successor must remain separate from `CVK-LEGACY-KV-UPGRADE-174`; historical evidence ingestion is not a vault migration or upgrade.

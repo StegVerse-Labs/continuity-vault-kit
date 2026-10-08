@@ -178,7 +178,7 @@ Report 2 — Master Records travel report:
 
 ```text
 schema: stegverse.master-records.travel-report.v1
-local custody state: TEST_ONLY_RECORDED
+local organization-record state: TEST_ONLY_RECORDED
 master_record_ref: master-record:sha256:cd421a1c3d2989dadb8d172c50ed2f270bfbfa9c9260e741df09c597897259f8
 hop_count: 5
 1 TEST_PROBE_INGRESS
@@ -190,11 +190,13 @@ authority_granted: false
 production_custody_claimed: false
 ```
 
-The fanout is intentionally asymmetric: the KV report returns the endpoint disposition and hash/receipt binding, while the Master Records report retains the traversal chain and the hash of the record offered to the Master Records-compatible custody contract.
+The hop and field names above quote the retained evidence (`evidence/kv/2026-08-30-endpoint-fanout-probe-local.json`), which was recorded before the Master Records organization-record rename (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002) and is not rewritten. The current probe names hop 5 `MASTER_RECORDS_TEST_ORGANIZATION_RECORD` and reports `record_status` and `production_organization_record_claimed` under schema `stegverse.master-records.test-organization-record-result.v1`; its reader still accepts the legacy names.
 
-This proves the requested one-input/two-report reduction in an isolated contract integration. It does **not** prove production endpoint deployment, live DEVICE_KV_INTR, or live authenticated Master Records custody.
+The fanout is intentionally asymmetric: the KV report returns the endpoint disposition and hash/receipt binding, while the Master Records report keeps the traversal chain and the hash of the record offered to the Master Records-compatible organization-record contract.
 
-Live follow-up is tracked in `master-records/orchestration#50`. That repository's current root handoff marks live authenticated custody round-trip work as machine-owned / authority-bound, so this test does not compete with or synthesize that external evidence.
+This proves the requested one-input/two-report reduction in an isolated contract integration. It does **not** prove production endpoint deployment, live DEVICE_KV_INTR, or a live authenticated Master Records organization record.
+
+Live follow-up is tracked in `master-records/orchestration#50`. That repository's current root handoff marks live authenticated organization-record round-trip work as machine-owned / authority-bound, so this test does not compete with or synthesize that external evidence.
 
 
 ## Endpoint fanout probe — merged CI execution evidence
@@ -234,7 +236,7 @@ master_record_ref: master-record:sha256:e4f1a8f6b2702ac70a8c4eec619426eb4189afee
 master_record_sha256: e4f1a8f6b2702ac70a8c4eec619426eb4189afeed4144e2a573cc7842015a42a
 ```
 
-This is now stronger than the initial local-isolated execution: the exact merged repository source passed the canonical KV workflow and emitted a retained two-report artifact. It still remains validation-only rather than proof of a deployed production endpoint, authentic DEVICE_KV_INTR, or live authenticated Master Records custody.
+This is now stronger than the initial local-isolated execution: the exact merged repository source passed the canonical KV workflow and emitted a retained two-report artifact. It still remains validation-only rather than proof of a deployed production endpoint, authentic DEVICE_KV_INTR, or a live authenticated Master Records organization record.
 
 Durable CI summary:
 `evidence/kv/2026-08-30-endpoint-fanout-probe-ci.json`.

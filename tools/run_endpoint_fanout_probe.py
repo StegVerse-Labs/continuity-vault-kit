@@ -2,7 +2,7 @@
 """Run a loopback endpoint fan-out probe across KV Interlock and Master Records contracts.
 
 This is a TEST_ONLY local integration probe. It does not claim production endpoint
-activation, live DEVICE_KV_INTR, or Master Records custody authority.
+activation, live DEVICE_KV_INTR, or a production Master Records organization record.
 """
 from __future__ import annotations
 
@@ -25,7 +25,21 @@ from runtime.kv_interlock_endpoint import KVInterlockRuntime, canonical_json, sh
 PROBE_SCHEMA = "stegverse.endpoint-fanout-probe.v1"
 KV_REPORT_SCHEMA = "stegverse.kv-interlock.endpoint-status-report.v1"
 TRAVEL_REPORT_SCHEMA = "stegverse.master-records.travel-report.v1"
-CUSTODY_RESULT_SCHEMA = "stegverse.master-records.test-custody-result.v1"
+RECORD_RESULT_SCHEMA = "stegverse.master-records.test-organization-record-result.v1"
+#: Master Records boundary migration (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002):
+#: results written before the rename (for example retained probe evidence) carry
+#: these legacy names. Readers accept them; the sink emits only the new names.
+LEGACY_RECORD_RESULT_SCHEMA = "stegverse.master-records.test-custody-result.v1"
+LEGACY_RECORD_STATUS_FIELD = "custody_status"
+
+
+def record_result_status(result: Mapping[str, Any]) -> Any:
+    """Read a sink result's record status under the current or legacy field name."""
+    if result.get("schema") not in (RECORD_RESULT_SCHEMA, LEGACY_RECORD_RESULT_SCHEMA):
+        raise ValueError("master records record result schema mismatch")
+    if "record_status" in result:
+        return result["record_status"]
+    return result.get(LEGACY_RECORD_STATUS_FIELD)
 
 
 def sha256_hex_bytes(raw: bytes) -> str:
@@ -37,12 +51,16 @@ def sha256_json(value: Any) -> str:
 
 
 class InMemoryMasterRecordsSink:
-    """Contract-shaped local sink matching the governed transition custody intake."""
+    """Contract-shaped local sink for the Master Records organization-record intake.
+
+    Interlock/InTr has already admitted the transition; this sink only records
+    it as an organization record afterwards.
+    """
 
     def __init__(self) -> None:
         self.records: list[dict[str, Any]] = []
 
-    def submit(self, submission: Mapping[str, Any]) -> dict[str, Any]:
+    def write_record(self, submission: Mapping[str, Any]) -> dict[str, Any]:
         if submission.get("schema_version") != "1.0.0":
             raise ValueError("master records submission schema mismatch")
         if submission.get("submission_type") != "governed_transition_custody_candidate":
@@ -101,13 +119,13 @@ class InMemoryMasterRecordsSink:
         )
         self.records.append(canonical_record)
         return {
-            "schema": CUSTODY_RESULT_SCHEMA,
-            "custody_status": "TEST_ONLY_RECORDED",
+            "schema": RECORD_RESULT_SCHEMA,
+            "record_status": "TEST_ONLY_RECORDED",
             "master_record_ref": master_record_ref,
             "custody_receipt_id": custody_receipt_id,
             "record_sha256": record_sha256,
             "authority_granted": False,
-            "production_custody_claimed": False,
+            "production_organization_record_claimed": False,
         }
 
 
@@ -452,7 +470,7 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
         },
     }
 
-    custody_submission = {
+    record_submission = {
         "schema_version": "1.0.0",
         "submission_type": "governed_transition_custody_candidate",
         "transition_id": travel_report["transition_id"],
@@ -472,17 +490,17 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
     }
 
     master_records_sink = InMemoryMasterRecordsSink()
-    custody_result = master_records_sink.submit(custody_submission)
-    travel_report["master_records_submission_sha256"] = sha256_json(custody_submission)
-    travel_report["master_records_result"] = custody_result
+    record_result = master_records_sink.write_record(record_submission)
+    travel_report["master_records_submission_sha256"] = sha256_json(record_submission)
+    travel_report["master_records_result"] = record_result
     travel_report["hops"].append(
         {
             "sequence": 5,
-            "boundary": "MASTER_RECORDS_TEST_CUSTODY",
+            "boundary": "MASTER_RECORDS_TEST_ORGANIZATION_RECORD",
             "from": "MASTER_RECORDS_TRAVEL_REPORT",
             "to": "master-records-compatible-local-sink",
-            "state": custody_result["custody_status"],
-            "artifact_sha256": custody_result["record_sha256"],
+            "state": record_result["record_status"],
+            "artifact_sha256": record_result["record_sha256"],
         }
     )
 
@@ -502,7 +520,7 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
             and kv_status_report["return_interlock"]["candidate_type"] == "ENDPOINT_STATUS_REPORT"
             and kv_status_report["return_interlock"]["candidate_only"] is True
             and kv_status_report["return_interlock"]["canonical_state_changed"] is False
-            and custody_result["custody_status"] == "TEST_ONLY_RECORDED"
+            and record_result_status(record_result) == "TEST_ONLY_RECORDED"
             and len(travel_report["hops"]) == 5
         ),
         "authority_effect": "NONE_TEST_ONLY",
