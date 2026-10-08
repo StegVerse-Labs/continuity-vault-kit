@@ -1,0 +1,23 @@
+{
+  "schema": "stegverse.cvk.pinned-external-fixture/v1",
+  "authority": "StegVerse-Labs/TVC is authoritative for these files; this is a digest-pinned copy for the CVK loader tests.",
+  "source_repository": "StegVerse-Labs/TVC",
+  "source_commit": "67a0d917e44fd66fef891b6aaa92654f9f2961a0",
+  "source_branch_at_pin": "claude/kv-skap-first-issuance-source",
+  "source_pull_request": "StegVerse-Labs/TVC#484",
+  "files": [
+    {
+      "path": "fixtures/tvc/test-lane-provider-use.v1.json",
+      "source_path": "policies/policy-admission/test-lane-provider-use.v1.json",
+      "file_sha256": "5c5eaf71bfab7dda0c04cdf066c32344d8b04539844f9797ebc47f91e8fcbb4d",
+      "policy_hash": "sha256:4f681e0226904a7eddec598549df82feba1307f260659eaa98e86c30f5e38609"
+    },
+    {
+      "path": "fixtures/tvc/test-lane-provider-use.v1.vectors.json",
+      "source_path": "policies/policy-admission/test-lane-provider-use.v1.vectors.json",
+      "file_sha256": "93124ab219cd69e8ef2ef53b9edca3ee7078606a86b9ad3dcb6b005013e2f71a",
+      "vector_count": 12
+    }
+  ],
+  "reference_evaluator": "StegVerse-Labs/TVC:tvc_policy_admission.py@67a0d917e44fd66fef891b6aaa92654f9f2961a0"
+}

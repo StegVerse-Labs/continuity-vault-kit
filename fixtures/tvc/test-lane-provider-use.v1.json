@@ -1,0 +1,14 @@
+{
+  "schema": "stegverse.tvc.policy-admission-policy/v1",
+  "policy_id": "TVC-POLICY-ADMISSION-TEST-LANE-PROVIDER-USE-V1",
+  "credential_authority": "TV/TVC",
+  "derived_from_lease_schema": "stegverse.tvc.test-lane-capability-lease.v1",
+  "event_type": "POLICY_ADMISSION",
+  "transferable": false,
+  "signed": false,
+  "single_use": true,
+  "max_lease_seconds": 300,
+  "capabilities": {"anthropic": "llm.measure.anthropic", "openai": "llm.measure.openai"},
+  "required_false_flags": ["broadcast_allowed", "protected_values_exposed", "secret_export_allowed", "secret_values_exported", "signing_allowed", "signing_authority", "wallet_contact_allowed"],
+  "require_sdk_manifest_binding_equality": true
+}
