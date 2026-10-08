@@ -79,7 +79,7 @@ def main() -> int:
         requested_at="2026-09-05T22:03:00-05:00",
     )
     assert_master_records_organization_record_request(record_request)
-    if record_request["destination_custody_accepted"] or record_request["destination_acknowledgement_minted"]:
+    if record_request["destination_record_accepted"] or record_request["destination_acknowledgement_minted"]:
         raise SystemExit("source validator may not mint Master Records destination state")
 
     projection = build_site_status_projection(import_receipt=receipt, record_request=record_request)
