@@ -22,6 +22,10 @@ LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA = "stegverse.kv.historical-custody-req
 LEGACY_RECORD_REQUESTED_FIELD = "custody_requested"
 REQUEST_AUTHORITY_EFFECT = "NONE_ORGANIZATION_RECORD_REQUEST_ONLY"
 LEGACY_REQUEST_AUTHORITY_EFFECT = "NONE_CUSTODY_REQUEST_ONLY"
+RECORD_ACCEPTED_FIELD = "destination_record_accepted"
+#: Legacy name of RECORD_ACCEPTED_FIELD (MASTER-RECORDS-BULK-SEMANTIC-REMEDIATION-002).
+#: Read (and required to be False) when present; never written.
+LEGACY_RECORD_ACCEPTED_FIELD = "destination_custody_accepted"
 STATUS_SCHEMA = "stegverse.kv.historical-status-projection/v1"
 
 FORBIDDEN_REF_FRAGMENTS = (
@@ -172,6 +176,12 @@ def assert_import_receipt(
             raise HistoricalCorpusImportError("contradiction state mismatch")
 
 
+def _destination_record_not_accepted(value: Dict[str, Any]) -> bool:
+    """True when the new or legacy acceptance field is present and every present one is False."""
+    present = [value[key] for key in (RECORD_ACCEPTED_FIELD, LEGACY_RECORD_ACCEPTED_FIELD) if key in value]
+    return bool(present) and all(item is False for item in present)
+
+
 def _record_requested(request: Dict[str, Any]) -> Any:
     if "record_requested" in request:
         return request["record_requested"]
@@ -197,7 +207,7 @@ def build_master_records_organization_record_request(*, import_receipt: Dict[str
         "requested_at": requested_at,
         "record_requested": True,
         "destination_repository": "master-records/core-lite",
-        "destination_custody_accepted": False,
+        RECORD_ACCEPTED_FIELD: False,
         "destination_acknowledgement_minted": False,
         "independent_validation_complete": False,
         "runtime_activation": False,
@@ -220,8 +230,9 @@ def assert_master_records_organization_record_request(request: Dict[str, Any]) -
         raise HistoricalCorpusImportError("organization record request destination repository mismatch")
     if _record_requested(request) is not True:
         raise HistoricalCorpusImportError("organization record request must declare record_requested=true")
+    if not _destination_record_not_accepted(request):
+        raise HistoricalCorpusImportError(f"organization record request may not assert {RECORD_ACCEPTED_FIELD}")
     for key in (
-        "destination_custody_accepted",
         "destination_acknowledgement_minted",
         "independent_validation_complete",
         "runtime_activation",
@@ -254,7 +265,7 @@ def build_site_status_projection(
         "relationship_kind": import_receipt["relationship_kind"],
         "contradiction_state": import_receipt["contradiction_state"],
         "record_requested": bool(record_request and _record_requested(record_request)),
-        "destination_custody_accepted": False,
+        RECORD_ACCEPTED_FIELD: False,
         "destination_acknowledgement_minted": False,
         "private_content_included": False,
         "publication_authority_granted": False,
@@ -271,7 +282,7 @@ def assert_site_status_projection(projection: Dict[str, Any]) -> None:
         raise HistoricalCorpusImportError("status projection may not include private content")
     if projection.get("publication_authority_granted") is not False:
         raise HistoricalCorpusImportError("status projection may not grant publication authority")
-    if projection.get("destination_custody_accepted") is not False:
+    if not _destination_record_not_accepted(projection):
         raise HistoricalCorpusImportError("source status may not assert Master Records acceptance")
     if projection.get("destination_acknowledgement_minted") is not False:
         raise HistoricalCorpusImportError("source status may not assert Master Records acknowledgement")

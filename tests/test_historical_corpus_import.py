@@ -6,6 +6,7 @@ import unittest
 from runtime.historical_provenance import build_artifact_record
 from runtime.historical_corpus_import import (
     LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA,
+    LEGACY_RECORD_ACCEPTED_FIELD,
     LEGACY_RECORD_REQUESTED_FIELD,
     LEGACY_REQUEST_AUTHORITY_EFFECT,
     HistoricalCorpusImportError,
@@ -93,13 +94,24 @@ class HistoricalCorpusImportTests(unittest.TestCase):
         self.assertTrue(request["record_requested"])
         self.assertNotIn("custody_requested", request)
         self.assertEqual(request["authority_effect"], "NONE_ORGANIZATION_RECORD_REQUEST_ONLY")
-        self.assertFalse(request["destination_custody_accepted"])
+        self.assertFalse(request["destination_record_accepted"])
+        self.assertNotIn("destination_custody_accepted", request)
         self.assertFalse(request["destination_acknowledgement_minted"])
 
         tampered = copy.deepcopy(request)
-        tampered["destination_custody_accepted"] = True
+        tampered["destination_record_accepted"] = True
         with self.assertRaises(HistoricalCorpusImportError):
             assert_master_records_organization_record_request(tampered)
+
+        missing = copy.deepcopy(request)
+        del missing["destination_record_accepted"]
+        with self.assertRaises(HistoricalCorpusImportError):
+            assert_master_records_organization_record_request(missing)
+
+        legacy_true = copy.deepcopy(request)
+        legacy_true["destination_custody_accepted"] = True
+        with self.assertRaises(HistoricalCorpusImportError):
+            assert_master_records_organization_record_request(legacy_true)
 
     def test_reader_accepts_legacy_custody_request_names(self):
         request = build_master_records_organization_record_request(
@@ -110,6 +122,8 @@ class HistoricalCorpusImportTests(unittest.TestCase):
         legacy["schema_version"] = LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA
         legacy[LEGACY_RECORD_REQUESTED_FIELD] = legacy.pop("record_requested")
         legacy["authority_effect"] = LEGACY_REQUEST_AUTHORITY_EFFECT
+        legacy[LEGACY_RECORD_ACCEPTED_FIELD] = legacy.pop("destination_record_accepted")
+        self.assertEqual(LEGACY_RECORD_ACCEPTED_FIELD, "destination_custody_accepted")
         self.assertEqual(LEGACY_ORGANIZATION_RECORD_REQUEST_SCHEMA, "stegverse.kv.historical-custody-request/v1")
         self.assertEqual(LEGACY_RECORD_REQUESTED_FIELD, "custody_requested")
         self.assertEqual(LEGACY_REQUEST_AUTHORITY_EFFECT, "NONE_CUSTODY_REQUEST_ONLY")
@@ -117,6 +131,14 @@ class HistoricalCorpusImportTests(unittest.TestCase):
         projection = build_site_status_projection(import_receipt=self.receipt, record_request=legacy)
         self.assertTrue(projection["record_requested"])
         self.assertNotIn("custody_requested", projection)
+        self.assertFalse(projection["destination_record_accepted"])
+        self.assertNotIn("destination_custody_accepted", projection)
+        legacy_projection = copy.deepcopy(projection)
+        legacy_projection[LEGACY_RECORD_ACCEPTED_FIELD] = legacy_projection.pop("destination_record_accepted")
+        assert_site_status_projection(legacy_projection)
+        legacy_projection[LEGACY_RECORD_ACCEPTED_FIELD] = True
+        with self.assertRaises(HistoricalCorpusImportError):
+            assert_site_status_projection(legacy_projection)
 
         legacy[LEGACY_RECORD_REQUESTED_FIELD] = False
         with self.assertRaises(HistoricalCorpusImportError):
