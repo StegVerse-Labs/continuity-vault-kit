@@ -102,15 +102,32 @@ def seal(
     purpose: str,
     endpoint_ref: str,
     key_authority_ref: str,
+    _test_vector_salt: bytes | None = None,
+    _test_vector_nonce: bytes | None = None,
 ) -> SealedMaterial:
+    """Seal plaintext under a per-object HKDF-derived AES-256-GCM key.
+
+    ``_test_vector_salt`` / ``_test_vector_nonce`` are TEST-VECTOR-ONLY keyword
+    parameters used to reproduce published cross-implementation vectors
+    (fixtures/skap/portable-envelope-v2.vectors.json). They default to None, in
+    which case fresh ``os.urandom`` randomness is always used. No production
+    caller (``seal_with_provider`` or any runtime path) forwards them, and both
+    must be supplied together with exact lengths or sealing fails closed.
+    """
     if not isinstance(plaintext, (bytes, bytearray)) or not plaintext:
         raise SKAPCryptoError("non-empty plaintext bytes are required")
     if not key_authority_ref:
         raise SKAPCryptoError("key_authority_ref is required")
     context = _aad_context(object_id=object_id, credential_version=credential_version, wrapping_policy_ref=wrapping_policy_ref, purpose=purpose, endpoint_ref=endpoint_ref)
     aad = _canonical_bytes(context)
-    salt = os.urandom(32)
-    nonce = os.urandom(12)
+    if _test_vector_salt is None and _test_vector_nonce is None:
+        salt = os.urandom(32)
+        nonce = os.urandom(12)
+    else:
+        if not isinstance(_test_vector_salt, bytes) or not isinstance(_test_vector_nonce, bytes) or len(_test_vector_salt) != 32 or len(_test_vector_nonce) != 12:
+            raise SKAPCryptoError("test-vector salt and nonce must be supplied together with exact lengths")
+        salt = _test_vector_salt
+        nonce = _test_vector_nonce
     key = _derive_key(root_key, salt, aad)
     ciphertext = AESGCM(key).encrypt(nonce, bytes(plaintext), aad)
     envelope = {

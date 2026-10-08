@@ -41,6 +41,7 @@ jobs:
             skap/browser_ingress.py \
             skap/browser_admission.py \
             skap/key_provider.py \
+            skap/portable_envelope.py \
             skap/ingress.py \
             execution/vault_store.py \
             tests/test_vault_store.py \
@@ -51,6 +52,7 @@ jobs:
             tests/test_skap_crypto_boundary.py \
             tests/test_skap_crypto_lifecycle_runtime.py \
             tests/test_skap_tvc_key_provider.py \
+            tests/test_skap_portable_envelope.py \
             tests/test_skap_owner_ingress.py \
             tests/test_hosted_release_authority_retirement.py
 
@@ -136,6 +138,9 @@ jobs:
 
       - name: Validate TVC resident SKAP key-provider boundary
         run: python3 -m unittest tests.test_skap_tvc_key_provider -v
+
+      - name: Validate portable wrapped-root envelope (SKAP layout v2) and cross-implementation vectors
+        run: python3 -m unittest tests.test_skap_portable_envelope -v
 
       - name: Validate transient owner-authorized SKAP ingress
         run: python3 -m unittest tests.test_skap_owner_ingress -v
