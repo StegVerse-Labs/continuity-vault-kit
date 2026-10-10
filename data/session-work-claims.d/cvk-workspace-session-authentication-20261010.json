@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "registry_fragment_type": "stegverse_session_work_claim_registry_fragment",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "claims": [
+    {
+      "claim_id": "CVK-WORKSPACE-SESSION-AUTHENTICATION-20261010",
+      "session_worker_id": "claude:site-1509-workspace-20261010",
+      "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
+      "originating_goal": "Producer-side mirror of stegverse.workspace.session-authentication/v1 (Site#1516/#1518, ChatGPT review Site#1509 comment 6102365201): the same session-admission predicates, in the same order, in front of resolve_assistant_binding so the reference implementation and the Site consumer admit a session principal identically and never from KV ownership, device or process state.",
+      "repository": "StegVerse-Labs/continuity-vault-kit",
+      "branch": "claude/workspace-session-authentication-contract",
+      "role": "ACTIVE_IMPLEMENTATION",
+      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "normalized_work_key": "cvk-workspace-session-authentication",
+      "dependency_surface_keys": [
+        "kv:workspace-session-authentication"
+      ],
+      "governing_dependency_keys": [
+        "kv:workspace-assistant-binding"
+      ],
+      "claimed_paths": [
+        "runtime/workspace_session_authentication.py",
+        "tests/test_workspace_session_authentication.py",
+        ".github/workflows/runtime-import-and-secret-policy.yml",
+        "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+        "data/session-work-claims.d/cvk-workspace-session-authentication-20261010.json"
+      ],
+      "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+      "handoff_revision": "WORKSPACE_SESSION_AUTHENTICATION_CONTRACT_MIRROR_20261010",
+      "claim_created_at": "2026-10-10T22:45:00Z",
+      "claim_expires_when": "Release after exact-head validation and merge. A TV/TVC caller-authentication issuer and page-side verifier remain owner work; no decision here is runtime authentication evidence.",
+      "expected_evidence": [
+        "pure resolver reads the session only; projection, device and process state are never inputs",
+        "KV-owner-copied, device-registered, browser-state and bare principals FAIL_CLOSED before resolve_assistant_binding runs",
+        "ALLOW carries admission_class CALLER_SUPPLIED_FIELDS_ACCEPTED, runtime_authentication_evidence false, action_eligible false",
+        "predicate names identical to Site assets/workspace-session-authentication.js",
+        "tests/test_workspace_session_authentication.py PASS"
+      ],
+      "collision_boundaries": [
+        "Do not change runtime/workspace_assistant_binding.py predicates or order",
+        "Do not add an issuer, verifier, credential or provider call",
+        "Do not read KnowledgeVault, environment or device identity"
+      ],
+      "next_task_after_release": "Owner: bind the existing TV/TVC caller-authentication issuer and an independently verified receipt transport to the page and, if desired, to the reference runtime.",
+      "credential_authority": "TV/TVC",
+      "credential_requirement": "NONE",
+      "authority_effect": false,
+      "activation_effect": false
+    }
+  ]
+}
