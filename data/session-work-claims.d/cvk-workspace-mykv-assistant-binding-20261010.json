@@ -9,9 +9,9 @@
       "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
       "originating_goal": "Define stegverse.kv.workspace-assistant-binding/v1: bind an authenticated WorkSpace session to the existing MyKV AI Assistant from the Personal KV Workspace projection (Site#1509 W4; ChatGPT cycle-10 6099970640 next authorized W4 action).",
       "repository": "StegVerse-Labs/continuity-vault-kit",
-      "branch": "claude/workspace-mykv-assistant-binding",
-      "role": "ACTIVE_IMPLEMENTATION",
-      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "branch": "claude/release-workspace-mykv-assistant-binding-claim",
+      "role": "RELEASED_IMPLEMENTATION",
+      "state": "RELEASED_COMPLETE",
       "normalized_work_key": "cvk-workspace-mykv-assistant-binding",
       "dependency_surface_keys": [
         "kv:workspace-assistant-binding"
@@ -27,7 +27,7 @@
         "data/session-work-claims.d/cvk-workspace-mykv-assistant-binding-20261010.json"
       ],
       "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
-      "handoff_revision": "WORKSPACE_MYKV_ASSISTANT_BINDING_CONTRACT_20261010",
+      "handoff_revision": "WORKSPACE_MYKV_ASSISTANT_BINDING_CONTRACT_RELEASED_20261010",
       "claim_created_at": "2026-10-10T17:10:00Z",
       "claim_expires_when": "Release after exact-head validation and merge. Assistant invocation route, StegBrowser consent contract, populated assistant.json and authentic runtime readback remain owner work.",
       "expected_evidence": [
@@ -47,7 +47,10 @@
       "credential_authority": "TV/TVC",
       "credential_requirement": "NONE",
       "authority_effect": false,
-      "activation_effect": false
+      "activation_effect": false,
+      "pull_request": 241,
+      "release_commit": "de29fb78191717b60d46f1f75ba3a3ea54eaf673",
+      "claim_released_at": "2026-10-10T17:06:00Z"
     }
   ]
 }
