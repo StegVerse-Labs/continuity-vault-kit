@@ -85,6 +85,13 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
   - Site consumption of the binding decision.
 - **Test:** `tests/test_workspace_assistant_binding.py`, run by the unfiltered guard workflow and built from real `get_personal_workspace_projection` output.
 
+## Session-authentication contract mirror — Site#1509 W4 (2026-10-10)
+- **Module:** `runtime/workspace_session_authentication.py` defines `stegverse.workspace.session-authentication/v1`, the producer-side mirror of Site `assets/workspace-session-authentication.js` (Site#1516, #1518): same predicates, same order, same output fields. It is pure and reads the session only; the KV projection, device registration and process state are never inputs.
+- **What it decides:** whether a caller session may be handed to `resolve_assistant_binding`. A principal copied from KV ownership data (`KV_OWNERSHIP_IS_NOT_AUTHENTICATION`), a node registration (`DEVICE_REGISTRATION_IS_NOT_AUTHENTICATION`), browser or page state (`BROWSER_STATE_IS_NOT_AUTHENTICATION`), or a bare `principal_id` without a TV/TVC-backed caller-authentication receipt is refused `FAIL_CLOSED` before the binding resolver runs.
+- **ALLOW semantics (ChatGPT review Site#1509 comment 6102365201):** `CALLER_AUTHENTICATION_RECEIPT_PRESENT` is an informational acceptance of caller-supplied receipt fields. Every decision carries `admission_class: CALLER_SUPPLIED_FIELDS_ACCEPTED`, `verification: CALLER_SUPPLIED_NOT_PAGE_VERIFIED`, `runtime_authentication_evidence: false`, `action_eligible: false`, `authority_effect: NONE`. No TV/TVC verification is performed here.
+- **Not implemented here (owner work):** the TV/TVC caller-authentication issuer and an independently verified receipt transport.
+- **Test:** `tests/test_workspace_session_authentication.py` (28 refusal cases, ALLOW shape, session-only input, binding integration built from real `get_personal_workspace_projection` output, optional cross-repository predicate-name parity when a Site checkout is present), run by the unfiltered guard workflow.
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 
