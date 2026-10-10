@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0.0",
+  "registry_fragment_type": "stegverse_session_work_claim_registry_fragment",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "claims": [
+    {
+      "claim_id": "CVK-WORKSPACE-MYKV-ASSISTANT-BINDING-20261010",
+      "session_worker_id": "claude:site-1509-workspace-20261010",
+      "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
+      "originating_goal": "Define stegverse.kv.workspace-assistant-binding/v1: bind an authenticated WorkSpace session to the existing MyKV AI Assistant from the Personal KV Workspace projection (Site#1509 W4; ChatGPT cycle-10 6099970640 next authorized W4 action).",
+      "repository": "StegVerse-Labs/continuity-vault-kit",
+      "branch": "claude/workspace-mykv-assistant-binding",
+      "role": "ACTIVE_IMPLEMENTATION",
+      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "normalized_work_key": "cvk-workspace-mykv-assistant-binding",
+      "dependency_surface_keys": [
+        "kv:workspace-assistant-binding"
+      ],
+      "governing_dependency_keys": [
+        "kv:workspace-assistant-binding"
+      ],
+      "claimed_paths": [
+        "runtime/workspace_assistant_binding.py",
+        "tests/test_workspace_assistant_binding.py",
+        ".github/workflows/runtime-import-and-secret-policy.yml",
+        "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+        "data/session-work-claims.d/cvk-workspace-mykv-assistant-binding-20261010.json"
+      ],
+      "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+      "handoff_revision": "WORKSPACE_MYKV_ASSISTANT_BINDING_CONTRACT_20261010",
+      "claim_created_at": "2026-10-10T17:10:00Z",
+      "claim_expires_when": "Release after exact-head validation and merge. Assistant invocation route, StegBrowser consent contract, populated assistant.json and authentic runtime readback remain owner work.",
+      "expected_evidence": [
+        "pure resolver writes nothing and grants no invocation or action authority",
+        "missing assistant FAIL_CLOSED with generic LLM fallback FORBIDDEN",
+        "cross-user, cross-workspace, org-context, revoked, ambiguous and malformed negative tests",
+        "continuity keyed by owner, assistant and workspace, never device",
+        "tests/test_workspace_assistant_binding.py PASS"
+      ],
+      "collision_boundaries": [
+        "Do not create, rename or populate an assistant identity",
+        "Do not change runtime/workspace_projection.py output",
+        "Do not add an LLM invocation route or provider call",
+        "Do not wire into the Site bridge until an authentic projection carries owner_principal_id and assistant"
+      ],
+      "next_task_after_release": "Owner: populate _System/Workspace/assistant.json for the existing MyKV assistant under the authorized KV writer; define the assistant invocation manifest route and StegBrowser consent policy; Site consumes the binding decision.",
+      "credential_authority": "TV/TVC",
+      "credential_requirement": "NONE",
+      "authority_effect": false,
+      "activation_effect": false
+    }
+  ]
+}

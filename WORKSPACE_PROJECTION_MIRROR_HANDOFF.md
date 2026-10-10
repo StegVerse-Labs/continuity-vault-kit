@@ -60,6 +60,31 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
   The module writes nothing and holds no keys.
 - **Test:** `tests/test_workspace_continuity_checkpoint.py`, run by the unfiltered guard workflow.
 
+## MyKV assistant binding contract — Site#1509 W4 (2026-10-10)
+- **Module:** `runtime/workspace_assistant_binding.py` defines `stegverse.kv.workspace-assistant-binding/v1`. It is pure and storage-free.
+- **What it decides:** whether an authenticated WorkSpace session (principal_id, workspace_type, workspace_id, all supplied by the caller's own authentication) resolves to the user's existing MyKV AI Assistant. The assistant is the single `AI_ENTITY` with role `WORKSPACE_ASSISTANT` that this producer projects from `_System/Workspace/assistant.json`.
+- **It never creates or substitutes an assistant.** `generic_llm_fallback` is always `FORBIDDEN`.
+- **Refused cases:**
+  - a missing assistant, or a missing owner binding → FAIL_CLOSED;
+  - organizational context → FAIL_CLOSED, because it needs a distinct Org-KV projection and Personal KV is never reused;
+  - another user, another workspace, a revoked grant, or a relationship declaration whose parties do not match or that is not active → DENY;
+  - a second assistant candidate, or a malformed or authority-asserting projection → FAIL_CLOSED.
+- **On ALLOW** it returns the binding:
+  - the assistant and owner ids;
+  - a continuity key of (owner, assistant, workspace), never a device or page session;
+  - source_revision and provenance from the projection metadata;
+  - the checkpoint schema, with `replay_status: UNKNOWN`;
+  - `relationship_state`, which is `ACTIVE_DECLARED` only when a valid mutual relationship declaration names both parties.
+
+  ALLOW means only that the session may show the assistant: `action_eligible` is false and `authority_effect` is NONE.
+- **Reported as NOT_AVAILABLE, not assumed:** `invocation_route` and `ephemeral_inference`. No MyKV assistant invocation manifest route and no StegBrowser consent contract exists yet.
+- **Not implemented here (owner work):**
+  - populating `assistant.json`, and `workspace.json` `owner_principal_id`, under the authorized KV writer. The owner KV Workspace is currently empty.
+  - the assistant invocation route through the SDK and Interlock/InTr;
+  - the StegBrowser ephemeral-inference consent and redaction policy;
+  - Site consumption of the binding decision.
+- **Test:** `tests/test_workspace_assistant_binding.py`, run by the unfiltered guard workflow and built from real `get_personal_workspace_projection` output.
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 
