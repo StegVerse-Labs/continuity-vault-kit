@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0.0",
+  "registry_fragment_type": "stegverse_session_work_claim_registry_fragment",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "claims": [
+    {
+      "claim_id": "CVK-WORKSPACE-CONTINUITY-CHECKPOINT-20261010",
+      "session_worker_id": "claude:site-1509-workspace-20261010",
+      "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
+      "originating_goal": "Define stegverse.kv.workspace-continuity-checkpoint/v1 and a pure transition verifier for replay/rollback refusal (Site#1509 P5; ChatGPT cycle-4 final review 6092798251 next_executable).",
+      "repository": "StegVerse-Labs/continuity-vault-kit",
+      "branch": "claude/workspace-continuity-checkpoint-contract",
+      "role": "UPSTREAM_PRODUCER_SUPPORT",
+      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "normalized_work_key": "cvk-workspace-continuity-checkpoint",
+      "dependency_surface_keys": [
+        "kv:workspace-continuity-checkpoint"
+      ],
+      "governing_dependency_keys": [
+        "kv:workspace-continuity-checkpoint"
+      ],
+      "claimed_paths": [
+        "runtime/workspace_continuity_checkpoint.py",
+        "tests/test_workspace_continuity_checkpoint.py",
+        ".github/workflows/runtime-import-and-secret-policy.yml",
+        "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+        "data/session-work-claims.d/cvk-workspace-continuity-checkpoint-20261010.json"
+      ],
+      "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+      "handoff_revision": "WORKSPACE_CONTINUITY_CHECKPOINT_CONTRACT_20261010",
+      "claim_created_at": "2026-10-10T02:40:00Z",
+      "claim_expires_when": "Release after exact-head validation and merge. Checkpoint production/persistence (BLK3), anchoring (owner signature or receipt) and receiver/admission enforcement remain owner work.",
+      "expected_evidence": [
+        "pure verifier writes nothing and holds no keys",
+        "ordering by (source_epoch, sequence) and digest links, not wall clock",
+        "negative tests: cross-session, cross-device, changed source, clock regression, revoked grant, valid restart, fork, rollback, gap, malformed",
+        "replay_status VERIFIED only with a caller-supplied anchor verifier returning True",
+        "tests/test_workspace_continuity_checkpoint.py PASS"
+      ],
+      "collision_boundaries": [
+        "Do not write checkpoint state into KV (BLK3 unresolved)",
+        "Do not create signing keys or new custody",
+        "Do not modify the StegVerse-Labs/.github receiver",
+        "Do not wire into the Site bridge until an anchored producer exists"
+      ],
+      "next_task_after_release": "Owner: decide BLK3 writer and anchor kind; .github DEVICE_KV receiver adopts verify_transition at admission; Site maps decision replay_status.",
+      "credential_authority": "TV/TVC",
+      "credential_requirement": "NONE",
+      "authority_effect": false,
+      "activation_effect": false
+    }
+  ]
+}
