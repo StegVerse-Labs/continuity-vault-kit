@@ -30,6 +30,36 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
 - `authority_effect: NONE`. The `.github` receiver (`scripts/workspace_device_kv_query_extension.py`) is unchanged: it still calls with `kv_data_root` only and checks the same authority fields.
 - Focused test: `tests/test_workspace_projection.py`, now run by the unfiltered guard `.github/workflows/runtime-import-and-secret-policy.yml` (no new workflow; `EXPECTED_WORKFLOW_COUNT` unchanged).
 
+## Continuity checkpoint contract — Site#1509 P5 (2026-10-10)
+`runtime/workspace_continuity_checkpoint.py` defines `stegverse.kv.workspace-continuity-checkpoint/v1` and `verify_transition(previous, current, ...)`. ChatGPT's cycle-4 final review (Site#1509 comment 6092798251) named P5 as the next executable item; the decision against browser-persisted replay state comes from its cycle-3 review (6092615946).
+- **Checkpoint fields:**
+  - context binding: principal_id, workspace_type, workspace_id;
+  - grant_epoch;
+  - source_epoch, which increments when the producer restarts;
+  - sequence within the epoch;
+  - source_revision;
+  - previous_checkpoint_digest;
+  - observed_at;
+  - anchor (`RECEIPT_REF` or `SIGNATURE`);
+  - checkpoint_digest, a SHA-256 over the canonical body;
+  - authority_effect NONE.
+
+  Any other field is rejected, including a device id or a self-declared replay_status.
+- **Ordering:** checkpoints are ordered by (source_epoch, sequence) and digest links, never by wall clock, so clock regression is tolerated. A valid restart has `source_epoch+1`, `sequence 0`, and links to the last accepted digest.
+- **Refused cases:**
+  - fork, rollback/replay, an unlinked restart, and epoch or grant regression → DENY;
+  - a revoked grant epoch or a context mismatch → DENY;
+  - a chain gap, an unknown prior, or malformed or tampered input → FAIL_CLOSED.
+- **Anchors are never assumed:** without a caller-supplied anchor verifier that returns `True`, the result is FAIL_CLOSED with `replay_status: UNKNOWN`. `VERIFIED` is reachable only with a real anchor check.
+- **Not implemented here (owner work):**
+  - producing and persisting checkpoints in KV, which is blocked on registry decision BLK3-WORKSPACE-KV-STORE-WRITER;
+  - choosing and verifying the anchor (signature custody or receipt);
+  - enforcement in the `.github` DEVICE_KV receiver or the governed admission layer;
+  - Site mapping the decision's `replay_status`.
+
+  The module writes nothing and holds no keys.
+- **Test:** `tests/test_workspace_continuity_checkpoint.py`, run by the unfiltered guard workflow.
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 
