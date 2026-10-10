@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 WORKSPACE_REL=Path("_System/Workspace")
 SCHEMAS={
@@ -16,6 +18,7 @@ SCHEMAS={
 }
 FORBIDDEN=("password","secret","token","credential","private_key","seed","mnemonic","recovery_code")
 PRINCIPAL_TYPES={"HUMAN","AI_ENTITY","ORGANIZATION","SERVICE"}
+METADATA_SCHEMA="stegverse.kv.workspace-projection-metadata/v1"
 
 class WorkspaceProjectionError(ValueError): pass
 
@@ -64,16 +67,49 @@ def _principal(row:dict[str,Any])->dict[str,Any]:
     result["authority_effect"]="NONE"
     return result
 
-def get_personal_workspace_projection(*,kv_data_root:Path)->dict[str,Any]:
+def _utc_now()->datetime: return datetime.now(timezone.utc)
+
+def _source_revision(sources:dict[str,dict[str,Any]|None])->str:
+    # Digest of the exact validated source records the rows were projected from; absent files are bound as null.
+    canonical=json.dumps({name:sources.get(name) for name in sorted(SCHEMAS)},sort_keys=True,separators=(",",":"),ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+def _context_ref(context:dict[str,Any]|None,key:str)->str|None:
+    value=(context or {}).get(key)
+    return value if isinstance(value,str) and value else None
+
+def _projection_metadata(sources:dict[str,dict[str,Any]|None],context:dict[str,Any]|None,clock:Callable[[],datetime])->dict[str,Any]:
+    produced=clock()
+    _require(isinstance(produced,datetime) and produced.tzinfo is not None,"projection_clock_must_be_timezone_aware")
+    revision=_source_revision(sources)
+    return {
+        "schema":METADATA_SCHEMA,
+        # observed_at is when this producer read and projected the KV sources, never a source-event time.
+        "observed_at":produced.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z"),
+        "observed_at_semantics":"KV_PROJECTION_PRODUCTION_TIME",
+        "source_revision":revision,
+        "provenance_ref":"kv-workspace-source:sha256:"+revision,
+        "workspace_type":"PERSONAL",
+        "workspace_id":_context_ref(context,"workspace_id"),
+        "owner_principal_id":_context_ref(context,"owner_principal_id"),
+        # No verified grant or revocation-epoch source exists in Personal KV Workspace records; never assert ACTIVE.
+        "grant_state":"UNKNOWN",
+        "revocation_epoch":None,
+        "authority_effect":"NONE",
+    }
+
+def get_personal_workspace_projection(*,kv_data_root:Path,clock:Callable[[],datetime]=_utc_now)->dict[str,Any]:
     root=_root(kv_data_root)
-    context=_read_optional(root,"workspace.json")
-    principals=[_principal(row) for row in _rows(_read_optional(root,"principals.json"),"principals")]
-    relationships=_rows(_read_optional(root,"relationships.json"),"relationships")
-    organizations=[_principal(row) for row in _rows(_read_optional(root,"organizations.json"),"organizations")]
+    sources={name:_read_optional(root,name) for name in SCHEMAS}
+    metadata=_projection_metadata(sources,sources["workspace.json"],clock)
+    context=sources["workspace.json"]
+    principals=[_principal(row) for row in _rows(sources["principals.json"],"principals")]
+    relationships=_rows(sources["relationships.json"],"relationships")
+    organizations=[_principal(row) for row in _rows(sources["organizations.json"],"organizations")]
     for org in organizations: _require(org["principal_type"]=="ORGANIZATION","organization_principal_type_invalid")
-    memberships=_rows(_read_optional(root,"memberships.json"),"memberships")
-    feed=_rows(_read_optional(root,"feed.json"),"events")
-    assistant_file=_read_optional(root,"assistant.json")
+    memberships=_rows(sources["memberships.json"],"memberships")
+    feed=_rows(sources["feed.json"],"events")
+    assistant_file=sources["assistant.json"]
     assistant=None
     if assistant_file is not None:
         assistant=_principal(assistant_file.get("assistant") or {})
@@ -111,5 +147,6 @@ def get_personal_workspace_projection(*,kv_data_root:Path)->dict[str,Any]:
         "credential_material_present":False,
         "provider_operation_authorized":False,
         "workspace_grants_authority":False,
+        "projection_metadata":metadata,
         "authority_effect":"NONE",
     }
