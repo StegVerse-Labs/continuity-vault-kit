@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from runtime.workspace_decision_reasons import SESSION_REASONS, SESSION_REQUESTED_ACTION, explanation_record
+
 SESSION_AUTHENTICATION_SCHEMA = "stegverse.workspace.session-authentication/v1"
 RECEIPT_SOURCE_CLASS = "CALLER_AUTHENTICATION_RECEIPT"
 CREDENTIAL_AUTHORITY = "TV/TVC"
@@ -53,6 +55,7 @@ def _decision(disposition: str, predicate: str, session: dict[str, Any] | None =
         "identity_from_projection": False,
         "action_eligible": False,
         "authority_effect": "NONE",
+        "explanation_record": explanation_record(disposition, predicate, SESSION_REASONS, SESSION_REQUESTED_ACTION),
     }
 
 

@@ -16,6 +16,7 @@ from typing import Any
 
 from delegation.relationship import RelationshipDeclarationError, validate_relationship_declaration
 from runtime.workspace_continuity_checkpoint import CHECKPOINT_SCHEMA
+from runtime.workspace_decision_reasons import BINDING_REASONS, BINDING_REQUESTED_ACTION, explanation_record
 
 BINDING_SCHEMA = "stegverse.kv.workspace-assistant-binding/v1"
 PROJECTION_SCHEMA = "stegverse.kv.personal-workspace-projection/v1"
@@ -32,6 +33,7 @@ def _decision(disposition: str, predicate: str, binding: dict[str, Any] | None =
         "generic_llm_fallback": "FORBIDDEN",
         "action_eligible": False,
         "authority_effect": "NONE",
+        "explanation_record": explanation_record(disposition, predicate, BINDING_REASONS, BINDING_REQUESTED_ACTION),
     }
 
 
