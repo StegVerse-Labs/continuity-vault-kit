@@ -92,6 +92,13 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
 - **Not implemented here (owner work):** the TV/TVC caller-authentication issuer and an independently verified receipt transport.
 - **Test:** `tests/test_workspace_session_authentication.py` (28 refusal cases, ALLOW shape, session-only input, binding integration built from real `get_personal_workspace_projection` output, optional cross-repository predicate-name parity when a Site checkout is present), run by the unfiltered guard workflow.
 
+## Tasks and commitments projection — Site#1509 WS-TASKS (2026-10-11)
+- **Directive:** owner/ChatGPT parallel implementation plan (Site#1509 comment 6104154989) item WS-TASKS: tasks/commitments projection presentation, timelines and proposed-action composition only.
+- **Module:** `runtime/workspace_tasks_projection.py` defines `stegverse.kv.workspace-tasks-projection/v1`, produced read-only from `_System/Workspace/tasks.json` (`stegverse.kv.workspace-tasks/v1`: `tasks[]` with task_id, title, status ∈ OPEN/IN_PROGRESS/BLOCKED/DONE/CANCELLED, optional timezone-aware due_at/created_at, source_ref; `commitments[]` with commitment_id, statement, status ∈ PROPOSED/ACTIVE/FULFILLED/WITHDRAWN/REVOKED, counterparty_principal_id, due_at, source_ref). Output: tasks, commitments, a derived `timeline` (dated items by due_at, then undated), and `stegverse.kv.workspace-projection-metadata/v1` whose source_revision digests the exact context and tasks source bytes (`provenance_ref: kv-workspace-tasks-source:sha256:…`).
+- **Invariants:** every row and timeline item is `action_eligible: false` with `execution_requires_admitted_manifest: true`; `action_authority: NONE`; revoked commitments are projected as `REVOKED`, never hidden; secrets, invalid statuses, naive timestamps, duplicate ids and authority claims fail closed; the producer writes nothing.
+- **Not implemented here (owner work):** populating `tasks.json` under the authorized KV writer; carrying this projection through the DEVICE_KV Workspace query; any task transition route (a WorkSpace "propose completion" stays a FAIL_CLOSED, unsubmitted draft until an admitted manifest route exists).
+- **Test:** `tests/test_workspace_tasks_projection.py`, run by the unfiltered guard workflow.
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 
