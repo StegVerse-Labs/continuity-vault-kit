@@ -9,9 +9,9 @@
       "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
       "originating_goal": "Explanation-ready WorkSpace decisions for the universal explanation contract (StegVerse-Labs/.github#3106): a plain-language reason per predicate and an explanation_record on every session-authentication and MyKV assistant-binding decision, mirrored in Site; dispositions, predicates and authority unchanged.",
       "repository": "StegVerse-Labs/continuity-vault-kit",
-      "branch": "claude/workspace-decision-explanations",
-      "role": "ACTIVE_IMPLEMENTATION",
-      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "branch": "claude/release-workspace-decision-explanations-claim",
+      "role": "RELEASED_IMPLEMENTATION",
+      "state": "RELEASED_COMPLETE",
       "normalized_work_key": "cvk-workspace-decision-explanations",
       "dependency_surface_keys": [
         "kv:workspace-decision-reasons"
@@ -30,8 +30,8 @@
         "data/session-work-claims.d/cvk-workspace-decision-explanations-20261011.json"
       ],
       "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
-      "handoff_revision": "WORKSPACE_DECISION_EXPLANATIONS_20261011",
-      "claim_created_at": "2026-10-11T22:40:00Z",
+      "handoff_revision": "WORKSPACE_DECISION_EXPLANATIONS_RELEASED_20261011",
+      "claim_created_at": "2026-10-11T22:29:15Z",
       "claim_expires_when": "Release after exact-head validation and merge.",
       "expected_evidence": [
         "every reachable predicate has a plain-language reason",
@@ -48,7 +48,11 @@
       "credential_authority": "TV/TVC",
       "credential_requirement": "NONE",
       "authority_effect": false,
-      "activation_effect": false
+      "activation_effect": false,
+      "claim_created_at_correction": "was 2026-10-11T22:40:00Z, later than the PR; corrected to the implementation commit time",
+      "pull_request": 249,
+      "release_commit": "bf81767ae3f177cd7b99d47365067df6f7494e49",
+      "claim_released_at": "2026-10-11T22:30:41Z"
     }
   ]
 }
