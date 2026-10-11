@@ -9,9 +9,9 @@
       "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
       "originating_goal": "Read-only delivery readers for Site#1509 WorkSpace seams: capability-family KV projections (stegverse.kv.workspace-family-projections/v1 over _System/Workspace/projections/*.json) and the stored continuity checkpoint with its verifier decision (stegverse.kv.workspace-continuity-checkpoint-delivery/v1), for the DEVICE_KV query path to deliver; nothing written, nothing verified as ALLOW here.",
       "repository": "StegVerse-Labs/continuity-vault-kit",
-      "branch": "claude/workspace-delivery-projections",
-      "role": "ACTIVE_IMPLEMENTATION",
-      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "branch": "claude/release-workspace-delivery-projections-claim",
+      "role": "RELEASED_IMPLEMENTATION",
+      "state": "RELEASED_COMPLETE",
       "normalized_work_key": "cvk-workspace-delivery-projections",
       "dependency_surface_keys": [
         "kv:workspace-family-projections",
@@ -31,7 +31,7 @@
         "data/session-work-claims.d/cvk-workspace-delivery-projections-20261011.json"
       ],
       "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
-      "handoff_revision": "WORKSPACE_DELIVERY_PROJECTIONS_CONTRACT_20261011",
+      "handoff_revision": "WORKSPACE_DELIVERY_PROJECTIONS_CONTRACT_RELEASED_20261011",
       "claim_created_at": "2026-10-11T16:05:00Z",
       "claim_expires_when": "Release after exact-head validation and merge. Writing projections/*.json and the checkpoint files under the authorized KV writer (BLK3), an anchor verifier, and DEVICE_KV delivery remain owner work.",
       "expected_evidence": [
@@ -49,7 +49,10 @@
       "credential_authority": "TV/TVC",
       "credential_requirement": "NONE",
       "authority_effect": false,
-      "activation_effect": false
+      "activation_effect": false,
+      "pull_request": 247,
+      "release_commit": "30655bfcb5da4dab4934f13381fe77f7e18aec56",
+      "claim_released_at": "2026-10-11T17:05:00Z"
     }
   ]
 }
