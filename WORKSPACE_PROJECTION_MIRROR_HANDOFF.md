@@ -106,6 +106,12 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
 - Owner gaps unchanged: the KV writer (BLK3) that persists these files, an anchor verifier, and the sovereign ingress / TVC Drive session for runtime delivery.
 - Tests: `tests/test_workspace_family_projections.py`, `tests/test_workspace_continuity_checkpoint_projection.py`.
 
+## Plain-language decision reasons — .github#3106 explanation contract / Site#1509 (2026-10-11)
+- `runtime/workspace_decision_reasons.py` — `SESSION_REASONS` and `BINDING_REASONS`: one plain-language reason per predicate that `resolve_session_authentication` and `resolve_assistant_binding` can return, plus `explanation_record(...)`. Every decision from both modules now carries `explanation_record` (disposition, predicate, requested action, authority source NONE, consequence NOT_AUTHENTICALLY_OBSERVED, `why`), ready for the universal explanation contract (`stegverse.user-facing-explanation/v1`, StegVerse-Labs/.github). Without it an explanation could only restate the predicate.
+- Reasons are explanatory only: dispositions, predicates, `action_eligible` and `authority_effect` are unchanged, and ALLOW stays unverified.
+- Site mirrors the same text (`reasons` on `StegVerseWorkspaceSessionAuthentication` and `StegVerseWorkspaceAssistantBinding`) and uses it for the DR2 and DR4 device-continuity "Why?".
+- Tests: `tests/test_workspace_decision_reasons.py` (every reachable predicate has a reason and every reason a reachable predicate; reasons are plain language; every session decision path carries a matching record; with a .github checkout, each record builds a conformant explanation whose "Why" is the reason; with a Site checkout, the Site text is identical).
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 

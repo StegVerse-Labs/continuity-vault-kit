@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "registry_fragment_type": "stegverse_session_work_claim_registry_fragment",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "claims": [
+    {
+      "claim_id": "CVK-WORKSPACE-DECISION-EXPLANATIONS-20261011",
+      "session_worker_id": "claude:site-1509-workspace-20261010",
+      "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
+      "originating_goal": "Explanation-ready WorkSpace decisions for the universal explanation contract (StegVerse-Labs/.github#3106): a plain-language reason per predicate and an explanation_record on every session-authentication and MyKV assistant-binding decision, mirrored in Site; dispositions, predicates and authority unchanged.",
+      "repository": "StegVerse-Labs/continuity-vault-kit",
+      "branch": "claude/workspace-decision-explanations",
+      "role": "ACTIVE_IMPLEMENTATION",
+      "state": "CLAIMED_FOR_IMPLEMENTATION",
+      "normalized_work_key": "cvk-workspace-decision-explanations",
+      "dependency_surface_keys": [
+        "kv:workspace-decision-reasons"
+      ],
+      "governing_dependency_keys": [
+        "kv:workspace-session-authentication",
+        "kv:workspace-assistant-binding"
+      ],
+      "claimed_paths": [
+        "runtime/workspace_decision_reasons.py",
+        "runtime/workspace_session_authentication.py",
+        "runtime/workspace_assistant_binding.py",
+        "tests/test_workspace_decision_reasons.py",
+        ".github/workflows/runtime-import-and-secret-policy.yml",
+        "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+        "data/session-work-claims.d/cvk-workspace-decision-explanations-20261011.json"
+      ],
+      "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+      "handoff_revision": "WORKSPACE_DECISION_EXPLANATIONS_20261011",
+      "claim_created_at": "2026-10-11T22:40:00Z",
+      "claim_expires_when": "Release after exact-head validation and merge.",
+      "expected_evidence": [
+        "every reachable predicate has a plain-language reason",
+        "every decision carries a matching explanation_record",
+        "dispositions, predicates, action_eligible and authority_effect unchanged",
+        "tests PASS"
+      ],
+      "collision_boundaries": [
+        "Do not change any disposition or predicate",
+        "Do not write KnowledgeVault files",
+        "Do not add an invocation, provider or execution route"
+      ],
+      "next_task_after_release": "Site consumes the mirrored reasons in the device-continuity Why? (this session).",
+      "credential_authority": "TV/TVC",
+      "credential_requirement": "NONE",
+      "authority_effect": false,
+      "activation_effect": false
+    }
+  ]
+}
