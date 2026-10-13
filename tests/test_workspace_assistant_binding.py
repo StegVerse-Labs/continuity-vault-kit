@@ -39,7 +39,8 @@ def test_same_assistant_binds_from_real_producer_output(tmp_path):
 def test_binding_is_device_independent_and_deterministic(tmp_path):
     p = produced(tmp_path)
     assert resolve_assistant_binding(p, **CTX) == resolve_assistant_binding(copy.deepcopy(p), **CTX)
-    assert "device" not in json.dumps(resolve_assistant_binding(p, **CTX)).lower()
+    # The owning goal's identifier (STEGVERSE-WORKSPACE-ANY-DEVICE-KV-SURFACE-001) names device independence; it is not a device identity.
+    assert "device" not in json.dumps(resolve_assistant_binding(p, **CTX)).replace("STEGVERSE-WORKSPACE-ANY-DEVICE-KV-SURFACE-001", "").lower()
 
 def test_missing_assistant_fails_closed_without_generic_fallback(tmp_path):
     d = resolve_assistant_binding(produced(tmp_path, assistant=False), **CTX)

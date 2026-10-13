@@ -133,3 +133,16 @@ def test_no_explanation_record_carries_allow():
         r = explanation_record(disposition, "MYKV_ASSISTANT_BOUND", BINDING_REASONS, "Show your MyKV assistant in this WorkSpace")
         assert r["disposition"] != "ALLOW"
         assert r["disposition"] == ("UNKNOWN" if disposition in ("ALLOW", "UNKNOWN") else disposition)
+
+
+def test_every_explanation_record_is_actionable():
+    # Organization Role conformance item 5: a non-ALLOW result carries the six actionable fields.
+    from runtime.workspace_decision_reasons import explanation_record, SESSION_REQUESTED_ACTION, BINDING_REQUESTED_ACTION
+    six = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint", "owning_existing_goal", "next_attempt")
+    for reasons, action in ((SESSION_REASONS, SESSION_REQUESTED_ACTION), (BINDING_REASONS, BINDING_REQUESTED_ACTION)):
+        for predicate in reasons:
+            for disposition in ("ALLOW", "DENY", "FAIL_CLOSED"):
+                r = explanation_record(disposition, predicate, reasons, action)
+                assert all(isinstance(r[k], str) and r[k].strip() for k in six), r
+                assert r["failure_code"] == r["failed_predicate"] == predicate
+                assert r["owning_existing_goal"] == "STEGVERSE-WORKSPACE-ANY-DEVICE-KV-SURFACE-001"

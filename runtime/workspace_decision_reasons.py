@@ -17,6 +17,11 @@ from typing import Any
 
 SESSION_REQUESTED_ACTION = "Sign in to this WorkSpace"
 BINDING_REQUESTED_ACTION = "Show your MyKV assistant in this WorkSpace"
+OWNING_GOAL = "STEGVERSE-WORKSPACE-ANY-DEVICE-KV-SURFACE-001"
+RETRY_ENTRYPOINTS = {
+    SESSION_REQUESTED_ACTION: "continuity-vault-kit runtime/workspace_session_authentication.py resolve_session_authentication",
+    BINDING_REQUESTED_ACTION: "continuity-vault-kit runtime/workspace_assistant_binding.py resolve_assistant_binding",
+}
 
 SESSION_REASONS: dict[str, str] = {
     "SESSION_PRINCIPAL_UNAUTHENTICATED": "this page has no signed-in identity for you, so it cannot tell who is asking",
@@ -73,4 +78,19 @@ def explanation_record(disposition: str, predicate: str, reasons: dict[str, str]
     }
     if predicate in reasons:
         record["why"] = reasons[predicate]
+    # Organization Role conformance standard (.github docs/ORGANIZATION_ROLE_RUNTIME_REALITY_DEPLOYMENT.md, item 5):
+    # every non-ALLOW result carries these six fields; a bare UNKNOWN or FAIL_CLOSED is not a finding.
+    entrypoint = RETRY_ENTRYPOINTS.get(requested_action, "the WorkSpace session sign-in")
+    record.update({
+        "failure_code": predicate,
+        "failed_predicate": predicate,
+        "required_evidence_or_repair": (
+            "a receipt for this decision, located by its reference and verified through TV/TVC; this surface holds none"
+            if held else
+            "the condition named by " + predicate + " is established by its owner" + (": " + reasons[predicate] + " today" if predicate in reasons else "")
+        ),
+        "retry_entrypoint": entrypoint,
+        "owning_existing_goal": OWNING_GOAL,
+        "next_attempt": "the next '" + requested_action + "' request is decided again from the session it presents; nothing waits",
+    })
     return record
