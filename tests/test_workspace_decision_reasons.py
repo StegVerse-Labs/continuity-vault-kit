@@ -67,9 +67,11 @@ def test_every_session_decision_carries_a_matching_explanation_record():
     for case in _session_cases():
         d = S.resolve_session_authentication(copy.deepcopy(case))
         r = d["explanation_record"]
-        assert (r["disposition"], r["predicate"]) == (d["disposition"], d["predicate"])
+        # Receipt invariant: no ALLOW without its receipt; this decision holds none, so ALLOW is explained as UNKNOWN.
+        held = d["disposition"] == "ALLOW"
+        assert (r["disposition"], r["predicate"]) == ("UNKNOWN" if held else d["disposition"], d["predicate"])
         assert r["why"] == SESSION_REASONS[d["predicate"]]
-        assert (r["authority_source"], r["consequence_observation"]) == ("NONE", "NOT_AUTHENTICALLY_OBSERVED")
+        assert (r["authority_source"], r["consequence_observation"]) == ("NONE", "UNKNOWN" if held else "NOT_AUTHENTICALLY_OBSERVED")
         assert d["action_eligible"] is False and d["authority_effect"] == "NONE"
         seen.add(d["predicate"])
     assert seen == set(SESSION_REASONS)
@@ -81,7 +83,9 @@ def test_binding_decisions_carry_a_matching_explanation_record():
     for predicate in BINDING_REASONS:
         d = B._decision("ALLOW" if predicate == "MYKV_ASSISTANT_BOUND" else "FAIL_CLOSED", predicate)
         r = d["explanation_record"]
-        assert (r["predicate"], r["why"], r["consequence_observation"]) == (predicate, BINDING_REASONS[predicate], "NOT_AUTHENTICALLY_OBSERVED")
+        held = d["disposition"] == "ALLOW"
+        assert r["disposition"] == ("UNKNOWN" if held else d["disposition"])
+        assert (r["predicate"], r["why"], r["consequence_observation"]) == (predicate, BINDING_REASONS[predicate], "UNKNOWN" if held else "NOT_AUTHENTICALLY_OBSERVED")
         assert d["generic_llm_fallback"] == "FORBIDDEN" and d["action_eligible"] is False
 
 
@@ -120,3 +124,12 @@ def test_mirrors_site_reason_text_when_site_checkout_is_present():
         js = (site / name).read_text(encoding="utf-8")
         for predicate, reason in reasons.items():
             assert _json.dumps(predicate) + ":" + _json.dumps(reason) in js, (name, predicate)
+
+
+def test_no_explanation_record_carries_allow():
+    # Task Registry invariant: ALLOW exists only with its receipt. These decisions hold none.
+    from runtime.workspace_decision_reasons import explanation_record
+    for disposition in ("ALLOW", "DENY", "FAIL_CLOSED", "UNKNOWN"):
+        r = explanation_record(disposition, "MYKV_ASSISTANT_BOUND", BINDING_REASONS, "Show your MyKV assistant in this WorkSpace")
+        assert r["disposition"] != "ALLOW"
+        assert r["disposition"] == ("UNKNOWN" if disposition in ("ALLOW", "UNKNOWN") else disposition)
