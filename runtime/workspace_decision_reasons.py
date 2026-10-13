@@ -56,13 +56,20 @@ BINDING_REASONS: dict[str, str] = {
 
 
 def explanation_record(disposition: str, predicate: str, reasons: dict[str, str], requested_action: str) -> dict[str, Any]:
-    """Input for the explanation builder. ALLOW stays unverified: nothing here observes a consequence."""
+    """Input for the explanation builder.
+
+    Task Registry invariant (semantics.actions_by_manifest): every transition, ALLOW or not, is recorded by a
+    receipt, and ALLOW without its receipt does not exist. These decisions accept caller-supplied fields and hold
+    no receipt, so an ALLOW decision is explained as UNKNOWN to this surface (receipt not held), never as ALLOW and
+    never as an authorized-but-unverified state. Refusals keep their own disposition. The decision itself is
+    unchanged."""
+    held = disposition in ("ALLOW", "UNKNOWN")
     record: dict[str, Any] = {
-        "disposition": disposition,
+        "disposition": "UNKNOWN" if held else disposition,
         "predicate": predicate,
         "requested_action": requested_action,
         "authority_source": "NONE",
-        "consequence_observation": "NOT_AUTHENTICALLY_OBSERVED",
+        "consequence_observation": "UNKNOWN" if held else "NOT_AUTHENTICALLY_OBSERVED",
     }
     if predicate in reasons:
         record["why"] = reasons[predicate]
