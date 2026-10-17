@@ -1,6 +1,6 @@
 # KnowledgeVault Workspace Projection Mirror Handoff
 
-Updated: 2026-08-31
+Updated: 2026-10-17
 Repository: StegVerse-Labs/continuity-vault-kit
 State: CONNECTED_KV_WORKSPACE_ROOT_CREATED_QUERY_OBSERVATION_PENDING
 Authority effect: NONE
@@ -108,7 +108,10 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
 
 ## Plain-language decision reasons — .github#3106 explanation contract / Site#1509 (2026-10-11)
 - `runtime/workspace_decision_reasons.py` — `SESSION_REASONS` and `BINDING_REASONS`: one plain-language reason per predicate that `resolve_session_authentication` and `resolve_assistant_binding` can return, plus `explanation_record(...)`. Every decision from both modules now carries `explanation_record` (disposition, predicate, requested action, authority source NONE, consequence NOT_AUTHENTICALLY_OBSERVED, `why`), ready for the universal explanation contract (`stegverse.user-facing-explanation/v1`, StegVerse-Labs/.github). Without it an explanation could only restate the predicate.
-- Reasons are explanatory only: dispositions, predicates, `action_eligible` and `authority_effect` are unchanged, and ALLOW stays unverified.
+- Reasons are explanatory only: dispositions, predicates, `action_eligible` and `authority_effect` are unchanged.
+- **Receipt invariant (#251, 2026-10-13):** there is no ALLOW without a receipt. `explanation_record` explains a held ALLOW, which has no receipt, as `UNKNOWN`. The decision itself is unchanged.
+- **Actionable dispositions (#253, 2026-10-13, Organization Role item 5):** every explanation record (all non-ALLOW) carries `failure_code`, `failed_predicate`, `required_evidence_or_repair`, `retry_entrypoint`, `owning_existing_goal` (`STEGVERSE-WORKSPACE-ANY-DEVICE-KV-SURFACE-001`) and `next_attempt`. These mirror explanation contract v1.2.0 in StegVerse-Labs/.github.
+- **Open owner repair (WorkSpace WU1):** a device-independent verified-user continuity query path, so the Site Personal WorkSpace request no longer binds to a device-local node registration. Until then the Site precondition holds a registered exemption in StegVerse-Labs/.github `data/organization-role-exemption-register.json`.
 - Site mirrors the same text (`reasons` on `StegVerseWorkspaceSessionAuthentication` and `StegVerseWorkspaceAssistantBinding`) and uses it for the DR2 and DR4 device-continuity "Why?".
 - Tests: `tests/test_workspace_decision_reasons.py` (every reachable predicate has a reason and every reason a reachable predicate; reasons are plain language; every session decision path carries a matching record; with a .github checkout, each record builds a conformant explanation whose "Why" is the reason; with a Site checkout, the Site text is identical).
 

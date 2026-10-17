@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "registry_fragment_type": "stegverse_session_work_claim_registry_fragment",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "claims": [
+    {
+      "claim_id": "CVK-WORKSPACE-HANDOFF-CURRENT-20261017",
+      "session_worker_id": "claude:session_01CoqHFrwdZemtzkUWS88RWx",
+      "task_id": "SITE-WORKSPACE-INTEROPERABILITY-001",
+      "originating_goal": "Bring WORKSPACE_PROJECTION_MIRROR_HANDOFF.md current with #251 (receipt invariant) and #253 (six actionable fields), and record the WU1 device-independent query path as this repository's open owner repair.",
+      "repository": "StegVerse-Labs/continuity-vault-kit",
+      "branch": "claude/1509-cvk-handoff-current",
+      "role": "DOCUMENTATION",
+      "state": "CLAIMED",
+      "normalized_work_key": "cvk-workspace-handoff-current",
+      "dependency_surface_keys": [
+        "kv:workspace-decision-reasons"
+      ],
+      "governing_dependency_keys": [
+        "kv:workspace-session-authentication",
+        "kv:workspace-assistant-binding"
+      ],
+      "claimed_paths": [
+        "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+        "data/session-work-claims.d/cvk-workspace-handoff-current-20261017.json"
+      ],
+      "handoff": "WORKSPACE_PROJECTION_MIRROR_HANDOFF.md",
+      "handoff_revision": "WORKSPACE_HANDOFF_CURRENT_20261017",
+      "claim_created_at": "2026-10-17T14:40:00Z",
+      "claim_expires_when": "Release after exact-head validation and merge.",
+      "expected_evidence": [
+        "handoff states the receipt invariant and six fields",
+        "tests PASS"
+      ],
+      "collision_boundaries": [
+        "Documentation only",
+        "Do not change any disposition or predicate",
+        "Do not write KnowledgeVault files"
+      ],
+      "authority_effect": "NONE"
+    }
+  ]
+}
