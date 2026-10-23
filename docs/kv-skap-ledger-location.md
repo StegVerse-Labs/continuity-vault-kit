@@ -162,9 +162,32 @@ StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. He
       model of ENVELOPE v2 line 55 @d749bb2). When the Org side is observed but an ingress crossing on KV's chain has
       no matching Org record, the read is FAIL_CLOSED `INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES` (class B).
     - The Org never grants: the comparison result is echoed with authority NONE and can only refuse.
-    - Residual limit, stated rather than hidden: a whole-storage rollback to a point before the first crossing,
-      with no Org record observable, still reaches ALLOW at E0. That is what the ruling's never-crossed rule
-      permits.
+    - **Residual limits.** These two whole-store rollbacks still reach ALLOW today, for kv and for SKAP through
+      `SkapLayer2Gate`. In each, the receipts, `HEAD.json` and KV's head record are rolled back together, so KV's
+      own readback is self-consistent.
+      1. **Rollback to before the first crossing.** The rolled-back chain has no `INTR_MESH_PATH_TRANSFER` or
+         `INTR_MESH_PATH_INGRESS` record and no Org record is observable, so the comparison is skipped under the
+         ruling's never-crossed rule (E0 ALLOW). The Org side cannot detect this, because it only ever learns about
+         a KV head through a crossing. The rolled-back chain claims none, and nothing on the Org side records KV's
+         genesis or its first head.
+      2. **Rollback to after the last crossing, with the internal heads rolled back and the crossed head kept**
+         (P1, joint review of #263 @34496af5: `WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK`). Every
+         Org crossing record names a head that is still on the rolled-back chain and is an ancestor of its head, so
+         the comparison refuses nothing. The Org side cannot detect this either. Heads appended after the last
+         crossing never crossed, so no digest of them exists outside KV, and KV's own head record went back with
+         the store. Only a party that holds the newer head can see the regression. Today that is a caller's
+         `recorded_head` claim, which is refused with DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
+      - Both are tracked as **LC-KV-26** (class B, owner Lane B on the node side, StegVerse-org/.github#162).
+        - The repair is a node→KV crossing recorded at both ends, with a digest-only node-side record of the KV
+          head it observed, and/or an Org-side genesis/first-head crossing.
+        - Once that is in place, both cases are DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
+        - Witnesses:
+          - case 1: `test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record` (its never-crossed
+            leg);
+          - case 2: `test_lc_kv_26_rollback_after_the_last_crossing_is_a_documented_residual`.
+        - Both assert today's ALLOW as a documented residual, not as a pass condition.
+      - Under Coordination's ruling, a crossing record ahead of the KV head is DENY
+        `KV_LEDGER_HEAD_ROLLBACK_DETECTED`. That is the only code for it, with no alias.
 - **The SKAP chain is reached only through KV's InTr.** A read goes through `SkapLayer2Gate.receipt_ledger` with a
   layer-1 receipt minted by KV. Otherwise it is refused with `SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR`.
 - **Org designations are refused.** Any org ledger ref or git-ref designation is refused with

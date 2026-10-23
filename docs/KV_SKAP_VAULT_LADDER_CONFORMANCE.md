@@ -99,3 +99,24 @@ restart until durable custody exists (TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-0
 bindings was considered and not added: whoever can write the vault directory can rewrite such a chain end to end, so
 restoring gate provenance from it on load would turn a local file into authority. `KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND`
 stays until a bound durable custody location exists.
+
+**KV receipt-chain rollback (LC-KV-26, class B, owner Lane B on the node side, StegVerse-org/.github#162).**
+Two whole-store rollbacks, where the receipts, `HEAD.json` and KV's head record roll back together, still reach ALLOW
+today, for kv and for SKAP through the gate:
+
+1. **A rollback to before the first crossing.** The chain shows no crossing and no Org record is observable, so the
+   ruling's never-crossed rule skips the comparison. The Org side never learned of any KV head before a crossing, and
+   it records no KV genesis or first head.
+2. **A rollback to after the last crossing, dropping the internal heads but keeping the crossed head** (P1's
+   `WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK`, joint review of #263 @34496af5). Every Org crossing
+   record still names an ancestor of the rolled-back head. The dropped heads never crossed, so nothing outside KV
+   holds their digest.
+
+The repair is a node→KV crossing recorded at both ends, with a digest-only node-side record of the observed KV head,
+and/or an Org-side genesis/first-head crossing. With it, both cases become DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
+That is the one code Coordination's ruling keeps for a rollback, including a crossing record ahead of the KV head, and
+there is no alias.
+
+The witnesses are `tests.test_kv_ladder_conformance_lc_kv`: test_lc_kv_26_rollback_after_the_last_crossing_is_a_documented_residual
+for case 2, and test_lc_kv_23's never-crossed leg for case 1. Each asserts the current ALLOW as a documented
+residual. See `docs/kv-skap-ledger-location.md` ("Residual limits").
