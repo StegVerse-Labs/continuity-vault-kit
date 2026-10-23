@@ -1,0 +1,6 @@
+{
+  "schema": "stegverse.kv-ledger-head-signers/v1",
+  "purpose": "Public-key references of KV's own ledger head attesters (the TV/TVC head-signer pattern of StegVerse-Labs/TVC#542, applied to KV's own ledger head per StegVerse-org/.github#160 comment 6371986288 item 4). runtime.kv_receipt_ledgers accepts a KV ledger read only when its genesis, head and blob set carry an Ed25519 stegverse.kv-ledger-head-attestation/v1 by one of these keys.",
+  "state": "NONE_PUBLISHED: every KV ledger read is FAIL_CLOSED KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED until TV/TVC publishes one. Public-key references only; bots never hold keys.",
+  "signers": []
+}
