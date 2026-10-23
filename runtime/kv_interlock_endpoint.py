@@ -65,9 +65,10 @@ HEALTHY_NODE_REFUSAL_CODE = "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"
 HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinned evaluator's RESULT_SCHEMA
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
 #: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md.
-#: The source is byte-identical at #428 @0b37fe3b and at the producer PR #429 @5f5f7bbe, which contains #428.
-#: Admission order: #429 lands with or before #428. #429 only appends the producer section to the interface doc, so
-#: both doc digests are recorded. A final re-vendor follows once Lane B's stack on #429 settles.
+#: The source is byte-identical at #428 @0b37fe3b, at the producer PR #429 @5f5f7bbe (contains #428), and at #430
+#: @4e1499ab, which carries #429 and adds the class B inputs. The ALLOW shape is unchanged. Admission order: #429 lands
+#: with or before #428. #429 and #430 only append sections to the interface doc, so each doc digest is recorded.
+#: A final re-vendor follows once Lane B's stack settles.
 #:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
 PINNED_HEALTHY_NODE_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
@@ -89,10 +90,14 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
          "commit": "5f5f7bbeea96d5f313effaa02f86b01196465247",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
          "interface_doc_sha256": "sha256:a363ff9bb498aa816adf9cc9d64559a389dec6acd3d02144056ee9c2540b91f0"},
+        {"pull_request": "StegVerse-org/LLM-adapter#430 (draft, LC-KV-13 class B inputs: existence read-back, "
+                         "NODE_IDENTITY_BINDING, NODE_HEALTH_CHECK_OBSERVED; carries #429 and #428)",
+         "commit": "4e1499ab88144e8eae341058f7360b0d2a805b56",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:6b523e3949d89a4cb85904559d5bb458b9796ec910fde2c26296096f0d3f8b62"},
     ],
     "admission_order": "StegVerse-org/LLM-adapter#429 lands with or before #428",
-    "re_vendor": "a final re-vendor follows once Lane B's stack on #429 settles (existence read-back, identity "
-                 "binding, health-check projection)",
+    "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430 and the #431 onboarding) settles",
 }
 #: Where the evaluator's chain lives. It is bound by contract location: the existing org-ledger contract location
 #: (generate_ledger_contracts.py repository_ledger_location), with no new ref and no new ledger root. KV derives the
@@ -110,10 +115,11 @@ HEALTHY_NODE_LEDGER_LOCATION = {
 HEALTHY_NODE_LEDGER_PREDICATE = "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"
 HEALTHY_NODE_LEDGER_REFUSAL_CAUSE = "HEALTHY_NODE_LEDGER_NOT_ONBOARDED"
 HEALTHY_NODE_LEDGER_ONBOARDING = (
-    "the StegVerse-org/LLM-adapter organization-ledger onboarding (Lane B G-8 draft, modelled on "
-    "StegVerse-org/StegVerse-SDK#558; PR number UNKNOWN_NOT_AUTHENTICALLY_OBSERVED). It binds repository_ledger_location "
-    "in .stegverse/transition-ledger/contract.json to StegVerse-org/.github refs/stegverse/organization-ledger:"
-    "repository-ledger/StegVerse-org/LLM-adapter and establishes that chain's genesis")
+    "StegVerse-org/LLM-adapter#431 (Lane B G-8 draft, the StegVerse-org/LLM-adapter organization-ledger onboarding, "
+    "modelled on StegVerse-org/StegVerse-SDK#558). It binds repository_ledger_location in "
+    ".stegverse/transition-ledger/contract.json to StegVerse-org/.github refs/stegverse/organization-ledger:"
+    "repository-ledger/StegVerse-org/LLM-adapter. It stays FAIL_CLOSED until that chain's genesis and an admitted append "
+    "route exist")
 HEALTHY_NODE_LEDGER_OWNER = ("KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324) via LC-KV-13 "
                              "(Lane B, InTr and Mesh Destinations, StegVerse-org/.github#162)")
 

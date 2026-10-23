@@ -752,9 +752,9 @@ def _evidence_intr(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
 ACCESS_EVIDENCE_KEYS = ("layer1_kv_access_receipts", "layer2_skap_access_receipts")
 ACCESS_CONSTRAINT_OWNER = {
     LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter#428 "
-                         "llm_adapter/healthy_node_evaluator.py, producer #429, InTr and Mesh Destinations lane); the chain at "
+                         "llm_adapter/healthy_node_evaluator.py, producer #429, inputs #430, InTr and Mesh Destinations lane); the chain at "
                          "StegVerse-org/.github refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/"
-                         "LLM-adapter is not onboarded yet (Lane B onboarding draft, like StegVerse-SDK#558)"),
+                         "LLM-adapter is not onboarded yet (onboarding StegVerse-org/LLM-adapter#431, Lane B draft)"),
     LAYER_PREDICATE_L2: GOAL_REF,
     LAYER_PREDICATE_PRIOR: GOAL_REF,
 }

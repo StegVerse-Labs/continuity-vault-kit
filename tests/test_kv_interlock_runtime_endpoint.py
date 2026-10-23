@@ -369,7 +369,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
             self.assertEqual((response["failure_class"], response["refusal_cause"], response["failed_predicate"]),
                              ("B", "HEALTHY_NODE_LEDGER_NOT_ONBOARDED", "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"))
             self.assertIn("organization-ledger onboarding", response["retry_entrypoint"])
-            self.assertIn("StegVerse-SDK#558", response["retry_entrypoint"])
+            self.assertTrue(response["retry_entrypoint"].startswith("StegVerse-org/LLM-adapter#431"))
             self.assertIn("LC-KV-13", response["owning_existing_goal"])
             self.assertIsNone(response["kv_access_receipt"])
         self.assertEqual(response["health_evaluation"]["reason"], "LEDGER_HEAD_UNREADABLE")
@@ -382,9 +382,9 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
                          ("B", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"))
         self.assertEqual(response["health_evaluation"]["reason"], "HEALTH_REPORT_MISSING")
 
-    def test_the_pin_records_428_and_429_provenance(self):
+    def test_the_pin_records_428_429_and_430_provenance(self):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
-        self.assertEqual([p["commit"][:8] for p in pin["provenance"]], ["0b37fe3b", "5f5f7bbe"])
+        self.assertEqual([p["commit"][:8] for p in pin["provenance"]], ["0b37fe3b", "5f5f7bbe", "4e1499ab"])
         self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):
