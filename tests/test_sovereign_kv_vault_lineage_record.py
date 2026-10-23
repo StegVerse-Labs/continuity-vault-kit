@@ -79,6 +79,25 @@ def receipt_hash(receipt):
     return h({k: v for k, v in receipt.items() if k != "receipt_hash"})
 
 
+KV_ACCESS = "sha256:" + "1" * 64
+SKAP_ACCESS = "sha256:" + "2" * 64
+
+
+def layers_verified(kv_hash, skap_hash):
+    """Test stand-in for the layer-2 gate's verify_access_chain (continuity-vault-kit#258 supplies the real one)."""
+    if (kv_hash, skap_hash) == (KV_ACCESS, SKAP_ACCESS):
+        return {"disposition": "ALLOW"}
+    return {"disposition": "FAIL_CLOSED", "failure_code": "SKAP_ACCESS_LAYER2_REFUSED",
+            "required_evidence_or_repair": "not a chain minted by the gates"}
+
+
+def layered_receipt(request, **over):
+    base = provider_receipt(request)
+    base.update(kv_access_receipt_hash=KV_ACCESS, skap_access_receipt_hash=SKAP_ACCESS)
+    base.update(over)
+    return base
+
+
 def lineage(count: int = 3, principal: str = "principal:alice"):
     receipts, previous = [], None
     for index in range(count):
@@ -131,9 +150,7 @@ class VaultLineageRecord(unittest.TestCase):
             storage_locator="private://kv/vault-lineage")
 
     def receipt(self, bound, **over):
-        base = provider_receipt(bound["provider_write_request"])
-        base.update(over)
-        return base
+        return layered_receipt(bound["provider_write_request"], **over)
 
     def test_round_trip_write_and_exact_readback(self) -> None:
         exported = lineage()
@@ -145,10 +162,13 @@ class VaultLineageRecord(unittest.TestCase):
         self.assertEqual(write["schema"], "stegverse.kv.storage-provider-operation-request/v1")
         self.assertEqual(bound["head_receipt_hash"], exported["head"])
         result = validate_vault_lineage_custody_result(binding=bound, provider_receipt=self.receipt(bound),
-                                                       read_back_lineage=copy.deepcopy(exported))
+                                                       read_back_lineage=copy.deepcopy(exported),
+                                                       access_receipt_verifier=layers_verified)
         self.assertTrue(result["exact_hash_readback_verified"])
         self.assertEqual(result["read_back_lineage_sha256"], result["lineage_sha256"])
         self.assertEqual(result["authority_effect"], "NONE")
+        self.assertEqual((result["kv_access_receipt_hash"], result["skap_access_receipt_hash"]),
+                         (KV_ACCESS, SKAP_ACCESS))
 
     def test_readback_request_is_the_v1_read(self) -> None:
         adapter = default_registry().get("device-local")
@@ -195,8 +215,48 @@ class VaultLineageRecord(unittest.TestCase):
                      {"intr_receipt_ref": ""}, {"credential_material_present": True}, {"request_id": "kvprov_x"}):
             cases.append(dict(provider_receipt=self.receipt(bound, **over), read_back_lineage=lineage()))
         for case in cases:
-            out = validate_vault_lineage_custody_result(binding=bound, **case)
+            out = validate_vault_lineage_custody_result(binding=bound, access_receipt_verifier=layers_verified, **case)
             assert_six_field_fail_closed(self, out, "VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED")
+
+
+class CustodyRequiresBothAccessLayers(unittest.TestCase):
+    """Revised LC-KV-03 / LC-KV-08 (StegVerse-Labs/.github#3330 rev 1): a custody result binds the layer-1 KV-access
+    receipt and the layer-2 SKAP-access receipt, each verified against the gates, never a non-empty string."""
+
+    def check(self, code, predicate, verifier=layers_verified, **over):
+        bound = VaultLineageRecord().bind()
+        out = validate_vault_lineage_custody_result(
+            binding=bound, provider_receipt=layered_receipt(bound["provider_write_request"], **over),
+            read_back_lineage=lineage(), access_receipt_verifier=verifier)
+        assert_six_field_fail_closed(self, out, code)
+        self.assertEqual(out["failed_predicate"], predicate)
+
+    def test_no_layer1_receipt(self) -> None:
+        for value in (None, "", "intr:any-string", "sha256:short"):
+            self.check("KV_ACCESS_LAYER1_REFUSED", "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
+                       kv_access_receipt_hash=value)
+
+    def test_no_layer2_receipt(self) -> None:
+        for value in (None, "", "intr:any-string"):
+            self.check("SKAP_ACCESS_LAYER2_REFUSED", "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT",
+                       skap_access_receipt_hash=value)
+
+    def test_well_formed_but_unverified_hashes(self) -> None:
+        self.check("KV_ACCESS_LAYER1_REFUSED", "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE", verifier=None)
+        self.check("SKAP_ACCESS_LAYER2_REFUSED", "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT",
+                   skap_access_receipt_hash="sha256:" + "3" * 64)
+
+        def broken(*_):
+            raise RuntimeError("verifier fault")
+        self.check("KV_ACCESS_LAYER1_REFUSED", "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE", verifier=broken)
+        self.check("KV_ACCESS_LAYER1_REFUSED", "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
+                   verifier=lambda *_: {"disposition": "ALLOW_ISH"})
+
+    def test_git_ref_custody_adapter_is_withdrawn(self) -> None:
+        self.assertFalse((ROOT / "runtime" / "kv_ecosystem_git_ref_custody.py").exists())
+        ids = {d["provider_id"] for d in binding_module.vault_lineage_registry().descriptors()}
+        self.assertEqual(ids, {d["provider_id"] for d in default_registry().descriptors()})
+        self.assertNotIn("ecosystem-git-ref", ids)
 
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
@@ -230,12 +290,12 @@ class CustodyValidationIsADispositionNeverARaise(unittest.TestCase):
         bound = VaultLineageRecord().bind()
         for kwargs in (dict(binding=None, provider_receipt={}, read_back_lineage={}),
                        dict(binding=bound, provider_receipt=None, read_back_lineage=lineage()),
-                       dict(binding=bound, provider_receipt=provider_receipt(bound["provider_write_request"]),
+                       dict(binding=bound, provider_receipt=layered_receipt(bound["provider_write_request"]),
                             read_back_lineage=None),
                        dict(binding={**bound, "provider_readback_request": None},
-                            provider_receipt=provider_receipt(bound["provider_write_request"]),
+                            provider_receipt=layered_receipt(bound["provider_write_request"]),
                             read_back_lineage=lineage())):
-            out = validate_vault_lineage_custody_result(**kwargs)
+            out = validate_vault_lineage_custody_result(access_receipt_verifier=layers_verified, **kwargs)
             self.assertEqual(out["disposition"], "FAIL_CLOSED", kwargs)
             self.assertIn(out["failure_code"], ("VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED",
                                                 "VAULT_LINEAGE_CUSTODY_INPUT_MALFORMED"))
@@ -245,8 +305,8 @@ class CustodyValidationIsADispositionNeverARaise(unittest.TestCase):
     def test_allow_carries_a_disposition(self) -> None:
         bound = VaultLineageRecord().bind()
         out = validate_vault_lineage_custody_result(
-            binding=bound, provider_receipt=provider_receipt(bound["provider_write_request"]),
-            read_back_lineage=lineage())
+            binding=bound, provider_receipt=layered_receipt(bound["provider_write_request"]),
+            read_back_lineage=lineage(), access_receipt_verifier=layers_verified)
         self.assertEqual(out["disposition"], "ALLOW")
         self.assertTrue(out["exact_hash_readback_verified"])
 
