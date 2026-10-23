@@ -1,10 +1,10 @@
 {
  "authority_effect": "NONE",
- "commit": "b17e08159242326200b5f3e90c56f39bf4b9f6d8",
+ "commit": "5eba73992b4d9944c7d96cc4c756447279fe1a00",
  "files": {
-  "scripts/test_set_selection.py": "4725d07aa855a855ebebfda6da7294d01f1863357b95bbfd341d92da5e1c4d43"
+  "scripts/test_set_selection.py": "409b29637ce40a7b838023b336553774403d8c83e41c5a0d594270783d799d8a"
  },
- "re_pin": "the commit is the head of StegVerse-Labs/.github#3317 (unmerged), the same commit StegVerse-org/.github pins (.stegverse/test-suite-baseline/labs-tool-pin.json); pin its merge commit once it lands on main",
+ "re_pin": "the commit is the head of StegVerse-Labs/.github#3317 (unmerged), the same commit StegVerse-org/.github#222 pins (.stegverse/test-suite-baseline/labs-tool-pin.json); pin its merge commit once it lands on main",
  "repository": "StegVerse-Labs/.github",
  "schema": "stegverse.labs-tool-pin/v1",
  "url": "https://github.com/StegVerse-Labs/.github",
