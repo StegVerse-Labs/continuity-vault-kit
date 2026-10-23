@@ -26,3 +26,22 @@ This binding does not authenticate providers, resolve credentials, decide Interl
 
 ## Manual work
 None.
+
+## Additive: vault-lineage record type (class B consumes-extension)
+
+KV-SKAP-VAULT-FUNCTIONAL-001 (finish point continuity-vault-kit#258) consumes this Goal for
+`KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND`: the durable custody location a vault's receipt-hash lineage is read
+from on any device. This binding now carries a second record type, `KV_SKAP_VAULT_LINEAGE`:
+
+- `build_vault_lineage_record` wraps an exported `stegverse.kv-skap-vault-lineage/v1` lineage as
+  `stegverse.task-registry-sovereign-kv-vault-lineage-record/v1`, re-deriving every receipt hash, the chain
+  and the head, and refusing credential or key material.
+- `build_vault_lineage_custody_binding` produces the existing v1 provider WRITE request
+  (object_ref = lineage hash) plus a v1 READ request from `build_vault_lineage_readback_request`
+  (runtime/kv_storage_provider_adapter.py), so any device reads the lineage back by its exact hash.
+- `validate_vault_lineage_custody_result` requires the admitted WRITE receipt and that the read-back
+  lineage re-derives to the bound hash and head.
+
+The projection-request schema, the event binding, its receipt and the adapter's v1 request builder are
+byte-unchanged; `tests/test_sovereign_kv_vault_lineage_record.py` pins their digests as observed at main
+`bcc2d75`. No provider I/O, credential, or authority is added (`authority_effect: NONE`).

@@ -155,3 +155,32 @@ def default_registry() -> StorageProviderRegistry:
         DeclarativeStorageProviderAdapter("nas", "NAS / Network Storage", "network-storage", storage_class="NETWORK", locator_kind="NETWORK_PATH", session_requirement="ADAPTER_DEFINED", credential_requirement="ADAPTER_DEFINED", access_adapter="network-storage-adapter"),
         DeclarativeStorageProviderAdapter("removable-storage", "Removable Storage", "removable-storage", storage_class="REMOVABLE", locator_kind="MOUNTED_PATH", session_requirement="NONE", credential_requirement="ADAPTER_DEFINED", access_adapter="mounted-volume-adapter"),
     ])
+
+
+# --- additive: vault-lineage readback (TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001 consumes-extension) ---
+# A KV/SKAP Vault lineage is written as one object addressed by its lineage hash. Any device reads it back
+# by that hash through the existing v1 READ request; nothing above changes, so legacy request hashes hold.
+VAULT_LINEAGE_OBJECT_KIND = "KV_SKAP_VAULT_LINEAGE"
+
+
+def build_vault_lineage_readback_request(
+    *,
+    adapter: KVStorageProviderAdapter,
+    instance_id: str,
+    kv_set_id: str,
+    lineage_sha256: str,
+    storage_locator: str | None = None,
+    requested_by: str = "kv-skap-vault",
+) -> dict[str, Any]:
+    """Existing v1 READ request whose object_ref is the exact vault-lineage hash."""
+    if not isinstance(lineage_sha256, str) or not lineage_sha256.startswith("sha256:") or len(lineage_sha256) != 71:
+        raise KVStorageProviderError("lineage_sha256 must be sha256:<64 hex>")
+    return build_operation_request(
+        adapter=adapter,
+        instance_id=instance_id,
+        kv_set_id=kv_set_id,
+        operation="READ",
+        storage_locator=storage_locator,
+        requested_by=requested_by,
+        object_ref=lineage_sha256,
+    )

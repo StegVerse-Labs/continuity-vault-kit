@@ -1,0 +1,46 @@
+name: Sovereign KV Event Custody Binding
+
+# TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001: the Task Registry event binding and its additive
+# vault-lineage record type. Read-only; no provider I/O, no credentials, no network.
+
+on:
+  pull_request:
+    paths:
+      - "runtime/task_registry_event_sovereign_kv_binding.py"
+      - "runtime/kv_storage_provider_adapter.py"
+      - "tests/test_task_registry_event_sovereign_kv_binding.py"
+      - "tests/test_sovereign_kv_vault_lineage_record.py"
+      - "docs/TASK_REGISTRY_SOVEREIGN_KV_EVENT_CUSTODY_MIRROR_HANDOFF.md"
+      - ".github/workflows/sovereign-kv-event-custody.yml"
+  push:
+    branches: [main]
+    paths:
+      - "runtime/task_registry_event_sovereign_kv_binding.py"
+      - "runtime/kv_storage_provider_adapter.py"
+      - "tests/test_sovereign_kv_vault_lineage_record.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check pytest
+      - name: Binding, vault-lineage record type and existing-contract byte pins (0 skipped)
+        run: |
+          python -m pytest -q -rs \
+            tests/test_task_registry_event_sovereign_kv_binding.py \
+            tests/test_sovereign_kv_vault_lineage_record.py \
+            tests/test_storage_endpoint_v2.py \
+            tests/test_kv_storage_provider_adapter.py \
+            tests/test_cloud_peer_adoption_provider_binding.py \
+            tests/test_kv_provider_operation_store.py \
+            tests/test_kv_my_kv_projection.py | tee /tmp/pytest.txt
+          ! grep -Eq "[0-9]+ skipped" /tmp/pytest.txt
