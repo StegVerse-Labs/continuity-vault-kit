@@ -5,6 +5,7 @@ import hashlib
 import importlib
 import inspect
 import json
+import os
 from datetime import datetime, timezone
 from typing import Any, Callable
 
@@ -63,8 +64,11 @@ HEALTHY_NODE_PREDICATE = "REQUESTER_IS_CURRENTLY_ADMITTED_HEALTHY_NODE"
 HEALTHY_NODE_REFUSAL_CODE = "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"
 HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinned evaluator's RESULT_SCHEMA
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
-#: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md
-#: at the commit below:
+#: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md.
+#: The source is byte-identical at #428 @0b37fe3b, at the producer PR #429 @5f5f7bbe (contains #428), and at #430
+#: @4e1499ab, which carries #429 and adds the class B inputs. The ALLOW shape is unchanged. Admission order: #429 lands
+#: with or before #428. #429 and #430 only append sections to the interface doc, so each doc digest is recorded.
+#: A final re-vendor follows once Lane B's stack settles.
 #:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
 PINNED_HEALTHY_NODE_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
@@ -78,7 +82,53 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
     "interface_doc_sha256": "sha256:757d697ca385f5d4709d8b26e51119330bb685b4770512312313fc42460bb76d",
     "vendored_module": "runtime.intr_pinned.healthy_node_evaluator",
     "owning_task": "LC-KV-13/LC-KV-14 (InTr and Mesh Destinations lane, StegVerse-org/.github#162)",
+    "provenance": [
+        {"pull_request": "StegVerse-org/LLM-adapter#428 (draft)", "commit": "0b37fe3b786a2de687235f5d9d146af49ffee9cd",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:757d697ca385f5d4709d8b26e51119330bb685b4770512312313fc42460bb76d"},
+        {"pull_request": "StegVerse-org/LLM-adapter#429 (draft, NODE_HEALTH_REPORTED producer, contains #428)",
+         "commit": "5f5f7bbeea96d5f313effaa02f86b01196465247",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:a363ff9bb498aa816adf9cc9d64559a389dec6acd3d02144056ee9c2540b91f0"},
+        {"pull_request": "StegVerse-org/LLM-adapter#430 (draft, LC-KV-13 class B inputs: existence read-back, "
+                         "NODE_IDENTITY_BINDING, NODE_HEALTH_CHECK_OBSERVED; carries #429 and #428)",
+         "commit": "4e1499ab88144e8eae341058f7360b0d2a805b56",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:6b523e3949d89a4cb85904559d5bb458b9796ec910fde2c26296096f0d3f8b62"},
+    ],
+    "admission_order": "StegVerse-org/LLM-adapter#429 lands with or before #428",
+    "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430 and the #431 onboarding) settles",
 }
+#: Where the evaluator's chain lives. It is bound by contract location: the existing org-ledger contract location
+#: (generate_ledger_contracts.py repository_ledger_location), with no new ref and no new ledger root. KV derives the
+#: evaluator's ledger_root as <checkout of the ref>/<namespace>. A requester never names it.
+HEALTHY_NODE_LEDGER_LOCATION = {
+    "repository": "StegVerse-org/.github",
+    "ref": "refs/stegverse/organization-ledger",
+    "namespace": "repository-ledger/StegVerse-org/LLM-adapter",
+    "chain_repository": "StegVerse-org/LLM-adapter",
+    "locator_form": "git+<checkout>#refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/LLM-adapter",
+    "new_ref": False,
+    "new_ledger_root": False,
+    "designation_source": "Coordination ruling on #3330 rev 1 (Oct 23), relayed to Lane D",
+}
+HEALTHY_NODE_LEDGER_PREDICATE = "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"
+HEALTHY_NODE_LEDGER_REFUSAL_CAUSE = "HEALTHY_NODE_LEDGER_NOT_ONBOARDED"
+HEALTHY_NODE_LEDGER_ONBOARDING = (
+    "StegVerse-org/LLM-adapter#431 (Lane B G-8 draft, the StegVerse-org/LLM-adapter organization-ledger onboarding, "
+    "modelled on StegVerse-org/StegVerse-SDK#558). It binds repository_ledger_location in "
+    ".stegverse/transition-ledger/contract.json to StegVerse-org/.github refs/stegverse/organization-ledger:"
+    "repository-ledger/StegVerse-org/LLM-adapter. It stays FAIL_CLOSED until that chain's genesis and an admitted append "
+    "route exist")
+HEALTHY_NODE_LEDGER_OWNER = ("KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324) via LC-KV-13 "
+                             "(Lane B, InTr and Mesh Destinations, StegVerse-org/.github#162)")
+
+
+def healthy_node_ledger_root(checkout: Any) -> str | None:
+    """The evaluator ledger_root under a checkout (materialized tree) of the org-ledger ref, or None if not bound."""
+    if not isinstance(checkout, (str, os.PathLike)) or not str(checkout):
+        return None
+    return os.path.join(str(checkout), *HEALTHY_NODE_LEDGER_LOCATION["namespace"].split("/"))
 PINNED_HEALTHY_NODE_EVALUATOR_ID = (PINNED_HEALTHY_NODE_EVALUATOR["module"] + "."
                                     + PINNED_HEALTHY_NODE_EVALUATOR["callable"])
 #: The exact fields of the pinned evaluator's ALLOW result when called with require_admission=True.
@@ -133,7 +183,8 @@ def evaluator_identity(evaluator: Any) -> str:
 
 def layer1_refusal(request: Any, cause: str, detail: str, *, predicate: str = LAYER1_PREDICATE,
                    failure_class: str = "B", next_attempt: str | None = None,
-                   health_evaluation: Any = None) -> dict[str, Any]:
+                   health_evaluation: Any = None, retry_entrypoint: str = LAYER1_RETRY,
+                   owning_existing_goal: str = GOAL_REF) -> dict[str, Any]:
     """Six-field FAIL_CLOSED for layer 1, returned (never raised) by handle()."""
     request_id = request.get("request_id") if isinstance(request, dict) else None
     return {
@@ -145,8 +196,8 @@ def layer1_refusal(request: Any, cause: str, detail: str, *, predicate: str = LA
         "failure_code": LAYER1_REFUSAL_CODE,
         "failed_predicate": predicate,
         "required_evidence_or_repair": f"{cause}: {detail}",
-        "retry_entrypoint": LAYER1_RETRY,
-        "owning_existing_goal": GOAL_REF,
+        "retry_entrypoint": retry_entrypoint,
+        "owning_existing_goal": owning_existing_goal,
         "next_attempt": next_attempt or "on the next DEVICE->KV InTr transition that carries the repair",
         "failure_class": failure_class,
         "refusal_cause": cause,
@@ -241,7 +292,7 @@ class KVInterlockRuntime:
         candidate_store: Callable[[dict[str, Any]], str] | None = None,
         clock: Callable[[], datetime] | None = None,
         healthy_node_evaluator: Callable[..., Any] | None = None,
-        healthy_node_ledger_root: Any = None,
+        healthy_node_ledger_checkout: Any = None,
     ) -> None:
         self.authority_validator = authority_validator
         self.policy_evaluator = policy_evaluator
@@ -255,8 +306,9 @@ class KVInterlockRuntime:
         else:
             self._evaluator_unavailable = ""
         self.healthy_node_evaluator = healthy_node_evaluator
-        # The node-exchange transition ledger the evaluator reads, bound by KV, never supplied by a requester.
-        self.healthy_node_ledger_root = healthy_node_ledger_root
+        # A checkout of HEALTHY_NODE_LEDGER_LOCATION's ref, bound by KV and never supplied by a requester. The evaluator
+        # reads only <checkout>/<namespace>.
+        self.healthy_node_ledger_checkout = healthy_node_ledger_checkout
         self._kv_access_receipts: dict[str, dict[str, Any]] = {}
 
     def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
@@ -267,6 +319,15 @@ class KVInterlockRuntime:
         if sha256_uri({k: v for k, v in receipt.items() if k != "receipt_hash"}) != receipt_hash:
             return None
         return copy.deepcopy(receipt)
+
+    def _ledger_not_onboarded(self, request: Any, why: str, evaluation: Any) -> dict[str, Any]:
+        loc = HEALTHY_NODE_LEDGER_LOCATION
+        return layer1_refusal(request, HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, (
+            f"{why}. The healthy-node chain is bound by contract location to {loc['repository']} {loc['ref']}:"
+            f"{loc['namespace']}; that chain must be onboarded with a genesis before any health report is readable"),
+            predicate=HEALTHY_NODE_LEDGER_PREDICATE, failure_class="B", health_evaluation=evaluation,
+            retry_entrypoint=HEALTHY_NODE_LEDGER_ONBOARDING, owning_existing_goal=HEALTHY_NODE_LEDGER_OWNER,
+            next_attempt="when the LLM-adapter chain is onboarded and its genesis exists at the contract location")
 
     def _healthy_node(self, request: dict[str, Any], envelope: dict[str, Any],
                       evidence: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
@@ -292,18 +353,24 @@ class KVInterlockRuntime:
                 return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
                     "healthy_node_evidence may only cite health_report_receipt_sha256 (a sha256 receipt address); "
                     "health itself is never caller-asserted"), predicate=HEALTHY_NODE_PREDICATE, failure_class="C")
+        loc = HEALTHY_NODE_LEDGER_LOCATION
+        root = healthy_node_ledger_root(self.healthy_node_ledger_checkout)
+        if root is None:
+            return None, self._ledger_not_onboarded(request, "no checkout of the contract location is bound to KV", None)
         try:
-            out = self.healthy_node_evaluator(node_ref, ledger_root=self.healthy_node_ledger_root,
-                                              transport_state="INSTALLED", report_receipt_sha256=cite,
-                                              require_admission=True)
+            out = self.healthy_node_evaluator(node_ref, ledger_root=root, transport_state="INSTALLED",
+                                              report_receipt_sha256=cite, require_admission=True,
+                                              repository=loc["chain_repository"])
         except Exception as exc:  # an evaluator fault is a refusal, never an admission
             out = {"disposition": "FAIL_CLOSED", "failure_code": HEALTHY_NODE_REFUSAL_CODE, "reason": "EVALUATOR_FAULT",
                    "required_evidence_or_repair": f"the evaluator raised {type(exc).__name__}"}
         if not isinstance(out, dict) or out.get("disposition") != "ALLOW":
             evaluation = copy.deepcopy(out) if isinstance(out, dict) else None
             reason = (evaluation or {}).get("reason")
-            # No NODE_HEALTH_REPORTED producer exists yet, and no ledger is bound: class B (a producer to assign).
-            failure_class = "B" if reason in ("HEALTH_REPORT_MISSING", "LEDGER_HEAD_UNREADABLE") else "C"
+            if reason == "LEDGER_HEAD_UNREADABLE":  # the namespace has no HEAD.json: not onboarded, no genesis
+                return None, self._ledger_not_onboarded(request, f"{loc['namespace']}/HEAD.json is unreadable", evaluation)
+            # No receipted report yet (the #429 producer is not admitted): class B.
+            failure_class = "B" if reason == "HEALTH_REPORT_MISSING" else "C"
             return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
                 f"the pinned healthy-node evaluator did not ALLOW {node_ref!r}"
                 + (f" ({(evaluation or {}).get('disposition')} {reason}: "

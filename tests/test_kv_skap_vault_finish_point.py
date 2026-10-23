@@ -456,6 +456,68 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             self.assertEqual(failure_codes(verdict),
                              {"KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": "INTR_TRANSITION_RECEIPT_INVALID"})
 
+    def test_every_access_row_failure_fails_its_mapped_sealed_predicate(self) -> None:
+        """LC-KV-09 E1 condition (Coordination, Oct 23): for each access row, if the row fails, the sealed predicate
+        it maps to (ACCESS_CONSTRAINT_PREDICATE) fails. The mapping stands without a re-seal (scope_digest d68e239b).
+
+        Part 1 isolates each row: only that row is made to fail. Part 2 uses real evidence mutations, including
+        multi-row ones.
+        """
+        mapping = kv.ACCESS_CONSTRAINT_PREDICATE
+        self.assertEqual(set(mapping), {kv.LAYER_PREDICATE_L1, kv.LAYER_PREDICATE_L2, kv.LAYER_PREDICATE_PRIOR})
+        self.assertTrue(set(mapping.values()) <= set(kv.PREDICATES), mapping)
+        self.assertTrue(kv.SCOPE_DIGEST.startswith("sha256:d68e239b"))
+        baseline = kv.evaluate(evidence_bundle())
+        self.assertEqual(baseline["access_constraints_conformant"], 3)
+        allowed = {r["predicate"] for r in baseline["predicates"] if r["disposition"] == "ALLOW"}
+        self.assertTrue(set(mapping.values()) <= allowed)  # every mapped predicate passes when its rows pass
+
+        def state(verdict):
+            rows = {a["constraint"]: a["disposition"] for a in verdict["access_constraints"]}
+            preds = {r["predicate"]: r for r in verdict["predicates"]}
+            return rows, preds
+        # Part 1: make exactly one row fail, and leave the evidence and every other row untouched.
+        original = kv._access_failures
+        for row in mapping:
+            def only_this_row(evidence, lineage_failure, _row=row):
+                out = original(evidence, lineage_failure)
+                return {c: (("ISOLATED_ROW_FAILURE", "B", "test") if c == _row else v) for c, v in out.items()}
+            kv._access_failures = only_this_row
+            try:
+                verdict = kv.evaluate(evidence_bundle())
+            finally:
+                kv._access_failures = original
+            rows, preds = state(verdict)
+            self.assertEqual({c for c, d in rows.items() if d != "ALLOW"}, {row})
+            mapped = preds[mapping[row]]
+            self.assertNotEqual(mapped["disposition"], "ALLOW", row)
+            self.assertIn(row, mapped["access_constraints_unmet"])
+            for field in SIX:
+                self.assertTrue(mapped[field], (row, field))
+            for other in set(mapping.values()) - {mapping[row]}:
+                if all(mapping[r] != other for r in rows if rows[r] != "ALLOW"):
+                    self.assertEqual(preds[other]["disposition"], "ALLOW", (row, other))
+        # Part 2: with real mutated evidence, every failing row fails its mapped predicate.
+        mutations = {
+            "drop layer-1 receipts": lambda e: e.pop("layer1_kv_access_receipts"),
+            "drop layer-2 receipts": lambda e: e.pop("layer2_skap_access_receipts"),
+            "layer-1 health edited": lambda e: e["layer1_kv_access_receipts"][0]["healthy_node_receipt"].update(
+                healthy_node_established=False),
+            "layer-1 evaluator not pinned": lambda e: e["layer1_kv_access_receipts"][0].update(
+                healthy_node_evaluator="someone.else"),
+            "layer-2 operation edited": lambda e: e["layer2_skap_access_receipts"][0].update(operation="SKAP_READ"),
+            "layer-2 prior edited": lambda e: e["layer2_skap_access_receipts"][0].update(
+                prior_receipt_hash="sha256:" + "0" * 64),
+        }
+        for name, mutate in mutations.items():
+            evidence = evidence_bundle()
+            mutate(evidence)
+            rows, preds = state(kv.evaluate(evidence))
+            failing = {c for c, d in rows.items() if d != "ALLOW"}
+            self.assertTrue(failing, name)
+            for row in failing:
+                self.assertNotEqual(preds[mapping[row]]["disposition"], "ALLOW", (name, row))
+
     def test_each_access_layer_gap_is_a_six_field_fail_closed(self) -> None:
         """LC-KV-09/10/11: the three access constraints, each evidence-bound and named by its own layer."""
         RT, SK = "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT", "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY"
@@ -466,7 +528,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
 
         def edit_l1_rehash(e):  # a caller recomputing the receipt hash after editing still cannot pass
             r = e["layer1_kv_access_receipts"][0]
-            r["healthy_node_receipt"]["node_ref"] = "device:other"
+            r["healthy_node_receipt"]["node_id"] = "device:other"
             r["receipt_hash"] = kv.sha256_uri({k: v for k, v in r.items() if k != "receipt_hash"})
 
         def edit_l2(e):
@@ -494,7 +556,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
                     self.assertEqual(row["owning_existing_goal"], kv.GOAL_REF)
         # health decided by anything but the pinned InTr evaluator is never evidence (class B, InTr-owned)
         exercise = TwoLayers(evaluator=kv._exercise_only_healthy_node_evaluator, node=kv._ExerciseHarness.node,
-                             ledger_root=kv.LOCAL_EXERCISE_LABEL)
+                             ledger_checkout=kv.LOCAL_EXERCISE_LABEL)
         verdict = kv.evaluate(evidence_bundle(exercise))
         row = next(a for a in verdict["access_constraints"] if a["constraint"] == L1)
         self.assertEqual((row["failure_code"], row["failure_class"], row["refusal_cause"]),

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "runtime" / "kv_interlock_endpoint.py"
 sys.path.insert(0, str(ROOT / "tests"))
 
-from kv_two_layer_e0 import e0_health_ledger, healthy_node_kwargs  # noqa: E402
+from kv_two_layer_e0 import e0_empty_ref_checkout, e0_health_ledger, healthy_node_kwargs  # noqa: E402
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
@@ -318,7 +318,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
     def runtime_for(self, ledger_root, evaluator=None):
         return self.m.KVInterlockRuntime(authority_validator=lambda *_: True, policy_evaluator=self.policy,
                                          receipt_store=self.store_receipt, clock=lambda: self.now,
-                                         healthy_node_evaluator=evaluator, healthy_node_ledger_root=ledger_root)
+                                         healthy_node_evaluator=evaluator, healthy_node_ledger_checkout=ledger_root)
 
     def test_admitted_healthy_node_gets_a_kv_access_receipt(self):
         response = self.handle(self.runtime)
@@ -346,19 +346,46 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         self.assertEqual("sha256:" + hashlib.sha256(source.read_bytes()).hexdigest(),
                          self.m.PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"])
 
-    def test_the_real_path_today_fails_closed_health_report_missing(self):
-        """No NODE_HEALTH_REPORTED producer exists yet: no ledger bound, or a bound ledger with no report."""
-        for root, reason in ((None, "LEDGER_HEAD_UNREADABLE"),
-                             (e0_health_ledger("device:test:1", report=False)[0], "HEALTH_REPORT_MISSING")):
-            response = self.handle(self.runtime_for(root))
-            self.assert_layer1_refusal(response, reason)
-            self.assertEqual(response["failure_class"], "B")
-            self.assertEqual(response["refusal_cause"], "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
-            evaluation = response["health_evaluation"]
-            self.assertEqual((evaluation["disposition"], evaluation["reason"],
-                              evaluation["failure_code"]), ("FAIL_CLOSED", reason, "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"))
+    def test_the_ledger_is_bound_by_the_org_ledger_contract_location(self):
+        loc = self.m.HEALTHY_NODE_LEDGER_LOCATION
+        self.assertEqual((loc["repository"], loc["ref"], loc["namespace"], loc["new_ref"], loc["new_ledger_root"]),
+                         ("StegVerse-org/.github", "refs/stegverse/organization-ledger",
+                          "repository-ledger/StegVerse-org/LLM-adapter", False, False))
+        self.assertEqual(self.m.healthy_node_ledger_root("/x"), "/x/repository-ledger/StegVerse-org/LLM-adapter")
+        seen = []
+
+        def spy(node_id, **kw):
+            seen.append(kw)
+            return {"disposition": "FAIL_CLOSED", "reason": "HEALTH_REPORT_MISSING"}
+        self.handle(self.runtime_for("/x", spy))
+        self.assertEqual((seen[0]["ledger_root"], seen[0]["repository"], seen[0]["require_admission"]),
+                         ("/x/repository-ledger/StegVerse-org/LLM-adapter", "StegVerse-org/LLM-adapter", True))
+
+    def test_the_real_path_today_fails_closed_ledger_not_onboarded(self):
+        """The LLM-adapter chain at the contract location is not onboarded and has no genesis: class B."""
+        for checkout in (None, e0_empty_ref_checkout()):
+            response = self.handle(self.runtime_for(checkout))
+            self.assert_layer1_refusal(response, "repository-ledger/StegVerse-org/LLM-adapter")
+            self.assertEqual((response["failure_class"], response["refusal_cause"], response["failed_predicate"]),
+                             ("B", "HEALTHY_NODE_LEDGER_NOT_ONBOARDED", "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"))
+            self.assertIn("organization-ledger onboarding", response["retry_entrypoint"])
+            self.assertTrue(response["retry_entrypoint"].startswith("StegVerse-org/LLM-adapter#431"))
+            self.assertIn("LC-KV-13", response["owning_existing_goal"])
             self.assertIsNone(response["kv_access_receipt"])
+        self.assertEqual(response["health_evaluation"]["reason"], "LEDGER_HEAD_UNREADABLE")
         self.assertEqual(self.receipts, [])
+
+    def test_an_onboarded_chain_without_a_report_fails_closed_health_report_missing(self):
+        response = self.handle(self.runtime_for(e0_health_ledger("device:test:1", report=False)[0]))
+        self.assert_layer1_refusal(response, "HEALTH_REPORT_MISSING")
+        self.assertEqual((response["failure_class"], response["refusal_cause"]),
+                         ("B", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"))
+        self.assertEqual(response["health_evaluation"]["reason"], "HEALTH_REPORT_MISSING")
+
+    def test_the_pin_records_428_429_and_430_provenance(self):
+        pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
+        self.assertEqual([p["commit"][:8] for p in pin["provenance"]], ["0b37fe3b", "5f5f7bbe", "4e1499ab"])
+        self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):
         sick_root, _ = e0_health_ledger("device:test:1", status="DEGRADED")

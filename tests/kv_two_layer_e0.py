@@ -58,14 +58,17 @@ def _write_receipt(root: Path, previous: str | None, transition_class: str, evid
 def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = True, report: bool = True,
                      superseded_by: str | None = None, repository: str = LEDGER_REPOSITORY,
                      ) -> tuple[str, str | None]:
-    """A scratch E0 ledger read by the real pinned evaluator. Returns (ledger_root, first report sha or None).
+    """A scratch E0 checkout of the org-ledger ref holding the LLM-adapter namespace, read by the real pinned evaluator.
+
+    Returns (checkout, first report sha or None).
 
     * report=False: the chain has no NODE_HEALTH_REPORTED receipt, which is today's real state (HEALTH_REPORT_MISSING).
     * superseded_by: a newer report with that status follows the first one, so citing the first is superseded.
     """
-    root = Path(tempfile.mkdtemp(prefix="e0-health-ledger-"))
-    _SCRATCH.append(str(root))
-    (root / "receipts").mkdir()
+    checkout = Path(tempfile.mkdtemp(prefix="e0-org-ledger-checkout-"))
+    _SCRATCH.append(str(checkout))
+    root = Path(ep.healthy_node_ledger_root(checkout))  # the bound contract-location namespace
+    (root / "receipts").mkdir(parents=True)
     head = _write_receipt(root, None, "LEDGER_GENESIS", {"label": "E0"}, repository)
     first = None
     if report:
@@ -79,12 +82,19 @@ def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = 
             "node_endpoint": {"node_id": node_id}, "healthy_node_established": admitted,
             "health_report_receipt_sha256": current}, repository)
     (root / "HEAD.json").write_text(json.dumps({"receipt_sha256": head}), encoding="utf-8")
-    return str(root), first
+    return str(checkout), first
+
+
+def e0_empty_ref_checkout() -> str:
+    """A checkout of the org-ledger ref without the LLM-adapter namespace, which is today's real state."""
+    checkout = tempfile.mkdtemp(prefix="e0-org-ledger-checkout-")
+    _SCRATCH.append(checkout)
+    return checkout
 
 
 def healthy_node_kwargs(node_id: str, **ledger: Any) -> dict[str, Any]:
     """Runtime kwargs binding an E0 health ledger for node_id. The evaluator is the real pinned one."""
-    return {"healthy_node_ledger_root": e0_health_ledger(node_id, **ledger)[0]}
+    return {"healthy_node_ledger_checkout": e0_health_ledger(node_id, **ledger)[0]}
 
 
 def intr_receipt(transition_id: str, principal: str = "principal:test", outcome: str = "ADMITTED") -> dict[str, Any]:
@@ -121,7 +131,7 @@ class TwoLayers:
     injected evaluator, which the finish point refuses). It collects every receipt for evidence bundles."""
 
     def __init__(self, principal: str = "principal:test", node: str = "device:test:1", evaluator: Any = None,
-                 intr_edit: Any = None, ledger_root: Any = "e0"):
+                 intr_edit: Any = None, ledger_checkout: Any = "e0"):
         self.principal, self.node, self.n = principal, node, 0
         self.intr_edit = intr_edit
         self.layer1 = ep.KVInterlockRuntime(
@@ -130,7 +140,7 @@ class TwoLayers:
                                         "context": {}, "source_refs": [], "policy_profile": "test"},
             receipt_store=lambda receipt: "urn:test:" + receipt["receipt_id"], clock=lambda: NOW,
             healthy_node_evaluator=evaluator,
-            healthy_node_ledger_root=e0_health_ledger(node)[0] if ledger_root == "e0" else ledger_root)
+            healthy_node_ledger_checkout=e0_health_ledger(node)[0] if ledger_checkout == "e0" else ledger_checkout)
         self.gate = SkapLayer2Gate(self.layer1)
         self.intr_receipts: list[dict[str, Any]] = []
         self.layer1_receipts: list[dict[str, Any]] = []
