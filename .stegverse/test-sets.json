@@ -2355,6 +2355,7 @@
   ],
   "tests/test_kv_ladder_conformance_lc_kv.py": [
    ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+   ".stegverse/receipt-chains/**",
    "SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md",
    "execution/adapter.py",
    "execution/vault_store.py",
