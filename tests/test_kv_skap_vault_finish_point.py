@@ -580,14 +580,17 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             self.assertTrue(refused[field], field)
 
     def test_the_finish_point_expects_a_permanent_node(self) -> None:
-        """LC-KV-13 completes with a PERMANENT node. Another own-ledger kind (here SKAP_VAULT) binds at layer 1, but its
-        receipts do not complete the finish point."""
+        """LC-KV-13 completes with a PERMANENT node. Since #432 @c4cfc145 (rule 1) a SKAP_VAULT is a STEGVERSE_KV:<location>
+        designation (cvk#263), never an opened node ledger: evaluate_anchored refuses to open one, so no SKAP_VAULT node
+        receipt exists to complete the finish point. KV's own PERMANENT-only check stays as defense in depth."""
         from tests.kv_two_layer_e0 import NODE, e0_health_ledger
         self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
-        other = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="SKAP_VAULT")[0])
-        verdict = kv.evaluate(evidence_bundle(other))
-        self.assertIn("KV_ACCESS_LAYER1_REFUSED", set(failure_codes(verdict).values()))
-        self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS", json.dumps(verdict))
+        with self.assertRaises(AssertionError) as refused_open:
+            e0_health_ledger(NODE, kind="SKAP_VAULT")
+        self.assertIn("ENDPOINT_INVALID", str(refused_open.exception))
+        self.assertIn("STEGVERSE_KV:_Vault/SKAP/Receipts", str(refused_open.exception))
+        self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS",
+                      (ROOT / "runtime/kv_skap_vault.py").read_text(encoding="utf-8"))
 
     def test_an_ephemeral_node_fails_closed_until_tv_tvc_publishes_a_signer(self) -> None:
         """EPHEMERAL anchors are signed envelopes (#432 @1cbad77e); the signers file is empty, so layer 1 is a six-field

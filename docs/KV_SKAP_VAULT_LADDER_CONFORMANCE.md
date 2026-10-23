@@ -2,7 +2,7 @@
 
 Goal: KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324). Lowest supported mode: E0. This note answers P1's
 DENYs on continuity-vault-kit#258 (StegVerse-Labs/.github#3330 @578583be and rev 4 @c8b8d156; StegVerse-org/.github#163)
-and binds layer 1 to Lane B's evaluate_anchored (StegVerse-org/LLM-adapter#432 @74509fec, code identical to @a2ee67e6 except the GENESIS_NOT_PINNED next_attempt, which names REPOSITORY_LEDGER_GENESIS_PIN, vendored byte-identical in
+and binds layer 1 to Lane B's evaluate_anchored (StegVerse-org/LLM-adapter#432 @c4cfc145, re-vendored from @74509fec: rule (1) KV/SKAP_VAULT designations, per-kind failure_code; @74509fec was code identical to @a2ee67e6 except the GENESIS_NOT_PINNED next_attempt, which names REPOSITORY_LEDGER_GENESIS_PIN, vendored byte-identical in
 `runtime/intr_pinned/`, see `runtime/intr_pinned/PINNED.md`).
 
 ## Admission order (LC-KV-03, tracked by P1 as LC-KV-05)
@@ -64,7 +64,7 @@ Receipts carry `trust_anchors_label`; layer 2 and the finish point refuse receip
 
 `endpoint_kind` is taken from Lane B's published `schemas/endpoint-kind.v1.json` (`$defs.endpoint_kind.enum`, read
 from the digest-checked vendored bytes; never a hand-written list): EPHEMERAL, PERMANENT, GATEWAY, KV, SKAP_VAULT, ORG
-(`ENDPOINT_KINDS`, equal to #432's). Schemas (vendored at 1cbad77e, unchanged at 74509fec): `stegverse.endpoint-kind/v1`,
+(`ENDPOINT_KINDS`, equal to #432's). Schemas (vendored at 1cbad77e; endpoint-kind re-vendored at c4cfc145): `stegverse.endpoint-kind/v1`,
 `stegverse.endpoint-ledger-genesis/v1`, `stegverse.endpoint-ledger-anchor/v1` (PERMANENT, KV, SKAP_VAULT anchor body),
 `stegverse.node-ledger-opened/v1` (the issued anchor; only it carries `issuer` and `issuer_receipt_ref`),
 `stegverse.node-ledger-opened-signed/v1` (the signed envelope) and `stegverse.node-ledger-opened-generation/v1` (StegOS's
