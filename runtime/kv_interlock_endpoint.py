@@ -1007,13 +1007,13 @@ class KVInterlockRuntime:
     _EXERCISE_ONLY_UNPINNED_DECIDER = False
 
     @staticmethod
-    def receipt_ledger(gateway: Any = None, head_attestation: Any = None, opener: Any = None,
+    def receipt_ledger(storage_endpoint: Any = None, readback_root: Any = None, head_attestation: Any = None,
                        recorded_head: Any = None) -> dict[str, Any]:
-        """Layer 1's receipt ledger, read back from KV's own location (KV#KV_INTR_ENDPOINT:01_KV_Ledger, sealed blobs
-        in the user's storage via a GATEWAY node; KV-SKAP-LEDGER-LOCATION-001). Six-field FAIL_CLOSED
-        SVKV_GATEWAY_STORAGE_NOT_PROVISIONED until the gateway storage is provisioned, then
-        KV_LEDGER_GENESIS_NOT_PINNED until REPOSITORY_LEDGER_GENESIS_PIN has run."""
-        return read_receipt_ledger(KV_LEDGER, gateway, head_attestation, opener, recorded_head)
+        """Layer 1's recorded receipt chain, read back from KV's own location (STEGVERSE_KV _StegVerse/Receipts,
+        through the documented storage endpoint v2 of the KV #2 lineage; KV-SKAP-LEDGER-LOCATION-001). Six-field
+        FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR while KV #2 is PENDING_INTERLOCK_INTR, then
+        KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED until the genesis pin."""
+        return read_receipt_ledger(KV_LEDGER, storage_endpoint, readback_root, head_attestation, recorded_head)
 
     def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
         """The layer-1 receipt this runtime minted under receipt_hash, re-derived, or None. Layer 2 calls this."""
@@ -1269,7 +1269,7 @@ class KVInterlockRuntime:
             "granted_scope": list(response["granted_scope"]),
             "response_hash": response["receipt"]["response_hash"],
             "prior_receipt_hash": None,
-            # KV-SKAP-LEDGER-LOCATION-001: the receipt belongs on KV's own ledger (01_KV_Ledger)
+            # KV-SKAP-LEDGER-LOCATION-001: the receipt belongs on KV's own receipt chain (_StegVerse/Receipts)
             "receipt_ledger": receipt_ledger_binding(KV_LEDGER),
             "authority_effect": "NONE",
         }
