@@ -6,6 +6,11 @@
   "tests": []
  },
  "extra_surfaces": {
+  "tests/test_cross_repo_inputs.py": [
+   ".github/workflows/runtime-import-and-secret-policy.yml",
+   ".stegverse/cross_repo_inputs.py",
+   ".stegverse/workspace-parity-pin.json"
+  ],
   "tests/test_finish_point_verdict.py": [
    ".github/workflows/runtime-import-and-secret-policy.yml",
    ".stegverse/finish_point_verdict.py"
@@ -13,18 +18,33 @@
   "tests/test_kv_skap_vault_finish_point.py": [
    ".github/workflows/runtime-import-and-secret-policy.yml",
    ".stegverse/finish_point_verdict.py"
+  ],
+  "tests/test_workspace_decision_reasons.py": [
+   ".github/workflows/runtime-import-and-secret-policy.yml",
+   ".stegverse/cross_repo_inputs.py",
+   ".stegverse/finish_point_verdict.py",
+   ".stegverse/workspace-parity-pin.json"
+  ],
+  "tests/test_workspace_session_authentication.py": [
+   ".github/workflows/runtime-import-and-secret-policy.yml",
+   ".stegverse/cross_repo_inputs.py",
+   ".stegverse/finish_point_verdict.py",
+   ".stegverse/workspace-parity-pin.json"
   ]
  },
  "extra_surfaces_why": {
+  "tests/test_cross_repo_inputs.py": "loads .stegverse/cross_repo_inputs.py by file path, reads .stegverse/workspace-parity-pin.json and asserts the runner workflow's Workspace steps use the pinned test ids",
   "tests/test_finish_point_verdict.py": "tests both verdict paths: it loads .stegverse/finish_point_verdict.py by file path (not an import a static scan follows) and reads the runner workflow to assert no step carries an if:",
-  "tests/test_kv_skap_vault_finish_point.py": "the runner workflow holds the step that runs this test (Lane D adjacency ruling, finish_test_runners); the imports and file reads (runtime/kv_skap_vault.py, runtime/secret_field_policy.py) are found statically; .stegverse/finish_point_verdict.py decides whether the finish step runs the test (SELECTED) or receipts NOT_SELECTED, so an edit to it is routed to this set"
+  "tests/test_kv_skap_vault_finish_point.py": "the runner workflow holds the step that runs this test (Lane D adjacency ruling, finish_test_runners); the imports and file reads (runtime/kv_skap_vault.py, runtime/secret_field_policy.py) are found statically; .stegverse/finish_point_verdict.py decides whether the finish step runs the test (SELECTED) or receipts NOT_SELECTED, so an edit to it is routed to this set",
+  "tests/test_workspace_decision_reasons.py": "holds cross-repository parity tests that read sibling checkouts (../site, ../gh) a static scan cannot attribute: .stegverse/workspace-parity-pin.json pins those checkouts (commit and file sha256), .stegverse/cross_repo_inputs.py materializes them anonymously, the runner workflow holds the parity step that runs the pinned tests, and .stegverse/finish_point_verdict.py decides whether that step runs them (SELECTED) or receipts NOT_SELECTED, so an edit to any of them is routed to this set",
+  "tests/test_workspace_session_authentication.py": "holds cross-repository parity tests that read sibling checkouts (../site, ../gh) a static scan cannot attribute: .stegverse/workspace-parity-pin.json pins those checkouts (commit and file sha256), .stegverse/cross_repo_inputs.py materializes them anonymously, the runner workflow holds the parity step that runs the pinned tests, and .stegverse/finish_point_verdict.py decides whether that step runs them (SELECTED) or receipts NOT_SELECTED, so an edit to any of them is routed to this set"
  },
  "finish_point_set": "tests/test_kv_skap_vault_finish_point.py",
  "import_roots": [],
  "inputs": {},
  "manifest": ".stegverse/test-sets.json",
  "module_inputs": {},
- "purpose": "callable finish-point set for the 'KV/SKAP Vault finish point (E0)' step of .github/workflows/runtime-import-and-secret-policy.yml: the set tests/test_kv_skap_vault_finish_point.py runs when a diff path is in its closure, and every set (so this one) runs when a path maps to no set, shapes selection, or the diff is unreadable. The other sets exist only so a path that another test verifies is mapped; this manifest drives the finish-point step alone (StegVerse-org/.github#166, reusing the pinned StegVerse-Labs selector)",
+ "purpose": "callable finish-point set for the 'KV/SKAP Vault finish point (E0)' step of .github/workflows/runtime-import-and-secret-policy.yml: the set tests/test_kv_skap_vault_finish_point.py runs when a diff path is in its closure, and every set (so this one) runs when a path maps to no set, shapes selection, or the diff is unreadable. The other sets exist only so a path that another test verifies is mapped; this manifest drives the finish-point step and the Workspace cross-repository parity step (spec workspace_parity_sets: the parity tests run when either set is selected; Workspace projection contract runs every other Workspace test always) (StegVerse-org/.github#166, reusing the pinned StegVerse-Labs selector)",
  "repository": "StegVerse-Labs/continuity-vault-kit",
  "runner": "unittest",
  "schema": "stegverse.test-set-spec/v1",
@@ -34,5 +54,9 @@
  "splits": [],
  "test_globs": [
   "tests/**"
+ ],
+ "workspace_parity_sets": [
+  "tests/test_workspace_decision_reasons.py",
+  "tests/test_workspace_session_authentication.py"
  ]
 }

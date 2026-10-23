@@ -3,7 +3,7 @@
  "generated_from": {
   "generator": "scripts/test_set_selection.py (StegVerse-Labs/.github)",
   "spec": ".stegverse/test-set-spec.json",
-  "spec_sha256": "80990bbcabe3bbb81bb0249065fb66dbb038149ec3ae107848493709d3a8f5dd"
+  "spec_sha256": "de4437fa3e26474192521d6f4f69d17bcc5e0a4ff8fbb4bfffd036ed2710fe6f"
  },
  "inputs": {},
  "repository": "StegVerse-Labs/continuity-vault-kit",
@@ -225,6 +225,21 @@
    ],
    "tests": [
     "tests.test_cross_platform_recovery"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_cross_repo_inputs.py",
+   "inputs": [],
+   "surfaces": [
+    ".github/workflows/runtime-import-and-secret-policy.yml",
+    ".stegverse/cross_repo_inputs.py",
+    ".stegverse/workspace-parity-pin.json",
+    "tests/test_cross_repo_inputs.py"
+   ],
+   "tests": [
+    "tests.test_cross_repo_inputs"
    ]
   },
   {
@@ -1713,6 +1728,10 @@
    "id": "tests/test_workspace_decision_reasons.py",
    "inputs": [],
    "surfaces": [
+    ".github/workflows/runtime-import-and-secret-policy.yml",
+    ".stegverse/cross_repo_inputs.py",
+    ".stegverse/finish_point_verdict.py",
+    ".stegverse/workspace-parity-pin.json",
     "tests/test_workspace_decision_reasons.py"
    ],
    "tests": [
@@ -1749,6 +1768,10 @@
    "id": "tests/test_workspace_session_authentication.py",
    "inputs": [],
    "surfaces": [
+    ".github/workflows/runtime-import-and-secret-policy.yml",
+    ".stegverse/cross_repo_inputs.py",
+    ".stegverse/finish_point_verdict.py",
+    ".stegverse/workspace-parity-pin.json",
     "tests/test_workspace_session_authentication.py"
    ],
    "tests": [
@@ -1999,6 +2022,15 @@
   ],
   "tests/test_cross_platform_recovery.py": [
    "fixtures/kv_cross_platform_recovery_cases.json"
+  ],
+  "tests/test_cross_repo_inputs.py": [
+   ".github/workflows/**",
+   ".github/workflows/runtime-import-and-secret-policy.yml",
+   ".stegverse/cross_repo_inputs.py",
+   ".stegverse/test-set-spec.json",
+   ".stegverse/workspace-parity-pin.json",
+   "tests/test_workspace_decision_reasons.py",
+   "tests/test_workspace_session_authentication.py"
   ],
   "tests/test_delegation_cases.py": [
    "delegation/decision.py",
