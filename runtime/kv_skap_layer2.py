@@ -136,10 +136,11 @@ class SkapLayer2Gate:
         custody-result receipts. It needs a layer-1 KV-access receipt the layer-1 runtime minted; without one it is
         FAIL_CLOSED SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR. Then FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR
         and KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED. Genesis: two-event crossing model (ENVELOPE v2 line 55).
-        ``recorded_head`` (the rollback watermark, KV's own recorded receipt chain head:
-        {"source": "KV_RECORDED_RECEIPT_CHAIN_HEAD", "head_receipt_sha256": ...}) is required: absent -> FAIL_CLOSED
-        KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING; Org-sourced -> FAIL_CLOSED KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED;
-        not on the chain -> DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
+        The rollback watermark is read back by the reader from KV's own head record, and the Org's digest-only
+        crossing records are compared only to refuse (runtime.kv_receipt_ledgers.read_receipt_ledger; ruling
+        StegVerse-org/.github#167 comment 6374130335). ``recorded_head`` is optional and only a claim: Org-sourced ->
+        FAIL_CLOSED KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED; not the read-back head -> DENY
+        KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
         from runtime.kv_receipt_ledgers import _read
         layer1 = self.verify_kv_access_receipt(kv_access_receipt_hash)
         return _read(SKAP_VAULT_LEDGER, storage_endpoint, readback_root, head_attestation, layer1, recorded_head)
@@ -176,7 +177,7 @@ class SkapLayer2Gate:
             return layer2_refusal(why, (
                 f"{prior} was not minted by the real KVInterlockRuntime under the pinned healthy-node evaluator "
                 "(runtime/intr_pinned, sha256:fdaa2005...1f58) reached through #432's evaluate_anchored "
-                "(sha256:d47cd0a4...fc6f4), the installed InTr transport, the contract-location org ledger with a node "
+                "(sha256:153cf121...ac09), the installed InTr transport, the contract-location org ledger with a node "
                 "root evaluate_anchored admitted, and the trust anchors in force; it is refused"),
                 predicate=PREDICATE_HEALTHY_NODE, failure_class="B" if why in (
                     "LAYER1_TRANSPORT_NOT_THE_INSTALLED_ONE", "LAYER1_LEDGER_NOT_BOUND_BY_CONTRACT_LOCATION",

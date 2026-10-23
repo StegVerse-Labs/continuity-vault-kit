@@ -47,14 +47,16 @@ from runtime.kv_interlock_endpoint import (FINISH_POINT_NODE_ENDPOINT_KIND, HEAL
                                            PINNED_HEALTHY_NODE_EVALUATOR_ID, TRUST_ANCHORS, KVInterlockRuntime,
                                            _HEALTHY_RECEIPT_EXACT, healthy_node_ledger_root,
                                            layer1_receipt_conformance, layer1_refusal, org_ledger_prerequisites)
-from runtime.kv_receipt_ledgers import SKAP_VAULT_LEDGER, receipt_ledger_binding, receipt_ledger_prerequisites
+from runtime.kv_receipt_ledgers import (KV_LEDGER, MEMBERSHIP_CODE, RECEIPT_LEDGERS, SKAP_VAULT_LEDGER, _closed_schema,
+                                        _org_designation, _org_membership, designation, receipt_ledger_binding,
+                                        receipt_ledger_prerequisites)
 from runtime.kv_skap_layer2 import (LAYER1_REFUSAL_CODE, LAYER2_REFUSAL_CODE, SKAP_ACCESS_RECEIPT_SCHEMA,
                                     SkapLayer2Gate, kv_skap_transition)
 from runtime.secret_field_policy import find_forbidden_field
 
 TASK_ID = "KV-SKAP-VAULT-FUNCTIONAL-001"
 GOAL_REF = "StegVerse-Labs/.github#3324 (KV-SKAP-VAULT-FUNCTIONAL-001, PROPOSED)"
-SCOPE_DIGEST = "sha256:d68e239bd1eeabe6558b52928632e9e1df35656e55b3f899755924e66b862ada"
+SCOPE_DIGEST = "sha256:d4a98dc0c0ff9db7dbc05b1b97d93573dda7b59dcd2a7628e2cf6620e26c7ef2"
 LOWEST_SUPPORTED_MODE = "E0"
 RECEIPT_SCHEMA = "stegverse.kv-skap-vault-receipt/v1"
 VERDICT_SCHEMA = "stegverse.kv-skap-vault-finish-point-verdict/v1"
@@ -64,7 +66,9 @@ CUSTODY_REF_PREFIX = "tvc://skap-custody/"
 MATERIAL_TOKENS = ("password", "secret", "token", "private_key", "key_material", "ciphertext",
                    "plaintext", "credential", "mnemonic", "seed_phrase")
 
-#: The sealed expected_evidence_predicates, in sealed order (StegVerse-Labs/.github#3324).
+#: The sealed expected_evidence_predicates, in sealed order (StegVerse-Labs/.github#3324). LC-KV-09 (class A,
+#: StegVerse-Labs/.github#3330 scoped-tasks/LC-KV-09.json @7fb472a2) resealed d68e239b -> d4a98dc0 by adding the three
+#: access-path constraints and ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER as sealed predicates, before the E0 one.
 PREDICATES = (
     "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT",
     "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY",
@@ -74,6 +78,10 @@ PREDICATES = (
     "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED",
     "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER",
     "NO_DUPLICATED_GOVERNANCE_CREDENTIAL_VERIFIER_OR_KV_AUTHORITY",
+    "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
+    "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV",
+    "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT",
+    "ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER",
     "FINISH_POINT_VERDICT_REACHED_AT_E0_WITHOUT_LLM",
 )
 
@@ -136,7 +144,8 @@ def _refuse_material(value: Any, where: str, predicate: str) -> None:
 LAYER_PREDICATE_L1 = "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE"
 LAYER_PREDICATE_L2 = "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV"
 LAYER_PREDICATE_PRIOR = "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT"
-#: Where each access constraint is enforced inside the sealed predicates. The scope digest is unchanged.
+#: Where each access constraint was enforced before the LC-KV-09 reseal. Each constraint is now also its own sealed
+#: predicate (it fails both its own row and this mapped predicate); the mapping is kept so nothing is loosened.
 ACCESS_CONSTRAINT_PREDICATE = {
     LAYER_PREDICATE_L1: "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT",
     LAYER_PREDICATE_L2: "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY",
@@ -481,6 +490,21 @@ EVIDENCE_BOUND = {
         f"one {TVC_ISSUANCE_SCHEMA} per bound custody key whose receipt_sha256 equals its "
         "tvc_issuance_receipt_ref (TVC_SKAP_CUSTODY_REFERENCE_ISSUE, a TV/TVC transition, not a blocker)",
         GOAL_REF, None),
+    "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE": (
+        LAYER1_REFUSAL_CODE, "B",
+        "the local exercise refuses KV access without a healthy-node ALLOW or with an unverified InTr boundary; supply "
+        "evidence.layer1_kv_access_receipts (access_constraints row KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE)",
+        GOAL_REF, None),
+    "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV": (
+        LAYER2_REFUSAL_CODE, "B",
+        "the local exercise refuses every direct, caller-asserted, replayed or out-of-scope SKAP call; supply "
+        "evidence.layer2_skap_access_receipts (access_constraints row SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV)",
+        GOAL_REF, None),
+    "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT": (
+        LAYER2_REFUSAL_CODE, "B",
+        "the local exercise refuses SKAP access with a forged or missing layer-1 prior; supply both receipt sets so "
+        "each layer-2 prior_receipt_hash is its layer-1 KV-access receipt (access_constraints row "
+        "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT)", GOAL_REF, None),
 }
 _EVIDENCE_KEYS = {
     "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": "intr_transition_receipts",
@@ -621,6 +645,38 @@ class _ExerciseHarness:
         return admitted["skap_access_receipt"]["receipt_hash"]
 
 
+#: ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER reuses the closed membership schema of runtime.kv_receipt_ledgers
+#: (CONTRACT_KEY_SCHEMA, MEMBERSHIP_TOKENS, the org-repository/org-ref check). Nothing here re-implements it.
+MEMBERSHIP_PREDICATE = "ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER"
+_MEMBERSHIP_PROBES = (
+    {"organization": "StegVerse-org"},
+    {"github_app_installation_id": 1},
+    {"ledger_designation": {"permissions": {"contents": "write"}}},
+    {"repository_ledger_location": {"repository": "StegVerse-org/.github"}},
+    {"repository_ledger_location": {"ref": "refs/stegverse/organization-ledger"}},
+)
+
+
+def _membership_exercise() -> bool:
+    """Every membership-binding probe is refused by the shared checks, and both shipped contracts pass them."""
+    for probe in _MEMBERSHIP_PROBES:
+        closed = _closed_schema(probe)
+        if not (closed and closed[0] == MEMBERSHIP_CODE) and not _org_membership(probe) and not _org_designation(probe):
+            return False
+    return _contracts_membership() is None
+
+
+def _contracts_membership() -> tuple[str, str, str] | None:
+    """None when both digest-pinned receipt-chain contracts load through designation() (closed schema, no org
+    repository, ref or membership binding); otherwise (failure_code, failure_class, repair) from its refusal."""
+    for which in (KV_LEDGER, SKAP_VAULT_LEDGER):
+        _, refusal = designation(which)
+        if refusal is not None:
+            return (refusal.get("failure_code", MEMBERSHIP_CODE), refusal.get("failure_class", "C"),
+                    f"{RECEIPT_LEDGERS[which]['contract_path']}: {refusal.get('required_evidence_or_repair')}")
+    return None
+
+
 def _exercise() -> dict[str, bool]:
     """Run the full local round-trip and the negative cases, through both gates. Returns predicate -> satisfied."""
     ok: dict[str, bool] = {}
@@ -672,6 +728,30 @@ def _exercise() -> dict[str, bool]:
     spent = h.skap_hash(principal, "SKAP_WRITE", "p")
     live.write_projection(projection_id="p", content={"n": 1}, consent_receipt_hash=live_consent, custody_key_ref=ref,
                           skap_access_receipt_hash=spent)
+    healthy = h.kv_access()
+    healthy_receipt = healthy.get("kv_access_receipt") or {}
+    ok[LAYER_PREDICATE_L1] = layer1_refuses and str(healthy.get("decision", "")).startswith("ALLOW") \
+        and healthy_receipt.get("boundary") == "INTR_DEVICE_KV" \
+        and healthy_receipt.get("minted_by") == "KVInterlockRuntime.handle"
+    only_from_kv = [
+        refused(lambda: ungated.bind_custody_key_reference(custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
+                                                           tvc_issuance_receipt_ref=tvc_ref), LAYER2_REFUSAL_CODE),
+        refused(lambda: live.read_projection(projection_id="p", consent_receipt_hash=live_consent), LAYER2_REFUSAL_CODE),
+        refused(lambda: live.write_projection(projection_id="p", content={}, consent_receipt_hash=live_consent,
+                                              custody_key_ref=ref, intr_transition_ref="intr:caller-asserted"),
+                LAYER2_REFUSAL_CODE),
+        refused(lambda: KVSkapVault.reconstruct(vault.export_lineage()), LAYER2_REFUSAL_CODE),
+    ]
+    ok[LAYER_PREDICATE_L2] = all(only_from_kv)
+    ok[LAYER_PREDICATE_PRIOR] = all([
+        refused(lambda: skap_entry(h.gate, live, operation="SKAP_READ", kv_access_receipt_hash=forged_prior,
+                                   arguments={"projection_id": "p", "consent_receipt_hash": live_consent}),
+                LAYER2_REFUSAL_CODE),
+        refused(lambda: skap_entry(h.gate, live, operation="SKAP_READ", kv_access_receipt_hash=None,
+                                   arguments={"projection_id": "p", "consent_receipt_hash": live_consent}),
+                LAYER2_REFUSAL_CODE),
+    ])
+    ok["ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER"] = _membership_exercise()
     ok["SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY"] = all([
         refused(lambda: h.enter(other, "BIND_CUSTODY_KEY_REFERENCE", custody_key_ref="raw-bytes",
                                 issued_by=CREDENTIAL_AUTHORITY, tvc_issuance_receipt_ref=tvc_ref),
@@ -1080,6 +1160,12 @@ def evaluate(evidence: Any = None) -> dict[str, Any]:
                                 f"repair runtime/kv_skap_vault.py so {predicate} holds locally",
                                 next_attempt="on the next finish-point run after the code repair"))
             continue
+        if predicate == MEMBERSHIP_PREDICATE:
+            failure = _contracts_membership()
+            results.append({"predicate": predicate, "disposition": "ALLOW", "locus": "LOCAL_EXERCISE+CONTRACTS"}
+                           if failure is None else _row(predicate, failure[0], failure[1], failure[2],
+                                                        next_attempt="on an admitted change that re-pins the contract"))
+            continue
         if predicate not in _EVIDENCE_CHECKS:
             results.append({"predicate": predicate, "disposition": "ALLOW", "locus": "LOCAL_EXERCISE"})
             continue
@@ -1100,9 +1186,8 @@ def evaluate(evidence: Any = None) -> dict[str, Any]:
     access = _access_rows(evidence if isinstance(evidence, dict) and evidence.get("schema") == EVIDENCE_SCHEMA
                           and isinstance(evidence.get("lineage"), dict) else None, lineage_failure)
     for index, row in enumerate(results):
-        blocking = [a for a in access if a["enforced_in_sealed_predicate"] == row["predicate"]
-                    and a["disposition"] != "ALLOW"]
-        bound = [a for a in access if a["enforced_in_sealed_predicate"] == row["predicate"]]
+        bound = [a for a in access if row["predicate"] in (a["enforced_in_sealed_predicate"], a["constraint"])]
+        blocking = [a for a in bound if a["disposition"] != "ALLOW"]
         if row["disposition"] == "ALLOW" and bound and not blocking:
             results[index] = {**row, "locus": "LOCAL_EXERCISE+EVIDENCE"}
         if row["disposition"] == "ALLOW" and blocking:
