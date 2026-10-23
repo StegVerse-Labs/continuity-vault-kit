@@ -42,7 +42,8 @@ from typing import Any
 
 from runtime.kv_interlock_endpoint import (HEALTHY_NODE_RECEIPT_SCHEMA, KV_ACCESS_RECEIPT_SCHEMA,
                                            PINNED_HEALTHY_NODE_EVALUATOR, PINNED_HEALTHY_NODE_EVALUATOR_ID,
-                                           KVInterlockRuntime, _HEALTHY_RECEIPT_EXACT)
+                                           KVInterlockRuntime, _HEALTHY_RECEIPT_EXACT,
+                                           healthy_node_ledger_root)
 from runtime.kv_skap_layer2 import (LAYER1_REFUSAL_CODE, LAYER2_REFUSAL_CODE, SKAP_ACCESS_RECEIPT_SCHEMA,
                                     SkapLayer2Gate, kv_skap_transition)
 from runtime.secret_field_policy import find_forbidden_field
@@ -490,7 +491,8 @@ def _exercise_only_healthy_node_evaluator(node_id: Any, *, ledger_root: Any, tra
     This is not the pinned InTr evaluator. Its identity and source digest are not the pin's, so the finish-point
     evidence checks refuse every layer-1 receipt it produced. It asserts the health of nothing outside this process.
     """
-    if ledger_root != LOCAL_EXERCISE_LABEL or transport_state != "INSTALLED" or not require_admission:
+    if ledger_root != healthy_node_ledger_root(LOCAL_EXERCISE_LABEL) or transport_state != "INSTALLED" \
+            or not require_admission:
         return {"disposition": "FAIL_CLOSED", "failure_code": "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY",
                 "reason": "LOCAL_EXERCISE_LEDGER_ABSENT", "required_evidence_or_repair": "local exercise only"}
     report = sha256_uri({"label": LOCAL_EXERCISE_LABEL, "node_id": node_id})
@@ -514,7 +516,7 @@ class _ExerciseHarness:
                                               "source_refs": [], "policy_profile": LOCAL_EXERCISE_LABEL},
             receipt_store=lambda receipt: "local-exercise:" + receipt["receipt_id"],
             clock=lambda: fixed, healthy_node_evaluator=_exercise_only_healthy_node_evaluator,
-            healthy_node_ledger_root=LOCAL_EXERCISE_LABEL)
+            healthy_node_ledger_checkout=LOCAL_EXERCISE_LABEL)
         self.gate = SkapLayer2Gate(self.layer1)
         self.count = 0
 
@@ -544,11 +546,11 @@ class _ExerciseHarness:
     def kv_access(self, health: Any = "default", verification_state: str = "VERIFIED") -> dict[str, Any]:
         request, envelope, intr_ref = self.request(verification_state)
         # health=None: no health ledger is bound for this call, so the evaluator cannot ALLOW
-        self.layer1.healthy_node_ledger_root = LOCAL_EXERCISE_LABEL if health == "default" else None
+        self.layer1.healthy_node_ledger_checkout = LOCAL_EXERCISE_LABEL if health == "default" else None
         try:
             return self.layer1.handle(request, intr_envelope=envelope, intr_receipt_ref=intr_ref)
         finally:
-            self.layer1.healthy_node_ledger_root = LOCAL_EXERCISE_LABEL
+            self.layer1.healthy_node_ledger_checkout = LOCAL_EXERCISE_LABEL
 
     def kv_hash(self) -> str:
         return self.kv_access()["kv_access_receipt"]["receipt_hash"]
@@ -750,8 +752,9 @@ def _evidence_intr(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
 ACCESS_EVIDENCE_KEYS = ("layer1_kv_access_receipts", "layer2_skap_access_receipts")
 ACCESS_CONSTRAINT_OWNER = {
     LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter#428 "
-                         "llm_adapter/healthy_node_evaluator.py, InTr and Mesh Destinations lane); the NODE_HEALTH_REPORTED "
-                         "producer is unassigned (Lane B asked Coordination)"),
+                         "llm_adapter/healthy_node_evaluator.py, producer #429, InTr and Mesh Destinations lane); the chain at "
+                         "StegVerse-org/.github refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/"
+                         "LLM-adapter is not onboarded yet (Lane B onboarding draft, like StegVerse-SDK#558)"),
     LAYER_PREDICATE_L2: GOAL_REF,
     LAYER_PREDICATE_PRIOR: GOAL_REF,
 }

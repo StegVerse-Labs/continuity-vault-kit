@@ -4,6 +4,10 @@
 StegVerse-org/LLM-adapter@0b37fe3b786a2de687235f5d9d146af49ffee9cd (draft PR StegVerse-org/LLM-adapter#428,
 LC-KV-13/14, owned by the InTr and Mesh Destinations lane, StegVerse-org/.github#162).
 
+* Provenance: the same bytes are at StegVerse-org/LLM-adapter#429 @5f5f7bbeea96d5f313effaa02f86b01196465247.
+  #429 is the NODE_HEALTH_REPORTED producer and contains #428; it lands with or before #428. At #429 the interface doc
+  only gains the producer section, sha256 `a363ff9bb498aa816adf9cc9d64559a389dec6acd3d02144056ee9c2540b91f0`.
+  A final re-vendor follows once Lane B's stack on #429 settles.
 * Source sha256: `fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58`.
 * Interface: `docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md` at the same commit, sha256 `757d697ca385f5d4709d8b26e51119330bb685b4770512312313fc42460bb76d`.
 * Do not edit the vendored file. `runtime.kv_interlock_endpoint.resolve_pinned_healthy_node_evaluator` re-derives the
@@ -12,9 +16,12 @@ LC-KV-13/14, owned by the InTr and Mesh Destinations lane, StegVerse-org/.github
   `runtime/kv_interlock_endpoint.py`.
 
 Layer 1 (`KVInterlockRuntime.handle`, INTR_DEVICE_KV) calls
-`evaluate(node_id, ledger_root=<the KV-bound node-exchange transition ledger>, transport_state="INSTALLED",
-report_receipt_sha256=<cited report or None>, require_admission=True)`.
+`evaluate(node_id, ledger_root=<checkout>/repository-ledger/StegVerse-org/LLM-adapter, transport_state="INSTALLED",
+report_receipt_sha256=<cited report or None>, require_admission=True, repository="StegVerse-org/LLM-adapter")`.
+* The chain is bound by contract location to the existing org-ledger contract location: StegVerse-org/.github
+  `refs/stegverse/organization-ledger`, namespace `repository-ledger/StegVerse-org/LLM-adapter`. There is no new ref
+  and no new ledger root.
 * It maps any non-ALLOW to `KV_ACCESS_LAYER1_REFUSED` and keeps the evaluator's six fields as `health_evaluation`.
 * KV never decides health itself.
-* No `NODE_HEALTH_REPORTED` producer exists yet, so the real path is FAIL_CLOSED. Either no ledger is bound to KV
-  (`LEDGER_HEAD_UNREADABLE`), or a bound ledger has no report (`HEALTH_REPORT_MISSING`).
+* Until that chain is onboarded with a genesis, layer 1 is FAIL_CLOSED class B `HEALTHY_NODE_LEDGER_NOT_ONBOARDED`.
+  Its retry entrypoint is the LLM-adapter organization-ledger onboarding (Lane B draft, like StegVerse-SDK#558).

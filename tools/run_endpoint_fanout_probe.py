@@ -225,7 +225,7 @@ def e0_standin_healthy_node() -> str:
 
 def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001", healthy_node_evaluator: Any = None,
               healthy_node_evidence: Any = None, healthy_node_locus: str | None = None,
-              healthy_node_ledger_root: Any = None) -> dict[str, Any]:
+              healthy_node_ledger_checkout: Any = None) -> dict[str, Any]:
     now = datetime(2026, 8, 31, 3, 0, 0, tzinfo=timezone.utc)
     probe = build_probe(value, probe_id=probe_id)
     probe_sha256 = sha256_json(probe)
@@ -270,7 +270,7 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001", healthy_node
         candidate_store=store_candidate,
         clock=lambda: now,
         healthy_node_evaluator=healthy_node_evaluator,
-        healthy_node_ledger_root=healthy_node_ledger_root,
+        healthy_node_ledger_checkout=healthy_node_ledger_checkout,
     )
 
     envelope = build_envelope(request, now=now)
@@ -578,7 +578,7 @@ def main() -> int:
                         help="bind a tests-only E0 health ledger for the pinned InTr healthy-node evaluator (not evidence)")
     args = parser.parse_args()
     if args.e0_standin_healthy_node:
-        result = run_probe(args.value, probe_id=args.probe_id, healthy_node_ledger_root=e0_standin_healthy_node(),
+        result = run_probe(args.value, probe_id=args.probe_id, healthy_node_ledger_checkout=e0_standin_healthy_node(),
                            healthy_node_locus=E0_STANDIN_LABEL)
     else:
         result = run_probe(args.value, probe_id=args.probe_id)
