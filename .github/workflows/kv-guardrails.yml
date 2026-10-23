@@ -22,8 +22,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install public validators and cryptography
-        run: python3 -m pip install --disable-pip-version-check jsonschema cryptography
+      - name: Install the declared SKAP runtime set (hash-pinned)
+        # SKAP-UNDECLARED-CRYPTOGRAPHY-001: DECLARED_EXISTING_DEPENDENCY.
+        run: python3 -m pip install --disable-pip-version-check --require-hashes -r requirements-skap.txt
+
+      - name: Install public validators
+        run: python3 -m pip install --disable-pip-version-check jsonschema
 
       - name: Compile guardrail tools
         run: |
@@ -127,6 +131,9 @@ jobs:
 
       - name: Validate real SKAP cryptographic boundary
         run: python3 -m unittest tests.test_skap_crypto_boundary -v
+
+      - name: SKAP runtime dependency declaration
+        run: python3 -m unittest tests.test_skap_dependency_declaration -v
 
       - name: Validate browser-to-SKAP public-key ingress
         run: python3 -m unittest tests.test_skap_browser_ingress -v
