@@ -846,13 +846,54 @@ class KvSkapLedgerLocation(unittest.TestCase):
         def membership(c):
             c["org_membership"] = {"org": "StegVerse-org", "role": "member"}
 
+        def top_level(key, value):
+            def edit(c):
+                c[key] = value
+            edit.__name__ = f"top_level_{key}"
+            return edit
+
+        # LC-KV-24: a closed key schema, not a deny list
+        extra = [top_level("organization", "StegVerse-org"), top_level("github_app_installation_id", 12345),
+                 top_level("permissions", {"contents": "write"}), top_level("owner", "StegVerse-org")]
+
+        def note_owner(c):
+            c["designation_notes"]["owner"] = "StegVerse-org"
+
+        def store_permissions(c):
+            c["ledger_designation"]["stores"][0]["permissions"] = ["read"]
+
+        def watermark_org(c):
+            c["ledger_designation"]["rollback_watermark_source"]["organization"] = "StegVerse-org"
+
         for which in ("kv", "skap_vault"):
-            for edit in (org_repository, org_ref, team, app_installation, membership):
+            for edit in (org_repository, org_ref, team, app_installation, membership, *extra, note_owner,
+                         store_permissions, watermark_org):
                 with self.subTest(which=which, edit=edit.__name__), kv_chain_e0(which, None, edit):
                     out = rl.read_receipt_ledger(which)
                     self.assertSix(out, "ENDPOINT_ORG_MEMBERSHIP_REFUSED", "C")
                     self.assertIn("InTr", out["required_evidence_or_repair"])
                     self.assertEqual(out["failed_predicate"], "ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER")
+
+    def test_an_unknown_designation_key_is_refused_by_the_closed_schema(self):
+        def unknown_top(c):
+            c["retention_days"] = 30
+
+        def unknown_store(c):
+            c["ledger_designation"]["stores"][0]["cache_ttl"] = 60
+
+        def unknown_location(c):
+            c["repository_ledger_location"]["mirror"] = "_Backup"
+
+        for which in ("kv", "skap_vault"):
+            for edit in (unknown_top, unknown_store, unknown_location):
+                with self.subTest(which=which, edit=edit.__name__), kv_chain_e0(which, None, edit):
+                    out = rl.read_receipt_ledger(which)
+                    self.assertSix(out, "KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY", "C")
+                    self.assertEqual(out["failed_predicate"], "KV_RECEIPT_CHAIN_DESIGNATION_KEYS_CLOSED")
+        for key in ("organization", "github_app_installation_id", "permissions", "owner", "teamSlug"):
+            self.assertTrue(rl._membership_like(key), key)
+        for key in ("retention_days", "cache_ttl", "mirror"):
+            self.assertFalse(rl._membership_like(key), key)
 
     def test_an_org_git_ref_other_store_or_multi_store_designation_is_refused(self):
         def org_location(c):
@@ -931,7 +972,8 @@ class KvSkapLedgerLocation(unittest.TestCase):
         carried = "sha256:" + "ab" * 32
         root, chain = e0_kv_root("skap_vault", (carried,))
         with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]):
-            out = layers.gate.receipt_ledger(prior, device_local(), root, e0_kv_attestation("skap_vault", chain))
+            out = layers.gate.receipt_ledger(prior, device_local(), root, e0_kv_attestation("skap_vault", chain),
+                                             chain[0]["receipt_sha256"])
             self.assertEqual(out["disposition"], "ALLOW", out)
             self.assertEqual(out["store_location"], "storage-endpoint:device-local/_Vault/SKAP/Receipts")
             self.assertEqual(rl.receipt_on_ledger("skap_vault", carried, _read_result=out)["disposition"], "ALLOW")
@@ -950,14 +992,23 @@ class KvSkapLedgerLocation(unittest.TestCase):
         root, chain = e0_kv_root("kv", (carried,))
         with kv_chain_e0("kv", chain[-1]["receipt_sha256"]):
             good = e0_kv_attestation("kv", chain)
-            out = rl.read_receipt_ledger("kv", device_local(), root, good)
+            head = chain[0]["receipt_sha256"]
+            out = rl.read_receipt_ledger("kv", device_local(), root, good, head)
             self.assertEqual(out["disposition"], "ALLOW", out)
             self.assertEqual(out["store_location"], "storage-endpoint:device-local/_StegVerse/Receipts")
             self.assertEqual(out["location"], "STEGVERSE_KV#KV_INTR_ENDPOINT:_StegVerse/Receipts")
-            self.assertEqual(rl.receipt_on_ledger("kv", carried, device_local(), root, good)["disposition"], "ALLOW")
-            self.assertEqual(rl.receipt_on_ledger("kv", "sha256:" + "ee" * 32, device_local(), root, good)
+            self.assertEqual(rl.receipt_on_ledger("kv", carried, device_local(), root, good, head)["disposition"], "ALLOW")
+            self.assertEqual(rl.receipt_on_ledger("kv", "sha256:" + "ee" * 32, device_local(), root, good, head)
                              ["failure_code"], "RECEIPT_NOT_ON_DESIGNATED_RECEIPT_CHAIN")
-            self.assertEqual(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good)["disposition"], "ALLOW")
+            self.assertEqual(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good, head)["disposition"],
+                             "ALLOW")
+            # LC-KV-23: the watermark is required (absent or malformed -> FAIL_CLOSED, class B)
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good),
+                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
+            self.assertSix(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good),
+                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good, "77"),
+                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
             # the Org-recorded head watermark: on chain ALLOW; not on chain DENY
             self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, good, chain[0]["receipt_sha256"])
                              ["disposition"], "ALLOW")
@@ -992,6 +1043,30 @@ class KvSkapLedgerLocation(unittest.TestCase):
         with kv_chain_e0("kv", "sha256:" + "9" * 64):
             self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, good)["failure_code"],
                              "KV_RECEIPT_CHAIN_GENESIS_MISMATCH")
+
+    def test_an_older_signed_head_is_refused_without_or_with_a_regressing_watermark(self):
+        """LC-KV-23: an older head that is properly signed is never accepted on the signature alone."""
+        carried = "sha256:" + "ab" * 32
+        for which in self.CHAINS:
+            root, chain = e0_kv_root(which, (carried,))
+            newest = chain[0]["receipt_sha256"]
+            loc = rl.RECEIPT_LEDGERS[which]["storage_location"]
+            old_root, _ = e0_kv_root(which, (carried,))
+            (old_root / loc / "receipts" / (newest[7:] + ".json")).unlink()
+            (old_root / loc / "HEAD.json").write_text(json.dumps({"receipt_sha256": chain[-1]["receipt_sha256"]}))
+            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]):
+                older_signed = e0_kv_attestation(which, chain[1:])  # a valid kv_ledger_head_signer signature
+                if which == "skap_vault":
+                    layers = TwoLayers()
+                    read = lambda r, att, wm: layers.gate.receipt_ledger(layers.kv_hash(), device_local(), r, att, wm)
+                else:
+                    read = lambda r, att, wm: rl.read_receipt_ledger(which, device_local(), r, att, wm)
+                self.assertEqual(read(root, e0_kv_attestation(which, chain), newest)["disposition"], "ALLOW")
+                # no watermark: FAIL_CLOSED, never ALLOW on the older signed head
+                self.assertSix(read(old_root, older_signed, None), "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
+                # a watermark the read-back regresses from (the Org recorded the newer head): DENY
+                self.assertSix(read(old_root, older_signed, newest), "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C",
+                               disposition="DENY")
 
     def test_external_storage_records_are_refused(self):
         """The provider's own records (Drive metadata files, revisions) never cross into KV."""

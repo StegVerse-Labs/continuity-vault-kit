@@ -84,7 +84,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     KV_LEDGER: {
         "storage_location": "_StegVerse/Receipts",
         "contract_path": ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
-        "contract_sha256": "sha256:98651155f0b97cf22f2fb7c0f6fc96900e48c920f13e8d31d965ae84800baf86",
+        "contract_sha256": "sha256:094a503f85b6f3fc71216848484de62172684e27ca354f2e8559e57a996527f6",
         "repository": "STEGVERSE_KV:_StegVerse/Receipts",
         "carries": ["stegverse.kv-access-receipt/v1 (L1)"],
         "read_by": "runtime.kv_interlock_endpoint.KVInterlockRuntime (layer 1)",
@@ -95,7 +95,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     SKAP_VAULT_LEDGER: {
         "storage_location": "_Vault/SKAP/Receipts",
         "contract_path": ".stegverse/receipt-chains/skap-receipts.contract.json",
-        "contract_sha256": "sha256:3890351860f5df61c89b298b1a4dbf800e3897bab3841ed890cd49d864b23b21",
+        "contract_sha256": "sha256:cc8a4291035b601c9215cb525325d55a2e92de98b23e808bff67b8b8211c3005",
         "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
@@ -173,37 +173,66 @@ def _not_pinned(which: str, location: str) -> dict[str, Any]:
 MEMBERSHIP_CODE = "ENDPOINT_ORG_MEMBERSHIP_REFUSED"
 #: Rigel's rule (via Coordination, StegVerse-org/.github#160): no endpoint (KV, SKAP Vault, node or gateway) is ever a
 #: GitHub Organization member. KV reaches the Orgs only through InTr (KV_INTR_ENDPOINT, intr-destination path_ids).
-MEMBERSHIP_KEYS = frozenset({"org_member", "organization_member", "org_membership", "organization_membership",
-                             "membership", "member", "members", "team", "teams", "team_slug", "team_id",
-                             "installation", "installation_id", "app_installation", "github_app", "app_id",
-                             "app_slug", "collaborator", "collaborators", "org_role", "github_org"})
+UNKNOWN_KEY_CODE = "KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY"
+#: Closed key schema (LC-KV-24): the only keys permitted at each level of a KV receipt-chain contract. Any other key
+#: refuses: ENDPOINT_ORG_MEMBERSHIP_REFUSED when the key is membership-like (MEMBERSHIP_TOKENS), otherwise
+#: KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY. ``None`` marks a leaf (a value with no keys of its own).
+NOTES_KEYS = ("store_type_note", "head_signers_path", "append_route", "path_ids_note", "refuses",
+              "org_crossing_receipts", "head_digest_name", "genesis_crossing", "org_membership")
+WATERMARK_KEYS = ("source", "path_ids")
+CONTRACT_KEY_SCHEMA: dict[str, Any] = {
+    "schema": None, "repository": None, "ledger_level": None, "receipt_schema": None, "append_only_receipts": None,
+    "required_fields": None, "replay_rule": None,
+    "repository_ledger_location": {k: None for k in LOCATION_SHAPE},
+    "ledger_designation": {**{k: None for k in DESIGNATION_KEYS},
+                           "stores": [{k: None for k in STORE_KEYS}],
+                           "rollback_watermark_source": {k: None for k in WATERMARK_KEYS}},
+    "designation_notes": {k: None for k in NOTES_KEYS},
+    "propagation_rule": None, "authority_effect": None,
+}
+MEMBERSHIP_TOKENS = frozenset({"org", "orgs", "organization", "organizations", "organisation", "member", "members",
+                               "membership", "memberships", "team", "teams", "install", "installation",
+                               "installations", "app", "apps", "permission", "permissions", "owner", "owners",
+                               "ownership", "collaborator", "collaborators", "role", "roles", "github",
+                               "enterprise", "admin", "admins", "seat", "seats", "scope", "scopes"})
+
+
+def _membership_like(key: str) -> bool:
+    tokens = re.split(r"[^a-z0-9]+", re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", key).lower())
+    return any(t in MEMBERSHIP_TOKENS for t in tokens)
+
+
+def _closed_schema(contract: Any) -> tuple[str, str] | None:
+    """(code, reason) for the first key outside CONTRACT_KEY_SCHEMA, or None. Leaves must not carry keys."""
+    def walk(node: Any, schema: Any, path: str) -> tuple[str, str] | None:
+        if isinstance(node, Mapping):
+            allowed = schema if isinstance(schema, Mapping) else {}
+            for k, v in node.items():
+                if not isinstance(k, str) or k not in allowed:
+                    key = str(k)
+                    if _membership_like(key):
+                        return MEMBERSHIP_CODE, (f"{path}{key} is not a permitted key and is membership-like (an "
+                                                 "org, membership, team, app-installation, permission or owner binding)")
+                    return UNKNOWN_KEY_CODE, f"{path}{key} is not a permitted key of the closed designation schema"
+                hit = walk(v, allowed[k], f"{path}{k}.")
+                if hit:
+                    return hit
+        elif isinstance(node, list):
+            item = schema[0] if isinstance(schema, list) and schema else None
+            for i, v in enumerate(node):
+                hit = walk(v, item, f"{path}{i}.")
+                if hit:
+                    return hit
+        return None
+    return walk(contract, CONTRACT_KEY_SCHEMA, "") if isinstance(contract, Mapping) else None
 _GH_REPO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$")
 
 
 def _org_membership(contract: Any) -> str | None:
-    """Why this contract binds the endpoint as a GitHub Organization member, or None. Structural keys only (the
-    prose ``designation_notes`` are not bindings); the location's repository must be the KV class, never owner/repo."""
-    def walk(node: Any, path: str) -> str | None:
-        if isinstance(node, Mapping):
-            for k, v in node.items():
-                if k == "designation_notes":
-                    continue
-                if isinstance(k, str) and k.lower() in MEMBERSHIP_KEYS:
-                    return f"{path}{k} is an org-membership, team or app-installation binding"
-                hit = walk(v, f"{path}{k}.")
-                if hit:
-                    return hit
-        elif isinstance(node, list):
-            for i, v in enumerate(node):
-                hit = walk(v, f"{path}{i}.")
-                if hit:
-                    return hit
-        return None
+    """Why this contract binds the endpoint to a GitHub org repository or ref, or None (keys are closed by
+    _closed_schema): the location's repository must be the KV class, never owner/repo; the ref must be the InTr route."""
     if not isinstance(contract, Mapping):
         return None
-    hit = walk(contract, "")
-    if hit:
-        return hit
     loc = contract.get("repository_ledger_location")
     loc = loc if isinstance(loc, Mapping) else {}
     repo = loc.get("repository")
@@ -276,6 +305,15 @@ def designation(which: str) -> tuple[dict[str, Any] | None, dict[str, Any] | Non
                              "never for an org designation; on a KV-owned contract", org,
                              predicate="INDEPENDENT_ENDPOINT_LEDGER_NOT_ORG_HOSTED")
     loc = contract.get("repository_ledger_location") if isinstance(contract, Mapping) else None
+    closed = _closed_schema(contract)
+    if closed and closed[0] == MEMBERSHIP_CODE:
+        return None, org_membership_refused(which, closed[1])
+    if closed:
+        return None, _refuse(which, UNKNOWN_KEY_CODE, "C",
+                             "a contract whose every key is in the closed schema runtime.kv_receipt_ledgers."
+                             "CONTRACT_KEY_SCHEMA (LC-KV-24)",
+                             "on an admitted change that removes the key and re-pins the contract digest", closed[1],
+                             predicate="KV_RECEIPT_CHAIN_DESIGNATION_KEYS_CLOSED")
     member = _org_membership(contract)
     if member:
         return None, org_membership_refused(which, member)
@@ -402,6 +440,20 @@ def _via_kv_intr_failure(d: Mapping[str, Any], via_kv_intr: Any) -> str | None:
     return None
 
 
+WATERMARK_MISSING_CODE = "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING"
+
+
+def watermark_missing(which: str, detail: str = "no recorded_head supplied") -> dict[str, Any]:
+    """Six-field FAIL_CLOSED (class B, LC-KV-23): the rollback watermark is required. Without the newest
+    endpoint_head_sha256 the Org recorded on its linked receipts, an older signed head cannot be told apart."""
+    return _refuse(which, WATERMARK_MISSING_CODE, "B",
+                   "recorded_head: the newest endpoint_head_sha256 the Org recorded on its linked receipts for this "
+                   f"endpoint's intr-destination path_ids ({WATERMARK_SOURCE}), as sha256:<64 hex>",
+                   "when the path_ids are declared and the Org-recorded head is supplied (event-triggered)", detail,
+                   owner=f"{TASK}; StegVerse-org/.github#235 path_ids declaration (Lane B)",
+                   predicate="ROLLBACK_WATERMARK_SUPPLIED")
+
+
 def _external(which: str, detail: str) -> dict[str, Any]:
     return _refuse(which, "EXTERNAL_STORAGE_RECORD_REFUSED", "C",
                    "only HEAD.json and the on-chain receipts/<sha256 hex>.json KV computed; the storage provider's own "
@@ -464,7 +516,11 @@ def _read(which: str, storage_endpoint: Any, readback_root: Any, head_attestatio
     head = _head_failure(modules, which, d, head_attestation, chain[-1]["receipt_sha256"], chain[0]["receipt_sha256"])
     if head:
         return head
-    if recorded_head is not None and recorded_head not in {r["receipt_sha256"] for r in chain}:
+    if not (isinstance(recorded_head, str) and len(recorded_head) == 71 and recorded_head.startswith("sha256:")
+            and all(c in "0123456789abcdef" for c in recorded_head[7:])):
+        return watermark_missing(which, "no recorded_head supplied" if recorded_head is None
+                                 else f"recorded_head {recorded_head!r} is not sha256:<64 hex>")
+    if recorded_head not in {r["receipt_sha256"] for r in chain}:
         return _refuse(which, "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C",
                        "present a chain that contains the newest endpoint_head_sha256 the Org recorded on its linked "
                        "receipts for this endpoint's path_ids; an older or forked head is refused",
@@ -484,15 +540,17 @@ def read_receipt_ledger(which: str, storage_endpoint: Any = None, readback_root:
     genesis not pinned; storage endpoint not the designated one; read-back
     unreadable or foreign; external storage records; genesis mismatch; head not signed by a published
     kv_ledger_head_signer; rollback watermark (``recorded_head``: the newest endpoint_head_sha256 the Org recorded on
-    its linked receipts) not on the chain -> DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
+    its linked receipts) required: absent or malformed -> FAIL_CLOSED KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING (B);
+    not on the chain -> DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
     return _read(which, storage_endpoint, readback_root, head_attestation, None, recorded_head)
 
 
 def receipt_on_ledger(which: str, receipt_sha256: Any, storage_endpoint: Any = None, readback_root: Any = None,
-                      head_attestation: Any = None, *, _read_result: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    """ALLOW only if a receipt whose evidence carries receipt_sha256 is on the read-back chain."""
+                      head_attestation: Any = None, recorded_head: Any = None, *,
+                      _read_result: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """ALLOW only if a receipt whose evidence carries receipt_sha256 is on the read-back chain (watermark required)."""
     read = dict(_read_result) if _read_result is not None else read_receipt_ledger(
-        which, storage_endpoint, readback_root, head_attestation)
+        which, storage_endpoint, readback_root, head_attestation, recorded_head)
     if read["disposition"] != ALLOW:
         return read
     for r in read["chain"]:
@@ -554,5 +612,5 @@ def custody_ledgers_config() -> dict[str, Any]:
 
 __all__ = ["CORRESPONDENCE_RULE", "KV_LEDGER", "SKAP_VAULT_LEDGER", "RECEIPT_LEDGERS", "STORE_KEYS", "STORE_TYPE",
            "GENESIS_CROSSING", "custody_ledgers_config", "designation", "head_attestation_body",
-           "MEMBERSHIP_CODE", "kv2_pending", "load_head_signers", "org_membership_refused", "pin_mechanism_org_hosted", "read_receipt_ledger",
+           "CONTRACT_KEY_SCHEMA", "MEMBERSHIP_CODE", "UNKNOWN_KEY_CODE", "WATERMARK_MISSING_CODE", "watermark_missing", "kv2_pending", "load_head_signers", "org_membership_refused", "pin_mechanism_org_hosted", "read_receipt_ledger",
            "receipt_ledger_binding", "receipt_ledger_prerequisites", "receipt_on_ledger"]

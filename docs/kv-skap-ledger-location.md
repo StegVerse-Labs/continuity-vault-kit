@@ -69,6 +69,26 @@ org-membership, team or app-installation binding, and no org ref. KV reaches the
 (`KV_INTR_ENDPOINT`, intr-destination path_ids). A contract that binds any of these is refused with six-field
 FAIL_CLOSED `ENDPOINT_ORG_MEMBERSHIP_REFUSED` (class C), right after the org-ledger-ref check.
 
+**Closed key schema (LC-KV-24).** The contract keys are an allow-list at every level, in
+`runtime.kv_receipt_ledgers.CONTRACT_KEY_SCHEMA`. The levels are:
+
+- top level;
+- `repository_ledger_location`;
+- `ledger_designation`;
+- each store;
+- `rollback_watermark_source`;
+- `designation_notes`.
+
+Any other key is refused, whatever it is called:
+
+- **Membership-like keys get `ENDPOINT_ORG_MEMBERSHIP_REFUSED`.** A key is membership-like when one of its
+  snake/camel tokens is in `MEMBERSHIP_TOKENS`, for example `organization`, `github_app_installation_id`,
+  `permissions`, `owner` or `team_slug`.
+- **Every other unknown key gets six-field FAIL_CLOSED `KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY`** (class C,
+  predicate `KV_RECEIPT_CHAIN_DESIGNATION_KEYS_CLOSED`).
+
+The token test only chooses which refusal code applies. It never admits a key.
+
 ## What is not claimed
 
 - **No ledger-wide encryption.** The receipt chains are recorded receipts, not encrypted objects. Ciphertext lives
@@ -98,6 +118,11 @@ StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. He
     `.stegverse/node-ledger/kv-ledger-head-signers.v1.json`.
   - The newest `endpoint_head_sha256` that the Org recorded on its linked receipts must still be on the read-back
     chain. Otherwise the read is DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
+  - That watermark (`recorded_head`) is required (LC-KV-23). If it is absent or not `sha256:<64 hex>`, the read is
+    six-field FAIL_CLOSED `KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING` (class B, predicate
+    `ROLLBACK_WATERMARK_SUPPLIED`). Class B because the Org-recorded head arrives only once the intr-destination
+    path_ids are declared (.github#235, Lane B). A properly signed older head is therefore never accepted on its
+    signature alone.
 - **The SKAP chain is reached only through KV's InTr.** A read goes through `SkapLayer2Gate.receipt_ledger` with a
   layer-1 receipt minted by KV. Otherwise it is refused with `SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR`.
 - **Org designations are refused.** Any org ledger ref or git-ref designation is refused with
