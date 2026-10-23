@@ -83,27 +83,44 @@ class SkapLayer2Gate:
         self._receipts: dict[str, dict[str, Any]] = {}
         self._consumed: set[str] = set()
         self._priors_used: set[str] = set()
+        self._payloads: dict[str, str] = {}
 
     @property
     def layer1(self) -> Any:
         return self._layer1
 
-    def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
-        """A layer-1 receipt minted and still held by the layer-1 runtime, or None."""
+    def _layer1_conforms(self, receipt: dict[str, Any]) -> str | None:
+        """LC-KV-10/15: the layer-1 receipt was minted by the real KVInterlockRuntime under the pinned evaluator, the
+        installed transport, a contract-location (or anchored temporary) ledger binding and the trust anchors in force.
+        None when it conforms, else the refusal cause."""
+        from runtime.kv_interlock_endpoint import KVInterlockRuntime, layer1_receipt_conformance
+        if type(self._layer1) is not KVInterlockRuntime:  # noqa: E721 - a subclass could re-implement minting
+            return "LAYER1_RUNTIME_NOT_KV_INTERLOCK_RUNTIME"
+        return layer1_receipt_conformance(receipt)
+
+    def _verify_kv_access_receipt(self, receipt_hash: Any) -> tuple[dict[str, Any] | None, str]:
         verify = getattr(self._layer1, "verify_kv_access_receipt", None)
         if verify is None or self._layer1 is self:
-            return None
+            return None, "LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1"
         try:
             receipt = verify(receipt_hash)
         except Exception:
-            return None
+            return None, "LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1"
         if not isinstance(receipt, dict) or receipt.get("schema") != KV_ACCESS_RECEIPT_SCHEMA \
                 or receipt.get("boundary") != LAYER1_BOUNDARY or receipt.get("minted_by") != "KVInterlockRuntime.handle" \
                 or receipt.get("receipt_hash") != receipt_hash \
                 or not isinstance(receipt.get("healthy_node_receipt"), dict) \
                 or receipt["healthy_node_receipt"].get("healthy_node_established") is not True:
-            return None
-        return receipt
+            return None, "LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1"
+        why = self._layer1_conforms(receipt)
+        if why is not None:
+            return None, why
+        return receipt, ""
+
+    def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
+        """A layer-1 receipt minted and still held by the layer-1 runtime, and minted under the pinned evaluator and
+        the trust anchors in force (LC-KV-10/15), or None."""
+        return self._verify_kv_access_receipt(receipt_hash)[0]
 
     def admit(self, transition: Any) -> dict[str, Any]:
         """ALLOW with a SKAP-access receipt, or a six-field FAIL_CLOSED SKAP_ACCESS_LAYER2_REFUSED."""
@@ -122,11 +139,19 @@ class SkapLayer2Gate:
             return layer2_refusal("LAYER1_KV_ACCESS_RECEIPT_ABSENT", (
                 "prior_receipt_hash must be the layer-1 KV-access receipt minted by KVInterlockRuntime.handle for a "
                 "currently admitted healthy node"), predicate=PREDICATE_PRIOR_LAYER1)
-        layer1_receipt = self.verify_kv_access_receipt(prior)
+        layer1_receipt, why = self._verify_kv_access_receipt(prior)
         if layer1_receipt is None:
-            return layer2_refusal("LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1", (
-                f"{prior} is not a KV-access receipt held by the layer-1 runtime; a caller-minted, recomputed or "
-                "health-less layer-1 receipt is refused"), predicate=PREDICATE_PRIOR_LAYER1)
+            if why == "LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1":
+                return layer2_refusal(why, (
+                    f"{prior} is not a KV-access receipt held by the layer-1 runtime; a caller-minted, recomputed or "
+                    "health-less layer-1 receipt is refused"), predicate=PREDICATE_PRIOR_LAYER1)
+            return layer2_refusal(why, (
+                f"{prior} was not minted by the real KVInterlockRuntime under the pinned healthy-node evaluator "
+                "(runtime.intr_pinned, sha256:fdaa2005...1f58), the installed InTr transport, a contract-location or "
+                "anchored temporary ledger binding and the trust anchors in force; it is refused"),
+                predicate=PREDICATE_HEALTHY_NODE, failure_class="B" if why in (
+                    "LAYER1_TRANSPORT_NOT_THE_INSTALLED_ONE", "LAYER1_LEDGER_NOT_BOUND_BY_CONTRACT_LOCATION",
+                    "TEMP_NODE_LEDGER_NOT_ANCHORED") else "C")
         if prior in self._priors_used:
             return layer2_refusal("LAYER1_KV_ACCESS_RECEIPT_ALREADY_USED", (
                 f"{prior} already admitted one KV->SKAP transition; each SKAP operation needs its own DEVICE->KV "
@@ -140,6 +165,9 @@ class SkapLayer2Gate:
             "from_role": "KV",
             "to_role": "SKAP_VAULT",
             "minted_by": "SkapLayer2Gate.admit",
+            "endpoint_kind": "SKAP_VAULT",  # Org InTr endpoint model; schema PENDING Lane B
+            "endpoint_kind_schema": "PENDING_LANE_B_ENDPOINT_KIND_SCHEMA",
+            "layer1_endpoint_kind": layer1_receipt.get("endpoint_kind"),
             "principal_ref": transition["principal_ref"],
             "operation": transition["operation"],
             "subject_ref": transition["subject_ref"],
@@ -180,6 +208,26 @@ class SkapLayer2Gate:
                 f"not {operation} on {subject_ref} for {principal_ref}"))
         self._consumed.add(receipt_hash)
         return receipt, None
+
+    def bind_payload(self, receipt_hash: Any, payload_sha256: Any) -> bool:
+        """LC-KV-07: record, once, the payload a consumed SKAP_SEALED_CREDENTIAL_APPEND receipt admitted, so a read can
+        verify a stored record's provenance at this gate instead of trusting the store."""
+        receipt = self.verify_skap_access_receipt(receipt_hash)
+        if receipt is None or receipt_hash not in self._consumed or receipt_hash in self._payloads \
+                or receipt["operation"] != "SKAP_SEALED_CREDENTIAL_APPEND" \
+                or not (isinstance(payload_sha256, str) and payload_sha256.startswith("sha256:")):
+            return False
+        self._payloads[receipt_hash] = payload_sha256
+        return True
+
+    def verify_payload(self, receipt_hash: Any, *, principal_ref: str, subject_ref: str, payload_sha256: Any) -> bool:
+        """True only when receipt_hash is a consumed append receipt of this gate, for that principal and subject, whose
+        bound payload is payload_sha256. A forged or replayed record fails this."""
+        receipt = self.verify_skap_access_receipt(receipt_hash)
+        return bool(receipt is not None and receipt_hash in self._consumed
+                    and receipt["operation"] == "SKAP_SEALED_CREDENTIAL_APPEND"
+                    and receipt["principal_ref"] == principal_ref and receipt["subject_ref"] == subject_ref
+                    and self._payloads.get(receipt_hash) == payload_sha256)
 
     def verify_access_chain(self, kv_access_receipt_hash: Any, skap_access_receipt_hash: Any) -> dict[str, Any]:
         """The access_receipt_verifier the sovereign-KV custody validator consumes: layer 2 chained to layer 1."""

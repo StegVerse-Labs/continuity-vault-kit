@@ -8,6 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kv_two_layer_e0 import healthy_node_kwargs  # noqa: E402
+from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 
 from runtime.kv_interlock_endpoint import KVInterlockRuntime, sha256_uri
 from runtime.persistent_session_interlock import (

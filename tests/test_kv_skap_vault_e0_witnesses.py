@@ -36,7 +36,8 @@ from runtime.task_registry_event_sovereign_kv_binding import (  # noqa: E402
     build_vault_lineage_record,
     validate_vault_lineage_custody_result,
 )
-from tests.kv_two_layer_e0 import TwoLayers  # noqa: E402
+from tests.kv_two_layer_e0 import E0_FINISH_POINT_CLI, TwoLayers  # noqa: E402
+from tests.kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 from test_kv_skap_vault_finish_point import scratch_ledger, tvc_issuance  # noqa: E402
 from test_task_registry_event_sovereign_kv_binding import provider_receipt  # noqa: E402
 
@@ -103,7 +104,7 @@ class KvSkapVaultE0Witnesses(unittest.TestCase):
     def test_the_same_run_through_the_cli(self) -> None:
         path = Path(self._tmp.name) / "evidence.json"
         path.write_text(json.dumps(self.evidence()), encoding="utf-8")
-        proc = subprocess.run([sys.executable, "-m", "runtime.kv_skap_vault", "finish-point", "--evidence", str(path),
+        proc = subprocess.run([*E0_FINISH_POINT_CLI, "finish-point", "--evidence", str(path),
                                "--scratch-ledger-git-dir", self.ledger_git], cwd=ROOT, capture_output=True,
                               text=True, check=False)
         self.assertEqual(proc.returncode, 0, proc.stdout[-2000:])

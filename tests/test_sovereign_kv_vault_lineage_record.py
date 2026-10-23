@@ -34,6 +34,8 @@ from runtime.task_registry_event_sovereign_kv_binding import (  # noqa: E402
     validate_vault_lineage_custody_result,
 )
 from test_task_registry_event_sovereign_kv_binding import projection_request, provider_receipt  # noqa: E402
+from kv_two_layer_e0 import TwoLayers, enter_e0, exit_e0  # noqa: E402
+from runtime.kv_skap_layer2 import SkapLayer2Gate  # noqa: E402
 
 
 def h(value) -> str:
@@ -79,16 +81,31 @@ def receipt_hash(receipt):
     return h({k: v for k, v in receipt.items() if k != "receipt_hash"})
 
 
-KV_ACCESS = "sha256:" + "1" * 64
-SKAP_ACCESS = "sha256:" + "2" * 64
+KV_ACCESS = "sha256:" + "1" * 64  # replaced in setUpModule by a real layer-1 receipt hash (E0 stand-in)
+SKAP_ACCESS = "sha256:" + "2" * 64  # replaced in setUpModule by a real layer-2 receipt hash chained to it
+_LAYERS: dict = {}
 
 
-def layers_verified(kv_hash, skap_hash):
-    """Test stand-in for the layer-2 gate's verify_access_chain (continuity-vault-kit#258 supplies the real one)."""
-    if (kv_hash, skap_hash) == (KV_ACCESS, SKAP_ACCESS):
-        return {"disposition": "ALLOW"}
-    return {"disposition": "FAIL_CLOSED", "failure_code": "SKAP_ACCESS_LAYER2_REFUSED",
-            "required_evidence_or_repair": "not a chain minted by the gates"}
+def setUpModule():  # noqa: N802
+    """LC-KV-03: the verifier is the real layer-2 gate, fed by both layers under the labelled E0 trust anchors."""
+    global KV_ACCESS, SKAP_ACCESS
+    enter_e0()
+    layers = TwoLayers()
+    SKAP_ACCESS = layers.skap_hash("SKAP_WRITE", "vault-lineage")
+    KV_ACCESS = layers.gate.verify_skap_access_receipt(SKAP_ACCESS)["prior_receipt_hash"]
+    _LAYERS["layers"] = layers
+
+
+def tearDownModule():  # noqa: N802
+    exit_e0()
+
+
+def gate():
+    """The exact runtime.kv_skap_layer2.SkapLayer2Gate that minted KV_ACCESS / SKAP_ACCESS."""
+    return _LAYERS["layers"].gate
+
+
+DEFAULT_GATE = object()
 
 
 def layered_receipt(request, **over):
@@ -163,7 +180,7 @@ class VaultLineageRecord(unittest.TestCase):
         self.assertEqual(bound["head_receipt_hash"], exported["head"])
         result = validate_vault_lineage_custody_result(binding=bound, provider_receipt=self.receipt(bound),
                                                        read_back_lineage=copy.deepcopy(exported),
-                                                       access_receipt_verifier=layers_verified)
+                                                       access_receipt_verifier=gate())
         self.assertTrue(result["exact_hash_readback_verified"])
         self.assertEqual(result["read_back_lineage_sha256"], result["lineage_sha256"])
         self.assertEqual(result["authority_effect"], "NONE")
@@ -215,7 +232,7 @@ class VaultLineageRecord(unittest.TestCase):
                      {"intr_receipt_ref": ""}, {"credential_material_present": True}, {"request_id": "kvprov_x"}):
             cases.append(dict(provider_receipt=self.receipt(bound, **over), read_back_lineage=lineage()))
         for case in cases:
-            out = validate_vault_lineage_custody_result(binding=bound, access_receipt_verifier=layers_verified, **case)
+            out = validate_vault_lineage_custody_result(binding=bound, access_receipt_verifier=gate(), **case)
             assert_six_field_fail_closed(self, out, "VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED")
 
 
@@ -223,7 +240,8 @@ class CustodyRequiresBothAccessLayers(unittest.TestCase):
     """Revised LC-KV-03 / LC-KV-08 (StegVerse-Labs/.github#3330 rev 1): a custody result binds the layer-1 KV-access
     receipt and the layer-2 SKAP-access receipt, each verified against the gates, never a non-empty string."""
 
-    def check(self, code, predicate, verifier=layers_verified, **over):
+    def check(self, code, predicate, verifier=DEFAULT_GATE, **over):
+        verifier = gate() if verifier is DEFAULT_GATE else verifier
         bound = VaultLineageRecord().bind()
         out = validate_vault_lineage_custody_result(
             binding=bound, provider_receipt=layered_receipt(bound["provider_write_request"], **over),
@@ -248,9 +266,27 @@ class CustodyRequiresBothAccessLayers(unittest.TestCase):
 
         def broken(*_):
             raise RuntimeError("verifier fault")
-        self.check("KV_ACCESS_LAYER1_REFUSED", "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE", verifier=broken)
-        self.check("KV_ACCESS_LAYER1_REFUSED", "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
+        self.check("SKAP_ACCESS_LAYER2_REFUSED", "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT", verifier=broken)
+        self.check("SKAP_ACCESS_LAYER2_REFUSED", "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT",
                    verifier=lambda *_: {"disposition": "ALLOW_ISH"})
+        # a forged layer-1 hash with a real layer-2 receipt is refused by the gate's own stores
+        self.check("KV_ACCESS_LAYER1_REFUSED", "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
+                   kv_access_receipt_hash="sha256:" + "1" * 64)
+
+    def test_an_arbitrary_verifier_callable_is_refused(self) -> None:
+        """LC-KV-03 bypass: a callable that answers ALLOW for exactly these hashes is not the layer-2 gate."""
+        def layers_verified(kv_hash, skap_hash):
+            return {"disposition": "ALLOW"} if (kv_hash, skap_hash) == (KV_ACCESS, SKAP_ACCESS) else {}
+
+        class LenientGate(SkapLayer2Gate):
+            def verify_access_chain(self, *_):
+                return {"disposition": "ALLOW"}
+        lenient = LenientGate(_LAYERS["layers"].layer1)
+        for verifier in (layers_verified, lambda *_: {"disposition": "ALLOW"}, lenient, lenient.verify_access_chain,
+                         {"disposition": "ALLOW"}, "gate"):
+            self.check("SKAP_ACCESS_LAYER2_REFUSED", "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT",
+                       verifier=verifier)
+        self.assertIs(binding_module.pinned_layer2_gate(gate().verify_access_chain), gate())  # bound method accepted
 
     def test_git_ref_custody_adapter_is_withdrawn(self) -> None:
         self.assertFalse((ROOT / "runtime" / "kv_ecosystem_git_ref_custody.py").exists())
@@ -295,7 +331,7 @@ class CustodyValidationIsADispositionNeverARaise(unittest.TestCase):
                        dict(binding={**bound, "provider_readback_request": None},
                             provider_receipt=layered_receipt(bound["provider_write_request"]),
                             read_back_lineage=lineage())):
-            out = validate_vault_lineage_custody_result(access_receipt_verifier=layers_verified, **kwargs)
+            out = validate_vault_lineage_custody_result(access_receipt_verifier=gate(), **kwargs)
             self.assertEqual(out["disposition"], "FAIL_CLOSED", kwargs)
             self.assertIn(out["failure_code"], ("VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED",
                                                 "VAULT_LINEAGE_CUSTODY_INPUT_MALFORMED"))
@@ -306,7 +342,7 @@ class CustodyValidationIsADispositionNeverARaise(unittest.TestCase):
         bound = VaultLineageRecord().bind()
         out = validate_vault_lineage_custody_result(
             binding=bound, provider_receipt=layered_receipt(bound["provider_write_request"]),
-            read_back_lineage=lineage(), access_receipt_verifier=layers_verified)
+            read_back_lineage=lineage(), access_receipt_verifier=gate())
         self.assertEqual(out["disposition"], "ALLOW")
         self.assertTrue(out["exact_hash_readback_verified"])
 

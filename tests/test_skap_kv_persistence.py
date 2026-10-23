@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from execution.adapter import canonical_sha256  # noqa: E402
 from execution.vault_store import KnowledgeVaultExecutionStore, SkapAccessRefused, VaultStoreError  # noqa: E402
 from kv_two_layer_e0 import TwoLayers  # noqa: E402
+from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 from skap.crypto_boundary import seal  # noqa: E402
 
 PRINCIPAL = "principal:owner"
@@ -70,14 +71,14 @@ class SkapKvPersistenceTests(unittest.TestCase):
             self.assertEqual(canonical_sha256(readback), canonical_sha256(sealed))
 
             serialized = json.dumps({
-                "extensions": store.read_stream("Extensions", "coinbase-test-v1"),
-                "receipts": store.read_stream("Receipts", "coinbase-test-v1"),
+                "extensions": at_rest(store, "Extensions", "coinbase-test-v1"),
+                "receipts": at_rest(store, "Receipts", "coinbase-test-v1"),
             }, sort_keys=True)
             self.assertNotIn("synthetic-coinbase-credential", serialized)
             self.assertNotIn("kkkkkkkk", serialized)
             self.assertIn(sealed["ciphertext_b64"], serialized)
-            self.assertFalse(store.read_stream("Extensions", "coinbase-test-v1")[0]["kv_decryption_authority"])
-            self.assertFalse(store.read_stream("Extensions", "coinbase-test-v1")[0]["kv_secret_resolution_authority"])
+            self.assertFalse(at_rest(store, "Extensions", "coinbase-test-v1")[0]["kv_decryption_authority"])
+            self.assertFalse(at_rest(store, "Extensions", "coinbase-test-v1")[0]["kv_secret_resolution_authority"])
 
     def test_receipt_must_bind_exact_ciphertext(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -149,9 +150,18 @@ class SkapKvPersistenceTests(unittest.TestCase):
                 store.append_skap_sealed_credential("s1", sealed, receipt, **append)
             with self.assertRaises(SkapAccessRefused):
                 store.read_skap_sealed_credential("s1")
-            record = store.read_stream("Extensions", "s1")[0]
+            for category in ("Extensions", "Receipts"):  # LC-KV-07: the ungated read refuses SKAP streams
+                with self.assertRaises(SkapAccessRefused):
+                    store.read_stream(category, "s1")
+            record = at_rest(store, "Extensions", "s1")[0]
             self.assertEqual(record["access"]["skap_access_receipt_hash"], append["skap_access_receipt_hash"])
             self.assertTrue(record["access"]["kv_access_receipt_hash"].startswith("sha256:"))
+
+
+def at_rest(store, category, stream_id):
+    """The bytes at rest, read as an inspector would (not a KV read path; read_stream refuses SKAP streams)."""
+    path = store.execution_root / category / f"{stream_id}.jsonl"
+    return [json.loads(line)["record"] for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 if __name__ == "__main__":

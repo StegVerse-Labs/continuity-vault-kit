@@ -3,22 +3,30 @@
 Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (INTR_KV_SKAP).
 
 Health is decided by the REAL pinned InTr evaluator: runtime/intr_pinned/healthy_node_evaluator.py, vendored
-byte-identical from StegVerse-org/LLM-adapter#428 @0b37fe3b (LC-KV-13/14), with require_admission=True.
-* The only E0 stand-in is ``e0_health_ledger``. It writes a scratch node-exchange transition ledger (HEAD.json plus
-  hash-addressed receipts) in a temporary directory, holding a NODE_HEALTH_REPORTED report and a
-  NODE_INGRESS_ADMITTED admission.
-* It stands in for the NODE_HEALTH_REPORTED producer, which does not exist yet (Lane B asked Coordination to assign
-  one).
-* It is never the real ledger, and its receipts are E0 test fixtures, not evidence.
-* Real health reports are UNKNOWN_NOT_AUTHENTICALLY_OBSERVED. Without a bound ledger, layer 1 is a six-field
-  FAIL_CLOSED.
+byte-identical from StegVerse-org/LLM-adapter (LC-KV-13/14), with require_admission=True.
+
+LC-KV-15 (P1 DENY on cvk#258 @61104a57): layer 1 binds its ledger only by contract location at an observed
+org-ledger head (or an anchored temporary node ledger), derives the requester identity from the installed InTr
+transport, and passes the observed transport state. None of that is authentically observed today, so the production
+TRUST_ANCHORS are empty and the real path FAILS_CLOSED. The E0 stand-ins here are:
+* ``e0_health_ledger``: a scratch git repository whose refs/stegverse/organization-ledger commit holds the
+  repository-ledger/StegVerse-org/LLM-adapter namespace (HEAD.json plus hash-addressed receipts), standing in for the
+  #429 producer and the #431 onboarding. Never the real ledger; its receipts are E0 fixtures, not evidence.
+* ``E0Transport``: stands in for the installed InTr transport. It authenticates only nodes the harness enrolled.
+* ``e0_temporary_node_ledger`` / ``e0_node_ledger_opened``: a temporary node ledger and its NODE_LEDGER_OPENED anchor in
+  the minimal shape KV checks, PENDING Lane B's schema, issued by an E0 stand-in issuer.
+* ``E0_TRUST_ANCHORS``: labelled E0_STANDIN_TEST_ONLY_NOT_EVIDENCE. They are in force only inside ``e0_trust_anchors()``
+  or between ``enter_e0()`` and ``exit_e0()`` (setUpModule/tearDownModule). Importing this module changes nothing.
 """
 from __future__ import annotations
 
 import atexit
+import contextlib
 import hashlib
 import json
+import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -35,6 +43,7 @@ from runtime.kv_skap_layer2 import SkapLayer2Gate, kv_skap_transition  # noqa: E
 
 NOW = datetime(2026, 10, 23, 12, 0, 0, tzinfo=timezone.utc)
 LEDGER_REPOSITORY = "StegVerse-org/LLM-adapter"  # the pinned evaluator's expected ledger repository
+E0_LABEL = "E0_STANDIN_TEST_ONLY_NOT_EVIDENCE"
 _SCRATCH: list[str] = []
 
 
@@ -44,52 +53,227 @@ def _cleanup() -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
-def _write_receipt(root: Path, previous: str | None, transition_class: str, evidence: dict[str, Any],
-                   repository: str = LEDGER_REPOSITORY) -> str:
-    body = {"schema": "stegverse.e0-standin.transition-receipt/v1", "repository": repository,
+def _receipt_body(previous: str | None, transition_class: str, evidence: dict[str, Any],
+                  repository: str = LEDGER_REPOSITORY) -> dict[str, Any]:
+    return {"schema": "stegverse.e0-standin.transition-receipt/v1", "repository": repository,
             "transition_class": transition_class, "previous_receipt_sha256": previous, "evidence": evidence,
             "label": "E0_STANDIN_TEST_LEDGER_NOT_EVIDENCE"}
+
+
+def _write_receipt(root: Path, previous: str | None, transition_class: str, evidence: dict[str, Any],
+                   repository: str = LEDGER_REPOSITORY) -> str:
+    body = _receipt_body(previous, transition_class, evidence, repository)
     digest = kv.sha256_uri(body)
     (root / "receipts" / (digest[7:] + ".json")).write_text(json.dumps({**body, "receipt_sha256": digest}),
                                                             encoding="utf-8")
     return digest
 
 
-def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = True, report: bool = True,
-                     superseded_by: str | None = None, repository: str = LEDGER_REPOSITORY,
-                     ) -> tuple[str, str | None]:
-    """A scratch E0 checkout of the org-ledger ref holding the LLM-adapter namespace, read by the real pinned evaluator.
+#: The E0 chain's genesis (deterministic), pinned only in E0_TRUST_ANCHORS.
+E0_GENESIS = kv.sha256_uri(_receipt_body(None, "LEDGER_GENESIS", {"label": "E0"}))
+PINNED_DIGESTS = {"evaluator_source_sha256": ep.PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"],
+                  "producer_source_sha256": ep.PINNED_NODE_HEALTH_REPORT_PRODUCER["source_sha256"]}
 
-    Returns (checkout, first report sha or None).
 
-    * report=False: the chain has no NODE_HEALTH_REPORTED receipt, which is today's real state (HEALTH_REPORT_MISSING).
-    * superseded_by: a newer report with that status follows the first one, so citing the first is superseded.
-    """
-    checkout = Path(tempfile.mkdtemp(prefix="e0-org-ledger-checkout-"))
-    _SCRATCH.append(str(checkout))
-    root = Path(ep.healthy_node_ledger_root(checkout))  # the bound contract-location namespace
+def e0_node_identity_key(node_id: str) -> str:
+    return "e0-node-identity-key:" + hashlib.sha256(node_id.encode()).hexdigest()[:16]
+
+
+class E0Transport:
+    """Stand-in for the installed InTr DEVICE->KV transport. It authenticates an envelope's source only for a node the
+    harness enrolled, and only when the envelope says the boundary proof was VERIFIED."""
+
+    transport_id = "e0-standin-intr-transport"
+    state = "INSTALLED"
+
+    def __init__(self) -> None:
+        self.enrolled: dict[str, str] = {}
+
+    def enroll(self, node_id: str) -> None:
+        self.enrolled[node_id] = e0_node_identity_key(node_id)
+
+    def authenticate(self, envelope: dict[str, Any]) -> dict[str, Any] | None:
+        proof = envelope.get("boundary_proof") or {}
+        node = proof.get("source_identity_ref")
+        if proof.get("verification_state") != "VERIFIED" or node not in self.enrolled:
+            return None
+        return {"node_id": node, "node_identity_key": self.enrolled[node]}
+
+
+E0_TRANSPORT = E0Transport()
+_E0_ISSUED: set[str] = set()
+
+
+def _e0_issuer(anchor: dict[str, Any]) -> bool:
+    return anchor.get("receipt_sha256") in _E0_ISSUED
+
+
+E0_TRUST_ANCHORS = {
+    "label": E0_LABEL,
+    "healthy_node_ledger_genesis_receipt_sha256": E0_GENESIS,
+    "intr_transport": E0_TRANSPORT,
+    "node_ledger_anchor_issuers": {"ORGANIZATION_LEDGER": _e0_issuer, "TV/TVC": _e0_issuer},
+}
+PRODUCTION_TRUST_ANCHORS = dict(ep.TRUST_ANCHORS)
+_SAVED: list[dict[str, Any]] = []
+
+
+def enter_e0() -> None:
+    """Put the labelled E0 anchors in force (setUpModule). Paired with exit_e0."""
+    _SAVED.append(dict(ep.TRUST_ANCHORS))
+    ep.TRUST_ANCHORS.clear()
+    ep.TRUST_ANCHORS.update(E0_TRUST_ANCHORS)
+
+
+def exit_e0() -> None:
+    previous = _SAVED.pop() if _SAVED else PRODUCTION_TRUST_ANCHORS
+    ep.TRUST_ANCHORS.clear()
+    ep.TRUST_ANCHORS.update(previous)
+
+
+@contextlib.contextmanager
+def e0_trust_anchors():
+    enter_e0()
+    try:
+        yield E0_TRUST_ANCHORS
+    finally:
+        exit_e0()
+
+
+@contextlib.contextmanager
+def production_trust_anchors():
+    """The production anchors (nothing observed), for negative tests inside an E0 module."""
+    _SAVED.append(dict(ep.TRUST_ANCHORS))
+    ep.TRUST_ANCHORS.clear()
+    ep.TRUST_ANCHORS.update(PRODUCTION_TRUST_ANCHORS)
+    try:
+        yield ep.TRUST_ANCHORS
+    finally:
+        exit_e0()
+
+
+#: The finish-point CLI with the labelled E0 anchors in force (tests only). The plain CLI runs under the production
+#: anchors and refuses E0 evidence.
+E0_FINISH_POINT_CLI = [sys.executable, "-c", (
+    "import sys; sys.path.insert(0, 'tests'); import kv_two_layer_e0 as e0; e0.enter_e0(); "
+    "from runtime import kv_skap_vault as kv; sys.exit(kv.main(sys.argv[1:]))")]
+
+
+def _run_git(*args: str, cwd: str) -> None:
+    subprocess.run(["git", "-c", "user.name=E0", "-c", "user.email=e0@invalid", "-c", "commit.gpgsign=false",
+                    "-c", "init.defaultBranch=e0", *args], cwd=cwd, check=True, capture_output=True,
+                   env={**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+                        # fixed dates: the observed head (a commit id) is deterministic across E0 runs
+                        "GIT_AUTHOR_DATE": "2026-10-23T12:00:00Z", "GIT_COMMITTER_DATE": "2026-10-23T12:00:00Z"})
+
+
+def _git_repo(with_ref: bool = True, populate: Any = None) -> str:
+    repo = tempfile.mkdtemp(prefix="e0-org-ledger-repo-")
+    _SCRATCH.append(repo)
+    _run_git("init", "-q", cwd=repo)
+    if populate is not None:
+        populate(Path(repo))
+    (Path(repo) / "README.e0").write_text(E0_LABEL, encoding="utf-8")
+    _run_git("add", "-A", cwd=repo)
+    _run_git("commit", "-q", "-m", E0_LABEL, cwd=repo)
+    if with_ref:
+        _run_git("update-ref", ep.HEALTHY_NODE_LEDGER_LOCATION["ref"], "HEAD", cwd=repo)
+    return repo
+
+
+def _write_chain(root: Path, node_id: str, *, status: str = "HEALTHY", admitted: bool = True, report: bool = True,
+                 superseded_by: str | None = None, repository: str = LEDGER_REPOSITORY,
+                 pinned_digests: Any = None) -> str | None:
     (root / "receipts").mkdir(parents=True)
     head = _write_receipt(root, None, "LEDGER_GENESIS", {"label": "E0"}, repository)
     first = None
+    extra = {} if pinned_digests is None else {"pinned_digests": pinned_digests}
     if report:
         first = head = _write_receipt(root, head, "NODE_HEALTH_REPORTED", {
-            "schema": "stegverse.node-health-report/v1", "node_id": node_id, "status": status}, repository)
+            "schema": "stegverse.node-health-report/v1", "node_id": node_id, "status": status, **extra}, repository)
         current = first
         if superseded_by is not None:
             current = head = _write_receipt(root, head, "NODE_HEALTH_REPORTED", {
-                "schema": "stegverse.node-health-report/v1", "node_id": node_id, "status": superseded_by}, repository)
+                "schema": "stegverse.node-health-report/v1", "node_id": node_id, "status": superseded_by, **extra},
+                repository)
         head = _write_receipt(root, head, "NODE_INGRESS_ADMITTED" if admitted else "NODE_INGRESS_REFUSED", {
             "node_endpoint": {"node_id": node_id}, "healthy_node_established": admitted,
             "health_report_receipt_sha256": current}, repository)
     (root / "HEAD.json").write_text(json.dumps({"receipt_sha256": head}), encoding="utf-8")
-    return str(checkout), first
+    return first
+
+
+def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = True, report: bool = True,
+                     superseded_by: str | None = None, repository: str = LEDGER_REPOSITORY,
+                     enroll: bool = True) -> tuple[str, str | None]:
+    """A scratch E0 git repository standing in for StegVerse-org/.github, whose refs/stegverse/organization-ledger
+    commit holds the LLM-adapter namespace, read by the real pinned evaluator. Returns (repository, first report sha).
+
+    * report=False: the chain has no NODE_HEALTH_REPORTED receipt, which is today's real state (HEALTH_REPORT_MISSING).
+    * superseded_by: a newer report with that status follows the first one, so citing the first is superseded.
+    * enroll: the E0 transport authenticates node_id.
+    """
+    holder: dict[str, Any] = {}
+
+    def populate(repo: Path) -> None:
+        holder["first"] = _write_chain(Path(ep.healthy_node_ledger_root(repo)), node_id, status=status,
+                                       admitted=admitted, report=report, superseded_by=superseded_by,
+                                       repository=repository)
+    repo = _git_repo(populate=populate)
+    if enroll:
+        E0_TRANSPORT.enroll(node_id)
+    return repo, holder["first"]
 
 
 def e0_empty_ref_checkout() -> str:
-    """A checkout of the org-ledger ref without the LLM-adapter namespace, which is today's real state."""
-    checkout = tempfile.mkdtemp(prefix="e0-org-ledger-checkout-")
-    _SCRATCH.append(checkout)
-    return checkout
+    """A repository without refs/stegverse/organization-ledger, which is today's real state (#3255)."""
+    return _git_repo(with_ref=False)
+
+
+def e0_ref_without_namespace() -> str:
+    """The org-ledger ref exists but carries no LLM-adapter namespace (#431 not onboarded)."""
+    return _git_repo(with_ref=True)
+
+
+def e0_scratch_ledger_root(node_id: str) -> str:
+    """A bare scratch ledger directory (no git, no contract location), as cvk#258 @61104a57 accepted."""
+    root = Path(tempfile.mkdtemp(prefix="e0-scratch-ledger-root-"))
+    _SCRATCH.append(str(root))
+    _write_chain(root / "repository-ledger" / "StegVerse-org" / "LLM-adapter", node_id)
+    E0_TRANSPORT.enroll(node_id)
+    return str(root)
+
+
+def e0_temporary_node_ledger(node_id: str, *, pinned_digests: Any = "pinned", **chain: Any) -> tuple[str, str]:
+    """A node's temporary ledger directory. Returns (ledger_root, genesis). pinned_digests="pinned" stamps the pinned
+    evaluator and producer digests on its health receipts; None omits them."""
+    root = Path(tempfile.mkdtemp(prefix="e0-temporary-node-ledger-"))
+    _SCRATCH.append(str(root))
+    _write_chain(root, node_id, pinned_digests=PINNED_DIGESTS if pinned_digests == "pinned" else pinned_digests,
+                 **chain)
+    E0_TRANSPORT.enroll(node_id)
+    return str(root), E0_GENESIS
+
+
+def e0_node_ledger_opened(node_id: str, *, node_identity_key: str | None = None, genesis: str = E0_GENESIS,
+                          issuer: str = "ORGANIZATION_LEDGER", issued: bool = True) -> dict[str, Any]:
+    """A NODE_LEDGER_OPENED anchor in the minimal shape KV checks (PENDING Lane B's schema). issued=False: an anchor no
+    pinned issuer verifies."""
+    body = {"schema": ep.NODE_LEDGER_OPENED_SCHEMA, "transition_class": ep.NODE_LEDGER_OPENED_CLASS,
+            "node_id": node_id, "node_identity_key": node_identity_key or e0_node_identity_key(node_id),
+            "genesis_receipt_sha256": genesis, "issuer": issuer,
+            "issuer_receipt_ref": ("e0-standin-issuer-receipt:" if issued else "e0-never-issued:")
+            + hashlib.sha256(node_id.encode()).hexdigest()[:16]}
+    anchor = {**body, "receipt_sha256": ep.node_ledger_opened_digest(body)}
+    if issued:
+        _E0_ISSUED.add(anchor["receipt_sha256"])
+    return anchor
+
+
+def e0_temporary_source(node_id: str, **anchor: Any) -> dict[str, Any]:
+    root, genesis = e0_temporary_node_ledger(node_id)
+    return {"kind": ep.LEDGER_SOURCE_TEMPORARY, "ledger_root": root,
+            "node_ledger_opened": e0_node_ledger_opened(node_id, **anchor)}
 
 
 def healthy_node_kwargs(node_id: str, **ledger: Any) -> dict[str, Any]:
@@ -142,6 +326,7 @@ class TwoLayers:
             healthy_node_evaluator=evaluator,
             healthy_node_ledger_checkout=e0_health_ledger(node)[0] if ledger_checkout == "e0" else ledger_checkout)
         self.gate = SkapLayer2Gate(self.layer1)
+        E0_TRANSPORT.enroll(node)
         self.intr_receipts: list[dict[str, Any]] = []
         self.layer1_receipts: list[dict[str, Any]] = []
 

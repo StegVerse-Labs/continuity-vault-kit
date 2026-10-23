@@ -12,18 +12,18 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "runtime" / "kv_interlock_endpoint.py"
 sys.path.insert(0, str(ROOT / "tests"))
 
-from kv_two_layer_e0 import e0_empty_ref_checkout, e0_health_ledger, healthy_node_kwargs  # noqa: E402
+from kv_two_layer_e0 import e0_empty_ref_checkout, e0_health_ledger, e0_ref_without_namespace, healthy_node_kwargs  # noqa: E402,E501
+from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
 
 
 def load_module():
-    spec = importlib.util.spec_from_file_location("kv_interlock_endpoint", MODULE_PATH)
-    module = importlib.util.module_from_spec(spec)
-    assert spec and spec.loader
-    spec.loader.exec_module(module)
-    return module
+    # The imported module itself: its TRUST_ANCHORS are the ones the E0 harness puts in force (LC-KV-15).
+    from runtime import kv_interlock_endpoint
+    assert Path(kv_interlock_endpoint.__file__).resolve() == MODULE_PATH.resolve()
+    return kv_interlock_endpoint
 
 
 class KVInterlockRuntimeTests(unittest.TestCase):
@@ -357,22 +357,23 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         def spy(node_id, **kw):
             seen.append(kw)
             return {"disposition": "FAIL_CLOSED", "reason": "HEALTH_REPORT_MISSING"}
-        self.handle(self.runtime_for("/x", spy))
-        self.assertEqual((seen[0]["ledger_root"], seen[0]["repository"], seen[0]["require_admission"]),
-                         ("/x/repository-ledger/StegVerse-org/LLM-adapter", "StegVerse-org/LLM-adapter", True))
+        self.handle(self.runtime_for(e0_health_ledger("device:test:1")[0], spy))
+        # the namespace is materialized from the observed org-ledger head, and the observed transport state is passed
+        self.assertTrue(seen[0]["ledger_root"].endswith("/repository-ledger/StegVerse-org/LLM-adapter"))
+        self.assertEqual((seen[0]["repository"], seen[0]["require_admission"], seen[0]["transport_state"]),
+                         ("StegVerse-org/LLM-adapter", True, "INSTALLED"))
+        self.assertFalse(Path(seen[0]["ledger_root"]).exists())  # the materialized tree is removed after the call
 
     def test_the_real_path_today_fails_closed_ledger_not_onboarded(self):
         """The LLM-adapter chain at the contract location is not onboarded and has no genesis: class B."""
-        for checkout in (None, e0_empty_ref_checkout()):
+        for checkout in (None, e0_empty_ref_checkout(), e0_ref_without_namespace()):
             response = self.handle(self.runtime_for(checkout))
             self.assert_layer1_refusal(response, "repository-ledger/StegVerse-org/LLM-adapter")
             self.assertEqual((response["failure_class"], response["refusal_cause"], response["failed_predicate"]),
                              ("B", "HEALTHY_NODE_LEDGER_NOT_ONBOARDED", "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"))
-            self.assertIn("organization-ledger onboarding", response["retry_entrypoint"])
-            self.assertTrue(response["retry_entrypoint"].startswith("StegVerse-org/LLM-adapter#431"))
+            self.assertIn("StegVerse-org/LLM-adapter#431", response["retry_entrypoint"])
             self.assertIn("LC-KV-13", response["owning_existing_goal"])
             self.assertIsNone(response["kv_access_receipt"])
-        self.assertEqual(response["health_evaluation"]["reason"], "LEDGER_HEAD_UNREADABLE")
         self.assertEqual(self.receipts, [])
 
     def test_an_onboarded_chain_without_a_report_fails_closed_health_report_missing(self):
@@ -384,7 +385,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
 
     def test_the_pin_records_428_429_and_430_provenance(self):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
-        self.assertEqual([p["commit"][:8] for p in pin["provenance"]], ["0b37fe3b", "5f5f7bbe", "4e1499ab"])
+        self.assertEqual([p["commit"][:8] for p in pin["provenance"]], ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4"])
         self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):

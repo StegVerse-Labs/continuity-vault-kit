@@ -42,8 +42,8 @@ from typing import Any
 
 from runtime.kv_interlock_endpoint import (HEALTHY_NODE_RECEIPT_SCHEMA, KV_ACCESS_RECEIPT_SCHEMA,
                                            PINNED_HEALTHY_NODE_EVALUATOR, PINNED_HEALTHY_NODE_EVALUATOR_ID,
-                                           KVInterlockRuntime, _HEALTHY_RECEIPT_EXACT,
-                                           healthy_node_ledger_root)
+                                           TRUST_ANCHORS, KVInterlockRuntime, _HEALTHY_RECEIPT_EXACT,
+                                           healthy_node_ledger_root, layer1_receipt_conformance)
 from runtime.kv_skap_layer2 import (LAYER1_REFUSAL_CODE, LAYER2_REFUSAL_CODE, SKAP_ACCESS_RECEIPT_SCHEMA,
                                     SkapLayer2Gate, kv_skap_transition)
 from runtime.secret_field_policy import find_forbidden_field
@@ -340,6 +340,10 @@ def _consume_layer2(gate: Any, principal_ref: str, operation: str, subject_ref: 
             "the SKAP Vault is reachable only through InTr from inside KV: construct the vault with the layer-2 gate "
             "(runtime.kv_skap_layer2.SkapLayer2Gate over KVInterlockRuntime) and enter through skap_entry"),
             next_attempt="on the next SKAP operation admitted by the layer-2 gate")
+    if type(gate) not in (SkapLayer2Gate, _LocalExerciseGate):
+        raise VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2, (
+            "the layer-2 gate must be runtime.kv_skap_layer2.SkapLayer2Gate itself; a stand-in or subclass could "
+            "re-implement consume"), failure_class="C")
     if not _is_sha256(receipt_hash):
         raise VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2, (
             "skap_access_receipt_hash must be a SKAP-access receipt minted by SkapLayer2Gate.admit on a verified "
@@ -501,6 +505,33 @@ def _exercise_only_healthy_node_evaluator(node_id: Any, *, ledger_root: Any, tra
             "label": LOCAL_EXERCISE_LABEL}
 
 
+class _LocalExerciseLayer1(KVInterlockRuntime):
+    """LOCAL_EXERCISE_ONLY_NOT_EVIDENCE layer 1. It stands in for the ledger binding, the installed transport and the
+    transport-authenticated identity so _exercise can drive both gates in-process. Its receipts carry
+    trust_anchors_label LOCAL_EXERCISE_ONLY_NOT_EVIDENCE and the non-pinned exercise evaluator, so the production
+    layer-2 gate, the persisted SKAP store and the finish-point evidence checks all refuse them."""
+
+    def _access_context(self, request: dict[str, Any], envelope: dict[str, Any]):
+        if self.healthy_node_ledger_checkout != LOCAL_EXERCISE_LABEL:
+            return super()._access_context(request, envelope)
+        node = envelope["boundary_proof"]["source_identity_ref"]
+        return {"ledger_root": healthy_node_ledger_root(LOCAL_EXERCISE_LABEL), "scratch": None,
+                "binding": {"kind": LOCAL_EXERCISE_LABEL}, "transport_state": "INSTALLED",
+                "transport_id": LOCAL_EXERCISE_LABEL, "trust_anchors_label": LOCAL_EXERCISE_LABEL,
+                "identity": {"node_id": node, "node_identity_key": LOCAL_EXERCISE_LABEL,
+                             "authenticated_by": LOCAL_EXERCISE_LABEL}}, None
+
+
+class _LocalExerciseGate(SkapLayer2Gate):
+    """LOCAL_EXERCISE_ONLY_NOT_EVIDENCE layer 2: accepts only _LocalExerciseLayer1's exercise-labelled receipts."""
+
+    def _layer1_conforms(self, receipt: dict[str, Any]) -> str | None:
+        if type(self._layer1) is not _LocalExerciseLayer1 \
+                or receipt.get("trust_anchors_label") != LOCAL_EXERCISE_LABEL:
+            return "LAYER1_RECEIPT_NOT_LOCAL_EXERCISE"
+        return None
+
+
 class _ExerciseHarness:
     """Layer 1 and layer 2 wired together for the local exercise, with a fixed clock and no I/O."""
 
@@ -509,7 +540,7 @@ class _ExerciseHarness:
     def __init__(self) -> None:
         from datetime import datetime, timezone
         fixed = datetime(2026, 1, 1, tzinfo=timezone.utc)
-        self.layer1 = KVInterlockRuntime(
+        self.layer1 = _LocalExerciseLayer1(
             authority_validator=lambda ref, request, envelope: ref == LOCAL_EXERCISE_LABEL,
             policy_evaluator=lambda request: {"decision": "ALLOW_BOUNDED_CONTEXT",
                                               "granted_scope": list(request["requested_scope"]), "context": {},
@@ -517,7 +548,7 @@ class _ExerciseHarness:
             receipt_store=lambda receipt: "local-exercise:" + receipt["receipt_id"],
             clock=lambda: fixed, healthy_node_evaluator=_exercise_only_healthy_node_evaluator,
             healthy_node_ledger_checkout=LOCAL_EXERCISE_LABEL)
-        self.gate = SkapLayer2Gate(self.layer1)
+        self.gate = _LocalExerciseGate(self.layer1)
         self.count = 0
 
     def request(self, verification_state: str = "VERIFIED") -> tuple[dict[str, Any], dict[str, Any], str]:
@@ -844,6 +875,12 @@ def _check_layer1(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
                     f"{where}: health was evaluated by {kv.get('healthy_node_evaluator')!r} "
                     f"(source {kv.get('healthy_node_evaluator_source_sha256')}), not {PINNED_HEALTHY_NODE_EVALUATOR_ID} "
                     f"({PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}); {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
+        # LC-KV-15: the same conformance layer 2 enforces (installed transport, transport-authenticated identity,
+        # contract-location or anchored temporary ledger binding, trust anchors in force).
+        why = layer1_receipt_conformance(kv)
+        if why is not None:
+            return (why, "B", f"{where}: the layer-1 receipt was not minted under the trust anchors in force "
+                              f"({TRUST_ANCHORS.get('label')}): {why}; {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
     return None
 
 
@@ -1037,6 +1074,7 @@ def evaluate(evidence: Any = None) -> dict[str, Any]:
             "evidence_sha256": sha256_uri(evidence) if evidence is not None else None,
             "evidence_lineage_head": evidence["lineage"].get("head")
             if isinstance(evidence, dict) and isinstance(evidence.get("lineage"), dict) else None,
+            "trust_anchors_label": TRUST_ANCHORS.get("label"),
             "authority_model": AUTHORITY_MODEL, "llm_used": False, "network_used": False, "clock_read": False}
 
 

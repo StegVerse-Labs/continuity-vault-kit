@@ -5,7 +5,12 @@ import hashlib
 import importlib
 import inspect
 import json
+import io
 import os
+import shutil
+import subprocess
+import tarfile
+import tempfile
 from datetime import datetime, timezone
 from typing import Any, Callable
 
@@ -66,7 +71,8 @@ HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinn
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
 #: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md.
 #: The source is byte-identical at #428 @0b37fe3b, at the producer PR #429 @5f5f7bbe (contains #428), and at #430
-#: @4e1499ab, which carries #429 and adds the class B inputs. The ALLOW shape is unchanged. Admission order: #429 lands
+#: @4e1499ab (now @3c106de4, same evaluator bytes), which carries #429 and adds the class B inputs. The ALLOW shape is
+#: unchanged. Admission order: #429 lands
 #: with or before #428. #429 and #430 only append sections to the interface doc, so each doc digest is recorded.
 #: A final re-vendor follows once Lane B's stack settles.
 #:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
@@ -95,6 +101,10 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
          "commit": "4e1499ab88144e8eae341058f7360b0d2a805b56",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
          "interface_doc_sha256": "sha256:6b523e3949d89a4cb85904559d5bb458b9796ec910fde2c26296096f0d3f8b62"},
+        {"pull_request": "StegVerse-org/LLM-adapter#430 (draft; head moved from 4e1499ab, evaluator bytes unchanged)",
+         "commit": "3c106de4d9b87da498e620e5db33f8b922773c26",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de"},
     ],
     "admission_order": "StegVerse-org/LLM-adapter#429 lands with or before #428",
     "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430 and the #431 onboarding) settles",
@@ -181,10 +191,337 @@ def evaluator_identity(evaluator: Any) -> str:
     return f"{module}.{getattr(evaluator, '__qualname__', type(evaluator).__name__)}"
 
 
+# --- LC-KV-15: the trust anchors layer 1 binds to (StegVerse-Labs/.github#3330, P1 DENY on cvk#258 @61104a57) -------
+# Layer 1 no longer trusts anything its constructor or a requester hands it for the three inputs P1 found bypassable:
+# * the ledger root, which is bound only by contract location at an exactly observed org-ledger head, or to a node's
+#   temporary ledger anchored by a NODE_LEDGER_OPENED receipt (Coordination ruling, Oct 23);
+# * the requester identity, which is derived from the installed InTr transport's verification of the envelope and never
+#   read from a caller field;
+# * the transport state, which is the observed transport's state, else UNKNOWN_NOT_AUTHENTICALLY_OBSERVED.
+# TRUST_ANCHORS holds what KV pins for those. Production code never mutates it. Every value is None or empty today,
+# because none of it is authentically observed yet, so the real path is a six-field FAIL_CLOSED until
+# StegVerse-Labs/.github#3255 (org-ledger genesis), StegVerse-org/LLM-adapter#431 (onboarding) and #429 (producer) are
+# admitted and the InTr transport is installed. The tests' E0 harness (tests/kv_two_layer_e0.py) swaps in labelled E0
+# anchors inside an explicit scope and restores these afterwards. Every receipt records the anchors' label, and layer 2
+# and the finish point refuse a receipt minted under different anchors than the ones in force.
+UNKNOWN = "UNKNOWN_NOT_AUTHENTICALLY_OBSERVED"
+PRODUCTION_TRUST_ANCHORS_LABEL = "PRODUCTION"
+TRUST_ANCHORS: dict[str, Any] = {
+    "label": PRODUCTION_TRUST_ANCHORS_LABEL,
+    # sha256 of the LLM-adapter chain's genesis receipt at the contract location. UNKNOWN until #431 onboards it.
+    "healthy_node_ledger_genesis_receipt_sha256": None,
+    # The installed InTr transport: an object with transport_id, state and authenticate(envelope) ->
+    # {"node_id", "node_identity_key"} | None. No installed transport is observed (Lane B / InTr).
+    "intr_transport": None,
+    # issuer ("ORGANIZATION_LEDGER" | "TV/TVC") -> verify(node_ledger_opened_receipt) -> bool. Empty: Lane B's anchor
+    # schema is pending, and TV/TVC receipts are unsigned (TVC#537, LC-KV-08), so no anchor issuer is verifiable.
+    "node_ledger_anchor_issuers": {},
+}
+#: The NODE_HEALTH_REPORTED producer (LC-KV-13/#429). An anchored temporary ledger's health receipts must carry it.
+PINNED_NODE_HEALTH_REPORT_PRODUCER = {
+    "repository": "StegVerse-org/LLM-adapter",
+    "source_path": "llm_adapter/node_health_report_producer.py",
+    "source_sha256": "sha256:21249f2505505afd60eb14188ea638202f2926b207d64cfcf8c3bc5db2d9f361",
+    "observed_at": [
+        {"pull_request": "StegVerse-org/LLM-adapter#429 (draft)", "commit": "5f5f7bbeea96d5f313effaa02f86b01196465247"},
+        {"pull_request": "StegVerse-org/LLM-adapter#430 (draft)", "commit": "3c106de4d9b87da498e620e5db33f8b922773c26"},
+    ],
+}
+# Org InTr endpoint model (Coordination/Lane B, Oct 23): every InTr endpoint declares endpoint_kind, one of ORG, KV,
+# SKAP_VAULT, PERMANENT, EPHEMERAL or GATEWAY, reusing the org InTr classes (INTR_MESH_PATH_TRANSFER,
+# ORGANIZATION_INTR_DESTINATION_INGRESS, intr_path_ingress, protocol.json). Lane B has not published the endpoint_kind
+# schema, so KV declares only endpoint_kind and the ledger binding, marked pending; cvk references none of those
+# class names yet and does not adopt them before the schema exists. KV is endpoint_kind KV (layer 1's receipts), the
+# SKAP Vault is SKAP_VAULT (layer 2's receipts, reachable only via InTr from inside KV), the contract-location chain is
+# ORG and an anchored temporary node ledger is EPHEMERAL (StegApp/StegBrowser/StegNode generated through StegOS, with
+# NODE_LEDGER_OPENED at generation time). KV's and the SKAP Vault's own ledgers and ingress/egress are not built here:
+# six-field FAIL_CLOSED ENDPOINT_KIND_SCHEMA_PENDING (class B, retry Lane B's endpoint_kind schema draft).
+ENDPOINT_KINDS = ("ORG", "KV", "SKAP_VAULT", "PERMANENT", "EPHEMERAL", "GATEWAY")
+ENDPOINT_KIND_SCHEMA = "PENDING_LANE_B_ENDPOINT_KIND_SCHEMA"
+LEDGER_SOURCE_ORGANIZATION = "ORGANIZATION_LEDGER_CONTRACT_LOCATION"
+LEDGER_SOURCE_TEMPORARY = "ANCHORED_TEMPORARY_NODE_LEDGER"
+TEMP_LEDGER_REFUSAL_CODE = "TEMP_NODE_LEDGER_NOT_ANCHORED"
+TEMP_LEDGER_PREDICATE = "TEMPORARY_NODE_LEDGER_ANCHORED_BY_NODE_LEDGER_OPENED"
+#: The minimal NODE_LEDGER_OPENED anchor shape KV checks. PENDING Lane B's schema; the schema string says so on purpose
+#: and is replaced by Lane B's once it exists. No IDs are invented: issuer_receipt_ref is the issuer's own receipt
+#: address, whatever Lane B names it.
+NODE_LEDGER_OPENED_SCHEMA = "stegverse.node-ledger-opened/PENDING_LANE_B_SCHEMA"
+NODE_LEDGER_OPENED_CLASS = "NODE_LEDGER_OPENED"
+NODE_LEDGER_ANCHOR_ISSUERS = ("ORGANIZATION_LEDGER", "TV/TVC")
+NODE_LEDGER_OPENED_FIELDS = ("schema", "transition_class", "node_id", "node_identity_key", "genesis_receipt_sha256",
+                             "issuer", "issuer_receipt_ref", "receipt_sha256")
+TEMP_LEDGER_RETRY = (
+    "Lane B's NODE_LEDGER_OPENED anchor receipt (issued by the org ledger or TV/TVC, binding node_id, "
+    "node_identity_key and the genesis hash) and its node-ledger dissolution/disbursement transition back to "
+    "StegVerse-org/.github refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/LLM-adapter "
+    "(LLM-adapter#431), then runtime.kv_interlock_endpoint.KVInterlockRuntime.handle")
+TEMP_LEDGER_OWNER = GOAL_REF
+INTR_TRANSPORT_PREDICATE = "REQUESTER_IDENTITY_AUTHENTICATED_BY_INSTALLED_INTR_TRANSPORT"
+INTR_TRANSPORT_RETRY = ("the installed InTr DEVICE->KV transport (Lane B, InTr and Mesh Destinations, "
+                        "StegVerse-org/.github#162), then runtime.kv_interlock_endpoint.KVInterlockRuntime.handle")
+GENESIS_RETRY = ("StegVerse-Labs/.github#3255 (organization-ledger genesis) and StegVerse-org/LLM-adapter#431 "
+                 "(onboarding); KV then pins the observed genesis receipt in TRUST_ANCHORS")
+
+
+class LedgerBindingRefused(Exception):
+    """Raised inside bind_healthy_node_ledger; layer 1 turns it into a six-field FAIL_CLOSED."""
+
+    def __init__(self, cause: str, detail: str, *, failure_class: str = "B", predicate: str = HEALTHY_NODE_LEDGER_PREDICATE,
+                 retry: str = HEALTHY_NODE_LEDGER_ONBOARDING, owner: str = HEALTHY_NODE_LEDGER_OWNER,
+                 next_attempt: str = "when the LLM-adapter chain is onboarded and its genesis exists at the contract "
+                                     "location", failure_code: str | None = None, evaluation: Any = None) -> None:
+        super().__init__(f"{cause}: {detail}")
+        self.cause, self.detail, self.failure_class, self.predicate = cause, detail, failure_class, predicate
+        self.retry, self.owner, self.next_attempt, self.failure_code = retry, owner, next_attempt, failure_code
+        self.evaluation = evaluation
+
+
+def _temp_refused(cause: str, detail: str, failure_class: str = "B") -> LedgerBindingRefused:
+    return LedgerBindingRefused(cause, detail, failure_class=failure_class, predicate=TEMP_LEDGER_PREDICATE,
+                                retry=TEMP_LEDGER_RETRY, owner=TEMP_LEDGER_OWNER, failure_code=TEMP_LEDGER_REFUSAL_CODE,
+                                next_attempt="when Lane B's NODE_LEDGER_OPENED anchor and dissolution transition "
+                                             "exist and an issuer verifier is pinned")
+
+
+def _read_chain(ledger_root: str) -> tuple[list[dict[str, Any]], str | None, str]:
+    module = importlib.import_module("runtime.intr_pinned.healthy_node_evaluator")
+    if _file_sha256(getattr(module, "__file__", None)) != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"]:
+        return [], "EVALUATOR_NOT_PINNED", "the vendored evaluator does not hash to the pin"
+    return module.read_chain(ledger_root, HEALTHY_NODE_LEDGER_LOCATION["chain_repository"])
+
+
+def _git(git_dir: str, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "--git-dir", git_dir, *args], capture_output=True, timeout=60, check=False,
+                          env={**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_TERMINAL_PROMPT": "0"})
+
+
+def _resolve_git_dir(path: str) -> str | None:
+    """The repository at exactly path (a worktree's .git or a bare repository), never an enclosing one."""
+    dot_git = os.path.join(path, ".git")
+    if os.path.isdir(dot_git):
+        return dot_git
+    if os.path.isfile(dot_git):  # a linked worktree
+        probe = subprocess.run(["git", "-C", path, "rev-parse", "--absolute-git-dir"], capture_output=True,
+                               timeout=60, check=False, env={**os.environ, "GIT_CONFIG_NOSYSTEM": "1"})
+        return probe.stdout.decode().strip() or None if probe.returncode == 0 else None
+    if os.path.isfile(os.path.join(path, "HEAD")) and os.path.isdir(os.path.join(path, "objects")):
+        return path
+    return None
+
+
+def _bind_organization_ledger(git_path: Any) -> tuple[dict[str, Any], str]:
+    """Materialize the contract-location namespace from the exactly observed org-ledger head. (binding, ledger_root)."""
+    loc = HEALTHY_NODE_LEDGER_LOCATION
+    git_dir = _resolve_git_dir(str(git_path)) if isinstance(git_path, (str, os.PathLike)) and str(git_path) else None
+    if git_dir is None:
+        raise LedgerBindingRefused(HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, (
+            f"no git repository of {loc['repository']} is bound to KV; the healthy-node chain is read only from "
+            f"{loc['ref']}:{loc['namespace']} at an observed head (a bare directory or scratch ledger root is refused)"))
+    head = _git(git_dir, "rev-parse", "--verify", "--quiet", loc["ref"] + "^{commit}")
+    if head.returncode != 0 or not head.stdout.strip():
+        raise LedgerBindingRefused(HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, (
+            f"{loc['repository']} {loc['ref']} is not observed in the bound repository (the organization-ledger "
+            "genesis is StegVerse-Labs/.github#3255)"), retry=GENESIS_RETRY)
+    observed_head = head.stdout.decode().strip()
+    archive = _git(git_dir, "archive", "--format=tar", observed_head, loc["namespace"])
+    if archive.returncode != 0:
+        raise LedgerBindingRefused(HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, (
+            f"{loc['ref']}@{observed_head[:12]} has no {loc['namespace']} (LLM-adapter#431 has not onboarded it)"))
+    workdir = tempfile.mkdtemp(prefix="kv-org-ledger-")
+    try:
+        with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+            members = [m for m in tar.getmembers() if m.isfile() or m.isdir()]
+            if any(m.name.startswith("/") or ".." in m.name.split("/") for m in members):
+                raise LedgerBindingRefused("HEALTHY_NODE_LEDGER_TREE_MALFORMED", "the namespace tree has unsafe paths",
+                                           failure_class="C")
+            if hasattr(tarfile, "data_filter"):
+                tar.extractall(workdir, members=members, filter="data")
+            else:  # pragma: no cover - interpreters before the extraction filters
+                tar.extractall(workdir, members=members)  # noqa: S202 - members filtered above
+        root = os.path.join(workdir, *loc["namespace"].split("/"))
+        chain, reason, detail = _read_chain(root)
+        if reason == "LEDGER_HEAD_UNREADABLE":
+            raise LedgerBindingRefused(HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, (
+                f"{loc['namespace']}/HEAD.json is unreadable at {loc['ref']}@{observed_head[:12]}"))
+        if reason is not None or not chain:
+            raise LedgerBindingRefused("HEALTHY_NODE_LEDGER_CHAIN_UNREADABLE", (
+                f"{loc['ref']}@{observed_head[:12]}:{loc['namespace']} does not read back as a chain ({reason}: "
+                f"{detail})"), failure_class="C", evaluation={"disposition": "FAIL_CLOSED", "reason": reason, "detail": detail})
+        genesis = chain[-1].get("receipt_sha256")
+        pinned = TRUST_ANCHORS.get("healthy_node_ledger_genesis_receipt_sha256")
+        if pinned is None:
+            raise LedgerBindingRefused("HEALTHY_NODE_LEDGER_GENESIS_NOT_PINNED", (
+                f"KV has no pinned genesis for the chain at the contract location (observed {genesis} at "
+                f"{observed_head[:12]} is {UNKNOWN} until the genesis is admitted)"), retry=GENESIS_RETRY)
+        if genesis != pinned:
+            raise LedgerBindingRefused("HEALTHY_NODE_LEDGER_GENESIS_MISMATCH", (
+                f"the chain at {loc['ref']}@{observed_head[:12]} starts at {genesis}, not the pinned {pinned}"),
+                failure_class="C", retry=GENESIS_RETRY)
+    except BaseException:
+        shutil.rmtree(workdir, ignore_errors=True)
+        raise
+    return {"kind": LEDGER_SOURCE_ORGANIZATION, "endpoint_kind": "ORG", "repository": loc["repository"], "ref": loc["ref"],
+            "namespace": loc["namespace"], "observed_head": observed_head, "genesis_receipt_sha256": genesis,
+            "chain_head_receipt_sha256": chain[0].get("receipt_sha256"), "node_ledger_opened": None}, workdir
+
+
+def node_ledger_opened_digest(anchor: dict[str, Any]) -> str:
+    return sha256_uri({k: v for k, v in anchor.items() if k != "receipt_sha256"})
+
+
+def verify_node_ledger_anchor(anchor: Any, *, ledger_root: Any, identity: Any) -> dict[str, Any]:
+    """Check a temporary node ledger's NODE_LEDGER_OPENED anchor. Returns the binding or raises (six fields,
+    TEMP_NODE_LEDGER_NOT_ANCHORED). The anchor shape is PENDING Lane B's schema (NODE_LEDGER_OPENED_FIELDS)."""
+    if not isinstance(anchor, dict):
+        raise _temp_refused("NODE_LEDGER_OPENED_ANCHOR_ABSENT",
+                            "a temporary node ledger is bound only with its NODE_LEDGER_OPENED anchor receipt")
+    if set(anchor) != set(NODE_LEDGER_OPENED_FIELDS) or anchor.get("schema") != NODE_LEDGER_OPENED_SCHEMA \
+            or anchor.get("transition_class") != NODE_LEDGER_OPENED_CLASS \
+            or anchor.get("issuer") not in NODE_LEDGER_ANCHOR_ISSUERS \
+            or not all(isinstance(anchor.get(f), str) and anchor[f] for f in NODE_LEDGER_OPENED_FIELDS):
+        raise _temp_refused("NODE_LEDGER_OPENED_ANCHOR_MALFORMED", (
+            f"the anchor must carry exactly {list(NODE_LEDGER_OPENED_FIELDS)} with transition_class "
+            f"{NODE_LEDGER_OPENED_CLASS} and issuer in {list(NODE_LEDGER_ANCHOR_ISSUERS)}"), "C")
+    if node_ledger_opened_digest(anchor) != anchor["receipt_sha256"]:
+        raise _temp_refused("NODE_LEDGER_OPENED_ANCHOR_HASH_MISMATCH", "receipt_sha256 does not re-derive", "C")
+    if not isinstance(identity, dict):
+        raise _temp_refused("NODE_LEDGER_OPENED_IDENTITY_UNAUTHENTICATED",
+                            "the anchor is checked against the transport-authenticated identity, which is absent")
+    if anchor["node_id"] != identity.get("node_id"):
+        raise _temp_refused("NODE_LEDGER_OPENED_NODE_ID_MISMATCH", (
+            f"the anchor opens a ledger for {anchor['node_id']!r}, not the authenticated {identity.get('node_id')!r}"),
+            "C")
+    if anchor["node_identity_key"] != identity.get("node_identity_key"):
+        raise _temp_refused("NODE_LEDGER_OPENED_NODE_IDENTITY_KEY_MISMATCH",
+                            "the anchor's node_identity_key is not the transport-authenticated node identity key", "C")
+    chain, reason, detail = _read_chain(str(ledger_root)) if isinstance(ledger_root, (str, os.PathLike)) \
+        else ([], "LEDGER_ROOT_ABSENT", "no ledger_root")
+    if reason is not None or not chain:
+        raise _temp_refused("TEMPORARY_NODE_LEDGER_UNREADABLE", f"the temporary ledger does not read back ({reason}: "
+                                                                f"{detail})", "C")
+    genesis = chain[-1].get("receipt_sha256")
+    if genesis != anchor["genesis_receipt_sha256"]:
+        raise _temp_refused("NODE_LEDGER_OPENED_GENESIS_MISMATCH",
+                            f"the temporary ledger starts at {genesis}, not the anchored "
+                            f"{anchor['genesis_receipt_sha256']}", "C")
+    pinned = {"evaluator_source_sha256": PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"],
+              "producer_source_sha256": PINNED_NODE_HEALTH_REPORT_PRODUCER["source_sha256"]}
+    for receipt in chain:
+        if receipt.get("transition_class") == "NODE_HEALTH_REPORTED":
+            carried = (receipt.get("evidence") or {}).get("pinned_digests") \
+                if isinstance(receipt.get("evidence"), dict) else None
+            if carried != pinned:
+                raise _temp_refused("TEMPORARY_LEDGER_HEALTH_RECEIPT_NOT_PINNED", (
+                    f"health receipt {receipt.get('receipt_sha256')} does not carry evidence.pinned_digests {pinned}"),
+                    "C")
+    verifier = (TRUST_ANCHORS.get("node_ledger_anchor_issuers") or {}).get(anchor["issuer"])
+    try:
+        issued = callable(verifier) and verifier(copy.deepcopy(anchor)) is True
+    except Exception:
+        issued = False
+    if not issued:
+        raise _temp_refused("NODE_LEDGER_OPENED_ISSUER_NOT_VERIFIED", (
+            f"no verifier for issuer {anchor['issuer']!r} is pinned in TRUST_ANCHORS (Lane B's anchor schema is "
+            "pending and TV/TVC receipts are unsigned: TVC#537, LC-KV-08); an unverifiable anchor is refused"))
+    return {"kind": LEDGER_SOURCE_TEMPORARY, "endpoint_kind": "EPHEMERAL", "repository": None, "ref": None, "namespace": None,
+            "observed_head": None, "genesis_receipt_sha256": genesis,
+            "chain_head_receipt_sha256": chain[0].get("receipt_sha256"), "node_ledger_opened": copy.deepcopy(anchor)}
+
+
+def bind_healthy_node_ledger(source: Any, *, identity: Any = None) -> tuple[dict[str, Any], str, str | None]:
+    """The single ledger-root binding. Returns (binding, ledger_root, scratch dir to remove or None) or raises
+    LedgerBindingRefused.
+
+    source is the deployment's binding, never a requester's:
+    * a git repository of StegVerse-org/.github (a path, or {"kind": LEDGER_SOURCE_ORGANIZATION, "git_dir": path}):
+      the namespace is read from refs/stegverse/organization-ledger at the head observed now, and its genesis must be
+      the pinned one;
+    * {"kind": LEDGER_SOURCE_TEMPORARY, "ledger_root": path, "node_ledger_opened": anchor}: a node's temporary ledger,
+      only with a verified NODE_LEDGER_OPENED anchor for the authenticated identity.
+    Anything else is unbound and refused.
+    """
+    if source is None:
+        raise LedgerBindingRefused(HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, "no ledger source is bound to KV")
+    if isinstance(source, dict):
+        kind = source.get("kind")
+        if kind == LEDGER_SOURCE_ORGANIZATION and set(source) == {"kind", "git_dir"}:
+            binding, workdir = _bind_organization_ledger(source["git_dir"])
+            return binding, os.path.join(workdir, *HEALTHY_NODE_LEDGER_LOCATION["namespace"].split("/")), workdir
+        if kind == LEDGER_SOURCE_TEMPORARY and set(source) <= {"kind", "ledger_root", "node_ledger_opened"}:
+            binding = verify_node_ledger_anchor(source.get("node_ledger_opened"), ledger_root=source.get("ledger_root"),
+                                                identity=identity)
+            return binding, str(source["ledger_root"]), None
+        raise _temp_refused("LEDGER_SOURCE_NOT_BOUND_BY_CONTRACT", (
+            "a ledger root is bound only by contract location or as an anchored temporary node ledger; a "
+            "caller-supplied root without a NODE_LEDGER_OPENED anchor is refused"), "C")
+    binding, workdir = _bind_organization_ledger(source)
+    return binding, os.path.join(workdir, *HEALTHY_NODE_LEDGER_LOCATION["namespace"].split("/")), workdir
+
+
+def observe_intr_transport() -> tuple[Any, str, str | None]:
+    """(transport, state, transport_id). state is UNKNOWN_NOT_AUTHENTICALLY_OBSERVED when none is installed."""
+    transport = TRUST_ANCHORS.get("intr_transport")
+    if transport is None:
+        return None, UNKNOWN, None
+    state = getattr(transport, "state", None)
+    transport_id = getattr(transport, "transport_id", None)
+    if not isinstance(state, str) or not isinstance(transport_id, str) or not callable(
+            getattr(transport, "authenticate", None)):
+        return None, UNKNOWN, None
+    return transport, state, transport_id
+
+
+def layer1_receipt_conformance(receipt: Any) -> str | None:
+    """None when a KV-access receipt was minted under the pinned evaluator and the trust anchors in force; else why.
+    Layer 2 (LC-KV-10) and the finish point both use this; neither trusts the receipt's own say-so."""
+    if not isinstance(receipt, dict):
+        return "LAYER1_RECEIPT_ABSENT"
+    if receipt.get("healthy_node_evaluator") != PINNED_HEALTHY_NODE_EVALUATOR_ID \
+            or receipt.get("healthy_node_evaluator_source_sha256") != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"]:
+        return "LAYER1_HEALTH_EVALUATOR_NOT_PINNED"
+    if receipt.get("trust_anchors_label") != TRUST_ANCHORS.get("label"):
+        return "LAYER1_RECEIPT_MINTED_UNDER_OTHER_TRUST_ANCHORS"
+    if receipt.get("endpoint_kind") != "KV":
+        return "LAYER1_RECEIPT_NOT_FROM_A_KV_ENDPOINT"
+    transport, state, transport_id = observe_intr_transport()
+    if transport is None or state != "INSTALLED" or receipt.get("intr_transport_state") != "INSTALLED" \
+            or receipt.get("intr_transport_id") != transport_id:
+        return "LAYER1_TRANSPORT_NOT_THE_INSTALLED_ONE"
+    identity = receipt.get("requester_identity")
+    if not isinstance(identity, dict) or identity.get("node_id") != receipt.get("requester_node_ref") \
+            or identity.get("authenticated_by") != transport_id or not identity.get("node_identity_key"):
+        return "LAYER1_REQUESTER_IDENTITY_NOT_TRANSPORT_AUTHENTICATED"
+    binding = receipt.get("healthy_node_ledger_binding")
+    if not isinstance(binding, dict):
+        return "LAYER1_LEDGER_BINDING_ABSENT"
+    if binding.get("kind") == LEDGER_SOURCE_ORGANIZATION and binding.get("endpoint_kind") == "ORG":
+        pinned = TRUST_ANCHORS.get("healthy_node_ledger_genesis_receipt_sha256")
+        loc = HEALTHY_NODE_LEDGER_LOCATION
+        if pinned is None or binding.get("genesis_receipt_sha256") != pinned \
+                or (binding.get("repository"), binding.get("ref"), binding.get("namespace")) != (
+                    loc["repository"], loc["ref"], loc["namespace"]) or not binding.get("observed_head"):
+            return "LAYER1_LEDGER_NOT_BOUND_BY_CONTRACT_LOCATION"
+        return None
+    if binding.get("kind") == LEDGER_SOURCE_TEMPORARY and binding.get("endpoint_kind") == "EPHEMERAL":
+        anchor = binding.get("node_ledger_opened")
+        verifier = (TRUST_ANCHORS.get("node_ledger_anchor_issuers") or {}).get(
+            anchor.get("issuer") if isinstance(anchor, dict) else None)
+        try:
+            ok = (isinstance(anchor, dict) and node_ledger_opened_digest(anchor) == anchor.get("receipt_sha256")
+                  and anchor.get("genesis_receipt_sha256") == binding.get("genesis_receipt_sha256")
+                  and anchor.get("node_id") == identity.get("node_id")
+                  and anchor.get("node_identity_key") == identity.get("node_identity_key")
+                  and callable(verifier) and verifier(copy.deepcopy(anchor)) is True)
+        except Exception:
+            ok = False
+        return None if ok else TEMP_LEDGER_REFUSAL_CODE
+    return "LAYER1_LEDGER_NOT_BOUND_BY_CONTRACT_LOCATION"
+
+
 def layer1_refusal(request: Any, cause: str, detail: str, *, predicate: str = LAYER1_PREDICATE,
                    failure_class: str = "B", next_attempt: str | None = None,
                    health_evaluation: Any = None, retry_entrypoint: str = LAYER1_RETRY,
-                   owning_existing_goal: str = GOAL_REF) -> dict[str, Any]:
+                   owning_existing_goal: str = GOAL_REF, failure_code: str | None = None) -> dict[str, Any]:
     """Six-field FAIL_CLOSED for layer 1, returned (never raised) by handle()."""
     request_id = request.get("request_id") if isinstance(request, dict) else None
     return {
@@ -193,7 +530,7 @@ def layer1_refusal(request: Any, cause: str, detail: str, *, predicate: str = LA
         "decision": "FAIL_CLOSED",
         "disposition": "FAIL_CLOSED",
         "layer": LAYER1_BOUNDARY,
-        "failure_code": LAYER1_REFUSAL_CODE,
+        "failure_code": failure_code or LAYER1_REFUSAL_CODE,
         "failed_predicate": predicate,
         "required_evidence_or_repair": f"{cause}: {detail}",
         "retry_entrypoint": retry_entrypoint,
@@ -320,26 +657,79 @@ class KVInterlockRuntime:
             return None
         return copy.deepcopy(receipt)
 
-    def _ledger_not_onboarded(self, request: Any, why: str, evaluation: Any) -> dict[str, Any]:
+    def _refused(self, request: Any, exc: LedgerBindingRefused) -> dict[str, Any]:
         loc = HEALTHY_NODE_LEDGER_LOCATION
-        return layer1_refusal(request, HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, (
-            f"{why}. The healthy-node chain is bound by contract location to {loc['repository']} {loc['ref']}:"
-            f"{loc['namespace']}; that chain must be onboarded with a genesis before any health report is readable"),
-            predicate=HEALTHY_NODE_LEDGER_PREDICATE, failure_class="B", health_evaluation=evaluation,
-            retry_entrypoint=HEALTHY_NODE_LEDGER_ONBOARDING, owning_existing_goal=HEALTHY_NODE_LEDGER_OWNER,
-            next_attempt="when the LLM-adapter chain is onboarded and its genesis exists at the contract location")
+        detail = exc.detail
+        if exc.cause == HEALTHY_NODE_LEDGER_REFUSAL_CAUSE:
+            detail += (f". The healthy-node chain is bound by contract location to {loc['repository']} {loc['ref']}:"
+                       f"{loc['namespace']}; that chain must be onboarded with a genesis before any health report is "
+                       "readable")
+        return layer1_refusal(request, exc.cause, detail, predicate=exc.predicate, failure_class=exc.failure_class,
+                              health_evaluation=exc.evaluation, retry_entrypoint=exc.retry,
+                              owning_existing_goal=exc.owner, next_attempt=exc.next_attempt,
+                              failure_code=exc.failure_code)
 
-    def _healthy_node(self, request: dict[str, Any], envelope: dict[str, Any],
-                      evidence: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-        """(the pinned evaluator's verified ALLOW, None) or (None, six-field refusal).
+    def _access_context(self, request: dict[str, Any],
+                        envelope: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """LC-KV-15: bind the ledger, observe the transport and derive the requester identity from it.
+
+        Returns (context, None) or (None, six-field refusal). Nothing here is read from a caller field: the envelope's
+        boundary_proof.source_identity_ref is only compared with the identity the installed transport authenticated.
+        """
+        claimed = envelope["boundary_proof"]["source_identity_ref"]
+        source = self.healthy_node_ledger_checkout
+        temporary = isinstance(source, dict) and source.get("kind") == LEDGER_SOURCE_TEMPORARY
+        binding = root = scratch = None
+        try:
+            if not temporary:
+                binding, root, scratch = bind_healthy_node_ledger(source)
+            transport, state, transport_id = observe_intr_transport()
+            if transport is None or state != "INSTALLED":
+                raise LedgerBindingRefused("INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", (
+                    f"transport_state is {state}; KV derives the requester identity only from the installed InTr "
+                    f"transport's verification of the envelope, and boundary_proof.source_identity_ref ({claimed!r}) "
+                    "is a caller field that is never trusted"), predicate=INTR_TRANSPORT_PREDICATE,
+                    retry=INTR_TRANSPORT_RETRY, owner=GOAL_REF,
+                    next_attempt="when an installed InTr DEVICE->KV transport is authentically observed")
+            try:
+                identity = transport.authenticate(copy.deepcopy(envelope))
+            except Exception:
+                identity = None
+            if not isinstance(identity, dict) or not isinstance(identity.get("node_id"), str) \
+                    or not identity["node_id"] or not isinstance(identity.get("node_identity_key"), str) \
+                    or not identity["node_identity_key"]:
+                raise LedgerBindingRefused("REQUESTER_IDENTITY_NOT_TRANSPORT_AUTHENTICATED", (
+                    f"the installed transport {transport_id} did not authenticate this envelope's source; a "
+                    f"caller-asserted identity ({claimed!r}) is refused"), failure_class="C",
+                    predicate=INTR_TRANSPORT_PREDICATE, retry=INTR_TRANSPORT_RETRY, owner=GOAL_REF,
+                    next_attempt="on a DEVICE->KV InTr transition the installed transport authenticates")
+            if identity["node_id"] != claimed:
+                raise LedgerBindingRefused("REQUESTER_IDENTITY_MISMATCH", (
+                    f"the transport authenticated {identity['node_id']!r}, but the envelope claims {claimed!r}"),
+                    failure_class="C", predicate=INTR_TRANSPORT_PREDICATE, retry=INTR_TRANSPORT_RETRY, owner=GOAL_REF,
+                    next_attempt="on a DEVICE->KV InTr transition whose source is the authenticated node")
+            if temporary:
+                binding, root, scratch = bind_healthy_node_ledger(source, identity=identity)
+        except LedgerBindingRefused as exc:
+            if scratch:
+                shutil.rmtree(scratch, ignore_errors=True)
+            return None, self._refused(request, exc)
+        return {"ledger_root": root, "binding": binding, "scratch": scratch, "transport_state": state,
+                "transport_id": transport_id, "trust_anchors_label": TRUST_ANCHORS.get("label"),
+                "identity": {"node_id": identity["node_id"], "node_identity_key": identity["node_identity_key"],
+                             "authenticated_by": transport_id}}, None
+
+    def _healthy_node(self, request: dict[str, Any], envelope: dict[str, Any], evidence: Any
+                      ) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+        """(the pinned evaluator's verified ALLOW, access context, None) or (None, None, six-field refusal).
 
         ``evidence`` is what the requester may cite: None, or {"health_report_receipt_sha256": <sha256>}. Health is
-        decided only by the evaluator over the KV-bound ledger.
+        decided only by the evaluator over the bound ledger, for the transport-authenticated node, at the observed
+        transport state.
         """
-        node_ref = envelope["boundary_proof"]["source_identity_ref"]
         pin = PINNED_HEALTHY_NODE_EVALUATOR
         if self.healthy_node_evaluator is None:
-            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
+            return None, None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
                 f"no {HEALTHY_NODE_PREDICATE} evaluator is available ({self._evaluator_unavailable}); the pinned "
                 f"InTr evaluator is {pin['repository']}@{pin['commit'][:8]}:{pin['source_path']} "
                 f"({pin['source_sha256']}), and KV never asserts a node's health itself"),
@@ -350,15 +740,25 @@ class KVInterlockRuntime:
             cite = evidence.get("health_report_receipt_sha256") if isinstance(evidence, dict) else evidence
             if not (isinstance(evidence, dict) and set(evidence) <= {"health_report_receipt_sha256"}
                     and (cite is None or _is_sha256_uri(cite))):
-                return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
+                return None, None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
                     "healthy_node_evidence may only cite health_report_receipt_sha256 (a sha256 receipt address); "
                     "health itself is never caller-asserted"), predicate=HEALTHY_NODE_PREDICATE, failure_class="C")
-        loc = HEALTHY_NODE_LEDGER_LOCATION
-        root = healthy_node_ledger_root(self.healthy_node_ledger_checkout)
-        if root is None:
-            return None, self._ledger_not_onboarded(request, "no checkout of the contract location is bound to KV", None)
+        ctx, refusal = self._access_context(request, envelope)
+        if refusal is not None:
+            return None, None, refusal
         try:
-            out = self.healthy_node_evaluator(node_ref, ledger_root=root, transport_state="INSTALLED",
+            return self._evaluate_health(request, ctx, cite)
+        finally:
+            if ctx.get("scratch"):
+                shutil.rmtree(ctx["scratch"], ignore_errors=True)
+
+    def _evaluate_health(self, request: dict[str, Any], ctx: dict[str, Any], cite: Any
+                         ) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+        loc = HEALTHY_NODE_LEDGER_LOCATION
+        node_ref = ctx["identity"]["node_id"]
+        try:
+            out = self.healthy_node_evaluator(node_ref, ledger_root=ctx["ledger_root"],
+                                              transport_state=ctx["transport_state"],
                                               report_receipt_sha256=cite, require_admission=True,
                                               repository=loc["chain_repository"])
         except Exception as exc:  # an evaluator fault is a refusal, never an admission
@@ -367,11 +767,13 @@ class KVInterlockRuntime:
         if not isinstance(out, dict) or out.get("disposition") != "ALLOW":
             evaluation = copy.deepcopy(out) if isinstance(out, dict) else None
             reason = (evaluation or {}).get("reason")
-            if reason == "LEDGER_HEAD_UNREADABLE":  # the namespace has no HEAD.json: not onboarded, no genesis
-                return None, self._ledger_not_onboarded(request, f"{loc['namespace']}/HEAD.json is unreadable", evaluation)
+            if reason == "LEDGER_HEAD_UNREADABLE":  # the bound ledger has no HEAD.json: not onboarded, no genesis
+                return None, None, self._refused(request, LedgerBindingRefused(
+                    HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, "the bound ledger's HEAD.json is unreadable",
+                    evaluation=evaluation))
             # No receipted report yet (the #429 producer is not admitted): class B.
             failure_class = "B" if reason == "HEALTH_REPORT_MISSING" else "C"
-            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
+            return None, None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
                 f"the pinned healthy-node evaluator did not ALLOW {node_ref!r}"
                 + (f" ({(evaluation or {}).get('disposition')} {reason}: "
                    f"{(evaluation or {}).get('required_evidence_or_repair')})" if evaluation else "")),
@@ -381,20 +783,21 @@ class KVInterlockRuntime:
         if any(out.get(k) != v for k, v in _HEALTHY_RECEIPT_EXACT.items()):
             problem = "the evaluator's ALLOW does not carry the pinned interface fields (require_admission=True)"
         elif out.get("node_id") != node_ref:
-            problem = "the evaluator's ALLOW names another node than the InTr source identity"
+            problem = "the evaluator's ALLOW names another node than the transport-authenticated identity"
         elif not _is_sha256_uri(out.get("health_report_receipt_sha256")) \
                 or not _is_sha256_uri(out.get("chain_head_receipt_sha256")):
             problem = "the evaluator's ALLOW binds no receipted health report on a ledger chain"
         elif cite is not None and out.get("health_report_receipt_sha256") != cite:
             problem = "the evaluator's ALLOW is for another health report than the one cited"
         if problem:
-            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, problem,
-                                        predicate=HEALTHY_NODE_PREDICATE, failure_class="C",
-                                        health_evaluation=copy.deepcopy(out))
-        return copy.deepcopy(out), None
+            return None, None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, problem,
+                                              predicate=HEALTHY_NODE_PREDICATE, failure_class="C",
+                                              health_evaluation=copy.deepcopy(out))
+        return copy.deepcopy(out), ctx, None
 
     def _mint_kv_access_receipt(self, request: dict[str, Any], envelope: dict[str, Any], intr_receipt_ref: str,
-                                healthy: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
+                                healthy: dict[str, Any], response: dict[str, Any],
+                                ctx: dict[str, Any]) -> dict[str, Any]:
         body = {
             "schema": KV_ACCESS_RECEIPT_SCHEMA,
             "boundary": LAYER1_BOUNDARY,
@@ -403,11 +806,18 @@ class KVInterlockRuntime:
             "from_role": "DEVICE",
             "to_role": "KV",
             "minted_by": "KVInterlockRuntime.handle",
+            "endpoint_kind": "KV",
+            "endpoint_kind_schema": ENDPOINT_KIND_SCHEMA,
             "request_id": request["request_id"],
             "operation": request["operation"],
             "packet_id": envelope["packet_id"],
             "intr_receipt_ref": intr_receipt_ref,
-            "requester_node_ref": envelope["boundary_proof"]["source_identity_ref"],
+            "requester_node_ref": ctx["identity"]["node_id"],
+            "requester_identity": copy.deepcopy(ctx["identity"]),
+            "intr_transport_state": ctx["transport_state"],
+            "intr_transport_id": ctx["transport_id"],
+            "healthy_node_ledger_binding": copy.deepcopy(ctx["binding"]),
+            "trust_anchors_label": ctx["trust_anchors_label"],
             "kv_boundary_ref": envelope["boundary_proof"]["next_boundary_identity_ref"],
             "healthy_node_predicate": HEALTHY_NODE_PREDICATE,
             "healthy_node_receipt": healthy,
@@ -439,7 +849,7 @@ class KVInterlockRuntime:
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
             return layer1_refusal(request, "INTR_DEVICE_KV_TRANSITION_MALFORMED", f"{type(exc).__name__}: {exc}",
                                   failure_class="C")
-        healthy, refusal = self._healthy_node(request, intr_envelope, healthy_node_evidence)
+        healthy, ctx, refusal = self._healthy_node(request, intr_envelope, healthy_node_evidence)
         if refusal is not None:
             return refusal
         try:
@@ -448,7 +858,7 @@ class KVInterlockRuntime:
             return layer1_refusal(request, "KV_INTERLOCK_RECEIPT_NOT_PERSISTED", str(exc), failure_class="A")
         if response["decision"] == "ALLOW_BOUNDED_CONTEXT":
             response["kv_access_receipt"] = self._mint_kv_access_receipt(
-                request, intr_envelope, intr_receipt_ref, healthy, response)
+                request, intr_envelope, intr_receipt_ref, healthy, response, ctx)
         return response
 
     def _decide(self, request: dict[str, Any], intr_envelope: dict[str, Any],
