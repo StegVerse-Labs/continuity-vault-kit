@@ -2,11 +2,12 @@
 
 Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (INTR_KV_SKAP).
 
-Health is decided by the REAL pinned InTr code, vendored byte-identical from StegVerse-org/LLM-adapter#432 @1cbad77e
-under runtime/intr_pinned/: layer 1 calls llm_adapter.endpoint_ledger_anchor.evaluate_anchored (Lane B's anchored-root
-check with LC-KV-16 inside: org ledger from the contract designation, identity proven by an Ed25519 signature under the
-anchored node_identity_key, transport read from the node's NODE_INGRESS_ADMITTED receipt), which runs the unchanged
-healthy_node_evaluator.evaluate (fdaa2005...1f58) with require_admission=True over an anchored node root only.
+Health is decided by the REAL pinned InTr code, vendored byte-identical from StegVerse-org/LLM-adapter#432 @73316297
+(code unchanged since a2ee67e6) under runtime/intr_pinned/: layer 1 calls
+llm_adapter.endpoint_ledger_anchor.evaluate_anchored (Lane B's anchored-root check with LC-KV-16 inside: org ledger from the contract designation at the contract-pinned genesis with an append-route
+head attestation, identity proven by an Ed25519 signature under the anchored node_identity_key, health and admission by
+the unchanged healthy_node_evaluator.evaluate (fdaa2005...1f58, require_admission=True), then transport read from the
+node's NODE_INGRESS_ADMITTED receipt and counted only with its InTr path pair on the authenticated org chain).
 
 LC-KV-15: layer 1 binds the org ledger only by contract location at an observed org-ledger head (genesis pinned),
 derives the requester identity from the installed InTr transport, and passes the observed transport state. None of
@@ -21,11 +22,17 @@ stand-ins here are:
   the node_identity_key it enrolled them with, and hands over the node's identity proof (the node's signature over
   evaluate_anchored's identity_challenge, made with a TEST-ONLY public seed through the vendored stdlib test signer,
   tests/fixtures/intr_pinned_test_only/ed25519_test_signer.py; no cryptography package).
-* the #431 contract designation: org_ledger_location.CONTRACT_PATH points at Lane B's fixture contract
-  (tests/fixtures/intr_pinned_test_only/contract_with_431_repository_ledger_location.json) only while the E0 anchors are
-  in force. The vendored production contract.json has no repository_ledger_location yet (ORG_LEDGER_LOCATION_NOT_DESIGNATED).
+* the #431 contract designation: org_ledger_location.CONTRACT_PATH points at Lane B's fixture contract with the pinned
+  test genesis (tests/fixtures/intr_pinned_test_only/contract_with_431_location_and_pinned_genesis.json; the org namespace
+  starts at Lane B's org_ledger_test_genesis.json) only while the E0 anchors are in force. The vendored production
+  contract.json has no repository_ledger_location yet (ORG_LEDGER_LOCATION_NOT_DESIGNATED).
+* the admitted append route: while the E0 anchors are in force, org_ledger_location.load_head_signers returns the
+  TEST-ONLY route attester of Lane B's tests/org_ledger_harness.py (same public seed and key_id), and the deployment
+  source carries that attester's head attestation for the store the harness published (``e0_attest``). Production
+  publishes none (org-ledger-head-signers.v1.json is empty): MERGE_APPEND_PATH_NOT_ADMITTED.
 * the NODE_INGRESS_ADMITTED record says transport INTERLOCK_INTR, transport_state INSTALLED (E0: the boundary is
-  NOT_YET_ENABLED on LLM-adapter main).
+  NOT_YET_ENABLED on LLM-adapter main), and its signal is carried by an InTr path pair (INTR_MESH_PATH_TRANSFER retained,
+  INTR_MESH_PATH_INGRESS) appended to the org namespace after the anchor.
 * EPHEMERAL anchors are StegOS-shaped generation records in the signed envelope, signed with an E0 seed whose key is not
   published. The vendored signers file is empty, so EPHEMERAL is FAIL_CLOSED NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED
   (owner TV/TVC), as in production. The signers file is never patched.
@@ -38,11 +45,13 @@ import atexit
 import base64
 import contextlib
 import hashlib
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -81,13 +90,20 @@ def pinned() -> dict[str, Any]:
 
 
 TEST_ONLY_DIR = ROOT / "tests" / "fixtures" / "intr_pinned_test_only"
-#: Lane B's TEST-ONLY stdlib signer and #431 fixture contract, vendored byte-identical from LLM-adapter#432 @1cbad77e.
+#: Lane B's TEST-ONLY stdlib signer, #431 fixture contracts, org test genesis and org-ledger harness, vendored
+#: byte-identical from LLM-adapter#432 @73316297 (org_ledger_harness.py is kept for provenance and never executed: it
+#: imports tests.ed25519_test_signer; e0_attest and the E0 route below follow it with the same seed and key_id).
 TEST_ONLY_PINS = {
     "ed25519_test_signer.py": "sha256:3173bfcfca33129cd31942783b9e3e4c9380022f308f2fc31ccdda3dc2f6fe52",
     "contract_with_431_repository_ledger_location.json":
-        "sha256:b52ee0faa32db00d2f61a1f78a2f40380c4dcb212004d527a51b1e8fb05972d9",
+        "sha256:d97cd4dc978c7ea02f41137dc85bbf5eb74b2ea6595bc58513be57b4c125e89f",
+    "contract_with_431_location_and_pinned_genesis.json":
+        "sha256:ea81ca135bfd3b8e86a69251cf63d6f5aaa86fa46777dcec9370971dd0c5208a",
+    "org_ledger_test_genesis.json": "sha256:a2c01a2ebaa15aae048c42bb6048bdbf402e682a4c69c11def9d20d97539a6a7",
+    "org_ledger_harness.py": "sha256:3bbf7f7da563afd9e7a1da1ee8cdbb04219a655a3dcaff3d3a6b2190ce6db945",
 }
-E0_CONTRACT_431 = TEST_ONLY_DIR / "contract_with_431_repository_ledger_location.json"
+E0_CONTRACT_431 = TEST_ONLY_DIR / "contract_with_431_repository_ledger_location.json"  # no genesis pin
+E0_CONTRACT_PINNED = TEST_ONLY_DIR / "contract_with_431_location_and_pinned_genesis.json"
 _SIGNER_SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "intr_pinned_test_only",
                               "ed25519_test_signer.py")
 _SIGNER: list[Any] = []
@@ -137,22 +153,32 @@ def _mkdtemp(prefix: str) -> Path:
     return Path(path)
 
 
-def _org_genesis(org_ns: Path) -> str:
-    a = pinned()["endpoint_ledger_anchor"]
-    return a.append_receipt(org_ns, a.GENESIS_CLASS, "REPOSITORY_LEDGER_INITIALIZATION:e0-standin",
-                            a.sha({"repository": a.REPOSITORY, "ledger": None}),
-                            {"schema": "stegverse.repository-ledger-initialization/v1", "repository": a.REPOSITORY,
-                             "authority_effect": "NONE_E0_STANDIN", "label": E0_LABEL}, 32)["receipt_sha256"]
+def _org_genesis(org_ns: Path, own: Any = False) -> str:
+    """Write the org namespace's genesis: Lane B's test genesis, which the E0 contract pins. own=True: an unlabelled
+    genesis the caller minted itself (P1 rev 6's LC-KV-15 case); own="labelled": the same with the E0 label."""
+    if own:
+        a = pinned()["endpoint_ledger_anchor"]
+        evidence = {"schema": "stegverse.repository-ledger-initialization/v1", "repository": a.REPOSITORY,
+                    "authority_effect": "NONE_CALLER_MINTED"}
+        if own == "labelled":
+            evidence["label"] = E0_LABEL
+        return a.append_receipt(org_ns, a.GENESIS_CLASS, "REPOSITORY_LEDGER_INITIALIZATION:caller-minted",
+                                a.sha({"repository": a.REPOSITORY, "ledger": None}), evidence, 32)["receipt_sha256"]
+    genesis = json.loads(_test_only_bytes("org_ledger_test_genesis.json"))
+    (org_ns / "receipts").mkdir(parents=True, exist_ok=True)
+    (org_ns / "receipts" / (genesis["receipt_sha256"][7:] + ".json")).write_text(
+        json.dumps(genesis, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (org_ns / "HEAD.json").write_text(json.dumps({"repository": genesis["repository"],
+                                                  "receipt_sha256": genesis["receipt_sha256"]}) + "\n", encoding="utf-8")
+    return genesis["receipt_sha256"]
 
 
-def _e0_genesis() -> str:
-    with tempfile.TemporaryDirectory(prefix="e0-genesis-") as scratch:
-        return _org_genesis(Path(scratch) / "ns")
-
-
-#: The E0 org chain's genesis (deterministic). Not a trust anchor: layer 1 derives the genesis from the org ledger's own
-#: receipt (LC-KV-15); tests compare against this value.
-E0_GENESIS = _e0_genesis()
+#: The E0 org chain's genesis: Lane B's org_ledger_test_genesis.json, pinned by the E0 contract fixture. KV pins no
+#: genesis itself; evaluate_anchored checks the store's genesis against the contract (#432 @a2ee67e6).
+E0_GENESIS = json.loads(_test_only_bytes("org_ledger_test_genesis.json"))["receipt_sha256"]
+#: Lane B's TEST-ONLY append-route attester (tests/org_ledger_harness.py ROUTE_SEED / ROUTE_REF): a public seed.
+E0_ROUTE_SEED = hashlib.sha256(b"org-ledger harness: TEST-ONLY append-route attester public seed").digest()
+E0_ROUTE_KEY_ID = "test-org-ledger-append-route"
 
 
 def e0_node_identity_key(node_id: str, salt: str = "") -> dict[str, Any]:
@@ -199,14 +225,49 @@ _SAVED: list[dict[str, Any]] = []
 _PRODUCTION_CONTRACT_PATH: list[Any] = []
 
 
-def _set_contract(e0: bool) -> None:
-    """The #431 designation stand-in: Lane B's fixture contract while E0 anchors are in force, else the vendored one."""
+def e0_route_ref() -> dict[str, Any]:
+    return {"key_id": E0_ROUTE_KEY_ID, "algorithm": "Ed25519", "custody": "TV/TVC", "signs": "ORG_LEDGER_HEAD",
+            "public_key_b64": base64.b64encode(signer().public_key(E0_ROUTE_SEED)).decode()}
+
+
+def _e0_head_signers() -> list[dict[str, Any]]:
+    return [e0_route_ref()]
+
+
+def _set_contract(e0: bool, contract: Any = None) -> None:
+    """The #431 designation and append-route stand-ins: Lane B's pinned-genesis fixture contract and the TEST-ONLY route
+    attester while E0 anchors are in force, else the vendored contract and the vendored (empty) head-signers file."""
     location = pinned()["org_ledger_location"]
     if not _PRODUCTION_CONTRACT_PATH:
-        _PRODUCTION_CONTRACT_PATH.append(location.CONTRACT_PATH)
+        _PRODUCTION_CONTRACT_PATH.append((location.CONTRACT_PATH, location.load_head_signers))
     if e0:
-        _test_only_bytes(E0_CONTRACT_431.name)
-    location.CONTRACT_PATH = E0_CONTRACT_431 if e0 else _PRODUCTION_CONTRACT_PATH[0]
+        contract = contract or E0_CONTRACT_PINNED
+        if Path(contract).parent == TEST_ONLY_DIR:
+            _test_only_bytes(contract.name)
+    location.CONTRACT_PATH = contract if e0 else _PRODUCTION_CONTRACT_PATH[0][0]
+    location.load_head_signers = _e0_head_signers if e0 else _PRODUCTION_CONTRACT_PATH[0][1]
+
+
+@contextlib.contextmanager
+def e0_without_append_route():
+    """Inside the E0 anchors: the vendored (empty) org-ledger-head-signers.v1.json, i.e. the append route not admitted."""
+    location = pinned()["org_ledger_location"]
+    saved = location.load_head_signers
+    location.load_head_signers = _PRODUCTION_CONTRACT_PATH[0][1]
+    try:
+        yield
+    finally:
+        location.load_head_signers = saved
+
+
+@contextlib.contextmanager
+def e0_contract(contract: Path):
+    """Inside the E0 anchors: another TEST-ONLY contract fixture (e.g. #431's copy without a genesis pin)."""
+    _set_contract(True, contract)
+    try:
+        yield
+    finally:
+        _set_contract(ep.TRUST_ANCHORS.get("label") == E0_LABEL)
 
 
 def enter_e0() -> None:
@@ -310,7 +371,8 @@ def e0_node_ledger_opened(genesis: dict[str, Any], signed: bool = True) -> dict[
 
 def _write_node_chain(node_root: Path, org_ns: Path | None, node_id: str, *, kind: str, key: dict[str, Any],
                       status: str, admitted: bool, report: bool, superseded_by: str | None, foreign: bool,
-                      anchored: bool, transport_installed: bool = True, opened_signed: bool = True) -> str | None:
+                      anchored: bool, transport_installed: bool = True, opened_signed: bool = True,
+                      carried: bool = True) -> str | None:
     """Open the node's own ledger and anchor it to the org namespace with the pinned #432 code, then append health
     receipts in the pinned producers' shapes. Returns the first report's receipt sha256 (or None)."""
     m = pinned()
@@ -361,17 +423,36 @@ def _write_node_chain(node_root: Path, org_ns: Path | None, node_id: str, *, kin
     record = {"schema": "stegverse.node-ingress-record/v1", "node_endpoint": {"node_id": node_id},
               "evaluated_node_id": node_id, "healthy_node_established": admitted,
               "health_report_receipt_sha256": current}
+    signal = {"mode": "ESTABLISH_GENESIS", "node_ref": node_id, "predecessor": None, "node_class": "LLM_ADAPTER"}
     if transport_installed:  # E0: the node arrived over the installed InTr transport (NOT_YET_ENABLED on main)
-        record.update(transport="INTERLOCK_INTR", transport_state="INSTALLED")
+        record.update(transport="INTERLOCK_INTR", transport_state="INSTALLED", signal_sha256=a.sha(signal))
+        if carried and org_ns is not None:
+            e0_carry(org_ns, signal, f"e0-node-ingress:{node_id}")
     put(cls, record, "e0")
     return first
+
+
+def e0_carry(org_ns: Path, signal: dict[str, Any], communication_id: str) -> str:
+    """The InTr path pair that carried `signal` (#432 test shape): the INTR_MESH_PATH_TRANSFER source half on a scratch
+    source ledger, retained at the org namespace's source-receipts/, then the INTR_MESH_PATH_INGRESS on the org chain."""
+    m = pinned()
+    a, carrier, hne = m["endpoint_ledger_anchor"], m["intr_transport_carrier"], m["healthy_node_evaluator"]
+    scratch = _mkdtemp("e0-intr-source-ledger-") / "ledger"
+    source = a.append_receipt(scratch, carrier.SOURCE_CLASS, f"{carrier.SOURCE_CLASS}:{communication_id}", a.sha(None),
+                              carrier.source_evidence(signal, communication_id), 40)
+    a.retain(org_ns, source)
+    org_chain = hne.read_chain(org_ns)[0]
+    return a.append_receipt(org_ns, carrier.DESTINATION_CLASS, f"{carrier.DESTINATION_CLASS}:{communication_id}",
+                            org_chain[0]["receipt_sha256"], carrier.destination_evidence(source),
+                            max(40, a.epoch_of(org_chain)))["receipt_sha256"]
 
 
 def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = True, report: bool = True,
                      superseded_by: str | None = None, kind: str = "PERMANENT", foreign: bool = False,
                      anchored: bool = True, enroll: bool = True,
                      transport_key: dict[str, Any] | None = None, transport_installed: bool = True,
-                     proof: str | None = "valid", opened_signed: bool = True) -> tuple[dict[str, Any], str | None]:
+                     proof: str | None = "valid", opened_signed: bool = True, carried: bool = True,
+                     attest: str | None = "route", own_genesis: Any = False) -> tuple[dict[str, Any], str | None]:
     """The deployment's ledger source for node_id: an E0 org-ledger git repository (contract location, pinned genesis)
     plus the node's own ledger, anchored to it with the pinned #432 code. Returns (source, first report sha).
 
@@ -385,6 +466,12 @@ def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = 
     * transport_installed=False: the node's NODE_INGRESS_ADMITTED record names no installed InTr transport.
     * proof: "valid" (the node's signature over evaluate_anchored's identity_challenge), "other_key" (signed with another
       seed), "stale" (over another challenge) or None (the transport hands over no proof).
+    * carried=False: the node's own NODE_INGRESS_ADMITTED claims installed InTr, but no InTr path pair carried its signal
+      (a caller-appended ingress record, LC-KV-16 class).
+    * attest: "route" (the TEST-ONLY append route attests this store's head), None (no attestation) or "own_key" (the
+      caller attests its own store with a key that is not published).
+    * own_genesis: the store minted its own org genesis instead of the contract-pinned one (a caller-created store;
+      True unlabelled, "labelled" with the E0 label).
     """
     key = e0_node_identity_key(node_id)
     node_root = _mkdtemp("e0-node-ledger-") / "ledger"
@@ -392,19 +479,57 @@ def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = 
 
     def populate(repo: Path) -> None:
         org_ns = Path(ep.healthy_node_ledger_root(repo))
-        _org_genesis(org_ns)
+        _org_genesis(org_ns, own=own_genesis)
         holder["first"] = _write_node_chain(node_root, org_ns, node_id, kind=kind, key=key, status=status,
                                             admitted=admitted, report=report, superseded_by=superseded_by,
                                             foreign=foreign, anchored=anchored, transport_installed=transport_installed,
-                                            opened_signed=opened_signed)
+                                            opened_signed=opened_signed, carried=carried)
         _seal_namespace(org_ns)
         holder["proof"] = e0_identity_proof(node_id, {"endpoint_kind": kind, "ledger_root": str(node_root)}, org_ns,
                                             proof)
     repo = _git_repo(populate=populate)
     if enroll:
         E0_TRANSPORT.enroll(node_id, transport_key or key, holder["proof"])
-    return {"kind": ep.LEDGER_SOURCE_ANCHORED, "org_ledger_git_dir": repo,
-            "endpoint": {"endpoint_kind": kind, "ledger_root": str(node_root)}}, holder["first"]
+    source = {"kind": ep.LEDGER_SOURCE_ANCHORED, "org_ledger_git_dir": repo,
+              "endpoint": {"endpoint_kind": kind, "ledger_root": str(node_root)}}
+    if attest is not None:
+        source["org_ledger_head_attestation"] = e0_attest(
+            repo, **({} if attest == "route" else {"seed": e0_seed("callers-own-head-attester"),
+                                                   "key_id": "callers-own-head-attester"}))
+    return source, holder["first"]
+
+
+def _store_head(repo: str) -> tuple[str, str, str]:
+    """(genesis receipt, head receipt, namespace tree oid) as published at the designated ref of the store."""
+    loc = ep.HEALTHY_NODE_LEDGER_LOCATION
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", "-C", repo, *args], check=True, capture_output=True,
+                              env={**os.environ, "GIT_CONFIG_NOSYSTEM": "1"}).stdout.decode().strip()
+    commit = git("rev-parse", "--verify", loc["ref"] + "^{commit}")
+    tree = git("rev-parse", "--verify", f"{commit}:{loc['namespace']}")
+    head = json.loads(git("show", f"{commit}:{loc['namespace']}/HEAD.json"))["receipt_sha256"]
+    chain = pinned()["healthy_node_evaluator"].read_chain(
+        os.path.join(_checkout_tree(repo, commit), *loc["namespace"].split("/")))[0]
+    return chain[-1]["receipt_sha256"], head, tree
+
+
+def _checkout_tree(repo: str, commit: str) -> str:
+    out = str(_mkdtemp("e0-store-tree-"))
+    data = subprocess.run(["git", "-C", repo, "archive", "--format=tar", commit], check=True, capture_output=True,
+                          env={**os.environ, "GIT_CONFIG_NOSYSTEM": "1"}).stdout
+    with tarfile.open(fileobj=io.BytesIO(data)) as tar:
+        tar.extractall(out, **({"filter": "data"} if hasattr(tarfile, "data_filter") else {}))  # noqa: S202
+    return out
+
+
+def e0_attest(repo: str, seed: bytes = E0_ROUTE_SEED, key_id: str = E0_ROUTE_KEY_ID, **override: Any) -> dict[str, Any]:
+    """The append route's stegverse.org-ledger-head-attestation/v1 for what the store holds (#432's
+    tests/org_ledger_harness.attest; TEST-ONLY public seed by default). The genesis named is the store's own."""
+    location = pinned()["org_ledger_location"]
+    genesis, head, tree = _store_head(repo)
+    body = {**location.head_attestation_body(genesis, head, tree), **override}
+    return {**body, "key_id": key_id, "signature_b64": signer().sign_b64(location.head_attestation_message(body), seed)}
 
 
 def e0_identity_proof(node_id: str, endpoint: dict[str, Any], org_ns: Path, mode: str | None = "valid") -> Any:

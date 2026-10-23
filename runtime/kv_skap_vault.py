@@ -46,7 +46,7 @@ from runtime.kv_interlock_endpoint import (FINISH_POINT_NODE_ENDPOINT_KIND, HEAL
                                            PINNED_ANCHORED_EVALUATOR_ID, PINNED_HEALTHY_NODE_EVALUATOR,
                                            PINNED_HEALTHY_NODE_EVALUATOR_ID, TRUST_ANCHORS, KVInterlockRuntime,
                                            _HEALTHY_RECEIPT_EXACT, healthy_node_ledger_root,
-                                           layer1_receipt_conformance, layer1_refusal)
+                                           layer1_receipt_conformance, layer1_refusal, org_ledger_prerequisites)
 from runtime.kv_skap_layer2 import (LAYER1_REFUSAL_CODE, LAYER2_REFUSAL_CODE, SKAP_ACCESS_RECEIPT_SCHEMA,
                                     SkapLayer2Gate, kv_skap_transition)
 from runtime.secret_field_policy import find_forbidden_field
@@ -1210,6 +1210,9 @@ def append_organization_ledger_receipt(receipt: dict[str, Any], scratch_ledger_g
 
 def finish_point(evidence: Any = None, scratch_ledger_git_dir: str | None = None) -> dict[str, Any]:
     verdict = evaluate(evidence)
+    # LC-KV-18 and the #431 legs: the pinned org-ledger read's prerequisites, recorded with six fields. They gate every
+    # PERMANENT anchor at layer 1, so the finish point cannot reach ALLOW in production while any is FAIL_CLOSED.
+    verdict["org_ledger_prerequisites"] = org_ledger_prerequisites()
     if verdict["disposition"] == "ALLOW":
         verdict["ledger_append"] = append_organization_ledger_receipt(
             organization_ledger_receipt(verdict), scratch_ledger_git_dir)

@@ -1,16 +1,19 @@
 # Pinned InTr code (vendored byte-identical, digest-pinned; not a dependency)
 
 Everything under `runtime/intr_pinned/` is a byte-identical copy of StegVerse-org/LLM-adapter at
-`1cbad77eaff3254ea30fb9d3377d40abcf6728df` (draft PR StegVerse-org/LLM-adapter#432, Lane B anchored-root check with
-LC-KV-16 inside evaluate_anchored, published v1 schemas,
+`733162978292fbc7be3a562a4fa9f5bed4ada91e` (draft PR StegVerse-org/LLM-adapter#432, Lane B anchored-root check with
+LC-KV-16 inside evaluate_anchored, published v1 schemas; code byte-identical to @a2ee67e6, which reworked the failure
+precedence, pinned the org genesis by the #431 contract, required an append-route head attestation and the InTr
+carrier; 73316297 changed only #432's #431 contract fixtures),
 LC-KV-13, InTr and Mesh Destinations lane, StegVerse-org/.github#162), kept at its upstream-relative layout because
 #432's `pinned_code_failure` hashes `ROOT/<path>` for every entry of its pinned-code-digests file (ROOT =
 `runtime/intr_pinned`). Stdlib only: `llm_adapter/ed25519_verify.py` is Lane B's stdlib Ed25519 verify (#430/#432).
 
 | file | sha256 |
 | --- | --- |
-| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `7a998544707e8fce7164d9229116942501b141b13a4f5af8772a3dbd8feb8403` |
-| `llm_adapter/org_ledger_location.py` (designated org ledger, #431 location) | `2ffaa91a606d18c45f239930e0e50292cb12461be22dc370fb6343037e3fce78` |
+| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `261966f309f7b5786b46b64d2fba14e48fd853bcfab879b75faf63195eb6f1eb` |
+| `llm_adapter/org_ledger_location.py` (designated org ledger, #431 location, pinned genesis, head attestation) | `b51e6a8bd39ba6fd83044222a3858a2cb0c437020e3e9abbe97c4494d41f2681` |
+| `llm_adapter/intr_transport_carrier.py` (InTr path pair that carries the ingress signal; stdlib) | `9f460c078f5aba3a25edfecaf7e240334d943c3bf0b0cecc5972fc59e47501bf` |
 | `llm_adapter/healthy_node_evaluator.py` (evaluate, unchanged since #428) | `fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58` |
 | `llm_adapter/ed25519_verify.py` | `ab05e39a3e40b99f02ff199b178554e0ba435c3ff387dca3f896619770770232` |
 | `llm_adapter/node_existence_readback.py` | `cbed113d7fe59fc0919953bad5a0a08cdaeba3ad70a4e728e572c360f6fb2fb7` |
@@ -24,6 +27,7 @@ LC-KV-13, InTr and Mesh Destinations lane, StegVerse-org/.github#162), kept at i
 | `.stegverse/transition-ledger/contract.json` (supporting data) | `a59040e8cabe6dc618af0ba340cb5563ce726f645a76248ccb354961d29144e7` |
 | `.stegverse/heartbeat-awareness.json` (supporting data) | `87b1c4006d3829ea70626d481012791c557e97bcd580a6c3d5ccc61389a6951b` |
 | `.stegverse/node-ledger/node-ledger-opened-signers.v1.json` (signers `[]`, NONE_PUBLISHED) | `478174cb89dc173e9bf7e8deb1db8b3881161e5a2fd10d6435298f74b6d3c63d` |
+| `.stegverse/node-ledger/org-ledger-head-signers.v1.json` (signers `[]`: MERGE_APPEND_PATH_NOT_ADMITTED, LC-KV-18) | `3be27ff079433995d5eba111a5bb8cbe058e492938fb2b7ca299fe7bf6b69297` |
 | `schemas/endpoint-kind.v1.json` (KV's `ENDPOINT_KINDS` is its enum) | `94fe6fe18a38f33d9a1730b81d1f92ded06df288262b22e7d01cc11119d93d60` |
 | `schemas/node-ledger-opened.v1.json` (issued anchor) | `2ef662f3cbe5da67aeae3732e526b86e71010c51a95887686d24d65ce919a352` |
 | `schemas/node-ledger-opened-signed.v1.json` (signed envelope) | `74cdc7e520d55f1bc1f964485ecada2a3953e331b1a87cca6dc9d36f74c5efa1` |
@@ -31,17 +35,22 @@ LC-KV-13, InTr and Mesh Destinations lane, StegVerse-org/.github#162), kept at i
 
 The canonical digests map in the pinned-code-digests file hashes to
 `sha256:86f8b5d008a5e70e7843238388fbddf6975ec994f9fcc1b115d56dd3f40a3360`; an anchored genesis binds that value.
-Evaluator provenance (same bytes): #428 @0b37fe3b, #429 @5f5f7bbe, #430 @4e1499ab and @3c106de4, #432 @c2c57505 and
-@1cbad77e. The genesis-bound pins evaluate_anchored returns on ALLOW (`anchor.pinned_digests`) are evaluator
+Evaluator provenance (same bytes): #428 @0b37fe3b, #429 @5f5f7bbe, #430 @4e1499ab and @3c106de4, #432 @c2c57505,
+@1cbad77e, @a2ee67e6 and @73316297. `node_ledger_dissolution.py` (117f9c0c) is not imported by evaluate_anchored at
+73316297 and is not vendored. The genesis-bound pins evaluate_anchored returns on ALLOW (`anchor.pinned_digests`) are evaluator
 `fdaa2005...1f58` and producer `21249f25...f361`; health receipts carry no per-receipt pinned_digests.
 
-TEST-ONLY copies (not executed by the runtime; under `tests/fixtures/intr_pinned_test_only/`, byte-identical at 1cbad77e):
-`ed25519_test_signer.py` (Lane B's stdlib signer, `tests/ed25519_test_signer.py`) sha256
-`3173bfcfca33129cd31942783b9e3e4c9380022f308f2fc31ccdda3dc2f6fe52`, and
-`contract_with_431_repository_ledger_location.json` (`tests/fixtures/node_receipts/`) sha256
-`b52ee0faa32db00d2f61a1f78a2f40380c4dcb212004d527a51b1e8fb05972d9`. The E0 harness checks both digests and points
-`org_ledger_location.CONTRACT_PATH` at the fixture only while E0 anchors are in force; the vendored contract.json has
-no `repository_ledger_location` yet, so production refuses `ORG_LEDGER_LOCATION_NOT_DESIGNATED` (#431).
+TEST-ONLY copies (under `tests/fixtures/intr_pinned_test_only/`, byte-identical at 73316297, never loaded by the
+runtime): `ed25519_test_signer.py` (`tests/ed25519_test_signer.py`) `3173bfcf...6fe52`;
+`contract_with_431_repository_ledger_location.json` (a byte copy of #431's contract, `expected_genesis_receipt_sha256`
+null) `d97cd4dc...5e89f`; `contract_with_431_location_and_pinned_genesis.json` (the same with the test genesis pinned)
+`ea81ca13...0c5208a`; `org_ledger_test_genesis.json` `a2c01a2e...a6a7`; `org_ledger_harness.py` `3bbf7f7d...b945`
+(provenance only, never executed: it imports `tests.ed25519_test_signer`). The E0 harness checks each digest; only while
+E0 anchors are in force it points `org_ledger_location.CONTRACT_PATH` at the pinned-genesis fixture and
+`load_head_signers` at the harness's TEST-ONLY append-route attester (same public seed and key_id as
+`org_ledger_harness.py`). Production: the vendored contract.json (LLM-adapter main) has no `repository_ledger_location`
+(`ORG_LEDGER_LOCATION_NOT_DESIGNATED`); with #431's contract it would be `ORG_LEDGER_GENESIS_NOT_PINNED`; with both,
+the empty head-signers file gives `MERGE_APPEND_PATH_NOT_ADMITTED` (LC-KV-18, owner TV/TVC + Lane C).
 Interface doc `docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md` sha256 `d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de`.
 
 * Do not edit these files. `runtime.kv_interlock_endpoint.load_pinned_intr` reads every file once, checks its sha256
@@ -62,23 +71,28 @@ Interface doc `docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md` sha256 `d4a534713ecb5d4
 Layer 1 (`KVInterlockRuntime.handle`, INTR_DEVICE_KV):
 * Org ledger. The deployment binds a git repository of StegVerse-org/.github. KV reads
   `refs/stegverse/organization-ledger` at the head it observes now and materializes only
-  `repository-ledger/StegVerse-org/LLM-adapter`. No genesis constant is pinned (LC-KV-15, P1 rev 4): the genesis is
-  derived from the org chain's own oldest receipt, which must be the LLM-adapter repository-ledger initialization in
-  the pinned receipt body, and a genesis labelled for other trust anchors is refused. The head pin handed to
-  evaluate_anchored is that tree's HEAD.json. Unobserved: six-field FAIL_CLOSED `HEALTHY_NODE_LEDGER_NOT_ONBOARDED`.
+  `repository-ledger/StegVerse-org/LLM-adapter`. KV pins no genesis (LC-KV-15): since #432 @a2ee67e6 evaluate_anchored
+  accepts the store only at the #431 contract's `expected_genesis_receipt_sha256` and with a published append-route
+  attestation of its head and namespace tree (`org_ledger_head_attestation`, carried in the deployment's binding,
+  never the requester's), so KV's former genesis derivation and label check were dropped as duplicates. The head pin
+  handed to evaluate_anchored is that tree's HEAD.json. Unobserved: six-field FAIL_CLOSED `HEALTHY_NODE_LEDGER_NOT_ONBOARDED`.
 * Node root. The deployment's endpoint `{endpoint_kind, ledger_root}` (#432 enum: EPHEMERAL, PERMANENT, GATEWAY, KV,
   SKAP_VAULT, ORG). Only evaluate_anchored decides whether it is anchored (InTr path receipt pair for own ledgers,
   StegOS's signed NODE_LEDGER_OPENED envelope for EPHEMERAL (signer must be published; none is), org-root derivation for GATEWAY; ORG is never a node root). Its refusal is
   `EPHEMERAL_NODE_LEDGER_NOT_ANCHORED` with evaluate_anchored's own result carried as `health_evaluation`.
-* Identity and transport (LC-KV-16, enforced inside evaluate_anchored at 1cbad77e). The org ledger is read by
+* Identity and transport (LC-KV-16, enforced inside evaluate_anchored; precedence at a2ee67e6: location and store,
+  pinned code and anchor, identity, health and admission, transport record, InTr carrier). The org ledger is read by
   `org_ledger_location.designated_org_ledger` from the contract designation (#431). Identity: the transport hands over
   the node's `stegverse.node-identity-proof/v1`, an Ed25519 signature by the anchored node_identity_key over
   `identity_challenge` (node, kind, genesis, chain head, anchor and org head); absent is `NODE_IDENTITY_NOT_PROVEN` /
   `NODE_IDENTITY_PROOF_ABSENT` (class B), a bad or stale proof `NODE_IDENTITY_PROOF_INVALID` (class C). Transport is
   read from the node's latest NODE_INGRESS_ADMITTED receipt (`transport: INTERLOCK_INTR`, `transport_state:
-  INSTALLED`); otherwise `INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED` (class B, Lane B). KV keeps its stricter checks on
+  INSTALLED`, `signal_sha256`), and counts only when an INTR_MESH_PATH_INGRESS on the authenticated org chain, newer
+  than the anchor, carried that signal (retained INTR_MESH_PATH_TRANSFER source); otherwise
+  `INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED` (class B, Lane B), with `intr_carrier_refusal` for the carrier stage. KV keeps its stricter checks on
   top: the transport-authenticated key must equal the anchored genesis key, the ALLOW's `identity.node_id` must be the
-  requester, `observed_transport` must be INTERLOCK_INTR/INSTALLED, and `anchor.pinned_digests` must be the genesis pins.
+  requester, and `anchor.pinned_digests` must be the genesis pins. (The ALLOW-shape `observed_transport`
+  INTERLOCK_INTR/INSTALLED re-check was dropped as a duplicate of #432's transport-record and carrier stages.)
 * `TRUST_ANCHORS` holds only the label and the observed transport object (None in production). Tests put labelled
   `E0_STANDIN_TEST_ONLY_NOT_EVIDENCE` anchors in force only inside setUpModule/tearDownModule or a context manager.
 * The finish point expects a PERMANENT node (LC-KV-13; EPHEMERAL generation is a separate task).
