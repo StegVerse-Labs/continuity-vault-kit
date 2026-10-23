@@ -633,7 +633,7 @@ TVC542_CARRIES = {
 CONTRACT_431 = json.loads(Path(E0_CONTRACT_431).read_text(encoding="utf-8"))
 #: the superseded cvk#263 @f5f971a5 location (org-hosted), kept only as a refusal fixture
 SUPERSEDED_ORG_LOCATION = {"repository": "StegVerse-org/.github", "ref": "refs/stegverse/organization-ledger",
-                           "namespace": "repository-ledger/StegVerse-org/01_KV_Ledger"}
+                           "namespace": "repository-ledger/StegVerse-org/kv-receipts"}
 E0_REQUEST = "E0-TEST-ONLY-NOT-A-KV-REQUEST"  # TEST-ONLY label; never a real KV request id
 KV2 = "SITE-CLOUD-KV-4347408852127319cbda574f02e03edb"
 
@@ -652,6 +652,11 @@ def tvc542_ledger_location(location):
 
 def _sha_file(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def kvwm(head, **extra):
+    """The rollback watermark input: KV's own recorded receipt chain head (never an Org-ledger head)."""
+    return {"source": "KV_RECORDED_RECEIPT_CHAIN_HEAD", "head_receipt_sha256": head, **extra}
 
 
 def device_local():
@@ -773,8 +778,11 @@ class KvSkapLedgerLocation(unittest.TestCase):
                                      "kv_request_id": KV2, "location": location})
             self.assertEqual((ld["endpoint_id"], ld["endpoint_kind"], ld["provider_selection"], ld["head_signer_source"]),
                              (f"STEGVERSE_KV:{location}", kind, "SINGLE_PROVIDER_V1", "KV_LEDGER_HEAD_SIGNER"))
-            self.assertEqual(ld["rollback_watermark_source"]["source"], "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD")
-            self.assertTrue(ld["rollback_watermark_source"]["path_ids"][0].endswith(":intr-destination"))
+            self.assertEqual(ld["rollback_watermark_source"]["source"], "KV_RECORDED_RECEIPT_CHAIN_HEAD")
+            xc = ld["rollback_watermark_source"]["org_crossing_cross_check"]
+            self.assertEqual((xc["source"], xc["role"]), ("ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD",
+                                                          "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK"))
+            self.assertTrue(xc["path_ids"][0].endswith(":intr-destination"))
             self.assertIsNone(ld["expected_genesis_receipt_sha256"])
             notes = contract["designation_notes"]
             self.assertEqual(json.loads((ROOT / notes["head_signers_path"]).read_text())["signers"], [])
@@ -828,7 +836,8 @@ class KvSkapLedgerLocation(unittest.TestCase):
             loc = contract["repository_ledger_location"]
             self.assertEqual((loc["repository"], loc["ref"]), ("STEGVERSE_KV", "KV_INTR_ENDPOINT"))
             self.assertTrue(all(p.endswith(":intr-destination")
-                                for p in contract["ledger_designation"]["rollback_watermark_source"]["path_ids"]), which)
+                                for p in contract["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]
+                                ["path_ids"]), which)
             self.assertIn("ENDPOINT_ORG_MEMBERSHIP_REFUSED", contract["designation_notes"]["org_membership"])
 
         def org_repository(c):
@@ -973,7 +982,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
         root, chain = e0_kv_root("skap_vault", (carried,))
         with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]):
             out = layers.gate.receipt_ledger(prior, device_local(), root, e0_kv_attestation("skap_vault", chain),
-                                             chain[0]["receipt_sha256"])
+                                             kvwm(chain[0]["receipt_sha256"]))
             self.assertEqual(out["disposition"], "ALLOW", out)
             self.assertEqual(out["store_location"], "storage-endpoint:device-local/_Vault/SKAP/Receipts")
             self.assertEqual(rl.receipt_on_ledger("skap_vault", carried, _read_result=out)["disposition"], "ALLOW")
@@ -992,7 +1001,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
         root, chain = e0_kv_root("kv", (carried,))
         with kv_chain_e0("kv", chain[-1]["receipt_sha256"]):
             good = e0_kv_attestation("kv", chain)
-            head = chain[0]["receipt_sha256"]
+            head = kvwm(chain[0]["receipt_sha256"])
             out = rl.read_receipt_ledger("kv", device_local(), root, good, head)
             self.assertEqual(out["disposition"], "ALLOW", out)
             self.assertEqual(out["store_location"], "storage-endpoint:device-local/_StegVerse/Receipts")
@@ -1002,17 +1011,17 @@ class KvSkapLedgerLocation(unittest.TestCase):
                              ["failure_code"], "RECEIPT_NOT_ON_DESIGNATED_RECEIPT_CHAIN")
             self.assertEqual(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good, head)["disposition"],
                              "ALLOW")
-            # LC-KV-23: the watermark is required (absent or malformed -> FAIL_CLOSED, class B)
+            # LC-KV-23: the watermark is required (absent or malformed -> FAIL_CLOSED, class A: KV's own chain head)
             self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good),
-                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
+                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
             self.assertSix(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good),
-                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
-            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good, "77"),
-                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
-            # the Org-recorded head watermark: on chain ALLOW; not on chain DENY
-            self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, good, chain[0]["receipt_sha256"])
+                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good, kvwm("77")),
+                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
+            # KV's own recorded head watermark: on chain ALLOW; not on chain DENY
+            self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, good, kvwm(chain[0]["receipt_sha256"]))
                              ["disposition"], "ALLOW")
-            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good, "sha256:" + "77" * 32),
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good, kvwm("sha256:" + "77" * 32)),
                            "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
             # a rolled-back read-back (HEAD moved to genesis) cannot carry the newer recorded head
             old_root, _ = e0_kv_root("kv", (carried,))
@@ -1020,7 +1029,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
             (where / "receipts" / (chain[0]["receipt_sha256"][7:] + ".json")).unlink()
             (where / "HEAD.json").write_text(json.dumps({"receipt_sha256": chain[-1]["receipt_sha256"]}))
             self.assertSix(rl.read_receipt_ledger("kv", device_local(), old_root, e0_kv_attestation("kv", chain[1:]),
-                                                  chain[0]["receipt_sha256"]),
+                                                  kvwm(chain[0]["receipt_sha256"])),
                            "KV_LEDGER_HEAD_ROLLBACK_DETECTED", disposition="DENY")
             # signed head
             self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, None)["failure_code"],
@@ -1061,12 +1070,75 @@ class KvSkapLedgerLocation(unittest.TestCase):
                     read = lambda r, att, wm: layers.gate.receipt_ledger(layers.kv_hash(), device_local(), r, att, wm)
                 else:
                     read = lambda r, att, wm: rl.read_receipt_ledger(which, device_local(), r, att, wm)
-                self.assertEqual(read(root, e0_kv_attestation(which, chain), newest)["disposition"], "ALLOW")
+                self.assertEqual(read(root, e0_kv_attestation(which, chain), kvwm(newest))["disposition"], "ALLOW")
                 # no watermark: FAIL_CLOSED, never ALLOW on the older signed head
-                self.assertSix(read(old_root, older_signed, None), "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "B")
-                # a watermark the read-back regresses from (the Org recorded the newer head): DENY
-                self.assertSix(read(old_root, older_signed, newest), "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C",
+                self.assertSix(read(old_root, older_signed, None), "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
+                # a watermark the read-back regresses from (KV recorded the newer head): DENY
+                self.assertSix(read(old_root, older_signed, kvwm(newest)), "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C",
                                disposition="DENY")
+
+    def test_the_rollback_watermark_comes_from_kv_own_chain_never_the_org_ledger(self):
+        """Coordination's provisional class A repair (.github#167): KV is independent of the Orgs, so the watermark is
+        KV_RECORDED_RECEIPT_CHAIN_HEAD; an Org-linked head is only an optional digest-only cross-check."""
+        self.assertEqual(rl.WATERMARK_SOURCE, "KV_RECORDED_RECEIPT_CHAIN_HEAD")
+        self.assertEqual(rl.CONTRACT_KEY_SCHEMA["ledger_designation"]["rollback_watermark_source"]["source"],
+                         ("KV_RECORDED_RECEIPT_CHAIN_HEAD",))
+        carried = "sha256:" + "ab" * 32
+        org_digest = "sha256:" + "0c" * 32
+        for which in self.CHAINS:
+            root, chain = e0_kv_root(which, (carried,))
+            newest = chain[0]["receipt_sha256"]
+            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]):
+                att = e0_kv_attestation(which, chain)
+                if which == "skap_vault":
+                    layers = TwoLayers()
+                    read = lambda wm: layers.gate.receipt_ledger(layers.kv_hash(), device_local(), root, att, wm)
+                else:
+                    read = lambda wm: rl.read_receipt_ledger(which, device_local(), root, att, wm)
+                # KV-chain-sourced watermark: ALLOW at E0
+                out = read(kvwm(newest))
+                self.assertEqual(out["disposition"], "ALLOW", out)
+                self.assertEqual(out["rollback_watermark"], {"source": "KV_RECORDED_RECEIPT_CHAIN_HEAD",
+                                                             "head_receipt_sha256": newest})
+                # the Org's side of a crossing only as a digest-only cross-check: carried, authority NONE
+                out = read(kvwm(newest, org_crossing_cross_check=org_digest))
+                self.assertEqual(out["disposition"], "ALLOW", out)
+                self.assertEqual(out["rollback_watermark"]["org_crossing_cross_check"],
+                                 {"digest": org_digest, "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK",
+                                  "authority_effect": "NONE"})
+                # an Org cross-check digest is never compared as the watermark (it cannot rescue a regression)
+                self.assertSix(read(kvwm("sha256:" + "77" * 32, org_crossing_cross_check=newest)),
+                               "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
+                # an Org-sourced watermark input: refused, class A
+                for source in ("ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD", "ORGANIZATION_LEDGER_HEAD",
+                               "StegVerse-org/.github:refs/stegverse/organization-ledger"):
+                    out = read({"source": source, "head_receipt_sha256": newest})
+                    self.assertSix(out, "KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED", "A")
+                    self.assertEqual(out["owning_existing_goal"], rl.TASK)
+                    self.assertEqual(out["failed_predicate"], "ROLLBACK_WATERMARK_SOURCED_FROM_KV_OWN_RECEIPT_CHAIN")
+                # a bare digest does not declare its source: missing, never ALLOW
+                self.assertSix(read(newest), "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
+
+        # an Org-sourced designation: refused, class A
+        def org_sourced(c):
+            c["ledger_designation"]["rollback_watermark_source"]["source"] = "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD"
+
+        def cross_check_as_watermark(c):
+            w = c["ledger_designation"]["rollback_watermark_source"]
+            w["source"] = w["org_crossing_cross_check"]["source"]
+
+        def cross_check_wrong_role(c):
+            c["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]["role"] = "WATERMARK"
+
+        for which in self.CHAINS:
+            for edit in (org_sourced, cross_check_as_watermark):
+                with self.subTest(which=which, edit=edit.__name__), kv_chain_e0(which, None, edit):
+                    out = rl.read_receipt_ledger(which)
+                    self.assertSix(out, "KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED", "A")
+                    self.assertEqual(out["owning_existing_goal"], rl.TASK)
+            with self.subTest(which=which, edit="cross_check_wrong_role"), \
+                    kv_chain_e0(which, None, cross_check_wrong_role):
+                self.assertSix(rl.read_receipt_ledger(which), "KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2", "C")
 
     def test_external_storage_records_are_refused(self):
         """The provider's own records (Drive metadata files, revisions) never cross into KV."""
@@ -1126,6 +1198,10 @@ class KvSkapLedgerLocation(unittest.TestCase):
             self.assertEqual(entry["repository_ledger_location"]["repository"], "STEGVERSE_KV")
             self.assertEqual(entry["ledger_designation"]["stores"][0]["store_type"], "KV_STORAGE_ENDPOINT")
             self.assertIs(entry["via_kv_intr_only"], which == "skap_vault")
+            self.assertEqual(entry["contract_path"], f".stegverse/receipt-chains/"
+                             f"{'stegverse-kv' if which == 'kv' else 'skap'}-receipts.contract.json")
+            self.assertEqual(entry["ledger_designation"]["rollback_watermark_source"]["source"],
+                             "KV_RECORDED_RECEIPT_CHAIN_HEAD")
             # TVC#542 @2b364921's org-shape rule no longer accepts KV's chains: Lane C rebinds
             self.assertEqual(tvc542_ledger_location(entry["repository_ledger_location"])[1], "NOT_DESIGNATED")
         self.assertEqual(tvc542_ledger_location(SUPERSEDED_ORG_LOCATION)[1], "OK")

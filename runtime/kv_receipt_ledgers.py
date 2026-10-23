@@ -62,7 +62,13 @@ DESIGNATION_KEYS = ("schema", "endpoint_id", "endpoint_kind", "stores", "provide
 STORE_TYPE = "KV_STORAGE_ENDPOINT"      # proposed to Lane B (#167 comment 6372442705: storage endpoint v2 names only)
 STORE_KEYS = ("store_type", "storage_endpoint_schema", "provider_id", "access_adapter", "kv_class", "kv_request_id",
               "location")
-WATERMARK_SOURCE = "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD"
+#: The rollback watermark comes from KV's own recorded receipt chain head, the name kv_ledger_head_signer signs
+#: (TVC#542 @4c2504da): KV is independent of the Orgs (Coordination's provisional class A repair, StegVerse-org/.github#167).
+WATERMARK_SOURCE = "KV_RECORDED_RECEIPT_CHAIN_HEAD"
+#: The Org's side of a crossing may appear only as an optional digest-only cross-check, never as the watermark source.
+ORG_CROSS_CHECK_SOURCE = "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD"
+CROSS_CHECK_ROLE = "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK"
+ORG_SOURCED_CODE = "KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED"
 HEAD_ATTESTATION_SCHEMA = "stegverse.kv-ledger-head-attestation/v1"
 HEAD_ATTESTATION_FIELDS = ("schema", "endpoint_id", "store_location", "genesis_receipt_sha256", "head_receipt_sha256",
                            "signer_role")
@@ -84,7 +90,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     KV_LEDGER: {
         "storage_location": "_StegVerse/Receipts",
         "contract_path": ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
-        "contract_sha256": "sha256:094a503f85b6f3fc71216848484de62172684e27ca354f2e8559e57a996527f6",
+        "contract_sha256": "sha256:610377f21f7ae6e4953fd2324473c00bbe37cc7896f99e35ea572ead035dfaf2",
         "repository": "STEGVERSE_KV:_StegVerse/Receipts",
         "carries": ["stegverse.kv-access-receipt/v1 (L1)"],
         "read_by": "runtime.kv_interlock_endpoint.KVInterlockRuntime (layer 1)",
@@ -95,7 +101,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     SKAP_VAULT_LEDGER: {
         "storage_location": "_Vault/SKAP/Receipts",
         "contract_path": ".stegverse/receipt-chains/skap-receipts.contract.json",
-        "contract_sha256": "sha256:cc8a4291035b601c9215cb525325d55a2e92de98b23e808bff67b8b8211c3005",
+        "contract_sha256": "sha256:83e30008addc557875f9cadf7f587a852e262d09ac50be9ecc041e9863d0b822",
         "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
@@ -176,17 +182,22 @@ MEMBERSHIP_CODE = "ENDPOINT_ORG_MEMBERSHIP_REFUSED"
 UNKNOWN_KEY_CODE = "KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY"
 #: Closed key schema (LC-KV-24): the only keys permitted at each level of a KV receipt-chain contract. Any other key
 #: refuses: ENDPOINT_ORG_MEMBERSHIP_REFUSED when the key is membership-like (MEMBERSHIP_TOKENS), otherwise
-#: KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY. ``None`` marks a leaf (a value with no keys of its own).
+#: KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY. ``None`` marks a leaf (a value with no keys of its own); a tuple marks a
+#: leaf whose value must be one of the tuple's (rollback_watermark_source.source is only KV_RECORDED_RECEIPT_CHAIN_HEAD).
 NOTES_KEYS = ("store_type_note", "head_signers_path", "append_route", "path_ids_note", "refuses",
               "org_crossing_receipts", "head_digest_name", "genesis_crossing", "org_membership")
-WATERMARK_KEYS = ("source", "path_ids")
+WATERMARK_KEYS = ("source", "org_crossing_cross_check")
+CROSS_CHECK_KEYS = ("source", "path_ids", "role")
 CONTRACT_KEY_SCHEMA: dict[str, Any] = {
     "schema": None, "repository": None, "ledger_level": None, "receipt_schema": None, "append_only_receipts": None,
     "required_fields": None, "replay_rule": None,
     "repository_ledger_location": {k: None for k in LOCATION_SHAPE},
     "ledger_designation": {**{k: None for k in DESIGNATION_KEYS},
                            "stores": [{k: None for k in STORE_KEYS}],
-                           "rollback_watermark_source": {k: None for k in WATERMARK_KEYS}},
+                           "rollback_watermark_source": {
+                               "source": (WATERMARK_SOURCE,),
+                               "org_crossing_cross_check": {"source": (ORG_CROSS_CHECK_SOURCE,), "path_ids": None,
+                                                            "role": (CROSS_CHECK_ROLE,)}}},
     "designation_notes": {k: None for k in NOTES_KEYS},
     "propagation_rule": None, "authority_effect": None,
 }
@@ -339,6 +350,10 @@ def designation(which: str) -> tuple[dict[str, Any] | None, dict[str, Any] | Non
         except spa.KVStorageProviderError:
             descriptor = None
     w = ld.get("rollback_watermark_source") if isinstance(ld, Mapping) else None
+    if isinstance(w, Mapping) and w.get("source") != WATERMARK_SOURCE and _org_sourced(w.get("source")):
+        return None, watermark_org_sourced(which, f"ledger_designation.rollback_watermark_source.source is "
+                                                  f"{w.get('source')!r}")
+    xc = w.get("org_crossing_cross_check") if isinstance(w, Mapping) else None
     if store is None or tuple(ld) != DESIGNATION_KEYS or ld.get("schema") != DESIGNATION_SCHEMA \
             or tuple(store) != STORE_KEYS or store.get("store_type") != STORE_TYPE \
             or store.get("storage_endpoint_schema") != spa.STORAGE_ENDPOINT_SCHEMA or descriptor is None \
@@ -347,7 +362,9 @@ def designation(which: str) -> tuple[dict[str, Any] | None, dict[str, Any] | Non
             or ld.get("endpoint_id") != spec["repository"] or ld.get("endpoint_kind") != spec["endpoint_kind"] \
             or ld.get("provider_selection") != "SINGLE_PROVIDER_V1" or ld.get("genesis_class") != GENESIS_CLASS \
             or ld.get("expected_genesis_receipt_sha256") != genesis or ld.get("head_signer_source") != "KV_LEDGER_HEAD_SIGNER" \
-            or not isinstance(w, Mapping) or w.get("source") != WATERMARK_SOURCE or not w.get("path_ids"):
+            or not isinstance(w, Mapping) or w.get("source") != WATERMARK_SOURCE \
+            or (xc is not None and (not isinstance(xc, Mapping) or xc.get("source") != ORG_CROSS_CHECK_SOURCE
+                                    or xc.get("role") != CROSS_CHECK_ROLE or not xc.get("path_ids"))):
         return None, _refuse(which, "KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2", "C", repair,
                              "on a KV-owned contract whose single store is a documented storage endpoint v2 descriptor",
                              f"ledger_designation is not the one-store {STORE_TYPE} designation for this chain")
@@ -444,14 +461,32 @@ WATERMARK_MISSING_CODE = "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING"
 
 
 def watermark_missing(which: str, detail: str = "no recorded_head supplied") -> dict[str, Any]:
-    """Six-field FAIL_CLOSED (class B, LC-KV-23): the rollback watermark is required. Without the newest
-    endpoint_head_sha256 the Org recorded on its linked receipts, an older signed head cannot be told apart."""
-    return _refuse(which, WATERMARK_MISSING_CODE, "B",
-                   "recorded_head: the newest endpoint_head_sha256 the Org recorded on its linked receipts for this "
-                   f"endpoint's intr-destination path_ids ({WATERMARK_SOURCE}), as sha256:<64 hex>",
-                   "when the path_ids are declared and the Org-recorded head is supplied (event-triggered)", detail,
-                   owner=f"{TASK}; StegVerse-org/.github#235 path_ids declaration (Lane B)",
-                   predicate="ROLLBACK_WATERMARK_SUPPLIED")
+    """Six-field FAIL_CLOSED (class A, LC-KV-23): the rollback watermark is required. Without the newest head KV
+    itself recorded on its own receipt chain, an older signed head cannot be told apart."""
+    return _refuse(which, WATERMARK_MISSING_CODE, "A",
+                   f'recorded_head = {{"source": "{WATERMARK_SOURCE}", "head_receipt_sha256": "sha256:<64 hex>"}}: '
+                   "the newest head KV recorded on its own receipt chain (optionally with a digest-only "
+                   '"org_crossing_cross_check" of the Org\'s side of a crossing, never the watermark)',
+                   "on the corrected call", detail, predicate="ROLLBACK_WATERMARK_SUPPLIED")
+
+
+def _org_sourced(value: Any) -> bool:
+    """A watermark source that names the Org ledger (or any Org-side head) rather than KV's own chain."""
+    if not isinstance(value, str):
+        return False
+    tokens = set(re.split(r"[^A-Z0-9]+", value.upper()))
+    return value == ORG_CROSS_CHECK_SOURCE or bool(tokens & {"ORG", "ORGANIZATION"}) \
+        or any(m in value for m in ORG_MARKERS)
+
+
+def watermark_org_sourced(which: str, detail: str) -> dict[str, Any]:
+    """Six-field FAIL_CLOSED (class A): the rollback watermark must come from KV's own recorded receipt chain head."""
+    return _refuse(which, ORG_SOURCED_CODE, "A",
+                   f"a rollback watermark sourced from KV's own recorded receipt chain head ({WATERMARK_SOURCE}); an "
+                   f"Org-linked head ({ORG_CROSS_CHECK_SOURCE}) may appear only as the optional digest-only "
+                   f"org_crossing_cross_check ({CROSS_CHECK_ROLE}), never as the watermark source",
+                   "on the corrected designation or call", detail,
+                   predicate="ROLLBACK_WATERMARK_SOURCED_FROM_KV_OWN_RECEIPT_CHAIN")
 
 
 def _external(which: str, detail: str) -> dict[str, Any]:
@@ -460,6 +495,36 @@ def _external(which: str, detail: str) -> dict[str, Any]:
                    "records (file ids, revisions, owners, sharing, metadata files) never cross into KV",
                    "never: an external record is not KV input", detail,
                    predicate="EXTERNAL_RECORDS_NEVER_CROSS_INTO_KV")
+
+
+WATERMARK_INPUT_KEYS = ("source", "head_receipt_sha256", "org_crossing_cross_check")
+
+
+def _is_sha(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 71 and value.startswith("sha256:") \
+        and all(c in "0123456789abcdef" for c in value[7:])
+
+
+def _watermark(which: str, recorded_head: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """The rollback watermark input: {"source": KV_RECORDED_RECEIPT_CHAIN_HEAD, "head_receipt_sha256": sha256,
+    optional "org_crossing_cross_check": sha256 (digest-only, authority NONE, never compared as the watermark)}."""
+    if recorded_head is None:
+        return None, watermark_missing(which)
+    if not isinstance(recorded_head, Mapping):
+        return None, watermark_missing(which, f"recorded_head {recorded_head!r} does not declare its source "
+                                              f"(expected a mapping with source {WATERMARK_SOURCE})")
+    source = recorded_head.get("source")
+    if source != WATERMARK_SOURCE and _org_sourced(source):
+        return None, watermark_org_sourced(which, f"recorded_head.source is {source!r}")
+    xc = recorded_head.get("org_crossing_cross_check")
+    if source != WATERMARK_SOURCE or set(recorded_head) - set(WATERMARK_INPUT_KEYS) \
+            or not _is_sha(recorded_head.get("head_receipt_sha256")) or (xc is not None and not _is_sha(xc)):
+        return None, watermark_missing(which, f"recorded_head {dict(recorded_head)!r} is not a {WATERMARK_SOURCE} "
+                                              "watermark with head_receipt_sha256 sha256:<64 hex>")
+    out = {"source": WATERMARK_SOURCE, "head_receipt_sha256": recorded_head["head_receipt_sha256"]}
+    if xc is not None:
+        out["org_crossing_cross_check"] = {"digest": xc, "role": CROSS_CHECK_ROLE, "authority_effect": "NONE"}
+    return out, None
 
 
 def _read(which: str, storage_endpoint: Any, readback_root: Any, head_attestation: Any, via_kv_intr: Any,
@@ -516,19 +581,21 @@ def _read(which: str, storage_endpoint: Any, readback_root: Any, head_attestatio
     head = _head_failure(modules, which, d, head_attestation, chain[-1]["receipt_sha256"], chain[0]["receipt_sha256"])
     if head:
         return head
-    if not (isinstance(recorded_head, str) and len(recorded_head) == 71 and recorded_head.startswith("sha256:")
-            and all(c in "0123456789abcdef" for c in recorded_head[7:])):
-        return watermark_missing(which, "no recorded_head supplied" if recorded_head is None
-                                 else f"recorded_head {recorded_head!r} is not sha256:<64 hex>")
-    if recorded_head not in {r["receipt_sha256"] for r in chain}:
+    watermark, failure = _watermark(which, recorded_head)
+    if failure:
+        return failure
+    if watermark["head_receipt_sha256"] not in {r["receipt_sha256"] for r in chain}:
         return _refuse(which, "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C",
-                       "present a chain that contains the newest endpoint_head_sha256 the Org recorded on its linked "
-                       "receipts for this endpoint's path_ids; an older or forked head is refused",
+                       f"present a chain that contains the newest head KV recorded on its own receipt chain "
+                       f"({WATERMARK_SOURCE}); an older or forked head is refused",
                        "on a read-back at or after the recorded head (event-triggered)",
-                       f"the Org recorded {recorded_head}; the read-back head is {chain[0]['receipt_sha256']}",
-                       predicate="ENDPOINT_HEAD_NOT_OLDER_THAN_THE_NEWEST_ORG_RECORDED_HEAD", disposition=DENY)
-    return {**receipt_ledger_binding(which), "disposition": ALLOW, "head_receipt_sha256": chain[0]["receipt_sha256"],
-            "store_location": d["store_location"], "chain": chain, "authority_effect": "NONE"}
+                       f"KV recorded {watermark['head_receipt_sha256']}; the read-back head is "
+                       f"{chain[0]['receipt_sha256']}",
+                       predicate="ENDPOINT_HEAD_NOT_OLDER_THAN_THE_NEWEST_KV_RECORDED_HEAD", disposition=DENY)
+    out = {**receipt_ledger_binding(which), "disposition": ALLOW, "head_receipt_sha256": chain[0]["receipt_sha256"],
+           "store_location": d["store_location"], "chain": chain, "rollback_watermark": watermark,
+           "authority_effect": "NONE"}
+    return out
 
 
 def read_receipt_ledger(which: str, storage_endpoint: Any = None, readback_root: Any = None,
@@ -539,8 +606,10 @@ def read_receipt_ledger(which: str, storage_endpoint: Any = None, readback_root:
     reached via KV's InTr (always, on this entrypoint); KV #2 storage endpoint PENDING_INTERLOCK_INTR;
     genesis not pinned; storage endpoint not the designated one; read-back
     unreadable or foreign; external storage records; genesis mismatch; head not signed by a published
-    kv_ledger_head_signer; rollback watermark (``recorded_head``: the newest endpoint_head_sha256 the Org recorded on
-    its linked receipts) required: absent or malformed -> FAIL_CLOSED KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING (B);
+    kv_ledger_head_signer; rollback watermark (``recorded_head``: {"source": KV_RECORDED_RECEIPT_CHAIN_HEAD,
+    "head_receipt_sha256": ...}, the newest head KV recorded on its own chain) required: absent or malformed ->
+    FAIL_CLOSED KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING (A); Org-sourced -> FAIL_CLOSED
+    KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED (A);
     not on the chain -> DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
     return _read(which, storage_endpoint, readback_root, head_attestation, None, recorded_head)
 
@@ -583,6 +652,7 @@ def receipt_ledger_prerequisites() -> list[dict[str, Any]]:
             blocking.append(_head_failure({}, which, d, None, "", ""))
         row = {"prerequisite": "KV_RECEIPT_CHAIN_DESIGNATED_READABLE_AND_GENESIS_PINNED", "receipt_ledger": which,
                "storage_location": RECEIPT_LEDGERS[which]["storage_location"],
+               "contract_path": RECEIPT_LEDGERS[which]["contract_path"],
                "contract_sha256": RECEIPT_LEDGERS[which]["contract_sha256"], "tracked_by": TASK}
         if d:
             row["location"] = d["location"]
@@ -612,5 +682,5 @@ def custody_ledgers_config() -> dict[str, Any]:
 
 __all__ = ["CORRESPONDENCE_RULE", "KV_LEDGER", "SKAP_VAULT_LEDGER", "RECEIPT_LEDGERS", "STORE_KEYS", "STORE_TYPE",
            "GENESIS_CROSSING", "custody_ledgers_config", "designation", "head_attestation_body",
-           "CONTRACT_KEY_SCHEMA", "MEMBERSHIP_CODE", "UNKNOWN_KEY_CODE", "WATERMARK_MISSING_CODE", "watermark_missing", "kv2_pending", "load_head_signers", "org_membership_refused", "pin_mechanism_org_hosted", "read_receipt_ledger",
+           "CONTRACT_KEY_SCHEMA", "MEMBERSHIP_CODE", "UNKNOWN_KEY_CODE", "ORG_SOURCED_CODE", "WATERMARK_MISSING_CODE", "WATERMARK_SOURCE", "watermark_org_sourced", "watermark_missing", "kv2_pending", "load_head_signers", "org_membership_refused", "pin_mechanism_org_hosted", "read_receipt_ledger",
            "receipt_ledger_binding", "receipt_ledger_prerequisites", "receipt_on_ledger"]
