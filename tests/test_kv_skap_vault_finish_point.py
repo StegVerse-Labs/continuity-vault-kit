@@ -197,6 +197,19 @@ class AuthorityAndLadder(unittest.TestCase):
             if key.startswith(("mints_", "holds_")):
                 self.assertIs(value, False, key)
 
+    def test_durable_custody_is_consumed_from_the_sovereign_kv_goal_not_reimplemented(self) -> None:
+        verdict = kv.finish_point()
+        row = next(r for r in verdict["predicates"]
+                   if r["predicate"] == "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED")
+        self.assertEqual(row["failure_code"], "KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND")
+        self.assertEqual(row["owning_existing_goal"], "TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001")
+        self.assertEqual(row["failure_class"], "B")
+        self.assertEqual(row["dependency_relation"], "CONSUMES")
+        self.assertNotIn("#163", row["required_evidence_or_repair"])
+        source = (ROOT / "runtime" / "kv_skap_vault.py").read_text(encoding="utf-8")
+        for owned in ("task_registry_event_sovereign_kv_binding", "kv_storage_provider_adapter"):
+            self.assertNotIn(owned, source)  # consumed, never imported or re-implemented here
+
     def test_e0_stdlib_only_no_model_network_or_clock(self) -> None:
         tree = ast.parse((ROOT / "runtime" / "kv_skap_vault.py").read_text(encoding="utf-8"))
         imported = set()

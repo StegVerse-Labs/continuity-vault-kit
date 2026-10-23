@@ -272,20 +272,25 @@ def verify_lineage(exported: dict[str, Any]) -> None:
 
 # --- finish point -------------------------------------------------------------------------------
 #: Pieces not yet built. Each is reported as an honest six-field FAIL_CLOSED, never as a skip.
+#: predicate -> (failure_code, failure_class, repair, owning_existing_goal, dependency_relation)
+SOVEREIGN_KV_CUSTODY_GOAL = "TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001"
 NOT_YET_BUILT = {
     "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": (
         "INTR_TRANSITION_RECEIPTS_NOT_OBSERVED", "B",
         "the local round-trip is exact, but each write and revoke must bind a real Interlock/InTr "
         "transition receipt; bind the InTr adapter (STEGOS-DEVICE-KV-SKAP-ROUNDTRIP-001 lane) and verify "
-        "its receipts here"),
+        "its receipts here", GOAL_REF, None),
     "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED": (
-        "KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND", "C",
-        "reconstruction from the lineage alone is exact on a fresh instance; bind the durable KV custody "
-        "location the lineage is read from on any device (custody path settled on StegVerse-org/.github#163)"),
+        "KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND", "B",
+        "reconstruction from the lineage alone is exact on a fresh instance; the durable KV custody location "
+        "the lineage is read from on any device is consumed from " + SOVEREIGN_KV_CUSTODY_GOAL + " (provider-"
+        "neutral write and exact-hash readback; its first unresolved predicate is AUTHENTIC_ADMITTED_PROVIDER_"
+        "WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV) and is not re-implemented here; bind its "
+        "admitted readback receipt when it exists", SOVEREIGN_KV_CUSTODY_GOAL, "CONSUMES"),
     "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER": (
         "TVC_CUSTODY_KEY_ISSUANCE_NOT_OBSERVED", "B",
         "the vault refuses every non-TV/TVC writer and all key material; a real TV/TVC custody-key issuance "
-        "receipt must be observed and bound (a TV/TVC transition, not a blocker)"),
+        "receipt must be observed and bound (a TV/TVC transition, not a blocker)", GOAL_REF, None),
 }
 
 
@@ -366,18 +371,22 @@ def finish_point() -> dict[str, Any]:
     results = []
     for predicate in PREDICATES:
         if not local.get(predicate):
-            code, klass, repair = ("FINISH_POINT_PREDICATE_NOT_LOCALLY_SATISFIED", "A",
-                                   f"repair runtime/kv_skap_vault.py so {predicate} holds locally")
+            code, klass, repair, owner, relation = (
+                "FINISH_POINT_PREDICATE_NOT_LOCALLY_SATISFIED", "A",
+                f"repair runtime/kv_skap_vault.py so {predicate} holds locally", GOAL_REF, None)
         elif predicate in NOT_YET_BUILT:
-            code, klass, repair = NOT_YET_BUILT[predicate]
+            code, klass, repair, owner, relation = NOT_YET_BUILT[predicate]
         else:
             results.append({"predicate": predicate, "disposition": "ALLOW"})
             continue
-        results.append({"predicate": predicate, "disposition": "FAIL_CLOSED", "failure_code": code,
-                        "failed_predicate": predicate, "required_evidence_or_repair": repair,
-                        "retry_entrypoint": RETRY, "owning_existing_goal": GOAL_REF,
-                        "next_attempt": "on the next finish-point run after the repair is bound",
-                        "failure_class": klass})
+        row = {"predicate": predicate, "disposition": "FAIL_CLOSED", "failure_code": code,
+               "failed_predicate": predicate, "required_evidence_or_repair": repair,
+               "retry_entrypoint": RETRY, "owning_existing_goal": owner,
+               "next_attempt": "on the next finish-point run after the repair is bound",
+               "failure_class": klass}
+        if relation:
+            row["dependency_relation"] = relation
+        results.append(row)
     unmet = [r for r in results if r["disposition"] != "ALLOW"]
     return {"schema": VERDICT_SCHEMA, "task_id": TASK_ID, "scope_digest": SCOPE_DIGEST,
             "lowest_supported_mode": LOWEST_SUPPORTED_MODE, "mode": LOWEST_SUPPORTED_MODE,
