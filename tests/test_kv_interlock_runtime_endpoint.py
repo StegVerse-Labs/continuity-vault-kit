@@ -413,7 +413,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
     def test_the_pin_records_428_429_and_430_provenance(self):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
         self.assertEqual([p["commit"][:8] for p in pin["provenance"]],
-                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e", "a2ee67e6", "73316297"])
+                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e", "a2ee67e6", "73316297", "74509fec"])
         self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):

@@ -75,13 +75,14 @@ HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinn
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
 #: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md.
 #: The evaluator bytes (fdaa2005...1f58) are unchanged from #428 @0b37fe3b through #429, #430 and #432 @c2c57505 and
-#: @1cbad77e, @a2ee67e6 and @73316297 (vendored head; only #432's test fixtures changed after a2ee67e6).
+#: @1cbad77e, @a2ee67e6, @73316297 and @74509fec (vendored head; after a2ee67e6 only #432's test fixtures and the
+#: GENESIS_NOT_PINNED next_attempt text, now naming REPOSITORY_LEDGER_GENESIS_PIN, changed).
 #: Layer 1 never calls evaluate() bare any more: it calls #432's evaluate_anchored (PINNED_ANCHORED_EVALUATOR), which
 #: runs Lane B's anchored-root check and then this evaluate(), unchanged, over the anchored root only.
 #:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
 PINNED_HEALTHY_NODE_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
-    "commit": "733162978292fbc7be3a562a4fa9f5bed4ada91e",
+    "commit": "74509feca062d5f17dbefe5730cbb1304ab6b318",
     "pull_request": "StegVerse-org/LLM-adapter#432 (draft; evaluator bytes unchanged since #428)",
     "module": "llm_adapter.healthy_node_evaluator",
     "callable": "evaluate",
@@ -131,9 +132,16 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
          "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
          "pinned_code_digests_file_sha256":
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
-        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; code unchanged since a2ee67e6, only the "
-                         "#431 contract fixtures changed)",
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; code unchanged since a2ee67e6, only the #431 contract "
+                         "fixtures changed)",
          "commit": "733162978292fbc7be3a562a4fa9f5bed4ada91e",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
+         "pinned_code_digests_file_sha256":
+             "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; evaluator unchanged; endpoint_ledger_anchor d47cd0a4: "
+                         "GENESIS_NOT_PINNED next_attempt names REPOSITORY_LEDGER_GENESIS_PIN)",
+         "commit": "74509feca062d5f17dbefe5730cbb1304ab6b318",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
          "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
          "pinned_code_digests_file_sha256":
@@ -142,7 +150,7 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
     "admission_order": "StegVerse-org/LLM-adapter#429 lands with or before #428; #432 builds on #430",
     "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430, #431 onboarding, #432) settles",
 }
-#: Lane B's anchored-root check (StegVerse-org/LLM-adapter#432 @a2ee67e6, draft). It is authoritative for whether a
+#: Lane B's anchored-root check (StegVerse-org/LLM-adapter#432 @74509fec, draft). It is authoritative for whether a
 #: caller-supplied node root is anchored on the org ledger; KV does not re-implement it. It needs the pinned producer
 #: modules at their upstream-relative paths (it hashes ROOT/<path> for every entry of the pinned-code-digests file, with
 #: ROOT = runtime/intr_pinned), so every file below is vendored byte-identical at that layout and re-hashed before every
@@ -157,11 +165,11 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
 PINNED_ANCHORED_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
     "pull_request": "StegVerse-org/LLM-adapter#432 (draft, Lane B anchored-root check)",
-    "commit": "733162978292fbc7be3a562a4fa9f5bed4ada91e",
+    "commit": "74509feca062d5f17dbefe5730cbb1304ab6b318",
     "module": "llm_adapter.endpoint_ledger_anchor",
     "callable": "evaluate_anchored",
     "source_path": "llm_adapter/endpoint_ledger_anchor.py",
-    "source_sha256": "sha256:261966f309f7b5786b46b64d2fba14e48fd853bcfab879b75faf63195eb6f1eb",
+    "source_sha256": "sha256:d47cd0a4a0409ae79161be64c79e28e147f98ead55687ddeb2e744d3537fc6f4",
     "result_schema": "stegverse.endpoint-ledger-anchor-result/v1",
     "pinned_code_digests_path": ".stegverse/node-ledger/pinned-code-digests.v1.json",
     "pinned_code_digests_file_sha256": "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8",
@@ -170,7 +178,7 @@ PINNED_ANCHORED_EVALUATOR = {
     "vendored_root": "runtime/intr_pinned",
     "vendored_files": {
         "llm_adapter/endpoint_ledger_anchor.py":
-            "sha256:261966f309f7b5786b46b64d2fba14e48fd853bcfab879b75faf63195eb6f1eb",
+            "sha256:d47cd0a4a0409ae79161be64c79e28e147f98ead55687ddeb2e744d3537fc6f4",
         "llm_adapter/org_ledger_location.py":
             "sha256:b51e6a8bd39ba6fd83044222a3858a2cb0c437020e3e9abbe97c4494d41f2681",
         "llm_adapter/intr_transport_carrier.py":
@@ -193,14 +201,14 @@ PINNED_ANCHORED_EVALUATOR = {
         ".stegverse/node-ledger/pinned-code-digests.v1.json":
             "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8",
         ".stegverse/transition-ledger/emit.py": "sha256:9579726de7ef915ac8cd61be1ba1c5ef6e34de4ca996504374b0dce7f7c2c9c3",
-        # supporting data read by the pinned modules (not in the pin set; byte-identical at 73316297)
+        # supporting data read by the pinned modules (not in the pin set; byte-identical at 74509fec)
         ".stegverse/transition-ledger/contract.json":
             "sha256:a59040e8cabe6dc618af0ba340cb5563ce726f645a76248ccb354961d29144e7",
         ".stegverse/heartbeat-awareness.json": "sha256:87b1c4006d3829ea70626d481012791c557e97bcd580a6c3d5ccc61389a6951b",
-        # published NODE_LEDGER_OPENED signer references (TV/TVC custody); empty at 73316297, so EPHEMERAL fails closed
+        # published NODE_LEDGER_OPENED signer references (TV/TVC custody); empty at 74509fec, so EPHEMERAL fails closed
         ".stegverse/node-ledger/node-ledger-opened-signers.v1.json":
             "sha256:478174cb89dc173e9bf7e8deb1db8b3881161e5a2fd10d6435298f74b6d3c63d",
-        # published org-ledger append-route head attesters (TV/TVC custody); empty at 73316297, so every org-ledger read
+        # published org-ledger append-route head attesters (TV/TVC custody); empty at 74509fec, so every org-ledger read
         # is FAIL_CLOSED MERGE_APPEND_PATH_NOT_ADMITTED until the append route is admitted
         ".stegverse/node-ledger/org-ledger-head-signers.v1.json":
             "sha256:3be27ff079433995d5eba111a5bb8cbe058e492938fb2b7ca299fe7bf6b69297",
@@ -531,9 +539,11 @@ PINNED_NODE_HEALTH_REPORT_PRODUCER = {
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft)", "commit": "c2c57505535fb89ee88477eda1378c5fc610e0f7"},
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft)", "commit": "1cbad77eaff3254ea30fb9d3377d40abcf6728df"},
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft)", "commit": "a2ee67e65c3d1da83dd2d750d48ea8b282d7604e"},
-        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; code byte-identical to a2ee67e6, "
-                         "only the #431 contract fixtures changed)",
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; code byte-identical to a2ee67e6, only the #431 "
+                         "contract fixtures changed)",
          "commit": "733162978292fbc7be3a562a4fa9f5bed4ada91e"},
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; producer unchanged)",
+         "commit": "74509feca062d5f17dbefe5730cbb1304ab6b318"},
     ],
 }
 # Org InTr endpoint model, aligned to #432 @a2ee67e6 and its published v1 schemas (runtime/intr_pinned/schemas/):
@@ -649,13 +659,15 @@ ORG_LEDGER_PREREQUISITES = (
     ("ORG_LEDGER_GENESIS_NOT_PINNED", "ORG_LEDGER_GENESIS_PINNED_BY_CONTRACT",
      "StegVerse-org/LLM-adapter#431 (expected_genesis_receipt_sha256, null on purpose until the genesis is observed), "
      "Lane B",
-     "repository_ledger_location.expected_genesis_receipt_sha256 set by an admitted change to the observed org genesis "
-     "receipt_sha256 (read back from refs/stegverse/organization-ledger), then re-vendor",
-     "when the org genesis is observed and pinned in #431's contract; event-driven, never on a timer"),
+     "repository_ledger_location.expected_genesis_receipt_sha256 written by the REPOSITORY_LEDGER_GENESIS_PIN "
+     "transition (StegVerse-org/LLM-adapter#431) from the observed REPOSITORY_LEDGER_INITIALIZATION genesis "
+     "receipt_sha256 on refs/stegverse/organization-ledger, never by hand and never invented, then re-vendor",
+     "when the REPOSITORY_LEDGER_GENESIS_PIN transition runs on the receipted genesis record and its contract write "
+     "is admitted; event-triggered by that record, no cron, no polling, no person"),
     ("MERGE_APPEND_PATH_NOT_ADMITTED", "ORG_LEDGER_HEAD_AUTHENTICATED_BY_APPEND_ROUTE",
      "TV/TVC (publishes the ORG_LEDGER_HEAD attester via GitHub Product) + Lane C (admits the org-ledger append route)",
      "a TV/TVC-custodied Ed25519 ORG_LEDGER_HEAD key published in .stegverse/node-ledger/org-ledger-head-signers.v1.json "
-     "(empty at #432 @73316297) and the admitted append route attesting each org-ledger head; a TV/TVC transition, "
+     "(empty at #432 @74509fec) and the admitted append route attesting each org-ledger head; a TV/TVC transition, "
      "not a blocker",
      "when TV/TVC publishes the head attester and the append route is admitted; event-driven, never on a timer"),
 )

@@ -239,9 +239,10 @@ REASONS: dict[str, tuple[str, str]] = {
                                        "from a local StegVerse-org/.github object store (git archive <ref> <namespace>; "
                                        "no network), with a REPOSITORY_LEDGER_INITIALIZATION genesis for this repository"),
     "ORG_LEDGER_GENESIS_NOT_PINNED": ("ORG_LEDGER_GENESIS_PINNED_BY_CONTRACT", "repository_ledger_location."
-                                      "expected_genesis_receipt_sha256 in .stegverse/transition-ledger/contract.json: "
-                                      "the org genesis receipt the registry designates (a field #431's contract shape "
-                                      "has to add)"),
+                                      "expected_genesis_receipt_sha256 in .stegverse/transition-ledger/contract.json, "
+                                      "set to the observed REPOSITORY_LEDGER_INITIALIZATION genesis receipt_sha256 by "
+                                      "the REPOSITORY_LEDGER_GENESIS_PIN transition (StegVerse-org/LLM-adapter#431), "
+                                      "never by hand and never invented"),
     "ORG_LEDGER_GENESIS_MISMATCH": ("ORG_LEDGER_GENESIS_PINNED_BY_CONTRACT", "the store's namespace genesis must be "
                                     "the contract's expected_genesis_receipt_sha256; a store that minted its own "
                                     "genesis is not the org ledger"),
@@ -297,8 +298,20 @@ RETRY_431 = ("llm_adapter.endpoint_ledger_anchor.evaluate_anchored(...) once Ste
              "repository_ledger_location (with expected_genesis_receipt_sha256) is in .stegverse/transition-ledger/"
              "contract.json")
 OWNING_431 = OWNING_GOAL + "; blocked on StegVerse-org/LLM-adapter#431 (repository_ledger_location designation)"
-NEXT_431 = ("when StegVerse-org/LLM-adapter#431 lands the repository_ledger_location designation (and the pinned org "
-            "genesis) in the contract; event-driven, never on a timer")
+NEXT_431 = ("when StegVerse-org/LLM-adapter#431 lands the repository_ledger_location designation in the contract; "
+            "event-driven, never on a timer")
+#: ORG_LEDGER_GENESIS_NOT_PINNED waits on #431's REPOSITORY_LEDGER_GENESIS_PIN transition, not on a person
+GENESIS_PIN_TRANSITION = "REPOSITORY_LEDGER_GENESIS_PIN"
+GENESIS_PIN_ENTRYPOINT = ("scripts/llm_adapter_repository_ledger_genesis_pin.py plan --org-ledger <read-only copy of "
+                          "refs/stegverse/organization-ledger> --genesis-receipt <sha256 named by the receipted genesis "
+                          "record>")
+RETRY_PIN = ("llm_adapter.endpoint_ledger_anchor.evaluate_anchored(...) once the REPOSITORY_LEDGER_GENESIS_PIN "
+             "transition has written repository_ledger_location.expected_genesis_receipt_sha256 into "
+             ".stegverse/transition-ledger/contract.json")
+NEXT_PIN = ("when the REPOSITORY_LEDGER_GENESIS_PIN transition (StegVerse-org/LLM-adapter#431; entrypoint "
+            + GENESIS_PIN_ENTRYPOINT + ") runs on the receipted REPOSITORY_LEDGER_INITIALIZATION genesis record on "
+            "the org ledger and its contract write and consumes receipt are admitted; event-triggered by that "
+            "record, no cron, no polling, no person")
 TRANSPORT_PREDICATE = "INSTALLED_INTR_TRANSPORT_OBSERVED_ON_RECEIPTS"
 TRANSPORT_REASONS: dict[str, tuple[str, str]] = {
     TRANSPORT_FAILURE_CODE: (TRANSPORT_PREDICATE, "the node's current NODE_INGRESS_ADMITTED record on the anchored chain "
@@ -350,6 +363,8 @@ def non_allow(reason: str, detail: str, *, node_id: Any = None, schema: str = RE
     predicate, repair = reasons[reason]
     if reason in AWAITS_431 and reasons is REASONS:
         retry_entrypoint, owning_existing_goal, next_attempt = RETRY_431, OWNING_431, NEXT_431
+        if reason == "ORG_LEDGER_GENESIS_NOT_PINNED":
+            retry_entrypoint, next_attempt = RETRY_PIN, NEXT_PIN
     return {"schema": schema, "disposition": FAIL_CLOSED, "node_id": node_id if isinstance(node_id, str) else None,
             "healthy_node_established": False, "reason": reason, "detail": detail,
             "failure_code": failure_code, "failed_predicate": predicate, "required_evidence_or_repair": repair,

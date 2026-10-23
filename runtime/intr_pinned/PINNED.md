@@ -1,17 +1,18 @@
 # Pinned InTr code (vendored byte-identical, digest-pinned; not a dependency)
 
 Everything under `runtime/intr_pinned/` is a byte-identical copy of StegVerse-org/LLM-adapter at
-`733162978292fbc7be3a562a4fa9f5bed4ada91e` (draft PR StegVerse-org/LLM-adapter#432, Lane B anchored-root check with
+`74509feca062d5f17dbefe5730cbb1304ab6b318` (draft PR StegVerse-org/LLM-adapter#432, Lane B anchored-root check with
 LC-KV-16 inside evaluate_anchored, published v1 schemas; code byte-identical to @a2ee67e6, which reworked the failure
 precedence, pinned the org genesis by the #431 contract, required an append-route head attestation and the InTr
-carrier; 73316297 changed only #432's #431 contract fixtures),
+carrier; 73316297 changed only #432's #431 contract fixtures; 74509fec changed only endpoint_ledger_anchor's
+ORG_LEDGER_GENESIS_NOT_PINNED retry/next_attempt, which now name the REPOSITORY_LEDGER_GENESIS_PIN transition),
 LC-KV-13, InTr and Mesh Destinations lane, StegVerse-org/.github#162), kept at its upstream-relative layout because
 #432's `pinned_code_failure` hashes `ROOT/<path>` for every entry of its pinned-code-digests file (ROOT =
 `runtime/intr_pinned`). Stdlib only: `llm_adapter/ed25519_verify.py` is Lane B's stdlib Ed25519 verify (#430/#432).
 
 | file | sha256 |
 | --- | --- |
-| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `261966f309f7b5786b46b64d2fba14e48fd853bcfab879b75faf63195eb6f1eb` |
+| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `d47cd0a4a0409ae79161be64c79e28e147f98ead55687ddeb2e744d3537fc6f4` |
 | `llm_adapter/org_ledger_location.py` (designated org ledger, #431 location, pinned genesis, head attestation) | `b51e6a8bd39ba6fd83044222a3858a2cb0c437020e3e9abbe97c4494d41f2681` |
 | `llm_adapter/intr_transport_carrier.py` (InTr path pair that carries the ingress signal; stdlib) | `9f460c078f5aba3a25edfecaf7e240334d943c3bf0b0cecc5972fc59e47501bf` |
 | `llm_adapter/healthy_node_evaluator.py` (evaluate, unchanged since #428) | `fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58` |
@@ -36,11 +37,11 @@ LC-KV-13, InTr and Mesh Destinations lane, StegVerse-org/.github#162), kept at i
 The canonical digests map in the pinned-code-digests file hashes to
 `sha256:86f8b5d008a5e70e7843238388fbddf6975ec994f9fcc1b115d56dd3f40a3360`; an anchored genesis binds that value.
 Evaluator provenance (same bytes): #428 @0b37fe3b, #429 @5f5f7bbe, #430 @4e1499ab and @3c106de4, #432 @c2c57505,
-@1cbad77e, @a2ee67e6 and @73316297. `node_ledger_dissolution.py` (117f9c0c) is not imported by evaluate_anchored at
-73316297 and is not vendored. The genesis-bound pins evaluate_anchored returns on ALLOW (`anchor.pinned_digests`) are evaluator
+@1cbad77e, @a2ee67e6, @73316297 and @74509fec. `node_ledger_dissolution.py` (117f9c0c) is not imported by evaluate_anchored at
+74509fec and is not vendored. The genesis-bound pins evaluate_anchored returns on ALLOW (`anchor.pinned_digests`) are evaluator
 `fdaa2005...1f58` and producer `21249f25...f361`; health receipts carry no per-receipt pinned_digests.
 
-TEST-ONLY copies (under `tests/fixtures/intr_pinned_test_only/`, byte-identical at 73316297, never loaded by the
+TEST-ONLY copies (under `tests/fixtures/intr_pinned_test_only/`, byte-identical at 74509fec, never loaded by the
 runtime): `ed25519_test_signer.py` (`tests/ed25519_test_signer.py`) `3173bfcf...6fe52`;
 `contract_with_431_repository_ledger_location.json` (a byte copy of #431's contract, `expected_genesis_receipt_sha256`
 null) `d97cd4dc...5e89f`; `contract_with_431_location_and_pinned_genesis.json` (the same with the test genesis pinned)

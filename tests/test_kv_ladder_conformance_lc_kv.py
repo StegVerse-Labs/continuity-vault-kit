@@ -176,7 +176,14 @@ class LcKv15LedgerIdentityTransport(unittest.TestCase):
         refused(self, TwoLayers(ledger_checkout=e0_health_ledger(NODE, own_genesis=True)[0]).kv_access(),
                 "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_MISMATCH", "C", None)
         with e0_contract(E0_CONTRACT_431):  # #431's location without the pinned genesis
-            refused(self, TwoLayers().kv_access(), "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_NOT_PINNED", "B", None)
+            out = TwoLayers().kv_access()
+            refused(self, out, "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_NOT_PINNED", "B", None)
+            # #432 @74509fec: the next attempt is the REPOSITORY_LEDGER_GENESIS_PIN transition, not a person
+            self.assertIn("REPOSITORY_LEDGER_GENESIS_PIN", out["health_evaluation"]["next_attempt"])
+            pin_row = [r for r in ep.org_ledger_prerequisites() if r.get("failure_code") ==
+                       "ORG_LEDGER_GENESIS_NOT_PINNED"]
+            self.assertEqual(len(pin_row), 1)
+            self.assertIn("REPOSITORY_LEDGER_GENESIS_PIN", pin_row[0]["next_attempt"])
         source = e0_health_ledger(NODE)[0]
         with production_trust_anchors():
             ep.TRUST_ANCHORS["intr_transport"] = E0_TRANSPORT
@@ -325,7 +332,7 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
 
 class LcKv16CallerStoreAndIngressNeverAllow(unittest.TestCase):
     """LC-KV-16 class and P1 rev 6 (LC-KV-15), through KV's wrapper inside the E0 test anchors: a caller-named object
-    store or a caller-appended ingress record never reaches ALLOW. #432 @73316297 refuses each case; KV maps it."""
+    store or a caller-appended ingress record never reaches ALLOW. #432 @74509fec refuses each case; KV maps it."""
 
     def assert_no_allow(self, source, cause, klass, evidence=None):
         out = TwoLayers(ledger_checkout=source).kv_access(evidence=evidence)
