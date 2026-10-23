@@ -5,12 +5,27 @@ that names INTERLOCK_INTR has not thereby arrived over it. A crossing counts as
 an InTr crossing only when the path pair that carried it is on receipts:
 
   1. INTR_MESH_PATH_TRANSFER (evidence stegverse.intr-path-transfer-evidence/v1),
-     retained on the organization ledger at source-receipts/<hex>.json, then
+     the sender's own egress record, on the sender's own recorded receipt chain
+     (a node's own ledger), never copied onto the organization ledger, then
   2. INTR_MESH_PATH_INGRESS, operation ORGANIZATION_INTR_DESTINATION_INGRESS
-     (evidence stegverse.intr-path-ingress-evidence/v1), on the organization ledger
-     at #431's location, addressed to that location, linking the source half by seal,
+     (evidence stegverse.intr-path-ingress-evidence/v1), the Org's own record on
+     the organization ledger at #431's location: digest-only, exactly {schema,
+     path_id, communication_id, source_repository_receipt_sha256,
+     destination_location, boundary_evidence {operation, path_id,
+     communication_id, endpoint_head_sha256}} (the #432 crossing_evidence shape,
+     endpoint_ledger_designation.ORG_CROSSING_EVIDENCE_KEYS), naming the source
+     half by its seal and carrying no body,
 
-with the communication body digest equal to the arriving signal's digest. These
+with the communication body digest (read from the source half) equal to the arriving signal's digest.
+
+Q-PERMANENT-REPOSITORY-LEDGER (StegVerse-org/.github#167 comment 6374130335): the
+earlier carrier retained the sender's source half at source-receipts/<hex>.json and
+copied the message body into the Org's ingress record, so a node's own egress chain
+was written into repository-ledger/StegVerse-org/LLM-adapter. That namespace is
+split: LLM-adapter's own repository work and the Org's digest-only crossing records
+stay on it (ORG-kind); the node's record stays on the node's own ledger
+(ruling 6373412055 item 3). An Org-emitted source half (the genesis-pin ingress,
+StegVerse-org/.github's own path) is an Org record and may still be kept by the Org. These
 are the existing InTr classes (StegVerse-org/.github data/intr-protocol/v1 and
 resident-runtime/intr_path_ingress.py) in the emit.py receipt shape
 (stegverse.repo-transition-receipt/v1), with the same evidence fields and
@@ -18,9 +33,11 @@ payload_sha256 rule as #432's endpoint_ledger_anchor. Nothing here mints a class
 
 `verify` is pure: no clock, no network, no file or process access. It is given
 the org chain already read back (newest first, seals checked by
-healthy_node_evaluator.read_chain), the retained source copy, and the head the
-caller pinned. `observe` is the I/O step that reads those through
-org_ledger_location.designated_org_ledger and then calls `verify`. That read-back
+healthy_node_evaluator.read_chain), the source half as read back from the
+sender's own chain, and the head the caller pinned. `observe` is the I/O step:
+it reads the org chain through org_ledger_location.designated_org_ledger and the
+source half from the sender's own ledger (``source_ledger_root``, seals checked),
+then calls `verify`. That read-back
 accepts a store only at the contract's pinned genesis and with a published
 append-route head attestation (LC-KV-16 rev 5); none is published, so every
 carrier is refused MERGE_APPEND_PATH_NOT_ADMITTED until the route is admitted.
@@ -47,12 +64,19 @@ DESTINATION_EVIDENCE_SCHEMA = "stegverse.intr-path-ingress-evidence/v1"
 MESSAGE_CLASS = "ecosystem.communication"
 CAPABILITY = "intr-destination"
 ENDPOINT_KIND = "NODE_INGRESS_SIGNAL"
-SOURCE_INCLUSION = "READ_BACK_FROM_THE_ENDPOINT_LEDGER_AND_RETAINED"
+SOURCE_INCLUSION = "READ_BACK_FROM_THE_SENDER_OWN_LEDGER_NEVER_RETAINED"
 #: #432's dissolution class (endpoint_ledger_anchor.DISSOLVED_CLASS), reused by value.
 DISSOLVED_CLASS = "NODE_LEDGER_DISSOLVED"
 
-#: Source-evidence fields destination_evidence rebuilds the destination half from; one missing is refused, not raised.
+#: Source-evidence fields a source half must carry (destination_evidence takes path_id and communication_id from
+#: them); one missing is refused, not raised.
 SOURCE_REBUILD_KEYS = ("path_id", "message", "message_sha256", "endpoint_kind", "communication_id")
+#: The only keys the Org's own ingress record may carry: pointers and digests (= #432/#431
+#: endpoint_ledger_designation.ORG_CROSSING_EVIDENCE_KEYS / ORG_CROSSING_BOUNDARY_KEYS, by value).
+ENDPOINT_HEAD_KEY = "endpoint_head_sha256"
+DESTINATION_KEYS = frozenset({"schema", "path_id", "communication_id", "source_repository_receipt_sha256",
+                              "destination_location", "boundary_evidence"})
+DESTINATION_BOUNDARY_KEYS = frozenset({"operation", "path_id", "communication_id", ENDPOINT_HEAD_KEY})
 
 #: The six-field code and predicate for a transport that was named but not observed.
 FAILURE_CODE = "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED"
@@ -60,13 +84,14 @@ PREDICATE = "INSTALLED_INTR_TRANSPORT_OBSERVED_ON_RECEIPTS"
 OWNING_GOAL = "StegVerse-org/.github#162 (LLM-ADAPTER-INTERLOCK-INTR-TRANSPORT-ENABLEMENT-001)"
 RETRY_ENTRYPOINT = ("llm_adapter.node_ingress_boundary.admit(signal, transport='INTERLOCK_INTR', "
                     "intr_carrier={destination_receipt_sha256, org_ledger_head_receipt_sha256, "
-                    "org_ledger_head_attestation}, "
+                    "org_ledger_head_attestation, source_ledger_root}, "
                     "org_ledger_git_dir=<local StegVerse-org/.github object store>)")
 NEXT_ATTEMPT = ("Event-triggered: when the carrying INTR_MESH_PATH_INGRESS is on the organization ledger at "
                 "#431's location; no clock, no polling.")
-REPAIR = ("Carry the signal over InTr: retain its INTR_MESH_PATH_TRANSFER source half at source-receipts/<hex>.json "
-          "and append the INTR_MESH_PATH_INGRESS (ORGANIZATION_INTR_DESTINATION_INGRESS) at " + ORG_LEDGER_LOCATION +
-          " whose message body is the signal, then cite that destination receipt and the org ledger head.")
+REPAIR = ("Carry the signal over InTr: the sender records its INTR_MESH_PATH_TRANSFER source half (message body = the "
+          "signal) on its own recorded receipt chain, and the Org records its own digest-only INTR_MESH_PATH_INGRESS "
+          "(ORGANIZATION_INTR_DESTINATION_INGRESS) at " + ORG_LEDGER_LOCATION + " naming that source half by seal; "
+          "then cite that destination receipt, the org ledger head and the sender's ledger read-back.")
 
 
 def sha(value: Any) -> str:
@@ -106,6 +131,8 @@ def destination_evidence_failure(source: Any) -> tuple[str, str] | None:
     if missing:
         return "INTR_SOURCE_EVIDENCE_INCOMPLETE", (f"{source.get('receipt_sha256')!r} lacks {', '.join(missing)}, so "
                                                    "the destination half cannot be rebuilt from it")
+    if not (isinstance(source["receipt_sha256"], str) and source["receipt_sha256"].startswith("sha256:")):
+        return "INTR_SOURCE_EVIDENCE_INCOMPLETE", f"{source['receipt_sha256']!r} is not a sha256 seal"
     return None
 
 
@@ -118,21 +145,17 @@ def refusal(reason: str, detail: str) -> dict[str, Any]:
 
 
 def destination_evidence(source: Mapping[str, Any]) -> dict[str, Any]:
-    """The destination half's evidence for a sealed source receipt, or a six-field FAIL_CLOSED (never a KeyError)
-    when the source half lacks a field it is rebuilt from (LC-KV-20)."""
+    """The Org's own digest-only ingress evidence for a sealed source half: pointers and digests only, no body, no
+    endpoint as originator (the #432 crossing_evidence shape). A source half lacking a field it is built from is the
+    six-field FAIL_CLOSED, never a KeyError (LC-KV-20)."""
     failed = destination_evidence_failure(source)
     if failed:
         return refusal(*failed)
-    ev = source["evidence"]
-    core = {"schema": DESTINATION_EVIDENCE_SCHEMA, "repository": REPOSITORY, "path_id": ev["path_id"],
-            "source_repository": source["repository"], "source_repository_receipt_sha256": source["receipt_sha256"],
-            "message": ev["message"], "message_sha256": ev["message_sha256"],
-            "addressed_location": ORG_LEDGER_LOCATION, "endpoint_kind": ev["endpoint_kind"],
-            "source_inclusion": SOURCE_INCLUSION}
-    return {**core, "payload_sha256": sha(core), "disposition": "ALLOW", "communication_id": ev["communication_id"],
+    ev, seal = source["evidence"], source["receipt_sha256"]
+    return {"schema": DESTINATION_EVIDENCE_SCHEMA, "path_id": ev["path_id"], "communication_id": ev["communication_id"],
+            "source_repository_receipt_sha256": seal, "destination_location": ORG_LEDGER_LOCATION,
             "boundary_evidence": {"operation": DESTINATION_OPERATION, "path_id": ev["path_id"],
-                                  "communication_id": ev["communication_id"],
-                                  "source_repository_receipt_sha256": source["receipt_sha256"]}}
+                                  "communication_id": ev["communication_id"], ENDPOINT_HEAD_KEY: seal}}
 
 
 def _sealed(receipt: Any) -> bool:
@@ -143,8 +166,9 @@ def _sealed(receipt: Any) -> bool:
 
 
 def verify(signal: Any, *, destination_receipt_sha256: Any, org_ledger_head_receipt_sha256: Any,
-           org_chain: Any, retained_source: Any) -> tuple[str, str] | None:
-    """Pure check that one InTr path pair at #431's location carried exactly this signal."""
+           org_chain: Any, source_record: Any) -> tuple[str, str] | None:
+    """Pure check that one InTr path pair carried exactly this signal: the Org's digest-only ingress at #431's
+    location names, by seal, ``source_record``, the sender's egress record read back from the sender's own chain."""
     if not isinstance(signal, Mapping):
         return "SIGNAL_NOT_AN_OBJECT", "the arriving signal is not an object"
     if not isinstance(org_chain, list) or not org_chain:
@@ -160,13 +184,21 @@ def verify(signal: Any, *, destination_receipt_sha256: Any, org_ledger_head_rece
             or ev.get("schema") != DESTINATION_EVIDENCE_SCHEMA
             or (ev.get("boundary_evidence") or {}).get("operation") != DESTINATION_OPERATION):
         return "INTR_DESTINATION_NOT_AN_INGRESS", f"{destination_receipt_sha256} is not a sealed {DESTINATION_CLASS}"
-    if ev.get("addressed_location") != ORG_LEDGER_LOCATION:
-        return "INTR_DESTINATION_WRONG_LOCATION", f"addressed {ev.get('addressed_location')!r}, not {ORG_LEDGER_LOCATION}"
+    if ev.get("destination_location") != ORG_LEDGER_LOCATION:
+        return "INTR_DESTINATION_WRONG_LOCATION", (f"addressed {ev.get('destination_location')!r}, not "
+                                                   f"{ORG_LEDGER_LOCATION}")
+    be = ev.get("boundary_evidence") if isinstance(ev.get("boundary_evidence"), Mapping) else {}
+    if set(ev) != DESTINATION_KEYS or set(be) != DESTINATION_BOUNDARY_KEYS:
+        return "INTR_DESTINATION_NOT_DIGEST_ONLY", (f"{destination_receipt_sha256} carries "
+                                                    f"{sorted(set(ev) ^ DESTINATION_KEYS)} / boundary_evidence "
+                                                    f"{sorted(set(be) ^ DESTINATION_BOUNDARY_KEYS)}: the Org's record "
+                                                    "of a crossing holds pointers and digests only, never the body")
     source_sha = ev.get("source_repository_receipt_sha256")
-    if (not _sealed(retained_source) or retained_source.get("receipt_sha256") != source_sha
-            or retained_source.get("transition_class") != SOURCE_CLASS):
-        return "INTR_SOURCE_NOT_RETAINED", f"no sealed {SOURCE_CLASS} retained at source-receipts for {source_sha!r}"
-    sev = retained_source.get("evidence") if isinstance(retained_source.get("evidence"), Mapping) else {}
+    if (not _sealed(source_record) or source_record.get("receipt_sha256") != source_sha
+            or source_record.get("transition_class") != SOURCE_CLASS):
+        return "INTR_SOURCE_NOT_ON_SENDER_LEDGER", (f"no sealed {SOURCE_CLASS} {source_sha!r} was read back from the "
+                                                    "sender's own recorded receipt chain")
+    sev = source_record.get("evidence") if isinstance(source_record.get("evidence"), Mapping) else {}
     if (sev.get("schema") != SOURCE_EVIDENCE_SCHEMA or not payload_ok(sev)
             or sev.get("destination_location") != ORG_LEDGER_LOCATION
             or sev.get("destination_organization") != ORGANIZATION
@@ -174,13 +206,13 @@ def verify(signal: Any, *, destination_receipt_sha256: Any, org_ledger_head_rece
         return "INTR_SOURCE_NOT_A_TRANSFER", f"{source_sha} is not an {SOURCE_EVIDENCE_SCHEMA} to {ORG_LEDGER_LOCATION}"
     # A source half missing a field the destination half is rebuilt from fails closed here (six fields at the
     # caller), never with a KeyError out of destination_evidence (LC-KV-20).
-    incomplete = destination_evidence_failure(retained_source)
+    incomplete = destination_evidence_failure(source_record)
     if incomplete:
         return incomplete
     message = sev.get("message") if isinstance(sev.get("message"), Mapping) else {}
     if message.get("message_class") != MESSAGE_CLASS or sev.get("message_sha256") != sha(dict(message)):
         return "INTR_MESSAGE_UNSEALED", "message is not a sealed " + MESSAGE_CLASS
-    if not payload_ok(ev) or ev != destination_evidence(retained_source):
+    if ev != destination_evidence(source_record):
         return "INTR_PAIR_NOT_LINKED", f"{destination_receipt_sha256} does not link {source_sha} by seal and message"
     if sha(message.get("body")) != sha(dict(signal)):
         return "INTR_BODY_IS_NOT_THE_SIGNAL", (f"carried body {sha(message.get('body'))} is not the signal "
@@ -199,17 +231,22 @@ def verify(signal: Any, *, destination_receipt_sha256: Any, org_ledger_head_rece
     return None
 
 
-def read_retained(org_ledger_root: Any, digest: Any) -> Any:
-    if not isinstance(digest, str) or not digest.startswith("sha256:") or "/" in digest:
+def read_source(source_ledger_root: Any, digest: Any) -> Any:
+    """The sender's egress record `digest`, read back from the sender's own recorded receipt chain (seals and links
+    checked by healthy_node_evaluator.read_chain), or None. Never read from the organization ledger."""
+    from llm_adapter import healthy_node_evaluator as hne
+    if source_ledger_root is None or not isinstance(digest, str) or not digest.startswith("sha256:"):
         return None
     try:
-        return json.loads((Path(org_ledger_root) / "source-receipts" / (digest[7:] + ".json")).read_text("utf-8"))
+        chain, failure, _ = hne.read_chain(Path(source_ledger_root))
     except Exception:
         return None
+    return None if failure else next((r for r in chain if r.get("receipt_sha256") == digest), None)
 
 
 def observe(signal: Any, intr_carrier: Any, org_ledger_git_dir: Any) -> tuple[dict[str, Any] | None, tuple[str, str] | None]:
-    """Read the pair back from #431's location, then `verify`. Returns (carrier, None) or (None, (reason, detail))."""
+    """Read the Org's half back from #431's location and the sender's half from the sender's own ledger
+    (intr_carrier["source_ledger_root"]), then `verify`. Returns (carrier, None) or (None, (reason, detail))."""
     from llm_adapter import healthy_node_evaluator as hne, org_ledger_location as location
     if not isinstance(intr_carrier, Mapping):
         return None, ("INTR_CARRIER_NOT_CITED", "INTERLOCK_INTR was named; no carrying path pair was cited")
@@ -224,10 +261,10 @@ def observe(signal: Any, intr_carrier: Any, org_ledger_git_dir: Any) -> tuple[di
                             if r.get("receipt_sha256") == intr_carrier.get("destination_receipt_sha256")), {})
         source_sha = (destination.get("evidence") or {}).get("source_repository_receipt_sha256") \
             if isinstance(destination.get("evidence"), Mapping) else None
-        retained = read_retained(root, source_sha)
+        source = read_source(intr_carrier.get("source_ledger_root"), source_sha)
         refused = verify(signal, destination_receipt_sha256=intr_carrier.get("destination_receipt_sha256"),
                          org_ledger_head_receipt_sha256=intr_carrier.get("org_ledger_head_receipt_sha256"),
-                         org_chain=chain, retained_source=retained)
+                         org_chain=chain, source_record=source)
     if refused:
         return None, refused
     return {"destination_receipt_sha256": intr_carrier["destination_receipt_sha256"],
@@ -237,5 +274,6 @@ def observe(signal: Any, intr_carrier: Any, org_ledger_git_dir: Any) -> tuple[di
             "carrier_classes": [SOURCE_CLASS, DESTINATION_CLASS]}, None
 
 
-__all__ = ["DESTINATION_CLASS", "FAILURE_CODE", "ORG_LEDGER_LOCATION", "PREDICATE", "SOURCE_CLASS",
-           "destination_evidence", "destination_evidence_failure", "observe", "refusal", "payload_ok", "path_id", "source_evidence", "verify"]
+__all__ = ["DESTINATION_BOUNDARY_KEYS", "DESTINATION_CLASS", "DESTINATION_KEYS", "FAILURE_CODE", "ORG_LEDGER_LOCATION",
+           "PREDICATE", "SOURCE_CLASS", "destination_evidence", "destination_evidence_failure", "observe", "refusal",
+           "payload_ok", "path_id", "read_source", "source_evidence", "verify"]

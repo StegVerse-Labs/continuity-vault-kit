@@ -1,6 +1,36 @@
 # Pinned InTr code (vendored byte-identical, digest-pinned; not a dependency)
 
-## Pin entry 2026-10-23: StegVerse-org/LLM-adapter#432 @c4cfc145 (current)
+## Pin entry 2026-10-23: StegVerse-org/LLM-adapter#432 @eecf4843 (current)
+
+Source PR StegVerse-org/LLM-adapter#432 (draft), head `eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e`, re-pinned by Lane B to
+cvk#263 @9bc54d05 (StegVerse-org/.github#162 comment 6374660708; #431 @`64121f4d7dafd04a7ad926a2c20165bcd73d2ff4`,
+#433 unchanged @3f15a691). Every file below is a byte copy of `eecf4843:<path>` (checked byte-for-byte and by sha256).
+Q-PERMANENT-REPOSITORY-LEDGER / LC-KV-25: PERMANENT is designated on the node's own storage endpoint (store_type
+`NODE_STORAGE_ENDPOINT`, watermark `NODE_RECORDED_RECEIPT_CHAIN_HEAD`); no node storage-endpoint descriptor or reader is
+documented, so production is FAIL_CLOSED `NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED` (class B, reader id
+UNKNOWN_NOT_AUTHENTICALLY_OBSERVED). A PERMANENT org GIT_REF is DENY `ENDPOINT_ORG_MEMBERSHIP_REFUSED` (class A). The
+Org-side crossing readback (`ORG_CROSSING_READER`) is unset in production (`KV_CROSSING_RECORD_NOT_OBSERVED`, class B).
+The carrier is v2: the INTR_MESH_PATH_TRANSFER source half lives on the sender's own ledger, and nothing is retained on
+the org ledger (`retain` / `read_retained` are removed). The cvk#263 @9bc54d05 contracts #432 carries as test fixtures
+(`tests/fixtures/endpoint-ledger-designation/cvk263-9bc54d05/`) are kv `c9cc8913...89ce1` and skap `7f0a0536...a86f`,
+equal to cvk#263's own; they are not vendored here.
+
+Changed at eecf4843 (previous digest from the c4cfc145 entry below):
+
+| file | sha256 at eecf4843 | at c4cfc145 |
+| --- | --- | --- |
+| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09` | `2d80e443...b6b8` |
+| `llm_adapter/endpoint_ledger_designation.py` (= #431 @64121f4d) | `d69dbb22a1446a22e84b86532f93d9698ac6dc3c82e6aa6ee20882c6764049d8` | `35217d33...b883` |
+| `llm_adapter/intr_transport_carrier.py` (carrier v2, digest-only) | `9d3e69c838d7e20533f0c5a06401b018948cb12a4201889f6b41d4b497df720f` | `81ad9d3b...1aca6` |
+| `schemas/endpoint-kind.v1.json` | `592bb3e5d67685912426a331769c44f60e75ff914138e0b0afc279c0c177b7a7` | `9952a545...dda27` |
+
+Every other vendored file is byte-identical at eecf4843 (same digests); the changed modules add no imports, so the load
+order is unchanged. KV's E0 harness adds one TEST-ONLY fixture, `tests/fixtures/intr_pinned_test_only/node.designation.json`
+(byte copy of `eecf4843:tests/fixtures/endpoint-ledger-designation/node.designation.json`,
+`d004bb72cba3143b2a4a544851eff1ae688094a44ceb72c9b4c1b5a41e091b15`), and TEST-ONLY `NODE_STORAGE_ENDPOINT` reader and
+`ORG_CROSSING_READER` stand-ins in force only with the labelled E0 anchors (as #432's own tests do).
+
+## Pin entry (history): StegVerse-org/LLM-adapter#432 @c4cfc145 (superseded by eecf4843 above; kept unedited)
 
 Source PR StegVerse-org/LLM-adapter#432 (draft), head `c4cfc14566786e9da43d7a6d45d569745a582a3d`, re-pinned by Lane B to
 cvk#263 @bf684aad (StegVerse-org/.github#162 comment 6373907403; #431 @`2494d75a02751ec534d613e000e97ad8bf68180f`,

@@ -76,14 +76,14 @@ HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinn
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
 #: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md.
 #: The evaluator bytes (fdaa2005...1f58) are unchanged from #428 @0b37fe3b through #429, #430 and #432 @c2c57505 and
-#: @1cbad77e, @a2ee67e6, @73316297, @74509fec and @c4cfc145 (vendored head; previously 74509fec; after a2ee67e6 only #432's test fixtures and the
+#: @1cbad77e, @a2ee67e6, @73316297, @74509fec, @c4cfc145 and @eecf4843 (vendored head; previously c4cfc145; after a2ee67e6 only #432's test fixtures and the
 #: GENESIS_NOT_PINNED next_attempt text, now naming REPOSITORY_LEDGER_GENESIS_PIN, changed).
 #: Layer 1 never calls evaluate() bare any more: it calls #432's evaluate_anchored (PINNED_ANCHORED_EVALUATOR), which
 #: runs Lane B's anchored-root check and then this evaluate(), unchanged, over the anchored root only.
 #:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
 PINNED_HEALTHY_NODE_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
-    "commit": "c4cfc14566786e9da43d7a6d45d569745a582a3d",
+    "commit": "eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e",
     "pull_request": "StegVerse-org/LLM-adapter#432 (draft; evaluator bytes unchanged since #428)",
     "module": "llm_adapter.healthy_node_evaluator",
     "callable": "evaluate",
@@ -156,11 +156,22 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
          "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
          "pinned_code_digests_file_sha256":
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
+
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; evaluator unchanged; re-pinned to "
+                         "continuity-vault-kit#263 @9bc54d05 via #431 @64121f4d (StegVerse-org/.github#162 comment "
+                         "6374660708): endpoint_ledger_anchor 153cf121, endpoint_ledger_designation d69dbb22, "
+                         "intr_transport_carrier 9d3e69c8, endpoint-kind.v1 592bb3e5; PERMANENT is a "
+                         "NODE_STORAGE_ENDPOINT designation, NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED)",
+         "commit": "eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
+         "pinned_code_digests_file_sha256":
+             "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
     ],
     "admission_order": "StegVerse-org/LLM-adapter#429 lands with or before #428; #432 builds on #430",
     "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430, #431 onboarding, #432) settles",
 }
-#: Lane B's anchored-root check (StegVerse-org/LLM-adapter#432 @c4cfc145, draft; was @74509fec). It is authoritative for whether a
+#: Lane B's anchored-root check (StegVerse-org/LLM-adapter#432 @eecf4843, draft; was @c4cfc145, @74509fec). It is authoritative for whether a
 #: caller-supplied node root is anchored on the org ledger; KV does not re-implement it. It needs the pinned producer
 #: modules at their upstream-relative paths (it hashes ROOT/<path> for every entry of the pinned-code-digests file, with
 #: ROOT = runtime/intr_pinned), so every file below is vendored byte-identical at that layout and re-hashed before every
@@ -175,11 +186,11 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
 PINNED_ANCHORED_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
     "pull_request": "StegVerse-org/LLM-adapter#432 (draft, Lane B anchored-root check)",
-    "commit": "c4cfc14566786e9da43d7a6d45d569745a582a3d",
+    "commit": "eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e",
     "module": "llm_adapter.endpoint_ledger_anchor",
     "callable": "evaluate_anchored",
     "source_path": "llm_adapter/endpoint_ledger_anchor.py",
-    "source_sha256": "sha256:2d80e443a96df667ba93da91e271549ee763d3eb570dfea9a808103f4b1ab6b8",
+    "source_sha256": "sha256:153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09",
     "result_schema": "stegverse.endpoint-ledger-anchor-result/v1",
     "pinned_code_digests_path": ".stegverse/node-ledger/pinned-code-digests.v1.json",
     "pinned_code_digests_file_sha256": "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8",
@@ -188,15 +199,15 @@ PINNED_ANCHORED_EVALUATOR = {
     "vendored_root": "runtime/intr_pinned",
     "vendored_files": {
         "llm_adapter/endpoint_ledger_anchor.py":
-            "sha256:2d80e443a96df667ba93da91e271549ee763d3eb570dfea9a808103f4b1ab6b8",
+            "sha256:153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09",
         # #432 @c4cfc145: #431 @2494d75a's designation module (byte copy) and the supplied-epoch helper, both executed
         "llm_adapter/endpoint_ledger_designation.py":
-            "sha256:35217d335ae6c054e1d0dfb0ffb72befc9ded184c93dee105093df5cd1b2b883",
+            "sha256:d69dbb22a1446a22e84b86532f93d9698ac6dc3c82e6aa6ee20882c6764049d8",
         "llm_adapter/supplied_epoch.py": "sha256:be91daad3d5557f810872731c3ea8cc36e1f13af569e1b7634f487fd36f44534",
         "llm_adapter/org_ledger_location.py":
             "sha256:b51e6a8bd39ba6fd83044222a3858a2cb0c437020e3e9abbe97c4494d41f2681",
         "llm_adapter/intr_transport_carrier.py":
-            "sha256:81ad9d3b42076c991443f3d79ec82c5f306eb8a8aa5f21228fe9faeb8b21aca6",
+            "sha256:9d3e69c838d7e20533f0c5a06401b018948cb12a4201889f6b41d4b497df720f",
         "llm_adapter/healthy_node_evaluator.py":
             "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
         "llm_adapter/ed25519_verify.py": "sha256:ab05e39a3e40b99f02ff199b178554e0ba435c3ff387dca3f896619770770232",
@@ -215,20 +226,20 @@ PINNED_ANCHORED_EVALUATOR = {
         ".stegverse/node-ledger/pinned-code-digests.v1.json":
             "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8",
         ".stegverse/transition-ledger/emit.py": "sha256:9579726de7ef915ac8cd61be1ba1c5ef6e34de4ca996504374b0dce7f7c2c9c3",
-        # supporting data read by the pinned modules (not in the pin set; byte-identical at c4cfc145)
+        # supporting data read by the pinned modules (not in the pin set; byte-identical at c4cfc145 and eecf4843)
         ".stegverse/transition-ledger/contract.json":
             "sha256:a59040e8cabe6dc618af0ba340cb5563ce726f645a76248ccb354961d29144e7",
         ".stegverse/heartbeat-awareness.json": "sha256:87b1c4006d3829ea70626d481012791c557e97bcd580a6c3d5ccc61389a6951b",
-        # published NODE_LEDGER_OPENED signer references (TV/TVC custody); empty at c4cfc145, so EPHEMERAL fails closed
+        # published NODE_LEDGER_OPENED signer references (TV/TVC custody); empty at eecf4843, so EPHEMERAL fails closed
         ".stegverse/node-ledger/node-ledger-opened-signers.v1.json":
             "sha256:478174cb89dc173e9bf7e8deb1db8b3881161e5a2fd10d6435298f74b6d3c63d",
-        # published org-ledger append-route head attesters (TV/TVC custody); empty at c4cfc145, so every org-ledger read
+        # published org-ledger append-route head attesters (TV/TVC custody); empty at eecf4843, so every org-ledger read
         # is FAIL_CLOSED MERGE_APPEND_PATH_NOT_ADMITTED until the append route is admitted
         ".stegverse/node-ledger/org-ledger-head-signers.v1.json":
             "sha256:3be27ff079433995d5eba111a5bb8cbe058e492938fb2b7ca299fe7bf6b69297",
         # Lane B's published v1 schemas (#432 @1cbad77e, unchanged at a2ee67e6); KV takes the endpoint_kind enum from endpoint-kind.v1.json
-        "schemas/endpoint-kind.v1.json": "sha256:9952a54526bf71809968ed719fcb5ea2fc55e865a1fbd0d67449d50561fdda27",
-        # KV/SKAP head signers read by endpoint_ledger_designation (byte copy of cvk#263's; signers [] at c4cfc145)
+        "schemas/endpoint-kind.v1.json": "sha256:592bb3e5d67685912426a331769c44f60e75ff914138e0b0afc279c0c177b7a7",
+        # KV/SKAP head signers read by endpoint_ledger_designation (byte copy of cvk#263's; signers [] at eecf4843)
         ".stegverse/node-ledger/kv-ledger-head-signers.v1.json":
             "sha256:758d798388599171c145e3d19ca4eb155ad3d3762a3721804da65c08ebc1fe72",
         "schemas/node-ledger-opened.v1.json":
@@ -568,6 +579,9 @@ PINNED_NODE_HEALTH_REPORT_PRODUCER = {
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; producer unchanged; re-pinned to "
                          "cvk#263 @bf684aad, StegVerse-org/.github#162 6373907403)",
          "commit": "c4cfc14566786e9da43d7a6d45d569745a582a3d"},
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; producer unchanged; re-pinned to "
+                         "cvk#263 @9bc54d05, StegVerse-org/.github#162 6374660708)",
+         "commit": "eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e"},
     ],
 }
 # Org InTr endpoint model, aligned to #432 @a2ee67e6 and its published v1 schemas (runtime/intr_pinned/schemas/):
@@ -640,7 +654,10 @@ ANCHOR_PREDICATE = "NODE_ROOT_ANCHORED_ON_ORG_LEDGER_BY_EVALUATE_ANCHORED"
 #: whose genesis or head does not match (ORG_LEDGER_GENESIS_MISMATCH, ORG_LEDGER_HEAD_NOT_AUTHENTICATED) is class C.
 ANCHOR_CLASS_B_REASONS = ("UNANCHORED", "ENDPOINT_LEDGER_UNREADABLE", "ORG_LEDGER_UNREADABLE",
                           "ORG_LEDGER_LOCATION_NOT_DESIGNATED", "ORG_LEDGER_LOCATION_UNREADABLE",
-                          "ORG_LEDGER_GENESIS_NOT_PINNED", "MERGE_APPEND_PATH_NOT_ADMITTED")
+                          "ORG_LEDGER_GENESIS_NOT_PINNED", "MERGE_APPEND_PATH_NOT_ADMITTED",
+                          # #432 @eecf4843 (class B there): PERMANENT's own storage endpoint has no documented reader,
+                          # and the Org-side crossing readback is not observed
+                          "NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED", "KV_CROSSING_RECORD_NOT_OBSERVED")
 INTR_TRANSPORT_PREDICATE = "REQUESTER_IDENTITY_AUTHENTICATED_BY_INSTALLED_INTR_TRANSPORT"
 INTR_TRANSPORT_RETRY = ("the installed InTr DEVICE->KV transport (Lane B, InTr and Mesh Destinations, "
                         "StegVerse-org/.github#162), then runtime.kv_interlock_endpoint.KVInterlockRuntime.handle")
@@ -695,7 +712,7 @@ ORG_LEDGER_PREREQUISITES = (
     ("MERGE_APPEND_PATH_NOT_ADMITTED", "ORG_LEDGER_HEAD_AUTHENTICATED_BY_APPEND_ROUTE",
      "TV/TVC (publishes the ORG_LEDGER_HEAD attester via GitHub Product) + Lane C (admits the org-ledger append route)",
      "a TV/TVC-custodied Ed25519 ORG_LEDGER_HEAD key published in .stegverse/node-ledger/org-ledger-head-signers.v1.json "
-     "(empty at #432 @c4cfc145) and the admitted append route attesting each org-ledger head; a TV/TVC transition, "
+     "(empty at #432 @eecf4843) and the admitted append route attesting each org-ledger head; a TV/TVC transition, "
      "not a blocker",
      "when TV/TVC publishes the head attester and the append route is admitted; event-driven, never on a timer"),
 )
