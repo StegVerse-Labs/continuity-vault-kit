@@ -235,7 +235,7 @@ class KVSkapVault:
                                "custody key; a free-form string is not an issuance receipt")
         body = {"custody_key_ref": custody_key_ref, "issued_by": issued_by,
                 "tvc_issuance_receipt_ref": tvc_issuance_receipt_ref, "access": access,
-                # the TV/TVC#537 issuance receipt and this custody result belong on 02_SKAP_Vault_Ledger
+                # the TV/TVC#537 issuance receipt and this custody result belong on the SKAP Vault recorded receipt chain (_Vault/SKAP/Receipts)
                 "receipt_ledger": receipt_ledger_binding(SKAP_VAULT_LEDGER)}
         _refuse_material(body, "custody", pred)
         return self._append("CUSTODY_KEY_REFERENCE_BOUND", body)
