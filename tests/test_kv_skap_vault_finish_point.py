@@ -24,6 +24,8 @@ from runtime import kv_skap_vault as kv  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "tests"))
 from tests.kv_two_layer_e0 import TwoLayers, intr_receipt  # noqa: E402,F401  (package path: in the pinned closure)
+from tests.kv_two_layer_e0 import E0_FINISH_POINT_CLI  # noqa: E402
+from tests.kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
@@ -528,7 +530,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
 
         def edit_l1_rehash(e):  # a caller recomputing the receipt hash after editing still cannot pass
             r = e["layer1_kv_access_receipts"][0]
-            r["healthy_node_receipt"]["node_id"] = "device:other"
+            r["healthy_node_receipt"]["node_id"] = "SV-NODE-E0OTHER001"
             r["receipt_hash"] = kv.sha256_uri({k: v for k, v in r.items() if k != "receipt_hash"})
 
         def edit_l2(e):
@@ -554,15 +556,53 @@ class EvidenceDrivenVerdict(unittest.TestCase):
                     for field in SIX:
                         self.assertTrue(row[field], field)
                     self.assertEqual(row["owning_existing_goal"], kv.GOAL_REF)
-        # health decided by anything but the pinned InTr evaluator is never evidence (class B, InTr-owned)
-        exercise = TwoLayers(evaluator=kv._exercise_only_healthy_node_evaluator, node=kv._ExerciseHarness.node,
-                             ledger_checkout=kv.LOCAL_EXERCISE_LABEL)
-        verdict = kv.evaluate(evidence_bundle(exercise))
-        row = next(a for a in verdict["access_constraints"] if a["constraint"] == L1)
-        self.assertEqual((row["failure_code"], row["failure_class"], row["refusal_cause"]),
-                         ("KV_ACCESS_LAYER1_REFUSED", "B", "HEALTHY_NODE_EVALUATOR_NOT_THE_PINNED_INTR_EVALUATOR"))
-        self.assertIn("LC-KV-13", row["dependency_owner"])
-        self.assertEqual(verdict["access_constraints_conformant"], 2)
+        # health decided by anything but the pinned InTr evaluator never reaches layer 2 (LC-KV-10), so it can never
+        # become evidence; the finish point applies the same conformance function to every layer-1 receipt.
+        from kv_two_layer_e0 import pinned
+
+        def injected(node_id, **kw):
+            return pinned()["endpoint_ledger_anchor"].evaluate_anchored(node_id, **kw)
+        out = TwoLayers(evaluator=injected).kv_access()  # refused at layer 1 by identity: no receipt to carry
+        self.assertEqual((out["decision"], out["refusal_cause"], out["kv_access_receipt"]),
+                         ("FAIL_CLOSED", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED", None))
+        exercise = TwoLayers()
+        out = exercise.kv_access()
+        self.assertEqual(out["decision"], "ALLOW_BOUNDED_CONTEXT")
+        edited = {**out["kv_access_receipt"], "healthy_node_anchor_check": "someone.else"}
+        self.assertEqual(kv.layer1_receipt_conformance(edited), "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED")
+        exercise.layer1.healthy_node_evaluator = injected  # swapped after minting
+        refused = exercise.gate.admit(kv.kv_skap_transition(
+            principal_ref=exercise.principal, operation="SKAP_READ", subject_ref="p",
+            prior_receipt_hash=out["kv_access_receipt"]["receipt_hash"]))
+        self.assertEqual((refused["disposition"], refused["failure_code"], refused["refusal_cause"]),
+                         ("FAIL_CLOSED", "SKAP_ACCESS_LAYER2_REFUSED", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED"))
+        for field in SIX:
+            self.assertTrue(refused[field], field)
+
+    def test_the_finish_point_expects_a_permanent_node(self) -> None:
+        """LC-KV-13 completes with a PERMANENT node. Another own-ledger kind (here SKAP_VAULT) binds at layer 1, but its
+        receipts do not complete the finish point."""
+        from tests.kv_two_layer_e0 import NODE, e0_health_ledger
+        self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
+        other = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="SKAP_VAULT")[0])
+        verdict = kv.evaluate(evidence_bundle(other))
+        self.assertIn("KV_ACCESS_LAYER1_REFUSED", set(failure_codes(verdict).values()))
+        self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS", json.dumps(verdict))
+
+    def test_an_ephemeral_node_fails_closed_until_tv_tvc_publishes_a_signer(self) -> None:
+        """EPHEMERAL anchors are signed envelopes (#432 @1cbad77e); the signers file is empty, so layer 1 is a six-field
+        FAIL_CLOSED owned by TV/TVC. It does not block the finish point, which completes with a PERMANENT node."""
+        from tests.kv_two_layer_e0 import NODE, e0_health_ledger
+        ephemeral = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="EPHEMERAL")[0])
+        out = ephemeral.kv_access()
+        self.assertEqual((out["decision"], out["failure_code"], out["failure_class"], out["refusal_cause"]),
+                         ("FAIL_CLOSED", "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED", "B",
+                          "NODE_ROOT_NOT_ANCHORED_NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED"))
+        self.assertTrue(out["owning_existing_goal"].startswith("TV/TVC"), out["owning_existing_goal"])
+        self.assertIn("TV/TVC publishes", out["next_attempt"])
+        for field in SIX:
+            self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
+        self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
 
     def test_a_tampered_or_malformed_bundle_never_raises(self) -> None:
         evidence = evidence_bundle()
@@ -669,11 +709,23 @@ class OrganizationLedgerReceipt(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "evidence.json"
             path.write_text(json.dumps(evidence_bundle()), encoding="utf-8")
-            cli = subprocess.run([sys.executable, "-m", "runtime.kv_skap_vault", "finish-point", "--evidence",
+            cli = subprocess.run([*E0_FINISH_POINT_CLI, "finish-point", "--evidence",
                                   str(path), "--scratch-ledger-git-dir", scratch_ledger(tmp)], cwd=ROOT,
                                  capture_output=True, text=True, check=False)
             self.assertEqual(cli.returncode, 0, cli.stdout[-2000:])
             self.assertEqual(json.loads(cli.stdout)["ledger_append"]["disposition"], "ALLOW")
+            self.assertEqual(json.loads(cli.stdout)["trust_anchors_label"], "E0_STANDIN_TEST_ONLY_NOT_EVIDENCE")
+            # LC-KV-15: the production CLI (no E0 anchors) refuses the same E0 evidence, six fields per access row
+            plain = subprocess.run([sys.executable, "-m", "runtime.kv_skap_vault", "finish-point", "--evidence",
+                                    str(path), "--scratch-ledger-git-dir", scratch_ledger(tmp + "/p")], cwd=ROOT,
+                                   capture_output=True, text=True, check=False)
+            self.assertEqual(plain.returncode, 2, plain.stdout[-2000:])
+            verdict = json.loads(plain.stdout)
+            self.assertEqual((verdict["disposition"], verdict["trust_anchors_label"]), ("FAIL_CLOSED", "PRODUCTION"))
+            row = next(a for a in verdict["access_constraints"] if a["constraint"] == kv.LAYER_PREDICATE_L1)
+            self.assertEqual(row["refusal_cause"], "LAYER1_RECEIPT_MINTED_UNDER_OTHER_TRUST_ANCHORS")
+            for field in SIX:
+                self.assertTrue(row[field], field)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/endpoint-kind.v1.json",
+  "title": "StegVerse InTr endpoint kind v1",
+  "description": "Every InTr endpoint declares endpoint_kind and reuses the org InTr classes (INTR_MESH_PATH_TRANSFER, INTR_MESH_PATH_INGRESS / ORGANIZATION_INTR_DESTINATION_INGRESS; StegVerse-org/.github data/intr-protocol/v1/protocol.json). Own-ledger kinds open with a REPOSITORY_LEDGER_INITIALIZATION genesis (stegverse.endpoint-ledger-genesis/v1) and are anchored on the org ledger by an InTr path receipt pair. GATEWAY is carried inside the org ledger at node-ledger/StegVerse-org/<node_id> and never imports an external chain. Only EPHEMERAL dissolves (NODE_DISSOLUTION; full chain disbursed and read back; root inadmissible after). ORG is an organization's .github ledger: it issues anchors (issuer ORGANIZATION_LEDGER) and is never a node health root. Code: StegVerse-org/LLM-adapter llm_adapter.endpoint_ledger_anchor.",
+  "$defs": {
+    "endpoint_kind": {
+      "enum": [
+        "EPHEMERAL",
+        "PERMANENT",
+        "GATEWAY",
+        "KV",
+        "SKAP_VAULT",
+        "ORG"
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "endpoint_kind",
+    "ledger_model",
+    "ledger_lifetime",
+    "dissolves"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.endpoint-kind/v1"
+    },
+    "endpoint_kind": {
+      "$ref": "#/$defs/endpoint_kind"
+    },
+    "ledger_model": {
+      "enum": [
+        "OWN_LEDGER",
+        "ORG_CARRIED_LOCATION",
+        "ORGANIZATION_LEDGER"
+      ]
+    },
+    "ledger_lifetime": {
+      "enum": [
+        "BOUNDED_UNTIL_DISSOLUTION",
+        "UNBOUNDED"
+      ]
+    },
+    "dissolves": {
+      "type": "boolean"
+    },
+    "node_kind": {
+      "enum": [
+        "StegApp",
+        "StegBrowser",
+        "StegNode"
+      ]
+    },
+    "anchor": {
+      "enum": [
+        "NODE_LEDGER_OPENED_VIA_INTR_PATH_RECEIPT_PAIR",
+        "INTR_PATH_RECEIPT_PAIR",
+        "ORG_LEDGER_LOCATION_GENESIS",
+        "NONE_IS_THE_ISSUER"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "const": "EPHEMERAL"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "node_kind"
+        ],
+        "properties": {
+          "ledger_model": {
+            "const": "OWN_LEDGER"
+          },
+          "ledger_lifetime": {
+            "const": "BOUNDED_UNTIL_DISSOLUTION"
+          },
+          "dissolves": {
+            "const": true
+          },
+          "anchor": {
+            "const": "NODE_LEDGER_OPENED_VIA_INTR_PATH_RECEIPT_PAIR"
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "node_kind"
+          ]
+        },
+        "properties": {
+          "ledger_lifetime": {
+            "const": "UNBOUNDED"
+          },
+          "dissolves": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "enum": [
+              "PERMANENT",
+              "KV",
+              "SKAP_VAULT"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "OWN_LEDGER"
+          },
+          "anchor": {
+            "const": "INTR_PATH_RECEIPT_PAIR"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "const": "GATEWAY"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "ORG_CARRIED_LOCATION"
+          },
+          "anchor": {
+            "const": "ORG_LEDGER_LOCATION_GENESIS"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "const": "ORG"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "ORGANIZATION_LEDGER"
+          },
+          "anchor": {
+            "const": "NONE_IS_THE_ISSUER"
+          }
+        }
+      }
+    }
+  ],
+  "authority_effect": "NONE_SCHEMA_ONLY"
+}

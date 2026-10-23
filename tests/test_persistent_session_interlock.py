@@ -8,6 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kv_two_layer_e0 import healthy_node_kwargs  # noqa: E402
+from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 
 from runtime.kv_interlock_endpoint import KVInterlockRuntime, sha256_uri
 from runtime.persistent_session_interlock import (
@@ -103,7 +104,7 @@ def make_envelope(request):
         },
         "boundary_proof": {
             "required": True,
-            "source_identity_ref": "node://device",
+            "source_identity_ref": "SV-NODE-E0SESSION01",
             "next_boundary_identity_ref": "kv://owner",
             "verification_state": "VERIFIED",
         },
@@ -125,7 +126,7 @@ def test_request_returns_bounded_reconstruction_projection_through_existing_runt
             head_reader=lambda session_id: current if session_id == "sv-session-001" else None
         ),
         receipt_store=lambda receipt: receipts.append(receipt) or "receipt://session-read",
-        **healthy_node_kwargs("node://device"),
+        **healthy_node_kwargs("SV-NODE-E0SESSION01"),
     )
     request = make_request()
     response = runtime.handle(
@@ -166,7 +167,7 @@ def test_commit_candidate_stages_exact_successor_without_canonical_mutation():
         policy_evaluator=PersistentSessionPolicyAdapter(head_reader=lambda _: current),
         candidate_store=store,
         receipt_store=lambda receipt: receipts.append(receipt) or "receipt://candidate",
-        **healthy_node_kwargs("node://device"),
+        **healthy_node_kwargs("SV-NODE-E0SESSION01"),
     )
     request = make_request("COMMIT_CANDIDATE")
     response = runtime.handle(
