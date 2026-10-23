@@ -15,8 +15,14 @@ Authority is unchanged and is not duplicated here:
 * TV/TVC is the credential authority and the sole SKAP ciphertext custody writer. The vault holds
   custody-key *references* only. It refuses key or credential material, and it refuses any writer
   other than TV/TVC.
-* Interlock/InTr is the transition authority. Every write and revoke binds an InTr transition reference.
-  This module does not issue that reference, and it does not admit one.
+* Interlock/InTr is the transition authority. Access has two credential layers (StegVerse-Labs/.github#3330
+  rev 1):
+  * Layer 1: KV is reachable only through InTr from a currently admitted healthy node. This is
+    ``KVInterlockRuntime.handle``, INTR_DEVICE_KV, and it consumes the InTr healthy-node evaluator.
+  * Layer 2: the SKAP Vault is reachable only through InTr from inside KV. This is ``SkapLayer2Gate``,
+    INTR_KV_SKAP, a separate gate fed by a layer-1 receipt.
+  * Every vault operation consumes one layer-2 receipt, and ``skap_entry`` is the deterministic SKAP entry. This
+    module decides no node's health and asserts neither hop.
 * WorkerCoordinator holds claim and fence. This module claims nothing.
 
 Degradation: no model, network, clock or dependency is used anywhere. The verdict is the same on every
@@ -34,6 +40,11 @@ import subprocess
 import sys
 from typing import Any
 
+from runtime.kv_interlock_endpoint import (HEALTHY_NODE_RECEIPT_SCHEMA, KV_ACCESS_RECEIPT_SCHEMA,
+                                           PINNED_HEALTHY_NODE_EVALUATOR, PINNED_HEALTHY_NODE_EVALUATOR_ID,
+                                           KVInterlockRuntime, _HEALTHY_RECEIPT_EXACT)
+from runtime.kv_skap_layer2 import (LAYER1_REFUSAL_CODE, LAYER2_REFUSAL_CODE, SKAP_ACCESS_RECEIPT_SCHEMA,
+                                    SkapLayer2Gate, kv_skap_transition)
 from runtime.secret_field_policy import find_forbidden_field
 
 TASK_ID = "KV-SKAP-VAULT-FUNCTIONAL-001"
@@ -108,18 +119,65 @@ def _refuse_material(value: Any, where: str, predicate: str) -> None:
                            f"remove {offending}; the vault holds TV/TVC custody-key references only")
 
 
-class KVSkapVault:
-    """One principal's KV with the SKAP Vault inside it. All state is the receipt lineage itself."""
+# --- the two credential layers (StegVerse-Labs/.github#3330 rev 1, revised LC-KV-03, LC-KV-07/08/10/11/12) ------------
+# Layer 1: KV is reachable only through InTr from a currently admitted healthy node. That is
+#   KVInterlockRuntime.handle (INTR_DEVICE_KV), which mints a KV-access receipt.
+# Layer 2: the SKAP Vault is reachable only through InTr from inside KV. That is SkapLayer2Gate.admit
+#   (INTR_KV_SKAP, runtime/kv_skap_layer2.py), a separate gate. It admits a transition whose prior_receipt_hash is a
+#   layer-1 receipt that the layer-1 runtime minted, and it mints a single-use SKAP-access receipt.
+# Every KVSkapVault operation consumes one SKAP-access receipt before it reads or changes anything, so a direct call
+# reaches nothing. skap_entry() below is the deterministic SKAP entry that drives both steps. A lineage receipt records
+# the layer-1 and layer-2 receipt hashes and the InTr receipt ref, so the finish point can re-verify the chain.
+LAYER_PREDICATE_L1 = "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE"
+LAYER_PREDICATE_L2 = "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV"
+LAYER_PREDICATE_PRIOR = "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT"
+#: Where each access constraint is enforced inside the sealed predicates. The scope digest is unchanged.
+ACCESS_CONSTRAINT_PREDICATE = {
+    LAYER_PREDICATE_L1: "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT",
+    LAYER_PREDICATE_L2: "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY",
+    LAYER_PREDICATE_PRIOR: "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY",
+}
+KIND_OPERATION = {
+    "CUSTODY_KEY_REFERENCE_BOUND": "BIND_CUSTODY_KEY_REFERENCE",
+    "CONSENT_GRANTED": "CONSENT_GRANT",
+    "CONSENT_REVOKED": "CONSENT_REVOKE",
+    "KV_PROJECTION_WRITTEN": "SKAP_WRITE",
+    "KV_PROJECTION_READ": "SKAP_READ",
+}
 
-    def __init__(self, principal_ref: str) -> None:
+
+def consent_subject(projection_ids: Any) -> str:
+    return "projections:" + ",".join(sorted(set(projection_ids or [])))
+
+
+def _is_sha256(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 71 and value.startswith("sha256:") \
+        and all(c in "0123456789abcdef" for c in value[7:])
+
+
+class KVSkapVault:
+    """One principal's KV with the SKAP Vault inside it. All state is the receipt lineage itself.
+
+    Every operation takes ``skap_access_receipt_hash``, a receipt minted by the layer-2 gate passed as
+    ``skap_gate``. Without both, the operation is a six-field VaultRefusal ``SKAP_ACCESS_LAYER2_REFUSED``.
+    """
+
+    def __init__(self, principal_ref: str, *, skap_gate: Any = None) -> None:
         if not isinstance(principal_ref, str) or not principal_ref:
             raise VaultRefusal("KV_PRINCIPAL_REF_MISSING", "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT",
                                "name the principal reference")
         self.principal_ref = principal_ref
+        self.skap_gate = skap_gate
         self.lineage: list[dict[str, Any]] = []
         self._custody: dict[str, dict[str, Any]] = {}
         self._consents: dict[str, dict[str, Any]] = {}
         self._projections: dict[str, dict[str, Any]] = {}
+
+    # --- layer 2, consumed before anything else
+    def _admit(self, operation: str, subject_ref: str, skap_access_receipt_hash: Any,
+               intr_transition_ref: Any = None) -> dict[str, Any]:
+        return _consume_layer2(self.skap_gate, self.principal_ref, operation, subject_ref, skap_access_receipt_hash,
+                               intr_transition_ref)
 
     # --- lineage
     @property
@@ -154,9 +212,10 @@ class KVSkapVault:
             self._projections[body["projection_id"]] = body
 
     # --- SKAP Vault inside KV: custody-key references only
-    def bind_custody_key_reference(self, *, custody_key_ref: str, issued_by: str,
-                                   tvc_issuance_receipt_ref: str) -> dict[str, Any]:
+    def bind_custody_key_reference(self, *, custody_key_ref: str, issued_by: str, tvc_issuance_receipt_ref: str,
+                                   skap_access_receipt_hash: Any = None) -> dict[str, Any]:
         pred = "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY"
+        access = self._admit("BIND_CUSTODY_KEY_REFERENCE", str(custody_key_ref), skap_access_receipt_hash)
         if issued_by != CREDENTIAL_AUTHORITY:
             raise VaultRefusal("SKAP_CUSTODY_WRITER_NOT_TV_TVC",
                                "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER",
@@ -165,23 +224,27 @@ class KVSkapVault:
                 or len(custody_key_ref) <= len(CUSTODY_REF_PREFIX):
             raise VaultRefusal("SKAP_CUSTODY_KEY_REFERENCE_INVALID", pred,
                                f"supply a TV/TVC custody-key reference of the form {CUSTODY_REF_PREFIX}<id>")
-        if not isinstance(tvc_issuance_receipt_ref, str) or not tvc_issuance_receipt_ref:
+        if not _is_sha256(tvc_issuance_receipt_ref):
             raise VaultRefusal("TVC_CUSTODY_ISSUANCE_RECEIPT_MISSING", pred,
-                               "bind the TV/TVC issuance receipt reference for this custody key")
+                               "bind the receipt_sha256 (sha256:<64 hex>) of the TV/TVC issuance receipt for this "
+                               "custody key; a free-form string is not an issuance receipt")
         body = {"custody_key_ref": custody_key_ref, "issued_by": issued_by,
-                "tvc_issuance_receipt_ref": tvc_issuance_receipt_ref}
+                "tvc_issuance_receipt_ref": tvc_issuance_receipt_ref, "access": access}
         _refuse_material(body, "custody", pred)
         return self._append("CUSTODY_KEY_REFERENCE_BOUND", body)
 
     # --- consent and revocation
-    def grant_consent(self, *, purposes: list[str], projection_ids: list[str], observed_at: str) -> dict[str, Any]:
+    def grant_consent(self, *, purposes: list[str], projection_ids: list[str], observed_at: str,
+                      skap_access_receipt_hash: Any = None) -> dict[str, Any]:
         pred = "CONSENT_RECEIPT_PRECEDES_EVERY_KV_WRITE_AND_READ"
+        access = self._admit("CONSENT_GRANT", consent_subject(projection_ids if isinstance(projection_ids, list)
+                                                              else []), skap_access_receipt_hash)
         allowed = {"WRITE", "READ"}
         if not purposes or not set(purposes) <= allowed or not projection_ids:
             raise VaultRefusal("KV_CONSENT_SCOPE_INVALID", pred,
                                "consent names purposes within WRITE/READ and at least one projection id")
         body = {"purposes": sorted(set(purposes)), "projection_ids": sorted(set(projection_ids)),
-                "observed_at": observed_at}
+                "observed_at": observed_at, "access": access}
         return self._append("CONSENT_GRANTED", body)
 
     def _consent(self, consent_receipt_hash: str, purpose: str, projection_id: str) -> dict[str, Any]:
@@ -199,33 +262,38 @@ class KVSkapVault:
                                f"consent must cover {purpose} on {projection_id}")
         return consent
 
-    def revoke_consent(self, *, consent_receipt_hash: str, intr_transition_ref: str, observed_at: str) -> dict[str, Any]:
+    def revoke_consent(self, *, consent_receipt_hash: str, observed_at: str, skap_access_receipt_hash: Any = None,
+                       intr_transition_ref: Any = None) -> dict[str, Any]:
+        access = self._admit("CONSENT_REVOKE", str(consent_receipt_hash), skap_access_receipt_hash,
+                             intr_transition_ref)
         if consent_receipt_hash not in self._consents:
             raise VaultRefusal("KV_CONSENT_RECEIPT_NOT_FOUND", "REVOCATION_RECEIPT_ENDS_READ_ACCESS",
                                "revoke a consent receipt that exists in this lineage")
         if self._consents[consent_receipt_hash]["revoked_by"] is not None:
             raise VaultRefusal("KV_CONSENT_ALREADY_REVOKED", "REVOCATION_RECEIPT_ENDS_READ_ACCESS",
                                "nothing to repair; the consent is already revoked", failure_class="C")
-        _require_intr(intr_transition_ref)
         return self._append("CONSENT_REVOKED", {"consent_receipt_hash": consent_receipt_hash,
-                                                "intr_transition_ref": intr_transition_ref, "observed_at": observed_at})
+                                                "observed_at": observed_at, "access": access})
 
     # --- KV projection write / read
     def write_projection(self, *, projection_id: str, content: Any, consent_receipt_hash: str,
-                         custody_key_ref: str, intr_transition_ref: str) -> dict[str, Any]:
+                         custody_key_ref: str, skap_access_receipt_hash: Any = None,
+                         intr_transition_ref: Any = None) -> dict[str, Any]:
+        access = self._admit("SKAP_WRITE", str(projection_id), skap_access_receipt_hash, intr_transition_ref)
         self._consent(consent_receipt_hash, "WRITE", projection_id)
         if custody_key_ref not in self._custody:
             raise VaultRefusal("SKAP_CUSTODY_KEY_REFERENCE_NOT_BOUND",
                                "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY",
                                "bind the TV/TVC custody-key reference before writing")
-        _require_intr(intr_transition_ref)
         _refuse_material(content, "content", "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY")
         body = {"projection_id": projection_id, "content": copy.deepcopy(content),
                 "content_sha256": sha256_uri(content), "consent_receipt_hash": consent_receipt_hash,
-                "custody_key_ref": custody_key_ref, "intr_transition_ref": intr_transition_ref}
+                "custody_key_ref": custody_key_ref, "access": access}
         return self._append("KV_PROJECTION_WRITTEN", body)
 
-    def read_projection(self, *, projection_id: str, consent_receipt_hash: str) -> tuple[Any, dict[str, Any]]:
+    def read_projection(self, *, projection_id: str, consent_receipt_hash: str,
+                        skap_access_receipt_hash: Any = None) -> tuple[Any, dict[str, Any]]:
+        access = self._admit("SKAP_READ", str(projection_id), skap_access_receipt_hash)
         self._consent(consent_receipt_hash, "READ", projection_id)
         stored = self._projections.get(projection_id)
         if stored is None:
@@ -234,29 +302,107 @@ class KVSkapVault:
         content = copy.deepcopy(stored["content"])
         receipt = self._append("KV_PROJECTION_READ", {"projection_id": projection_id,
                                                       "content_sha256": sha256_uri(content),
-                                                      "consent_receipt_hash": consent_receipt_hash})
+                                                      "consent_receipt_hash": consent_receipt_hash,
+                                                      "access": access})
         return content, receipt
 
-    # --- continuity: the lineage is the whole state, so any device reconstructs it
+    # --- continuity: the lineage is the whole state, so any device reconstructs it (through both layers)
     def export_lineage(self) -> dict[str, Any]:
         return {"schema": "stegverse.kv-skap-vault-lineage/v1", "task_id": TASK_ID,
                 "principal_ref": self.principal_ref, "head": self.head,
                 "receipts": copy.deepcopy(self.lineage)}
 
     @classmethod
-    def reconstruct(cls, exported: dict[str, Any]) -> "KVSkapVault":
+    def reconstruct(cls, exported: dict[str, Any], *, skap_gate: Any = None,
+                    skap_access_receipt_hash: Any = None) -> "KVSkapVault":
+        principal = exported.get("principal_ref") if isinstance(exported, dict) else None
+        _consume_layer2(skap_gate, principal if isinstance(principal, str) else "",
+                        "RECONSTRUCT", str(exported.get("head") if isinstance(exported, dict) else None),
+                        skap_access_receipt_hash)
         verify_lineage(exported)
-        vault = cls(exported["principal_ref"])
+        vault = cls(exported["principal_ref"], skap_gate=skap_gate)
         for receipt in exported["receipts"]:
             vault._apply(receipt)
             vault.lineage.append(copy.deepcopy(receipt))
         return vault
 
 
-def _require_intr(ref: str) -> None:
-    if not isinstance(ref, str) or not ref.startswith("intr:"):
-        raise VaultRefusal("INTR_TRANSITION_REF_MISSING", "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT",
-                           "bind the Interlock/InTr transition reference (intr:<id>) for this mutation")
+def _consume_layer2(gate: Any, principal_ref: str, operation: str, subject_ref: str, receipt_hash: Any,
+                    intr_transition_ref: Any = None) -> dict[str, Any]:
+    """Consume one SKAP-access receipt from the layer-2 gate, or raise a six-field VaultRefusal."""
+    if intr_transition_ref is not None:
+        raise VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2, (
+            "a caller-supplied InTr reference is not an access receipt; reach the SKAP Vault through "
+            "SkapLayer2Gate.admit with a layer-1 KV-access receipt and pass skap_access_receipt_hash"), failure_class="C")
+    if gate is None or not callable(getattr(gate, "consume", None)):
+        raise VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2, (
+            "the SKAP Vault is reachable only through InTr from inside KV: construct the vault with the layer-2 gate "
+            "(runtime.kv_skap_layer2.SkapLayer2Gate over KVInterlockRuntime) and enter through skap_entry"),
+            next_attempt="on the next SKAP operation admitted by the layer-2 gate")
+    if not _is_sha256(receipt_hash):
+        raise VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2, (
+            "skap_access_receipt_hash must be a SKAP-access receipt minted by SkapLayer2Gate.admit on a verified "
+            "layer-1 KV-access receipt"), failure_class="C")
+    receipt, refusal = gate.consume(receipt_hash, principal_ref=principal_ref, operation=operation,
+                                    subject_ref=subject_ref)
+    if refusal is not None:
+        raise VaultRefusal(refusal["failure_code"], refusal["failed_predicate"],
+                           refusal["required_evidence_or_repair"], failure_class=refusal.get("failure_class", "C"),
+                           next_attempt=refusal["next_attempt"])
+    return {"kv_access_receipt_hash": receipt["prior_receipt_hash"], "skap_access_receipt_hash": receipt_hash,
+            "intr_receipt_ref": receipt["layer1_intr_receipt_ref"],
+            "requester_node_ref": receipt["layer1_requester_node_ref"]}
+
+
+_ENTRY_ARGUMENTS = {
+    "BIND_CUSTODY_KEY_REFERENCE": ("bind_custody_key_reference", lambda a: a.get("custody_key_ref")),
+    "CONSENT_GRANT": ("grant_consent", lambda a: consent_subject(a.get("projection_ids"))),
+    "CONSENT_REVOKE": ("revoke_consent", lambda a: a.get("consent_receipt_hash")),
+    "SKAP_WRITE": ("write_projection", lambda a: a.get("projection_id")),
+    "SKAP_READ": ("read_projection", lambda a: a.get("projection_id")),
+    "RECONSTRUCT": ("reconstruct", lambda a: (a.get("exported") or {}).get("head")),
+}
+
+
+def skap_entry(gate: Any, vault: "KVSkapVault | None", *, operation: str, kv_access_receipt_hash: Any,
+               arguments: dict[str, Any]) -> dict[str, Any]:
+    """LC-KV-12: the deterministic SKAP entry inside KV. It is the one caller of the SKAP read and bind paths.
+
+    It submits exactly one INTR_KV_SKAP transition, whose prior_receipt_hash is the caller's layer-1 KV-access
+    receipt, to the layer-2 gate. Only on ALLOW does it run the one vault operation with the minted SKAP-access
+    receipt. It returns ALLOW with the result, or a six-field FAIL_CLOSED from whichever layer refused. It never
+    raises a refusal.
+    """
+    def closed(fields: dict[str, Any]) -> dict[str, Any]:
+        return {"disposition": "FAIL_CLOSED", **{k: v for k, v in fields.items() if k != "disposition"}}
+
+    if operation not in _ENTRY_ARGUMENTS or not isinstance(arguments, dict):
+        return closed(VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2,
+                                   f"operation must be one of {sorted(_ENTRY_ARGUMENTS)}", failure_class="C").fields)
+    method, subject_of = _ENTRY_ARGUMENTS[operation]
+    principal = vault.principal_ref if vault is not None else (arguments.get("exported") or {}).get("principal_ref")
+    if gate is None or (vault is not None and vault.skap_gate is not gate):
+        return closed(VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2,
+                                   "the vault must be constructed with this layer-2 gate").fields)
+    admitted = gate.admit(kv_skap_transition(principal_ref=str(principal), operation=operation,
+                                             subject_ref=str(subject_of(arguments)),
+                                             prior_receipt_hash=kv_access_receipt_hash))
+    if admitted.get("disposition") != "ALLOW":
+        return closed(admitted)
+    receipt_hash = admitted["skap_access_receipt"]["receipt_hash"]
+    try:
+        if operation == "RECONSTRUCT":
+            result: Any = KVSkapVault.reconstruct(arguments["exported"], skap_gate=gate,
+                                                  skap_access_receipt_hash=receipt_hash)
+        else:
+            result = getattr(vault, method)(skap_access_receipt_hash=receipt_hash, **arguments)
+    except VaultRefusal as exc:
+        return closed(exc.fields)
+    except (TypeError, KeyError, AttributeError) as exc:
+        return closed(VaultRefusal("SKAP_ENTRY_ARGUMENTS_INVALID", LAYER_PREDICATE_L2,
+                                   f"{type(exc).__name__}: {exc}", failure_class="C").fields)
+    return {"disposition": "ALLOW", "operation": operation, "result": result,
+            "skap_access_receipt_hash": receipt_hash, "kv_access_receipt_hash": kv_access_receipt_hash}
 
 
 def verify_lineage(exported: dict[str, Any]) -> None:
@@ -300,8 +446,9 @@ EVIDENCE_BOUND = {
     "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": (
         "INTR_TRANSITION_RECEIPTS_NOT_OBSERVED", "B",
         "the local round-trip is exact; supply evidence.lineage plus evidence.intr_transition_receipts, one "
-        f"{INTR_RECEIPT_SCHEMA} per write/revoke intr:<id> (transition_id == <id>, outcome in "
-        f"{INTR_ADMITTED_OUTCOMES}, subject_or_correlation_id == principal_ref) from Interlock/InTr",
+        f"{INTR_RECEIPT_SCHEMA} per write/revoke whose sha256 is the intr_receipt_ref its layer-1 KV-access receipt "
+        f"binds (outcome in {INTR_ADMITTED_OUTCOMES}, subject_or_correlation_id == principal_ref) from Interlock/InTr; "
+        "and the access_constraints row KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
         GOAL_REF, None),
     "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED": (
         "KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND", "B",
@@ -311,6 +458,12 @@ EVIDENCE_BOUND = {
         "WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV) and is not re-implemented here; supply its ALLOW "
         "readback receipt as evidence.durable_custody_readback_receipt (lineage_sha256 == sha256 of "
         "evidence.lineage, provider not device-local)", SOVEREIGN_KV_CUSTODY_GOAL, "CONSUMES"),
+    "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY": (
+        LAYER2_REFUSAL_CODE, "B",
+        "the vault holds custody-key references only and admits nothing without its layer-2 gate; supply "
+        "evidence.layer1_kv_access_receipts and evidence.layer2_skap_access_receipts, the two credential layers that "
+        "every lineage receipt records (access_constraints rows SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV and "
+        "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT)", GOAL_REF, None),
     "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER": (
         "TVC_CUSTODY_KEY_ISSUANCE_NOT_OBSERVED", "B",
         "the vault refuses every non-TV/TVC writer and all key material; supply evidence.tvc_issuance_receipts, "
@@ -325,53 +478,172 @@ _EVIDENCE_KEYS = {
 }
 
 
+# --- local exercise harness: both gates, run with an exercise-only health evaluator -----------------------------------
+LOCAL_EXERCISE_LABEL = "LOCAL_EXERCISE_ONLY_NOT_EVIDENCE"
+
+
+def _exercise_only_healthy_node_evaluator(node_id: Any, *, ledger_root: Any, transport_state: Any = "INSTALLED",
+                                          report_receipt_sha256: Any = None, require_admission: bool = False,
+                                          **_: Any) -> dict[str, Any]:
+    """LOCAL_EXERCISE_ONLY_NOT_EVIDENCE: used only so _exercise can drive both gates locally, with no ledger I/O.
+
+    This is not the pinned InTr evaluator. Its identity and source digest are not the pin's, so the finish-point
+    evidence checks refuse every layer-1 receipt it produced. It asserts the health of nothing outside this process.
+    """
+    if ledger_root != LOCAL_EXERCISE_LABEL or transport_state != "INSTALLED" or not require_admission:
+        return {"disposition": "FAIL_CLOSED", "failure_code": "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY",
+                "reason": "LOCAL_EXERCISE_LEDGER_ABSENT", "required_evidence_or_repair": "local exercise only"}
+    report = sha256_uri({"label": LOCAL_EXERCISE_LABEL, "node_id": node_id})
+    return {**_HEALTHY_RECEIPT_EXACT, "node_id": node_id, "health_report_receipt_sha256": report,
+            "chain_head_receipt_sha256": report, "chain_length": 1, "health_report_authenticated": "NOT_PROVEN",
+            "label": LOCAL_EXERCISE_LABEL}
+
+
+class _ExerciseHarness:
+    """Layer 1 and layer 2 wired together for the local exercise, with a fixed clock and no I/O."""
+
+    node = "device:local-exercise"
+
+    def __init__(self) -> None:
+        from datetime import datetime, timezone
+        fixed = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        self.layer1 = KVInterlockRuntime(
+            authority_validator=lambda ref, request, envelope: ref == LOCAL_EXERCISE_LABEL,
+            policy_evaluator=lambda request: {"decision": "ALLOW_BOUNDED_CONTEXT",
+                                              "granted_scope": list(request["requested_scope"]), "context": {},
+                                              "source_refs": [], "policy_profile": LOCAL_EXERCISE_LABEL},
+            receipt_store=lambda receipt: "local-exercise:" + receipt["receipt_id"],
+            clock=lambda: fixed, healthy_node_evaluator=_exercise_only_healthy_node_evaluator,
+            healthy_node_ledger_root=LOCAL_EXERCISE_LABEL)
+        self.gate = SkapLayer2Gate(self.layer1)
+        self.count = 0
+
+    def request(self, verification_state: str = "VERIFIED") -> tuple[dict[str, Any], dict[str, Any], str]:
+        self.count += 1
+        request = {"schema_version": "kv.interlock.request.v1", "operation": "REQUEST",
+                   "request_id": f"local-exercise-{self.count}",
+                   "requester": {"module": "KV", "component": "kv-skap-vault-local-exercise"},
+                   "purpose": "Local exercise.", "record_class": "KV_SKAP_VAULT", "requested_scope": ["skap_vault"],
+                   "minimum_necessary_justification": "Local exercise.", "authority_ref": LOCAL_EXERCISE_LABEL,
+                   "disclosure_mode": "BOUNDED_CONTEXT"}
+        envelope = {"schema": "stegverse.kv-interlock.intr-envelope/v1", "protocol": "InTr",
+                    "packet_id": f"local-exercise-packet-{self.count}", "direction": "REQUEST",
+                    "source_role": "DEVICE", "next_role": "KV", "request_id": request["request_id"],
+                    "operation": "REQUEST", "payload_schema_version": "kv.interlock.request.v1",
+                    "payload_hash": sha256_uri(request), "sealed_material_ref": "local-exercise:sealed",
+                    "authority": {"authority_transfer": False, "transport_grants_execution_authority": False,
+                                  "model_output_grants_execution_authority": False,
+                                  "credential_authority_effect": "NONE"},
+                    "boundary_proof": {"required": True, "source_identity_ref": self.node,
+                                       "next_boundary_identity_ref": "kv:local-exercise",
+                                       "verification_state": verification_state},
+                    "receipt_policy": {"receipt_required": True, "receipt_contains_payload_plaintext": False,
+                                       "receipt_chain_required": True, "ambiguous_disposition": "FAIL_CLOSED"}}
+        return request, envelope, sha256_uri({"local_exercise_intr_transition": self.count})
+
+    def kv_access(self, health: Any = "default", verification_state: str = "VERIFIED") -> dict[str, Any]:
+        request, envelope, intr_ref = self.request(verification_state)
+        # health=None: no health ledger is bound for this call, so the evaluator cannot ALLOW
+        self.layer1.healthy_node_ledger_root = LOCAL_EXERCISE_LABEL if health == "default" else None
+        try:
+            return self.layer1.handle(request, intr_envelope=envelope, intr_receipt_ref=intr_ref)
+        finally:
+            self.layer1.healthy_node_ledger_root = LOCAL_EXERCISE_LABEL
+
+    def kv_hash(self) -> str:
+        return self.kv_access()["kv_access_receipt"]["receipt_hash"]
+
+    def enter(self, vault: "KVSkapVault | None", operation: str, **arguments: Any) -> dict[str, Any]:
+        return skap_entry(self.gate, vault, operation=operation, kv_access_receipt_hash=self.kv_hash(),
+                          arguments=arguments)
+
+    def skap_hash(self, principal: str, operation: str, subject: str) -> str:
+        admitted = self.gate.admit(kv_skap_transition(principal_ref=principal, operation=operation,
+                                                      subject_ref=subject, prior_receipt_hash=self.kv_hash()))
+        return admitted["skap_access_receipt"]["receipt_hash"]
+
+
 def _exercise() -> dict[str, bool]:
-    """Run the full local round-trip and the negative cases. Returns predicate -> locally satisfied."""
+    """Run the full local round-trip and the negative cases, through both gates. Returns predicate -> satisfied."""
     ok: dict[str, bool] = {}
-    vault = KVSkapVault("principal:fixture")
+    h = _ExerciseHarness()
+    vault = KVSkapVault("principal:fixture", skap_gate=h.gate)
     ref = CUSTODY_REF_PREFIX + "fixture-0001"
-    vault.bind_custody_key_reference(custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
-                                     tvc_issuance_receipt_ref="local-exercise:tvc-issuance")
-    consent = vault.grant_consent(purposes=["WRITE", "READ"], projection_ids=["notes/profile"],
-                                  observed_at="local-exercise")["receipt_hash"]
+    tvc_ref = sha256_uri({"local_exercise": "tvc-issuance"})
+
+    def allow(out: dict[str, Any]) -> Any:
+        if out.get("disposition") != "ALLOW":
+            raise VaultRefusal(out.get("failure_code", "SKAP_ENTRY_REFUSED"),
+                               out.get("failed_predicate", LAYER_PREDICATE_L2),
+                               out.get("required_evidence_or_repair", "local exercise"), failure_class="A")
+        return out["result"]
+
+    allow(h.enter(vault, "BIND_CUSTODY_KEY_REFERENCE", custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
+                  tvc_issuance_receipt_ref=tvc_ref))
+    consent = allow(h.enter(vault, "CONSENT_GRANT", purposes=["WRITE", "READ"], projection_ids=["notes/profile"],
+                            observed_at="local-exercise"))["receipt_hash"]
     content = {"title": "profile", "fields": {"display_name": "Exercise", "languages": ["en", "es"]}}
-    vault.write_projection(projection_id="notes/profile", content=content, consent_receipt_hash=consent,
-                           custody_key_ref=ref, intr_transition_ref="intr:local-exercise-write")
-    read, _ = vault.read_projection(projection_id="notes/profile", consent_receipt_hash=consent)
-    vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:local-exercise-revoke",
-                         observed_at="local-exercise")
-    try:
-        vault.read_projection(projection_id="notes/profile", consent_receipt_hash=consent)
-        revoked_blocks = False
-    except VaultRefusal as exc:
-        revoked_blocks = exc.fields["failure_code"] == "KV_CONSENT_REVOKED"
-    ok["KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT"] = read == content and revoked_blocks
+    allow(h.enter(vault, "SKAP_WRITE", projection_id="notes/profile", content=content, consent_receipt_hash=consent,
+                  custody_key_ref=ref))
+    read, _ = allow(h.enter(vault, "SKAP_READ", projection_id="notes/profile", consent_receipt_hash=consent))
+    allow(h.enter(vault, "CONSENT_REVOKE", consent_receipt_hash=consent, observed_at="local-exercise"))
+    after = h.enter(vault, "SKAP_READ", projection_id="notes/profile", consent_receipt_hash=consent)
+    revoked_blocks = after.get("failure_code") == "KV_CONSENT_REVOKED"
+    no_health = h.kv_access(health=None)
+    unverified = h.kv_access(verification_state="UNVERIFIED")
+    layer1_refuses = all(out.get("decision") == "FAIL_CLOSED" and out.get("failure_code") == LAYER1_REFUSAL_CODE
+                         and out.get("kv_access_receipt") is None for out in (no_health, unverified))
+    ok["KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT"] = read == content and revoked_blocks and layer1_refuses
 
     def refused(fn, code: str) -> bool:
         try:
-            fn()
+            out = fn()
         except VaultRefusal as exc:
             return exc.fields["failure_code"] == code
-        return False
+        return isinstance(out, dict) and out.get("disposition") == "FAIL_CLOSED" and out.get("failure_code") == code
 
-    other = KVSkapVault("principal:fixture")
-    live = KVSkapVault("principal:fixture")
-    live.bind_custody_key_reference(custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
-                                    tvc_issuance_receipt_ref="local-exercise:tvc-issuance")
-    live_consent = live.grant_consent(purposes=["WRITE"], projection_ids=["p"],
-                                      observed_at="local-exercise")["receipt_hash"]
+    principal = "principal:fixture"
+    other = KVSkapVault(principal, skap_gate=h.gate)
+    live = KVSkapVault(principal, skap_gate=h.gate)
+    allow(h.enter(live, "BIND_CUSTODY_KEY_REFERENCE", custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
+                  tvc_issuance_receipt_ref=tvc_ref))
+    live_consent = allow(h.enter(live, "CONSENT_GRANT", purposes=["WRITE"], projection_ids=["p"],
+                                 observed_at="local-exercise"))["receipt_hash"]
+    ungated = KVSkapVault(principal)
+    forged_prior = sha256_uri({"caller_minted": "layer-1"})
+    spent = h.skap_hash(principal, "SKAP_WRITE", "p")
+    live.write_projection(projection_id="p", content={"n": 1}, consent_receipt_hash=live_consent, custody_key_ref=ref,
+                          skap_access_receipt_hash=spent)
     ok["SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY"] = all([
-        refused(lambda: other.bind_custody_key_reference(custody_key_ref="raw-bytes", issued_by=CREDENTIAL_AUTHORITY,
-                                                         tvc_issuance_receipt_ref="x"), "SKAP_CUSTODY_KEY_REFERENCE_INVALID"),
-        refused(lambda: live.write_projection(projection_id="p", content={"private_key": "x"},
-                                              consent_receipt_hash=live_consent, custody_key_ref=ref,
-                                              intr_transition_ref="intr:x"), "SKAP_VAULT_KEY_OR_CREDENTIAL_MATERIAL_REFUSED"),
+        refused(lambda: h.enter(other, "BIND_CUSTODY_KEY_REFERENCE", custody_key_ref="raw-bytes",
+                                issued_by=CREDENTIAL_AUTHORITY, tvc_issuance_receipt_ref=tvc_ref),
+                "SKAP_CUSTODY_KEY_REFERENCE_INVALID"),
+        refused(lambda: h.enter(live, "SKAP_WRITE", projection_id="p", content={"private_key": "x"},
+                                consent_receipt_hash=live_consent, custody_key_ref=ref),
+                "SKAP_VAULT_KEY_OR_CREDENTIAL_MATERIAL_REFUSED"),
         refused(lambda: _refuse_material({"key_material": "x"}, "c", "P"), "SKAP_VAULT_KEY_OR_CREDENTIAL_MATERIAL_REFUSED"),
+        # layer 2: nothing in the vault is reachable directly, with a forged prior, by replay, or out of scope
+        refused(lambda: ungated.bind_custody_key_reference(custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
+                                                           tvc_issuance_receipt_ref=tvc_ref), LAYER2_REFUSAL_CODE),
+        refused(lambda: live.read_projection(projection_id="p", consent_receipt_hash=live_consent), LAYER2_REFUSAL_CODE),
+        refused(lambda: live.write_projection(projection_id="p", content={}, consent_receipt_hash=live_consent,
+                                              custody_key_ref=ref, intr_transition_ref="intr:caller-asserted"),
+                LAYER2_REFUSAL_CODE),
+        refused(lambda: skap_entry(h.gate, live, operation="SKAP_READ", kv_access_receipt_hash=forged_prior,
+                                   arguments={"projection_id": "p", "consent_receipt_hash": live_consent}),
+                LAYER2_REFUSAL_CODE),
+        refused(lambda: live.write_projection(projection_id="p", content={}, consent_receipt_hash=live_consent,
+                                              custody_key_ref=ref, skap_access_receipt_hash=spent), LAYER2_REFUSAL_CODE),
+        refused(lambda: live.read_projection(projection_id="p", consent_receipt_hash=live_consent,
+                                             skap_access_receipt_hash=h.skap_hash(principal, "SKAP_WRITE", "p")),
+                LAYER2_REFUSAL_CODE),
+        refused(lambda: KVSkapVault.reconstruct(vault.export_lineage()), LAYER2_REFUSAL_CODE),
     ])
     ok["CONSENT_RECEIPT_PRECEDES_EVERY_KV_WRITE_AND_READ"] = all([
-        refused(lambda: other.write_projection(projection_id="p", content={}, consent_receipt_hash="sha256:none",
-                                               custody_key_ref=ref, intr_transition_ref="intr:x"), "KV_CONSENT_RECEIPT_NOT_FOUND"),
-        refused(lambda: other.read_projection(projection_id="p", consent_receipt_hash="sha256:none"), "KV_CONSENT_RECEIPT_NOT_FOUND"),
+        refused(lambda: h.enter(other, "SKAP_WRITE", projection_id="p", content={}, consent_receipt_hash="sha256:none",
+                                custody_key_ref=ref), "KV_CONSENT_RECEIPT_NOT_FOUND"),
+        refused(lambda: h.enter(other, "SKAP_READ", projection_id="p", consent_receipt_hash="sha256:none"),
+                "KV_CONSENT_RECEIPT_NOT_FOUND"),
         [r["kind"] for r in vault.lineage].index("CONSENT_GRANTED") < [r["kind"] for r in vault.lineage].index("KV_PROJECTION_WRITTEN"),
     ])
     ok["REVOCATION_RECEIPT_ENDS_READ_ACCESS"] = revoked_blocks and vault.lineage[-1]["kind"] == "CONSENT_REVOKED"
@@ -385,12 +657,12 @@ def _exercise() -> dict[str, bool]:
         intact = False
     ok["RECEIPT_HASH_LINEAGE_CONTINUOUS_ACROSS_WRITE_READ_REVOKE"] = intact and refused(
         lambda: verify_lineage(tampered), "KV_RECEIPT_LINEAGE_BROKEN")
-    fresh = KVSkapVault.reconstruct(json.loads(canonical_json(exported)))
+    fresh = allow(h.enter(None, "RECONSTRUCT", exported=json.loads(canonical_json(exported))))
     ok["ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED"] = (
         fresh.head == vault.head and fresh._projections == vault._projections and fresh._consents == vault._consents)
     ok["TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER"] = refused(
-        lambda: other.bind_custody_key_reference(custody_key_ref=ref, issued_by="KV",
-                                                 tvc_issuance_receipt_ref="x"), "SKAP_CUSTODY_WRITER_NOT_TV_TVC")
+        lambda: h.enter(other, "BIND_CUSTODY_KEY_REFERENCE", custody_key_ref=ref, issued_by="KV",
+                        tvc_issuance_receipt_ref=tvc_ref), "SKAP_CUSTODY_WRITER_NOT_TV_TVC")
     ok["NO_DUPLICATED_GOVERNANCE_CREDENTIAL_VERIFIER_OR_KV_AUTHORITY"] = (
         not any(v for k, v in AUTHORITY_MODEL.items() if k.startswith(("mints_", "holds_")))
         and AUTHORITY_MODEL["credential_authority"] == CREDENTIAL_AUTHORITY
@@ -459,19 +731,177 @@ def _evidence_intr(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
     if not isinstance(receipts, list) or not receipts:
         return ("INTR_TRANSITION_RECEIPTS_NOT_OBSERVED", "B",
                 EVIDENCE_BOUND["KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT"][2])
-    by_id = {r.get("transition_id"): r for r in receipts if isinstance(r, dict)}
+    by_hash = {sha256_uri(r): r for r in receipts if isinstance(r, dict)}
     for receipt in _receipts_of(lineage, "KV_PROJECTION_WRITTEN") + _receipts_of(lineage, "CONSENT_REVOKED"):
-        ref = receipt["body"].get("intr_transition_ref", "")
-        intr = by_id.get(ref[len("intr:"):]) if ref.startswith("intr:") else None
+        ref = (receipt["body"].get("access") or {}).get("intr_receipt_ref")
+        intr = by_hash.get(ref)
         if intr is None:
             return ("INTR_TRANSITION_RECEIPT_NOT_BOUND", "B",
-                    f"no Interlock/InTr receipt for {ref!r} (lineage receipt {receipt['sequence']})")
+                    f"no Interlock/InTr receipt hashes to {ref!r} (lineage receipt {receipt['sequence']})")
         if intr.get("schema") != INTR_RECEIPT_SCHEMA or intr.get("transition_outcome") not in INTR_ADMITTED_OUTCOMES \
                 or intr.get("subject_or_correlation_id") != lineage["principal_ref"] or not _manifest_entries_verify(intr):
             return ("INTR_TRANSITION_RECEIPT_INVALID", "C",
-                    f"the InTr receipt for {ref!r} must be an {INTR_RECEIPT_SCHEMA} with outcome in "
+                    f"the InTr receipt {ref!r} must be an {INTR_RECEIPT_SCHEMA} with outcome in "
                     f"{INTR_ADMITTED_OUTCOMES}, the principal as subject and a verifying evidence manifest")
     return None
+
+
+# --- access constraints (the two credential layers), each evidence-bound -------------------------------------------
+ACCESS_EVIDENCE_KEYS = ("layer1_kv_access_receipts", "layer2_skap_access_receipts")
+ACCESS_CONSTRAINT_OWNER = {
+    LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter#428 "
+                         "llm_adapter/healthy_node_evaluator.py, InTr and Mesh Destinations lane); the NODE_HEALTH_REPORTED "
+                         "producer is unassigned (Lane B asked Coordination)"),
+    LAYER_PREDICATE_L2: GOAL_REF,
+    LAYER_PREDICATE_PRIOR: GOAL_REF,
+}
+ACCESS_REPAIR = {
+    LAYER_PREDICATE_L1: (
+        "supply evidence.layer1_kv_access_receipts: one stegverse.kv-access-receipt/v1 minted by "
+        "KVInterlockRuntime.handle (INTR_DEVICE_KV) per lineage receipt. Each must carry the ALLOW evaluation of "
+        f"the pinned InTr evaluator {PINNED_HEALTHY_NODE_EVALUATOR['repository']}@"
+        f"{PINNED_HEALTHY_NODE_EVALUATOR['commit'][:8]}:{PINNED_HEALTHY_NODE_EVALUATOR_ID} "
+        f"(source {PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}, require_admission=True, LC-KV-13/14) over a "
+        "receipted HEALTHY NODE_HEALTH_REPORTED report. KV never asserts health, and the local exercise evaluator "
+        "is not evidence."),
+    LAYER_PREDICATE_L2: (
+        "supply evidence.layer2_skap_access_receipts: one stegverse.skap-access-receipt/v1 minted by "
+        "SkapLayer2Gate.admit (INTR_KV_SKAP) per lineage receipt, used once, for the operation and principal it names"),
+    LAYER_PREDICATE_PRIOR: (
+        "each layer-2 receipt's prior_receipt_hash must be the layer-1 KV-access receipt the lineage receipt records, "
+        "and each layer-1 receipt admits one layer-2 transition"),
+}
+_ACCESS_CODE = {LAYER_PREDICATE_L1: LAYER1_REFUSAL_CODE, LAYER_PREDICATE_L2: LAYER2_REFUSAL_CODE,
+                LAYER_PREDICATE_PRIOR: LAYER2_REFUSAL_CODE}
+
+
+def _rederives(receipt: Any, key: str) -> bool:
+    return isinstance(receipt, dict) and receipt.get(key) == sha256_uri({k: v for k, v in receipt.items() if k != key})
+
+
+def _healthy_receipt_verifies(layer1: dict[str, Any]) -> bool:
+    """The layer-1 receipt carries the pinned evaluator's exact ALLOW shape for its own requester node."""
+    healthy = layer1.get("healthy_node_receipt")
+    return isinstance(healthy, dict) and all(healthy.get(k) == v for k, v in _HEALTHY_RECEIPT_EXACT.items()) \
+        and healthy.get("schema") == HEALTHY_NODE_RECEIPT_SCHEMA \
+        and healthy.get("node_id") == layer1.get("requester_node_ref") \
+        and _is_sha256(healthy.get("health_report_receipt_sha256")) \
+        and _is_sha256(healthy.get("chain_head_receipt_sha256"))
+
+
+def _access_failures(evidence: Any, lineage_failure: tuple[str, str, str] | None) -> dict[str, tuple[str, str, str] | None]:
+    """constraint -> None (ALLOW) or (cause, failure_class, repair). It never raises."""
+    constraints = (LAYER_PREDICATE_L1, LAYER_PREDICATE_L2, LAYER_PREDICATE_PRIOR)
+    if not isinstance(evidence, dict) or evidence.get("schema") != EVIDENCE_SCHEMA:
+        return {c: ("ACCESS_RECEIPTS_NOT_OBSERVED", "B", ACCESS_REPAIR[c]) for c in constraints}
+    has1, has2 = bool(evidence.get(ACCESS_EVIDENCE_KEYS[0])), bool(evidence.get(ACCESS_EVIDENCE_KEYS[1]))
+    absent1 = ("LAYER1_KV_ACCESS_RECEIPTS_NOT_OBSERVED", "B", ACCESS_REPAIR[LAYER_PREDICATE_L1])
+    absent2 = ("LAYER2_SKAP_ACCESS_RECEIPTS_NOT_OBSERVED", "B", ACCESS_REPAIR[LAYER_PREDICATE_L2])
+    return {
+        LAYER_PREDICATE_L1: _guard_access(_check_layer1, evidence, lineage_failure) if has1 else absent1,
+        LAYER_PREDICATE_L2: _guard_access(_check_layer2, evidence, lineage_failure) if has2 else absent2,
+        LAYER_PREDICATE_PRIOR: (_guard_access(_check_prior, evidence, lineage_failure) if has1 and has2
+                                else (absent2 if has1 else absent1)),
+    }
+
+
+def _guard_access(check, evidence: dict[str, Any], lineage_failure) -> tuple[str, str, str] | None:
+    if lineage_failure is not None:
+        return lineage_failure
+    try:
+        return check(evidence)
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        return ("ACCESS_EVIDENCE_MALFORMED", "C", f"{check.__name__}: {type(exc).__name__}")
+
+
+def _lineage_access(evidence: dict[str, Any]) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    return [(r, (r.get("body") or {}).get("access") or {}) for r in evidence["lineage"]["receipts"]]
+
+
+def _check_layer1(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    layer1 = {r.get("receipt_hash"): r for r in evidence[ACCESS_EVIDENCE_KEYS[0]] if isinstance(r, dict)}
+    for receipt, access in _lineage_access(evidence):
+        kv = layer1.get(access.get("kv_access_receipt_hash"))
+        where = f"lineage receipt {receipt.get('sequence')}"
+        if kv is None:
+            return ("LAYER1_KV_ACCESS_RECEIPT_NOT_BOUND", "B", f"{where} binds no supplied layer-1 KV-access receipt")
+        if not _rederives(kv, "receipt_hash") or kv.get("schema") != KV_ACCESS_RECEIPT_SCHEMA \
+                or kv.get("boundary") != "INTR_DEVICE_KV" or kv.get("minted_by") != "KVInterlockRuntime.handle" \
+                or kv.get("intr_receipt_ref") != access.get("intr_receipt_ref") \
+                or kv.get("requester_node_ref") != access.get("requester_node_ref"):
+            return ("LAYER1_KV_ACCESS_RECEIPT_INVALID", "C",
+                    f"{where}: the layer-1 receipt must re-derive as an INTR_DEVICE_KV receipt minted by "
+                    "KVInterlockRuntime.handle for the same InTr receipt and node")
+        if not _healthy_receipt_verifies(kv):
+            return ("HEALTHY_NODE_RECEIPT_INVALID", "C",
+                    f"{where}: the layer-1 receipt carries no verifying REQUESTER_IS_CURRENTLY_ADMITTED_HEALTHY_NODE receipt")
+        if kv.get("healthy_node_evaluator") != PINNED_HEALTHY_NODE_EVALUATOR_ID \
+                or kv.get("healthy_node_evaluator_source_sha256") != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"]:
+            return ("HEALTHY_NODE_EVALUATOR_NOT_THE_PINNED_INTR_EVALUATOR", "B",
+                    f"{where}: health was evaluated by {kv.get('healthy_node_evaluator')!r} "
+                    f"(source {kv.get('healthy_node_evaluator_source_sha256')}), not {PINNED_HEALTHY_NODE_EVALUATOR_ID} "
+                    f"({PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}); {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
+    return None
+
+
+def _check_layer2(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    layer2 = {r.get("receipt_hash"): r for r in evidence[ACCESS_EVIDENCE_KEYS[1]] if isinstance(r, dict)}
+    seen: set[str] = set()
+    principal = evidence["lineage"]["principal_ref"]
+    for receipt, access in _lineage_access(evidence):
+        skap_hash = access.get("skap_access_receipt_hash")
+        skap = layer2.get(skap_hash)
+        where = f"lineage receipt {receipt.get('sequence')}"
+        if skap is None:
+            return ("LAYER2_SKAP_ACCESS_RECEIPT_NOT_BOUND", "B", f"{where} binds no supplied layer-2 SKAP-access receipt")
+        if skap_hash in seen:
+            return ("LAYER2_SKAP_ACCESS_RECEIPT_REUSED", "C", f"{where} reuses a single-use SKAP-access receipt")
+        seen.add(skap_hash)
+        if not _rederives(skap, "receipt_hash") or skap.get("schema") != SKAP_ACCESS_RECEIPT_SCHEMA \
+                or skap.get("boundary") != "INTR_KV_SKAP" or skap.get("minted_by") != "SkapLayer2Gate.admit" \
+                or skap.get("from_role") != "KV" or skap.get("principal_ref") != principal \
+                or skap.get("operation") != KIND_OPERATION.get(receipt.get("kind")) \
+                or skap.get("layer1_intr_receipt_ref") != access.get("intr_receipt_ref"):
+            return ("LAYER2_SKAP_ACCESS_RECEIPT_INVALID", "C",
+                    f"{where}: the layer-2 receipt must re-derive as an INTR_KV_SKAP receipt minted by "
+                    "SkapLayer2Gate.admit from KV for this principal and operation")
+    return None
+
+
+def _check_prior(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    layer1 = {r.get("receipt_hash") for r in evidence[ACCESS_EVIDENCE_KEYS[0]] if isinstance(r, dict)}
+    layer2 = {r.get("receipt_hash"): r for r in evidence[ACCESS_EVIDENCE_KEYS[1]] if isinstance(r, dict)}
+    priors: set[str] = set()
+    for receipt, access in _lineage_access(evidence):
+        skap = layer2.get(access.get("skap_access_receipt_hash")) or {}
+        prior = skap.get("prior_receipt_hash")
+        where = f"lineage receipt {receipt.get('sequence')}"
+        if prior is None or prior != access.get("kv_access_receipt_hash") or prior not in layer1:
+            return ("LAYER2_PRIOR_IS_NOT_THE_LAYER1_RECEIPT", "C",
+                    f"{where}: the SKAP-access receipt's prior_receipt_hash must be its layer-1 KV-access receipt")
+        if prior in priors:
+            return ("LAYER1_KV_ACCESS_RECEIPT_REUSED", "C", f"{where} reuses a layer-1 receipt")
+        priors.add(prior)
+    return None
+
+
+def _access_rows(evidence: Any, lineage_failure) -> list[dict[str, Any]]:
+    rows = []
+    for constraint, failure in _access_failures(evidence, lineage_failure).items():
+        row: dict[str, Any] = {"constraint": constraint, "enforced_in_sealed_predicate": ACCESS_CONSTRAINT_PREDICATE[constraint]}
+        if failure is None:
+            row.update(disposition="ALLOW", locus="EVIDENCE")
+        else:
+            lineage_broken = lineage_failure is not None and failure == lineage_failure
+            row.update(disposition="FAIL_CLOSED", failed_predicate=constraint,
+                       failure_code=failure[0] if lineage_broken else _ACCESS_CODE[constraint],
+                       required_evidence_or_repair=f"{failure[0]}: {failure[2]}", retry_entrypoint=RETRY,
+                       owning_existing_goal=GOAL_REF, next_attempt=EVIDENCE_NEXT, failure_class=failure[1],
+                       refusal_cause=failure[0])
+            if failure[1] == "B":
+                row["dependency_owner"] = ACCESS_CONSTRAINT_OWNER[constraint]
+        rows.append(row)
+    return rows
 
 
 def _evidence_custody(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
@@ -581,11 +1011,26 @@ def evaluate(evidence: Any = None) -> dict[str, Any]:
         else:
             results.append(_row(predicate, failure[0], failure[1], failure[2],
                                 owner if failure[0] == code else GOAL_REF, relation if failure[0] == code else None))
+    access = _access_rows(evidence if isinstance(evidence, dict) and evidence.get("schema") == EVIDENCE_SCHEMA
+                          and isinstance(evidence.get("lineage"), dict) else None, lineage_failure)
+    for index, row in enumerate(results):
+        blocking = [a for a in access if a["enforced_in_sealed_predicate"] == row["predicate"]
+                    and a["disposition"] != "ALLOW"]
+        bound = [a for a in access if a["enforced_in_sealed_predicate"] == row["predicate"]]
+        if row["disposition"] == "ALLOW" and bound and not blocking:
+            results[index] = {**row, "locus": "LOCAL_EXERCISE+EVIDENCE"}
+        if row["disposition"] == "ALLOW" and blocking:
+            first = blocking[0]
+            results[index] = {**_row(row["predicate"], first["failure_code"], first["failure_class"],
+                                     first["required_evidence_or_repair"]),
+                              "access_constraints_unmet": [a["constraint"] for a in blocking]}
     unmet = [r for r in results if r["disposition"] != "ALLOW"]
     return {"schema": VERDICT_SCHEMA, "task_id": TASK_ID, "scope_digest": SCOPE_DIGEST,
             "lowest_supported_mode": LOWEST_SUPPORTED_MODE, "mode": LOWEST_SUPPORTED_MODE,
             "disposition": "FAIL_CLOSED" if unmet else "ALLOW",
             "unmet_predicates": [r["predicate"] for r in unmet], "predicates": results,
+            "access_constraints": access,
+            "access_constraints_conformant": sum(1 for a in access if a["disposition"] == "ALLOW"),
             "evidence_sha256": sha256_uri(evidence) if evidence is not None else None,
             "evidence_lineage_head": evidence["lineage"].get("head")
             if isinstance(evidence, dict) and isinstance(evidence.get("lineage"), dict) else None,

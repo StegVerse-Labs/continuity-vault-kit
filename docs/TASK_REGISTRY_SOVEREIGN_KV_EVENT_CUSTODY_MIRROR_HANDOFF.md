@@ -54,11 +54,20 @@ byte-unchanged; `tests/test_sovereign_kv_vault_lineage_record.py` pins their dig
   (`AUTHENTIC_ADMITTED_PROVIDER_WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV`),
   `required_evidence_or_repair`, `retry_entrypoint`, `owning_existing_goal` (this Goal) and `next_attempt`.
   The raise stays internal in `_validate_vault_lineage_custody_result_strict`.
-- **LC-KV-03(a).** `runtime/kv_ecosystem_git_ref_custody.py` is an ecosystem-only custody adapter, the
-  `ecosystem-git-ref` provider in `vault_lineage_registry()`. `default_registry()` keeps its pinned bytes.
-  - The lineage is stored as `lineage.json` in a commit on `refs/stegverse/kv-custody/<principal>`.
-  - Writes are manifest-directed appends that move the ref by compare-and-swap from the declared predecessor.
-  - Reads go back by exact lineage hash.
-  - It uses the stdlib and the local `git` only: no push, remote, network, clock or credential.
-  - Interlock/InTr and SKAP references are consumed in the provider receipt, never verified or minted here.
-  - device-local, cloud stores, NAS and removable media stay optional upper layers.
+- **LC-KV-03, revision 1 (withdrawal).** The ecosystem git-ref custody adapter
+  (`refs/stegverse/kv-custody/<principal>`, formerly `runtime/kv_ecosystem_git_ref_custody.py`) is removed:
+  it reached custody without passing either credential layer. `vault_lineage_registry()` is `default_registry()`
+  again, and no provider is an access path. A provider may at most carry the sealed lineage below the gates.
+- **Two credential layers (LC-KV-03 rev 1, LC-KV-08).** `validate_vault_lineage_custody_result` now also
+  requires the provider receipt to bind `kv_access_receipt_hash` and `skap_access_receipt_hash`:
+  - The first is the layer-1 INTR_DEVICE_KV receipt, minted by `KVInterlockRuntime.handle` for a currently
+    admitted healthy node.
+  - The second is the layer-2 INTR_KV_SKAP receipt. A separate gate inside KV mints it, and its
+    `prior_receipt_hash` is the layer-1 receipt.
+  - The caller supplies `access_receipt_verifier`, which is the layer-2 gate's `verify_access_chain` in
+    continuity-vault-kit#258. The verifier checks both receipts against the gates' own receipt stores; a
+    non-empty string is never accepted.
+  - A missing or unverified layer returns a six-field FAIL_CLOSED that names the refusing layer:
+    `KV_ACCESS_LAYER1_REFUSED` (failed_predicate `KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE`) or
+    `SKAP_ACCESS_LAYER2_REFUSED` (failed_predicate `SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT`).
+  - This module mints neither receipt.

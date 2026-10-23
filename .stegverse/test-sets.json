@@ -724,18 +724,6 @@
   {
    "always": false,
    "exclude": [],
-   "id": "tests/test_kv_ecosystem_git_ref_custody.py",
-   "inputs": [],
-   "surfaces": [
-    "tests/test_kv_ecosystem_git_ref_custody.py"
-   ],
-   "tests": [
-    "tests.test_kv_ecosystem_git_ref_custody"
-   ]
-  },
-  {
-   "always": false,
-   "exclude": [],
    "id": "tests/test_kv_email_ingress_policy.py",
    "inputs": [],
    "surfaces": [
@@ -1828,11 +1816,8 @@
   "runtime/intr_epistemic_roundtrip.py": [
    "runtime/intr_epistemic_state.py"
   ],
-  "runtime/kv_ecosystem_git_ref_custody.py": [
-   "runtime/kv_storage_provider_adapter.py",
-   "runtime/task_registry_event_sovereign_kv_binding.py"
-  ],
   "runtime/kv_interlock_endpoint.py": [
+   "runtime/intr_pinned/**",
    "runtime/secret_field_policy.py"
   ],
   "runtime/kv_my_kv_projection.py": [
@@ -1849,6 +1834,8 @@
    "runtime/secret_field_policy.py"
   ],
   "runtime/kv_skap_vault.py": [
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_skap_layer2.py",
    "runtime/secret_field_policy.py"
   ],
   "runtime/organization_security_posture.py": [
@@ -1943,6 +1930,11 @@
   ],
   "skap/portable_envelope.py": [
    "skap/crypto_boundary.py"
+  ],
+  "tests/kv_two_layer_e0.py": [
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_skap_vault.py"
   ],
   "tests/test_action_execution.py": [
    "execution/adapter.py",
@@ -2169,12 +2161,6 @@
    "scripts/validate_kv_cross_class_intr_fixtures.py",
    "specs/kv-cross-class-intr-transition-fixtures.v1.json"
   ],
-  "tests/test_kv_ecosystem_git_ref_custody.py": [
-   "runtime/kv_ecosystem_git_ref_custody.py",
-   "runtime/kv_storage_provider_adapter.py",
-   "runtime/task_registry_event_sovereign_kv_binding.py",
-   "tests/test_sovereign_kv_vault_lineage_record.py"
-  ],
   "tests/test_kv_email_ingress_policy.py": [
    "tools/check_kv_email_ingress_policy.py"
   ],
@@ -2185,7 +2171,10 @@
    "runtime/kv_heartbeat_receipt_observer.py"
   ],
   "tests/test_kv_interlock_runtime_endpoint.py": [
-   "runtime/kv_interlock_endpoint.py"
+   "runtime/intr_pinned/**",
+   "runtime/intr_pinned/healthy_node_evaluator.py",
+   "runtime/kv_interlock_endpoint.py",
+   "tests/kv_two_layer_e0.py"
   ],
   "tests/test_kv_my_kv_projection.py": [
    "runtime/kv_instance_relationships.py",
@@ -2210,13 +2199,16 @@
    "runtime/kv_skap_account_transfer.py"
   ],
   "tests/test_kv_skap_vault_e0_witnesses.py": [
-   "runtime/kv_ecosystem_git_ref_custody.py",
    "runtime/kv_skap_vault.py",
    "runtime/task_registry_event_sovereign_kv_binding.py",
-   "tests/test_kv_skap_vault_finish_point.py"
+   "tests/kv_two_layer_e0.py",
+   "tests/test_kv_skap_vault_finish_point.py",
+   "tests/test_task_registry_event_sovereign_kv_binding.py"
   ],
   "tests/test_kv_skap_vault_finish_point.py": [
-   "runtime/kv_skap_vault.py"
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_skap_vault.py",
+   "tests/kv_two_layer_e0.py"
   ],
   "tests/test_kv_storage_provider_adapter.py": [
    "runtime/kv_storage_provider_adapter.py"
@@ -2261,7 +2253,8 @@
    "KV_PERSISTENT_SESSION_RECONSTRUCTION_MIRROR_HANDOFF.md",
    "runtime/kv_interlock_endpoint.py",
    "runtime/persistent_session_interlock.py",
-   "runtime/persistent_session_reconstruction.py"
+   "runtime/persistent_session_reconstruction.py",
+   "tests/kv_two_layer_e0.py"
   ],
   "tests/test_persistent_session_reconstruction.py": [
    "KV_PERSISTENT_SESSION_RECONSTRUCTION_MIRROR_HANDOFF.md",
@@ -2420,7 +2413,8 @@
   "tests/test_skap_kv_persistence.py": [
    "execution/adapter.py",
    "execution/vault_store.py",
-   "skap/crypto_boundary.py"
+   "skap/crypto_boundary.py",
+   "tests/kv_two_layer_e0.py"
   ],
   "tests/test_skap_loader_js.py": [
    "skap/loader/kv-skap-loader.html",

@@ -22,16 +22,24 @@ if str(ROOT) not in sys.path:
 
 from runtime import kv_skap_vault as kv  # noqa: E402
 
+sys.path.insert(0, str(ROOT / "tests"))
+from tests.kv_two_layer_e0 import TwoLayers, intr_receipt  # noqa: E402,F401  (package path: in the pinned closure)
+
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
 REF = kv.CUSTODY_REF_PREFIX + "test-0001"
 
 
+TVC_REF = kv.sha256_uri({"test": "issuance"})
+
+
 def vault_with_consent(purposes=("WRITE", "READ"), projection="p"):
-    vault = kv.KVSkapVault("principal:test")
-    vault.bind_custody_key_reference(custody_key_ref=REF, issued_by="TV/TVC", tvc_issuance_receipt_ref="test:issuance")
-    consent = vault.grant_consent(purposes=list(purposes), projection_ids=[projection], observed_at="t0")["receipt_hash"]
-    return vault, consent
+    """(vault, consent, layers): every vault call below goes through both credential layers."""
+    layers = TwoLayers()
+    vault = layers.vault()
+    layers.bind(vault, custody_key_ref=REF, issued_by="TV/TVC", tvc_issuance_receipt_ref=TVC_REF)
+    consent = layers.grant(vault, purposes=list(purposes), projection_ids=[projection], observed_at="t0")["receipt_hash"]
+    return vault, consent, layers
 
 
 class KvSkapVaultFinishPoint(unittest.TestCase):
@@ -71,100 +79,186 @@ class KvSkapVaultFinishPoint(unittest.TestCase):
                                "/nonexistent/evidence.json"], cwd=ROOT, capture_output=True, text=True, check=False)
         verdict = json.loads(proc.stdout)
         self.assertEqual(proc.returncode, 2)
-        self.assertEqual({r.get("failure_code") for r in verdict["predicates"] if r["disposition"] != "ALLOW"},
-                         {"KV_FINISH_POINT_EVIDENCE_INVALID"})
+        self.assertEqual({r["predicate"]: r.get("failure_code") for r in verdict["predicates"]
+                          if r["disposition"] != "ALLOW"},
+                         {**{p: "KV_FINISH_POINT_EVIDENCE_INVALID" for p in kv._EVIDENCE_CHECKS},
+                          "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY": "SKAP_ACCESS_LAYER2_REFUSED"})
 
 
 class RoundTrip(unittest.TestCase):
     def test_write_read_revoke_round_trip_is_exact(self) -> None:
-        vault, consent = vault_with_consent()
+        vault, consent, L = vault_with_consent()
         content = {"a": [1, 2, {"b": "ü"}], "n": None}
-        vault.write_projection(projection_id="p", content=content, consent_receipt_hash=consent,
-                               custody_key_ref=REF, intr_transition_ref="intr:w")
-        read, receipt = vault.read_projection(projection_id="p", consent_receipt_hash=consent)
+        L.write(vault, projection_id="p", content=content, consent_receipt_hash=consent, custody_key_ref=REF)
+        read, receipt = L.read(vault, projection_id="p", consent_receipt_hash=consent)
         self.assertEqual(read, content)
         self.assertEqual(receipt["body"]["content_sha256"], kv.sha256_uri(content))
         read["a"].append(3)  # the caller's copy never aliases the vault
-        self.assertEqual(vault.read_projection(projection_id="p", consent_receipt_hash=consent)[0], content)
-        vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:r", observed_at="t1")
+        self.assertEqual(L.read(vault, projection_id="p", consent_receipt_hash=consent)[0], content)
+        L.revoke(vault, consent_receipt_hash=consent, observed_at="t1")
         with self.assertRaises(kv.VaultRefusal) as ctx:
-            vault.read_projection(projection_id="p", consent_receipt_hash=consent)
+            L.read(vault, projection_id="p", consent_receipt_hash=consent)
         self.assertEqual(ctx.exception.fields["failure_code"], "KV_CONSENT_REVOKED")
         for field in SIX:
             self.assertTrue(ctx.exception.fields[field])
 
-    def test_mutations_require_an_intr_transition_reference(self) -> None:
-        vault, consent = vault_with_consent()
-        with self.assertRaises(kv.VaultRefusal) as ctx:
-            vault.write_projection(projection_id="p", content={}, consent_receipt_hash=consent,
-                                   custody_key_ref=REF, intr_transition_ref="")
-        self.assertEqual(ctx.exception.fields["failure_code"], "INTR_TRANSITION_REF_MISSING")
-        with self.assertRaises(kv.VaultRefusal):
-            vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="none", observed_at="t")
+    def test_no_vault_operation_is_reachable_without_the_layer2_gate(self) -> None:
+        """LC-KV-07/10/12: direct calls, caller strings, forged or replayed receipts all refuse with six fields."""
+        vault, consent, L = vault_with_consent()
+        gateless = kv.KVSkapVault("principal:test")
+        forged = kv.sha256_uri({"caller": "minted"})
+        spent = L.skap_hash("SKAP_WRITE", "p")
+        L.write(vault, projection_id="p", content={"n": 0}, consent_receipt_hash=consent, custody_key_ref=REF)
+        vault.write_projection(projection_id="p", content={"n": 1}, consent_receipt_hash=consent, custody_key_ref=REF,
+                               skap_access_receipt_hash=spent)
+        attempts = [
+            lambda: gateless.bind_custody_key_reference(custody_key_ref=REF, issued_by="TV/TVC",
+                                                        tvc_issuance_receipt_ref=TVC_REF),
+            lambda: gateless.grant_consent(purposes=["READ"], projection_ids=["p"], observed_at="t"),
+            lambda: vault.read_projection(projection_id="p", consent_receipt_hash=consent),
+            lambda: vault.write_projection(projection_id="p", content={}, consent_receipt_hash=consent,
+                                           custody_key_ref=REF, intr_transition_ref="intr:caller-asserted"),
+            lambda: vault.read_projection(projection_id="p", consent_receipt_hash=consent,
+                                          skap_access_receipt_hash=forged),
+            lambda: vault.write_projection(projection_id="p", content={}, consent_receipt_hash=consent,
+                                           custody_key_ref=REF, skap_access_receipt_hash=spent),
+            lambda: vault.read_projection(projection_id="p", consent_receipt_hash=consent,
+                                          skap_access_receipt_hash=L.skap_hash("SKAP_WRITE", "p")),
+            lambda: vault.read_projection(projection_id="p", consent_receipt_hash=consent,
+                                          skap_access_receipt_hash=L.skap_hash("SKAP_READ", "other")),
+            lambda: vault.revoke_consent(consent_receipt_hash=consent, observed_at="t"),
+            lambda: kv.KVSkapVault.reconstruct(vault.export_lineage()),
+        ]
+        for attempt in attempts:
+            with self.assertRaises(kv.VaultRefusal) as ctx:
+                attempt()
+            self.assertEqual(ctx.exception.fields["failure_code"], kv.LAYER2_REFUSAL_CODE)
+            for field in SIX:
+                self.assertTrue(ctx.exception.fields[field], field)
+        self.assertEqual(ctx.exception.fields["owning_existing_goal"], kv.GOAL_REF)
+        self.assertEqual(vault.lineage[-1]["body"]["content"], {"n": 1})
+
+    def test_layer2_admits_only_a_layer1_receipt_from_a_healthy_node(self) -> None:
+        from runtime.kv_skap_layer2 import kv_skap_transition
+        L = TwoLayers()
+
+        def admit(prior):
+            return L.gate.admit(kv_skap_transition(principal_ref=L.principal, operation="SKAP_READ", subject_ref="p",
+                                                   prior_receipt_hash=prior))
+        sick = L.kv_access(evidence={"schema": "x"})
+        self.assertEqual((sick["decision"], sick["failure_code"]), ("FAIL_CLOSED", "KV_ACCESS_LAYER1_REFUSED"))
+        self.assertIsNone(sick["kv_access_receipt"])
+        good = L.kv_hash()
+        recomputed = kv.sha256_uri({"schema": "stegverse.kv-access-receipt/v1", "boundary": "INTR_DEVICE_KV"})
+        for prior, cause in ((None, "LAYER1_KV_ACCESS_RECEIPT_ABSENT"), ("intr:x", "LAYER1_KV_ACCESS_RECEIPT_ABSENT"),
+                             (recomputed, "LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1")):
+            out = admit(prior)
+            self.assertEqual((out["disposition"], out["failure_code"], out["refusal_cause"]),
+                             ("FAIL_CLOSED", "SKAP_ACCESS_LAYER2_REFUSED", cause))
+            self.assertEqual(out["failed_predicate"], "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT")
+            for field in SIX:
+                self.assertTrue(out[field], field)
+        first = admit(good)
+        self.assertEqual(first["disposition"], "ALLOW")
+        self.assertEqual(first["skap_access_receipt"]["prior_receipt_hash"], good)
+        self.assertEqual(admit(good)["refusal_cause"], "LAYER1_KV_ACCESS_RECEIPT_ALREADY_USED")
+        # a layer-1 runtime that is not the gate's own cannot vouch for a receipt
+        other = TwoLayers()
+        self.assertEqual(other.gate.admit(kv_skap_transition(principal_ref=L.principal, operation="SKAP_READ",
+                                                             subject_ref="p", prior_receipt_hash=L.kv_hash()))
+                         ["refusal_cause"], "LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1")
+        chain = L.gate.verify_access_chain(good, first["skap_access_receipt"]["receipt_hash"])
+        self.assertEqual(chain["disposition"], "ALLOW")
+        self.assertEqual(L.gate.verify_access_chain(L.kv_hash(), first["skap_access_receipt"]["receipt_hash"])
+                         ["failure_code"], "SKAP_ACCESS_LAYER2_REFUSED")
+        self.assertEqual(L.gate.verify_access_chain(recomputed, first["skap_access_receipt"]["receipt_hash"])
+                         ["failure_code"], "KV_ACCESS_LAYER1_REFUSED")
+
+    def test_skap_entry_is_deterministic_and_returns_dispositions(self) -> None:
+        L = TwoLayers()
+        vault = L.vault()
+        out = kv.skap_entry(L.gate, vault, operation="BIND_CUSTODY_KEY_REFERENCE", kv_access_receipt_hash=L.kv_hash(),
+                            arguments={"custody_key_ref": REF, "issued_by": "TV/TVC", "tvc_issuance_receipt_ref": TVC_REF})
+        self.assertEqual(out["disposition"], "ALLOW")
+        self.assertEqual(out["result"]["body"]["access"]["skap_access_receipt_hash"], out["skap_access_receipt_hash"])
+        refused = kv.skap_entry(L.gate, vault, operation="SKAP_READ", kv_access_receipt_hash="sha256:" + "0" * 64,
+                                arguments={"projection_id": "p", "consent_receipt_hash": "x"})
+        self.assertEqual(refused["failure_code"], "SKAP_ACCESS_LAYER2_REFUSED")
+        inner = kv.skap_entry(L.gate, vault, operation="BIND_CUSTODY_KEY_REFERENCE", kv_access_receipt_hash=L.kv_hash(),
+                              arguments={"custody_key_ref": REF, "issued_by": "KV", "tvc_issuance_receipt_ref": TVC_REF})
+        self.assertEqual(inner["failure_code"], "SKAP_CUSTODY_WRITER_NOT_TV_TVC")
+        self.assertEqual(kv.skap_entry(TwoLayers().gate, vault, operation="SKAP_READ", kv_access_receipt_hash=None,
+                                       arguments={})["failure_code"], "SKAP_ACCESS_LAYER2_REFUSED")
 
 
 class Consent(unittest.TestCase):
     def test_write_and_read_require_a_covering_consent(self) -> None:
-        vault, consent = vault_with_consent(purposes=("WRITE",))
-        vault.write_projection(projection_id="p", content={"x": 1}, consent_receipt_hash=consent,
-                               custody_key_ref=REF, intr_transition_ref="intr:w")
+        vault, consent, L = vault_with_consent(purposes=("WRITE",))
+        L.write(vault, projection_id="p", content={"x": 1}, consent_receipt_hash=consent,
+                               custody_key_ref=REF)
         with self.assertRaises(kv.VaultRefusal) as ctx:
-            vault.read_projection(projection_id="p", consent_receipt_hash=consent)
+            L.read(vault, projection_id="p", consent_receipt_hash=consent)
         self.assertEqual(ctx.exception.fields["failure_code"], "KV_CONSENT_SCOPE_DOES_NOT_COVER_OPERATION")
         with self.assertRaises(kv.VaultRefusal) as ctx:
-            vault.write_projection(projection_id="other", content={}, consent_receipt_hash=consent,
-                                   custody_key_ref=REF, intr_transition_ref="intr:w")
+            L.write(vault, projection_id="other", content={}, consent_receipt_hash=consent,
+                                   custody_key_ref=REF)
         self.assertEqual(ctx.exception.fields["failure_code"], "KV_CONSENT_SCOPE_DOES_NOT_COVER_OPERATION")
         with self.assertRaises(kv.VaultRefusal) as ctx:
-            vault.read_projection(projection_id="p", consent_receipt_hash="sha256:unknown")
+            L.read(vault, projection_id="p", consent_receipt_hash="sha256:unknown")
         self.assertEqual(ctx.exception.fields["failure_code"], "KV_CONSENT_RECEIPT_NOT_FOUND")
 
     def test_revocation_is_receipted_and_not_repeatable(self) -> None:
-        vault, consent = vault_with_consent()
-        receipt = vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:r", observed_at="t")
+        vault, consent, L = vault_with_consent()
+        receipt = L.revoke(vault, consent_receipt_hash=consent, observed_at="t")
         self.assertEqual(receipt["kind"], "CONSENT_REVOKED")
         self.assertEqual(receipt["body"]["consent_receipt_hash"], consent)
         with self.assertRaises(kv.VaultRefusal) as ctx:
-            vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:r2", observed_at="t")
+            L.revoke(vault, consent_receipt_hash=consent, observed_at="t")
         self.assertEqual(ctx.exception.fields["failure_code"], "KV_CONSENT_ALREADY_REVOKED")
 
 
 class Custody(unittest.TestCase):
     def test_only_tv_tvc_custody_key_references_are_held(self) -> None:
-        vault = kv.KVSkapVault("principal:test")
+        L = TwoLayers()
+        vault = L.vault()
         for issued_by in ("KV", "SKAP Vault", "user", ""):
             with self.assertRaises(kv.VaultRefusal) as ctx:
-                vault.bind_custody_key_reference(custody_key_ref=REF, issued_by=issued_by, tvc_issuance_receipt_ref="r")
+                L.bind(vault, custody_key_ref=REF, issued_by=issued_by, tvc_issuance_receipt_ref=TVC_REF)
             self.assertEqual(ctx.exception.fields["failure_code"], "SKAP_CUSTODY_WRITER_NOT_TV_TVC")
         for ref in ("raw-bytes", kv.CUSTODY_REF_PREFIX, "-----BEGIN PRIVATE KEY-----"):
             with self.assertRaises(kv.VaultRefusal) as ctx:
-                vault.bind_custody_key_reference(custody_key_ref=ref, issued_by="TV/TVC", tvc_issuance_receipt_ref="r")
+                L.bind(vault, custody_key_ref=ref, issued_by="TV/TVC", tvc_issuance_receipt_ref=TVC_REF)
             self.assertEqual(ctx.exception.fields["failure_code"], "SKAP_CUSTODY_KEY_REFERENCE_INVALID")
+        for receipt_ref in ("r", "probe:tvc", "", None):  # bind verifies the issuance receipt hash, never a string
+            with self.assertRaises(kv.VaultRefusal) as ctx:
+                L.bind(vault, custody_key_ref=REF, issued_by="TV/TVC", tvc_issuance_receipt_ref=receipt_ref)
+            self.assertEqual(ctx.exception.fields["failure_code"], "TVC_CUSTODY_ISSUANCE_RECEIPT_MISSING")
         self.assertEqual(vault.lineage, [])
 
     def test_key_or_credential_material_never_enters_kv(self) -> None:
-        vault, consent = vault_with_consent()
+        vault, consent, L = vault_with_consent()
         for content in ({"private_key": "x"}, {"nested": {"password": "x"}}, {"skap_ciphertext": "x"}):
             with self.assertRaises(kv.VaultRefusal) as ctx:
-                vault.write_projection(projection_id="p", content=content, consent_receipt_hash=consent,
-                                       custody_key_ref=REF, intr_transition_ref="intr:w")
+                L.write(vault, projection_id="p", content=content, consent_receipt_hash=consent,
+                                       custody_key_ref=REF)
             self.assertEqual(ctx.exception.fields["failure_code"], "SKAP_VAULT_KEY_OR_CREDENTIAL_MATERIAL_REFUSED")
 
     def test_write_requires_a_bound_custody_reference(self) -> None:
-        vault, consent = vault_with_consent()
+        vault, consent, L = vault_with_consent()
         with self.assertRaises(kv.VaultRefusal) as ctx:
-            vault.write_projection(projection_id="p", content={}, consent_receipt_hash=consent,
-                                   custody_key_ref=kv.CUSTODY_REF_PREFIX + "unbound", intr_transition_ref="intr:w")
+            L.write(vault, projection_id="p", content={}, consent_receipt_hash=consent,
+                                   custody_key_ref=kv.CUSTODY_REF_PREFIX + "unbound")
         self.assertEqual(ctx.exception.fields["failure_code"], "SKAP_CUSTODY_KEY_REFERENCE_NOT_BOUND")
 
 
 class LineageAndContinuity(unittest.TestCase):
     def _vault(self):
-        vault, consent = vault_with_consent()
-        vault.write_projection(projection_id="p", content={"v": 1}, consent_receipt_hash=consent,
-                               custody_key_ref=REF, intr_transition_ref="intr:w")
-        vault.read_projection(projection_id="p", consent_receipt_hash=consent)
-        vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:r", observed_at="t")
+        vault, consent, L = vault_with_consent()
+        L.write(vault, projection_id="p", content={"v": 1}, consent_receipt_hash=consent,
+                               custody_key_ref=REF)
+        L.read(vault, projection_id="p", consent_receipt_hash=consent)
+        L.revoke(vault, consent_receipt_hash=consent, observed_at="t")
+        self.L = L
         return vault, consent
 
     def test_lineage_is_one_continuous_hash_chain(self) -> None:
@@ -187,17 +281,17 @@ class LineageAndContinuity(unittest.TestCase):
             copy_ = copy.deepcopy(exported)
             mutate(copy_)
             with self.assertRaises(kv.VaultRefusal) as ctx:
-                kv.KVSkapVault.reconstruct(copy_)
+                self.L.reconstruct(copy_)
             self.assertEqual(ctx.exception.fields["failure_code"], "KV_RECEIPT_LINEAGE_BROKEN")
 
     def test_any_device_reconstructs_exactly_from_the_lineage_alone(self) -> None:
         vault, consent = self._vault()
         wire = json.dumps(vault.export_lineage())  # the only thing another device receives
-        fresh = kv.KVSkapVault.reconstruct(json.loads(wire))
+        fresh = self.L.reconstruct(json.loads(wire))
         self.assertEqual(fresh.head, vault.head)
         self.assertEqual(fresh.export_lineage(), vault.export_lineage())
         with self.assertRaises(kv.VaultRefusal) as ctx:  # revocation survives the move
-            fresh.read_projection(projection_id="p", consent_receipt_hash=consent)
+            self.L.read(fresh, projection_id="p", consent_receipt_hash=consent)
         self.assertEqual(ctx.exception.fields["failure_code"], "KV_CONSENT_REVOKED")
 
 
@@ -233,8 +327,8 @@ class AuthorityAndLadder(unittest.TestCase):
                 imported |= {a.name.split(".")[0] for a in node.names}
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imported.add(node.module.split(".")[0])
-        self.assertLessEqual(imported, {"__future__", "argparse", "copy", "hashlib", "json", "os", "subprocess", "sys",
-                                        "typing", "runtime"})
+        self.assertLessEqual(imported, {"__future__", "argparse", "copy", "datetime", "hashlib", "json", "os",
+                                        "subprocess", "sys", "typing", "runtime"})
         source = (ROOT / "runtime" / "kv_skap_vault.py").read_text(encoding="utf-8")
         for forbidden in ("datetime.now", "time.time", "urllib", "socket", "requests", "openai", "anthropic"):
             self.assertNotIn(forbidden, source)
@@ -258,16 +352,6 @@ def tvc_issuance(principal="principal:test", sequence=0):
     return {**body, "receipt_sha256": kv.sha256_uri(body)}
 
 
-def intr_receipt(transition_id, principal="principal:test", outcome="ADMITTED"):
-    content = {"transition_id": transition_id, "admitted_by": "Interlock/InTr"}
-    return {"schema": kv.INTR_RECEIPT_SCHEMA, "transition_id": transition_id, "transition_sequence": 1,
-            "subject_or_correlation_id": principal, "transition_outcome": outcome, "prior_state_ref_or_hash": None,
-            "required_evidence_manifest": [{
-                "evidence_id": "intr_admission", "evidence_type": "INTR_TRANSITION_ADMISSION",
-                "origin_transition_id": transition_id, "encoding": "canonical-json", "content": content,
-                "sha256": __import__("hashlib").sha256(kv.canonical_json(content).encode()).hexdigest()}]}
-
-
 def custody_readback(lineage, provider="ecosystem-git-ref"):
     digest = kv.sha256_uri(lineage)
     return {"schema": kv.CUSTODY_READBACK_SCHEMA, "record_type": "KV_SKAP_VAULT_LINEAGE", "disposition": "ALLOW",
@@ -278,20 +362,22 @@ def custody_readback(lineage, provider="ecosystem-git-ref"):
             "exact_hash_readback_verified": True, "authority_effect": "NONE"}
 
 
-def evidence_bundle():
+def evidence_bundle(layers=None):
+    """A full bundle. Every lineage receipt went through both layers (E0 stand-in healthy-node evaluator)."""
     issuance = tvc_issuance()
-    vault = kv.KVSkapVault("principal:test")
-    vault.bind_custody_key_reference(custody_key_ref=issuance["custody_key_ref"], issued_by="TV/TVC",
-                                     tvc_issuance_receipt_ref=issuance["receipt_sha256"])
-    consent = vault.grant_consent(purposes=["WRITE", "READ"], projection_ids=["p"], observed_at="t0")["receipt_hash"]
-    vault.write_projection(projection_id="p", content={"v": 1}, consent_receipt_hash=consent,
-                           custody_key_ref=issuance["custody_key_ref"], intr_transition_ref="intr:w1")
-    vault.read_projection(projection_id="p", consent_receipt_hash=consent)
-    vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:r1", observed_at="t1")
+    L = layers or TwoLayers()
+    vault = L.vault()
+    L.bind(vault, custody_key_ref=issuance["custody_key_ref"], issued_by="TV/TVC",
+           tvc_issuance_receipt_ref=issuance["receipt_sha256"])
+    consent = L.grant(vault, purposes=["WRITE", "READ"], projection_ids=["p"], observed_at="t0")["receipt_hash"]
+    L.write(vault, projection_id="p", content={"v": 1}, consent_receipt_hash=consent,
+            custody_key_ref=issuance["custody_key_ref"])
+    L.read(vault, projection_id="p", consent_receipt_hash=consent)
+    L.revoke(vault, consent_receipt_hash=consent, observed_at="t1")
     lineage = vault.export_lineage()
-    return {"schema": kv.EVIDENCE_SCHEMA, "lineage": lineage,
-            "intr_transition_receipts": [intr_receipt("w1"), intr_receipt("r1", outcome="APPLIED")],
-            "durable_custody_readback_receipt": custody_readback(lineage), "tvc_issuance_receipts": [issuance]}
+    return {"schema": kv.EVIDENCE_SCHEMA, "lineage": lineage, "intr_transition_receipts": list(L.intr_receipts),
+            "durable_custody_readback_receipt": custody_readback(lineage), "tvc_issuance_receipts": [issuance],
+            **L.access_evidence()}
 
 
 def failure_codes(verdict):
@@ -315,14 +401,15 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         def drop(key):
             return lambda e: e.pop(key)
 
-        def intr_outcome(e):
-            e["intr_transition_receipts"][0]["transition_outcome"] = "DENIED"
+        def write_intr(e):  # the InTr receipt bound by the write's layer-1 receipt
+            ref = e["lineage"]["receipts"][2]["body"]["access"]["intr_receipt_ref"]
+            return next(r for r in e["intr_transition_receipts"] if kv.sha256_uri(r) == ref)
 
         def intr_missing(e):
-            e["intr_transition_receipts"].pop(0)
+            e["intr_transition_receipts"].remove(write_intr(e))
 
-        def intr_manifest(e):
-            e["intr_transition_receipts"][0]["required_evidence_manifest"][0]["content"]["x"] = 1
+        def intr_edited(e):  # an edited InTr receipt no longer hashes to the ref its layer-1 receipt binds
+            write_intr(e)["transition_outcome"] = "APPLIED_LATER"
 
         def device_local(e):
             e["durable_custody_readback_receipt"] = custody_readback(e["lineage"], "device-local")
@@ -341,8 +428,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
 
         cases = [(drop("intr_transition_receipts"), RT, "INTR_TRANSITION_RECEIPTS_NOT_OBSERVED"),
                  (intr_missing, RT, "INTR_TRANSITION_RECEIPT_NOT_BOUND"),
-                 (intr_outcome, RT, "INTR_TRANSITION_RECEIPT_INVALID"),
-                 (intr_manifest, RT, "INTR_TRANSITION_RECEIPT_INVALID"),
+                 (intr_edited, RT, "INTR_TRANSITION_RECEIPT_NOT_BOUND"),
                  (drop("durable_custody_readback_receipt"), AD, "KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND"),
                  (device_local, AD, "KV_DURABLE_CUSTODY_IS_DEVICE_LOCAL"),
                  (other_lineage, AD, "KV_DURABLE_CUSTODY_READBACK_NOT_THIS_LINEAGE"),
@@ -358,6 +444,63 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             row = next(r for r in verdict["predicates"] if r["predicate"] == predicate)
             for field in SIX:
                 self.assertTrue(row[field], (code, field))
+
+    def test_an_invalid_bound_intr_receipt_is_refused(self) -> None:
+        def denied(r):
+            r["transition_outcome"] = "DENIED"
+
+        def bad_manifest(r):
+            r["required_evidence_manifest"][0]["content"]["x"] = 1
+        for edit in (denied, bad_manifest):
+            verdict = kv.evaluate(evidence_bundle(TwoLayers(intr_edit=edit)))
+            self.assertEqual(failure_codes(verdict),
+                             {"KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": "INTR_TRANSITION_RECEIPT_INVALID"})
+
+    def test_each_access_layer_gap_is_a_six_field_fail_closed(self) -> None:
+        """LC-KV-09/10/11: the three access constraints, each evidence-bound and named by its own layer."""
+        RT, SK = "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT", "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY"
+        L1, L2, PRIOR = (kv.LAYER_PREDICATE_L1, kv.LAYER_PREDICATE_L2, kv.LAYER_PREDICATE_PRIOR)
+
+        def edit_l1(e):
+            e["layer1_kv_access_receipts"][0]["healthy_node_receipt"]["healthy_node_established"] = False
+
+        def edit_l1_rehash(e):  # a caller recomputing the receipt hash after editing still cannot pass
+            r = e["layer1_kv_access_receipts"][0]
+            r["healthy_node_receipt"]["node_ref"] = "device:other"
+            r["receipt_hash"] = kv.sha256_uri({k: v for k, v in r.items() if k != "receipt_hash"})
+
+        def edit_l2(e):
+            e["layer2_skap_access_receipts"][0]["operation"] = "SKAP_READ"
+
+        cases = [
+            (lambda e: e.pop("layer1_kv_access_receipts"),
+             {RT: "KV_ACCESS_LAYER1_REFUSED", SK: "SKAP_ACCESS_LAYER2_REFUSED"}, {L1, PRIOR}),
+            (lambda e: e.pop("layer2_skap_access_receipts"), {SK: "SKAP_ACCESS_LAYER2_REFUSED"}, {L2, PRIOR}),
+            (edit_l1, {RT: "KV_ACCESS_LAYER1_REFUSED"}, {L1}),
+            (edit_l1_rehash, {RT: "KV_ACCESS_LAYER1_REFUSED", SK: "SKAP_ACCESS_LAYER2_REFUSED"}, {L1, PRIOR}),
+            (edit_l2, {SK: "SKAP_ACCESS_LAYER2_REFUSED"}, {L2}),
+        ]
+        for mutate, codes, unmet in cases:
+            evidence = evidence_bundle()
+            mutate(evidence)
+            verdict = kv.evaluate(evidence)
+            self.assertEqual({a["constraint"] for a in verdict["access_constraints"] if a["disposition"] != "ALLOW"},
+                             unmet, codes)
+            self.assertEqual({k: v for k, v in failure_codes(verdict).items() if k in (RT, SK)}, codes)
+            for row in verdict["access_constraints"]:
+                if row["disposition"] != "ALLOW":
+                    for field in SIX:
+                        self.assertTrue(row[field], field)
+                    self.assertEqual(row["owning_existing_goal"], kv.GOAL_REF)
+        # health decided by anything but the pinned InTr evaluator is never evidence (class B, InTr-owned)
+        exercise = TwoLayers(evaluator=kv._exercise_only_healthy_node_evaluator, node=kv._ExerciseHarness.node,
+                             ledger_root=kv.LOCAL_EXERCISE_LABEL)
+        verdict = kv.evaluate(evidence_bundle(exercise))
+        row = next(a for a in verdict["access_constraints"] if a["constraint"] == L1)
+        self.assertEqual((row["failure_code"], row["failure_class"], row["refusal_cause"]),
+                         ("KV_ACCESS_LAYER1_REFUSED", "B", "HEALTHY_NODE_EVALUATOR_NOT_THE_PINNED_INTR_EVALUATOR"))
+        self.assertIn("LC-KV-13", row["dependency_owner"])
+        self.assertEqual(verdict["access_constraints_conformant"], 2)
 
     def test_a_tampered_or_malformed_bundle_never_raises(self) -> None:
         evidence = evidence_bundle()
@@ -375,7 +518,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
 
     def test_an_evidence_lineage_without_revocation_is_not_a_round_trip(self) -> None:
         evidence = evidence_bundle()
-        vault = kv.KVSkapVault.reconstruct(evidence["lineage"])
+        vault = TwoLayers().reconstruct(evidence["lineage"])
         vault.lineage.pop()  # drop the revocation: no longer a write-read-revoke round trip
         lineage = vault.export_lineage()
         evidence["lineage"] = lineage
