@@ -611,3 +611,465 @@ def _checkout(git_repo):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- KV-SKAP-LEDGER-LOCATION-001: KV's own recorded receipt chains ('kv', 'skap_vault') behind KV's own InTr ---------
+# Governing correction: StegVerse-org/.github#167 comment 6372442705 (STEGVERSE_KV, storage endpoint v2 names only,
+# no ledger-wide encryption, ENVELOPE v2 governs SKAP's root; genesis is the two-event crossing model, ENVELOPE v2 line 55).
+
+import hashlib  # noqa: E402
+
+from runtime import kv_receipt_ledgers as rl  # noqa: E402
+from runtime import kv_storage_provider_adapter as spa  # noqa: E402
+
+#: StegVerse-Labs/TVC#542 @2b364921 config/org_ledger_head_signer.json org_ledger.custody_ledgers.<key>.carries (read-only)
+TVC542_CARRIES = {
+    "kv": ["stegverse.kv-access-receipt/v1 (L1)"],
+    "skap_vault": ["stegverse.skap-access-receipt/v1 (L2)",
+                   "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
+                   "stegverse.tvc.skap-custody-operation-result/v1"],
+}
+#: #431 contract fixture d97cd4dc (vendored E0_CONTRACT_431): the key shape every designation copies
+CONTRACT_431 = json.loads(Path(E0_CONTRACT_431).read_text(encoding="utf-8"))
+#: the superseded cvk#263 @f5f971a5 location (org-hosted), kept only as a refusal fixture
+SUPERSEDED_ORG_LOCATION = {"repository": "StegVerse-org/.github", "ref": "refs/stegverse/organization-ledger",
+                           "namespace": "repository-ledger/StegVerse-org/01_KV_Ledger"}
+E0_REQUEST = "E0-TEST-ONLY-NOT-A-KV-REQUEST"  # TEST-ONLY label; never a real KV request id
+KV2 = "SITE-CLOUD-KV-4347408852127319cbda574f02e03edb"
+
+
+def tvc542_ledger_location(location):
+    """TVC#542 @2b364921 ledger_location's acceptance rule, restated (a consumer check, not an import). It accepts only
+    the org-ledger shape, so it refuses KV's receipt chains until Lane C rebinds it."""
+    import re
+    if not (isinstance(location, dict) and location.get("repository") == "StegVerse-org/.github"
+            and location.get("ref") == "refs/stegverse/organization-ledger"
+            and isinstance(location.get("namespace"), str)
+            and re.match(r"^repository-ledger/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", location["namespace"])):
+        return None, "NOT_DESIGNATED"
+    return {}, "OK"
+
+
+def _sha_file(raw):
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def device_local():
+    return spa.default_registry().get("device-local")
+
+
+@contextlib.contextmanager
+def kv_chain_e0(which, genesis, edit=None):
+    """TEST-ONLY: one designation pinned at `genesis` whose single store is the documented device-local storage
+    endpoint (LOCAL_ROOT, resident-device-local) outside the KV #2 lineage, and a published E0 KV head signer.
+    Production files are untouched (scratch copy, digest re-pinned in memory)."""
+    spec = rl.RECEIPT_LEDGERS[which]
+    contract = json.loads((ROOT / spec["contract_path"]).read_text(encoding="utf-8"))
+    contract["repository_ledger_location"]["expected_genesis_receipt_sha256"] = genesis
+    ld = contract["ledger_designation"]
+    ld["expected_genesis_receipt_sha256"] = genesis
+    ld["stores"][0].update(provider_id="device-local", access_adapter="resident-device-local", kv_request_id=E0_REQUEST)
+    if edit:
+        edit(contract)
+    raw = (json.dumps(contract, indent=2) + "\n").encode()
+    scratch = Path(tempfile.mkdtemp(prefix="e0-kv-chain-"))
+    (scratch / "contract.json").write_bytes(raw)
+    saved, saved_signers = dict(spec), rl.load_head_signers
+    spec.update(contract_path=str(scratch / "contract.json"), contract_sha256=_sha_file(raw))
+    from kv_two_layer_e0 import e0_route_ref
+    rl.load_head_signers = lambda: [{**e0_route_ref(), "signs": "KV_RECORDED_RECEIPT_CHAIN_HEAD"}]
+    try:
+        yield spec
+    finally:
+        spec.clear()
+        spec.update(saved)
+        rl.load_head_signers = saved_signers
+
+
+def _receipt(repository, klass, transition_id, evidence, previous):
+    hne = pinned()["healthy_node_evaluator"]
+    body = {"schema": "stegverse.repo-transition-receipt/v1", "repository": repository, "transition_id": transition_id,
+            "transition_class": klass, "predecessor_state_sha256": hne.sha({"previous": previous}),
+            "successor_state_sha256": hne.sha({"transition": transition_id}), "evidence": evidence,
+            "authority_effect": "NONE", "observed_at": "2026-10-23T12:00:00Z", "previous_receipt_sha256": previous}
+    return {**body, "receipt_sha256": hne.sha(body)}
+
+
+def e0_kv_root(which, carried=("sha256:" + "ab" * 32,), repository=None):
+    """A TEST-ONLY scratch KV root holding this chain as plain recorded receipts at the chain's documented location
+    (HEAD.json + receipts/<hex>.json). Returns (root, chain newest first)."""
+    spec = rl.RECEIPT_LEDGERS[which]
+    repo = repository or spec["repository"]
+    chain = [_receipt(repo, rl.GENESIS_CLASS, "REPOSITORY_LEDGER_INITIALIZATION:e0",
+                      {"label": E0_LABEL, "repository": repo}, None)]
+    for i, h in enumerate(carried):
+        chain.append(_receipt(repo, "RECEIPT_APPENDED", f"e0-{i}", {"receipt_sha256": h, "label": E0_LABEL},
+                              chain[-1]["receipt_sha256"]))
+    root = Path(tempfile.mkdtemp(prefix="e0-kv-root-"))
+    where = root / spec["storage_location"]
+    (where / "receipts").mkdir(parents=True)
+    for r in chain:
+        (where / "receipts" / (r["receipt_sha256"][7:] + ".json")).write_text(json.dumps(r), encoding="utf-8")
+    (where / "HEAD.json").write_text(json.dumps({"receipt_sha256": chain[-1]["receipt_sha256"]}), encoding="utf-8")
+    return root, list(reversed(chain))
+
+
+def e0_kv_attestation(which, chain, **override):
+    from kv_two_layer_e0 import E0_ROUTE_SEED, signer
+    d = rl.designation(which)[0]
+    body = {**rl.head_attestation_body(d["repository"], d["store_location"], chain[-1]["receipt_sha256"],
+                                       chain[0]["receipt_sha256"]), **override}
+    message = rl.HEAD_ATTESTATION_SCHEMA.encode() + b"\n" + pinned()["healthy_node_evaluator"].canon(body)
+    return {**body, "key_id": E0_ROUTE_KEY_ID, "signature_b64": signer().sign_b64(message, E0_ROUTE_SEED)}
+
+
+class KvSkapLedgerLocation(unittest.TestCase):
+    """KV-SKAP-LEDGER-LOCATION-001: STEGVERSE_KV's two recorded receipt chains (_StegVerse/Receipts,
+    _Vault/SKAP/Receipts) on the documented storage endpoint v2 of the KV #2 lineage, never on an Org ledger ref; the
+    SKAP chain only via KV's InTr; genesis null until pinned (two-event crossing model)."""
+
+    CHAINS = {"kv": ("_StegVerse/Receipts", "KV"), "skap_vault": ("_Vault/SKAP/Receipts", "SKAP_VAULT")}
+
+    def assertSix(self, out, code, klass=None, disposition="FAIL_CLOSED"):
+        self.assertEqual((out["disposition"], out["failure_code"]), (disposition, code), out)
+        if klass:
+            self.assertEqual(out["failure_class"], klass)
+        for field in SIX:
+            self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
+
+    def test_contracts_designate_stegverse_kv_on_the_documented_storage_endpoint(self):
+        self.assertEqual(set(rl.RECEIPT_LEDGERS), set(self.CHAINS))
+        layouts = json.loads((ROOT / "specs/kv-ai-persistence-layouts.v1.json").read_text())
+        skap = json.loads((ROOT / "specs/skap-kv-storage-layout.v2.json").read_text())
+        self.assertIn("_StegVerse/Receipts", json.dumps(layouts))
+        self.assertIn("_Vault/SKAP/Receipts", json.dumps(skap))
+        google = spa.default_registry().get("google-drive").descriptor()
+        for which, (location, kind) in self.CHAINS.items():
+            spec = rl.RECEIPT_LEDGERS[which]
+            raw = (ROOT / spec["contract_path"]).read_bytes()
+            self.assertEqual(_sha_file(raw), spec["contract_sha256"])
+            contract = json.loads(raw)
+            keys = list(CONTRACT_431)
+            at = keys.index("repository_ledger_location") + 1
+            keys[at:at] = ["ledger_designation", "designation_notes"]
+            self.assertEqual(list(contract), keys)
+            loc = contract["repository_ledger_location"]
+            self.assertEqual(list(loc), list(CONTRACT_431["repository_ledger_location"]))  # #431 key shape
+            self.assertEqual((contract["repository"], loc["repository"], loc["ref"], loc["namespace"]),
+                             (f"STEGVERSE_KV:{location}", "STEGVERSE_KV", "KV_INTR_ENDPOINT", location))
+            self.assertIs(loc["new_ledger_root"], True)
+            self.assertIsNone(loc["expected_genesis_receipt_sha256"])
+            self.assertIn("SUPPLIED_HB_EPOCH", loc["expected_genesis_note"])
+            self.assertIn(KV2, loc["designation_source"])
+            self.assertIn("6372442705", loc["designation_source"])
+            ld = contract["ledger_designation"]
+            self.assertEqual(tuple(ld), rl.DESIGNATION_KEYS)  # LLM-adapter#431 @a2237bc3 field names
+            self.assertEqual(len(ld["stores"]), 1)
+            store = ld["stores"][0]
+            self.assertEqual(tuple(store), rl.STORE_KEYS)
+            self.assertEqual(store, {"store_type": "KV_STORAGE_ENDPOINT", "storage_endpoint_schema":
+                                     spa.STORAGE_ENDPOINT_SCHEMA, "provider_id": google["provider_id"],
+                                     "access_adapter": google["access_adapter"], "kv_class": "STEGVERSE_KV",
+                                     "kv_request_id": KV2, "location": location})
+            self.assertEqual((ld["endpoint_id"], ld["endpoint_kind"], ld["provider_selection"], ld["head_signer_source"]),
+                             (f"STEGVERSE_KV:{location}", kind, "SINGLE_PROVIDER_V1", "KV_LEDGER_HEAD_SIGNER"))
+            self.assertEqual(ld["rollback_watermark_source"]["source"], "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD")
+            self.assertTrue(ld["rollback_watermark_source"]["path_ids"][0].endswith(":intr-destination"))
+            self.assertIsNone(ld["expected_genesis_receipt_sha256"])
+            notes = contract["designation_notes"]
+            self.assertEqual(json.loads((ROOT / notes["head_signers_path"]).read_text())["signers"], [])
+            self.assertIsNone(rl._org_designation(contract))
+            text = json.dumps({k: v for k, v in contract.items() if k != "designation_notes"})
+            for withdrawn in ("SVKV", "ECOSYSTEM-OWN-KV-001", "GATE" + "WAY", "gate" + "way", "encrypted blob", "G8",
+                              "federal", "self-organizing", "TV/TVC root", "session key"):
+                self.assertNotIn(withdrawn, text, (which, withdrawn))
+        signers = json.loads((ROOT / rl.HEAD_SIGNERS_REL).read_text())
+        self.assertEqual((rl.HEAD_SIGNERS_REL, signers["schema"]), (".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+                         "stegverse.published-public-key-references/v1"))
+
+    def test_no_chain_on_any_org_ledger_ref_and_the_head_digest_name(self):
+        """LC-KV-21 (.github#163 comment 6372658597); TVC#542 @4c2504da kv_ledger_head_signer.signs."""
+        for which in self.CHAINS:
+            contract = json.loads((ROOT / rl.RECEIPT_LEDGERS[which]["contract_path"]).read_text())
+            loc, ld = contract["repository_ledger_location"], contract["ledger_designation"]
+            placed = json.dumps([loc["repository"], loc["ref"], loc["namespace"], ld["endpoint_id"], ld["stores"]])
+            for org in ("organization-ledger", "StegVerse-org/", "repository-ledger/", "refs/"):
+                self.assertNotIn(org, placed, (which, org))
+            self.assertEqual(contract["designation_notes"]["head_digest_name"], "KV_RECORDED_RECEIPT_CHAIN_HEAD")
+            self.assertIn("digest-only", contract["designation_notes"]["org_crossing_receipts"])
+        self.assertEqual(rl.HEAD_DIGEST_NAME, "KV_RECORDED_RECEIPT_CHAIN_HEAD")
+        from kv_two_layer_e0 import e0_route_ref
+        rl.load_head_signers, saved = rl.load_head_signers, rl.load_head_signers
+        try:
+            rl.HEAD_SIGNERS_PATH, path = Path(tempfile.mkdtemp()) / "s.json", rl.HEAD_SIGNERS_PATH
+            for signs, n in (("KV_RECORDED_RECEIPT_CHAIN_HEAD", 1), ("KV_LEDGER_HEAD", 0)):
+                rl.HEAD_SIGNERS_PATH.write_text(json.dumps({"schema": rl.HEAD_SIGNERS_SCHEMA,
+                                                            "signers": [{**e0_route_ref(), "signs": signs}]}))
+                self.assertEqual(len(rl.load_head_signers()), n, signs)
+        finally:
+            rl.HEAD_SIGNERS_PATH = path
+
+    def test_the_documented_storage_endpoint_is_reused_not_duplicated(self):
+        self.assertFalse((ROOT / "runtime/kv_gateway_storage.py").exists())
+        self.assertFalse((ROOT / ".stegverse/kv-gateway").exists())
+        source = (ROOT / "runtime/kv_receipt_ledgers.py").read_text(encoding="utf-8")
+        self.assertIn("from runtime import kv_storage_provider_adapter as spa", source)
+        import ast
+        classes = [n.name for n in ast.walk(ast.parse(source)) if isinstance(n, ast.ClassDef)]
+        self.assertEqual(classes, [])  # no new adapter / storage interface
+        for withdrawn in ("SVKV", "GatewayStore", "BlobOpener", "G8", "self-organizing"):
+            self.assertFalse(withdrawn in source, withdrawn)
+
+    def test_no_endpoint_is_a_github_organization_member(self):
+        """Rigel's rule (Coordination on .github#160): KV reaches the Orgs only through InTr, never as an org member."""
+        for which in ("kv", "skap_vault"):
+            contract = json.loads((ROOT / rl.RECEIPT_LEDGERS[which]["contract_path"]).read_text())
+            self.assertIsNone(rl._org_membership(contract), which)
+            loc = contract["repository_ledger_location"]
+            self.assertEqual((loc["repository"], loc["ref"]), ("STEGVERSE_KV", "KV_INTR_ENDPOINT"))
+            self.assertTrue(all(p.endswith(":intr-destination")
+                                for p in contract["ledger_designation"]["rollback_watermark_source"]["path_ids"]), which)
+            self.assertIn("ENDPOINT_ORG_MEMBERSHIP_REFUSED", contract["designation_notes"]["org_membership"])
+
+        def org_repository(c):
+            c["repository_ledger_location"]["repository"] = "StegVerse-Labs/continuity-vault-kit"
+
+        def org_ref(c):
+            c["repository_ledger_location"]["ref"] = "refs/heads/main"
+
+        def team(c):
+            c["ledger_designation"]["team_slug"] = "kv-endpoints"
+
+        def app_installation(c):
+            c["ledger_designation"]["stores"][0]["installation_id"] = 1
+
+        def membership(c):
+            c["org_membership"] = {"org": "StegVerse-org", "role": "member"}
+
+        for which in ("kv", "skap_vault"):
+            for edit in (org_repository, org_ref, team, app_installation, membership):
+                with self.subTest(which=which, edit=edit.__name__), kv_chain_e0(which, None, edit):
+                    out = rl.read_receipt_ledger(which)
+                    self.assertSix(out, "ENDPOINT_ORG_MEMBERSHIP_REFUSED", "C")
+                    self.assertIn("InTr", out["required_evidence_or_repair"])
+                    self.assertEqual(out["failed_predicate"], "ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER")
+
+    def test_an_org_git_ref_other_store_or_multi_store_designation_is_refused(self):
+        def org_location(c):
+            c["repository_ledger_location"].update(SUPERSEDED_ORG_LOCATION)
+
+        def git_ref_store(c):
+            c["ledger_designation"]["stores"][0]["store_type"] = "GIT_REF"
+
+
+        def git_fields(c):
+            c["ledger_designation"]["stores"][0]["ref"] = "refs/heads/kv"
+
+        for edit in (org_location, git_ref_store, git_fields):
+            with self.subTest(edit=edit.__name__), kv_chain_e0("kv", None, edit):
+                self.assertSix(rl.read_receipt_ledger("kv"), "KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER", "C")
+
+        def two(c):
+            c["ledger_designation"]["stores"].append(dict(c["ledger_designation"]["stores"][0]))
+
+        def other_store_type(c):
+            c["ledger_designation"]["stores"][0]["store_type"] = "ENCRYPTED_" + "BLOB"
+
+        def undocumented_provider(c):
+            c["ledger_designation"]["stores"][0]["provider_id"] = "made-up-provider"
+
+        def wrong_adapter(c):
+            c["ledger_designation"]["stores"][0]["access_adapter"] = "provider-or-file-provider"
+
+        def wrong_location(c):
+            c["ledger_designation"]["stores"][0]["location"] = "_StegVerse/Other"
+
+        with kv_chain_e0("kv", None, two):
+            self.assertSix(rl.read_receipt_ledger("kv"), "ENDPOINT_LEDGER_MULTI_PROVIDER_NOT_SUPPORTED", "C")
+        for edit in (other_store_type, undocumented_provider, wrong_adapter, wrong_location):
+            with self.subTest(edit=edit.__name__), kv_chain_e0("kv", None, edit):
+                self.assertSix(rl.read_receipt_ledger("kv"), "KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2", "C")
+
+    def test_production_fails_closed_kv2_pending_then_genesis_and_signer(self):
+        out = rl.read_receipt_ledger("kv", spa.default_registry().get("google-drive"), "/nonexistent")
+        self.assertSix(out, "KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR", "B")
+        self.assertIn(KV2, out["owning_existing_goal"])
+        self.assertIn("KV-CONNECTION-REVALIDATION-WORKER-001", out["owning_existing_goal"])
+        self.assertEqual(ep.KVInterlockRuntime.receipt_ledger()["failure_code"],
+                         "KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR")
+        rows = {r["receipt_ledger"]: r for r in rl.receipt_ledger_prerequisites()}
+        self.assertEqual([b["failure_code"] for b in rows["kv"]["fail_closed"]],
+                         ["KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR", "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED",
+                          rl.PIN_MECHANISM_CODE, "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED"])
+        self.assertEqual([b["failure_code"] for b in rows["skap_vault"]["fail_closed"]],
+                         ["KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR",
+                          "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED", rl.PIN_MECHANISM_CODE,
+                          "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED"])
+        for row in rows.values():
+            self.assertEqual(row["disposition"], "FAIL_CLOSED")
+            for b in row["fail_closed"]:
+                for field in rl.SIX_FIELDS:
+                    self.assertTrue(b[field].strip(), field)
+        with kv_chain_e0("kv", None):
+            root, _ = e0_kv_root("kv")
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root), "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED", "B")
+
+    def test_skap_genesis_is_the_two_event_crossing_model_and_reads_back_via_kv_intr(self):
+        """C-1 withdrawn: ENVELOPE v2 line 55 (d749bb2) is CAPTURE's two-event crossing model; no fence FAIL_CLOSED."""
+        self.assertFalse(hasattr(rl, "genesis_fence_unreconciled"))
+        self.assertNotIn("SKAP_GENESIS_FENCE_UNRECONCILED", (ROOT / "runtime/kv_receipt_ledgers.py").read_text())
+        envelope = (ROOT / "SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md").read_text(encoding="utf-8").splitlines()
+        self.assertIn("exactly-once fence", envelope[54])  # line 55
+        for text in (rl.GENESIS_CROSSING, json.loads((ROOT / rl.RECEIPT_LEDGERS["skap_vault"]["contract_path"])
+                                                      .read_text())["designation_notes"]["genesis_crossing"]):
+            self.assertIn("line 55", text)
+            self.assertIn("digest-only", text)
+            self.assertIn("SUPPLIED_HB_EPOCH", text)
+            self.assertIn("never held on the Org ledger", text)
+        layers = TwoLayers()
+        prior = layers.kv_hash()
+        carried = "sha256:" + "ab" * 32
+        root, chain = e0_kv_root("skap_vault", (carried,))
+        with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]):
+            out = layers.gate.receipt_ledger(prior, device_local(), root, e0_kv_attestation("skap_vault", chain))
+            self.assertEqual(out["disposition"], "ALLOW", out)
+            self.assertEqual(out["store_location"], "storage-endpoint:device-local/_Vault/SKAP/Receipts")
+            self.assertEqual(rl.receipt_on_ledger("skap_vault", carried, _read_result=out)["disposition"], "ALLOW")
+
+    def test_the_skap_chain_is_reached_only_via_kv_intr(self):
+        root, chain = e0_kv_root("skap_vault")
+        with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]):
+            good = e0_kv_attestation("skap_vault", chain)
+            self.assertSix(rl.read_receipt_ledger("skap_vault", device_local(), root, good),
+                           "SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR", "A")
+            self.assertSix(TwoLayers().gate.receipt_ledger(None, device_local(), root, good),
+                           "SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR", "A")
+
+    def test_e0_read_back_through_the_device_local_storage_endpoint(self):
+        carried = "sha256:" + "ab" * 32
+        root, chain = e0_kv_root("kv", (carried,))
+        with kv_chain_e0("kv", chain[-1]["receipt_sha256"]):
+            good = e0_kv_attestation("kv", chain)
+            out = rl.read_receipt_ledger("kv", device_local(), root, good)
+            self.assertEqual(out["disposition"], "ALLOW", out)
+            self.assertEqual(out["store_location"], "storage-endpoint:device-local/_StegVerse/Receipts")
+            self.assertEqual(out["location"], "STEGVERSE_KV#KV_INTR_ENDPOINT:_StegVerse/Receipts")
+            self.assertEqual(rl.receipt_on_ledger("kv", carried, device_local(), root, good)["disposition"], "ALLOW")
+            self.assertEqual(rl.receipt_on_ledger("kv", "sha256:" + "ee" * 32, device_local(), root, good)
+                             ["failure_code"], "RECEIPT_NOT_ON_DESIGNATED_RECEIPT_CHAIN")
+            self.assertEqual(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good)["disposition"], "ALLOW")
+            # the Org-recorded head watermark: on chain ALLOW; not on chain DENY
+            self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, good, chain[0]["receipt_sha256"])
+                             ["disposition"], "ALLOW")
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good, "sha256:" + "77" * 32),
+                           "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
+            # a rolled-back read-back (HEAD moved to genesis) cannot carry the newer recorded head
+            old_root, _ = e0_kv_root("kv", (carried,))
+            where = old_root / "_StegVerse/Receipts"
+            (where / "receipts" / (chain[0]["receipt_sha256"][7:] + ".json")).unlink()
+            (where / "HEAD.json").write_text(json.dumps({"receipt_sha256": chain[-1]["receipt_sha256"]}))
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), old_root, e0_kv_attestation("kv", chain[1:]),
+                                                  chain[0]["receipt_sha256"]),
+                           "KV_LEDGER_HEAD_ROLLBACK_DETECTED", disposition="DENY")
+            # signed head
+            self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, None)["failure_code"],
+                             "KV_LEDGER_HEAD_NOT_AUTHENTICATED")
+            self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, {**good, "head_receipt_sha256":
+                             chain[1]["receipt_sha256"]})["failure_code"], "KV_LEDGER_HEAD_NOT_AUTHENTICATED")
+            rl.load_head_signers, saved = (lambda: []), rl.load_head_signers
+            try:
+                self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good),
+                               "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED", "B")
+            finally:
+                rl.load_head_signers = saved
+            # another storage endpoint than the designated one; an absent read-back
+            self.assertSix(rl.read_receipt_ledger("kv", spa.default_registry().get("nas"), root, good),
+                           "KV_STORAGE_ENDPOINT_NOT_THE_DESIGNATED_ONE", "C")
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), None, good), "KV_RECEIPT_CHAIN_UNREADABLE", "D")
+            empty = Path(tempfile.mkdtemp(prefix="e0-empty-"))
+            (empty / "_StegVerse/Receipts").mkdir(parents=True)
+            self.assertSix(rl.read_receipt_ledger("kv", device_local(), empty, good), "KV_RECEIPT_CHAIN_UNREADABLE")
+        with kv_chain_e0("kv", "sha256:" + "9" * 64):
+            self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, good)["failure_code"],
+                             "KV_RECEIPT_CHAIN_GENESIS_MISMATCH")
+
+    def test_external_storage_records_are_refused(self):
+        """The provider's own records (Drive metadata files, revisions) never cross into KV."""
+        root, chain = e0_kv_root("kv")
+        (root / "_StegVerse/Receipts/desktop.ini").write_text("[.ShellClassInfo]")
+        (root / "_StegVerse/Receipts/receipts/1DriveFileId.json").write_text(json.dumps({"kind": "drive#file"}))
+        with kv_chain_e0("kv", chain[-1]["receipt_sha256"]):
+            out = rl.read_receipt_ledger("kv", device_local(), root, e0_kv_attestation("kv", chain))
+        self.assertSix(out, "EXTERNAL_STORAGE_RECORD_REFUSED", "C")
+
+    def test_correspondence_not_storage_an_org_receipt_is_not_kv_input(self):
+        root, chain = e0_kv_root("kv", repository="StegVerse-org/LLM-adapter")
+        with kv_chain_e0("kv", chain[-1]["receipt_sha256"]):
+            out = rl.read_receipt_ledger("kv", device_local(), root, e0_kv_attestation("kv", chain))
+        self.assertSix(out, "KV_RECEIPT_CHAIN_FOREIGN_RECORD_REFUSED", "C")
+        self.assertIn("CORRESPONDENCE_NOT_STORAGE", out["required_evidence_or_repair"])
+        for which in self.CHAINS:
+            rule = json.loads((ROOT / rl.RECEIPT_LEDGERS[which]["contract_path"]).read_text())[
+                "repository_ledger_location"]["rule"]
+            self.assertIn("neither ledger is copied across the boundary", rule)
+            self.assertIn("KV_LEDGER_HEAD_ROLLBACK_DETECTED", rule)
+            self.assertIn("proposes; it never transitions", rule)
+
+    def test_receipts_carry_kv_own_receipt_chain(self):
+        layers = TwoLayers()
+        vault = layers.vault()
+        bound = layers.bind(vault, custody_key_ref="tvc://skap-custody/e0-ledger", issued_by="TV/TVC",
+                            tvc_issuance_receipt_ref="sha256:" + "cd" * 32)
+        l1, l2 = layers.layer1_receipts[-1], layers.gate.export_receipts()[-1]
+        self.assertEqual(l1["receipt_ledger"], rl.receipt_ledger_binding("kv"))
+        self.assertEqual((l1["receipt_ledger"]["storage_location"], l1["receipt_ledger"]["location"]),
+                         ("_StegVerse/Receipts", "STEGVERSE_KV#KV_INTR_ENDPOINT:_StegVerse/Receipts"))
+        self.assertEqual(l2["receipt_ledger"]["location"], "STEGVERSE_KV#KV_INTR_ENDPOINT:_Vault/SKAP/Receipts")
+        self.assertEqual(l2["layer1_receipt_ledger"], l1["receipt_ledger"])
+        self.assertEqual(bound["body"]["receipt_ledger"], rl.receipt_ledger_binding("skap_vault"))
+        self.assertEqual(l1["receipt_ledger"]["failure_code"], "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED")
+
+    def test_layer2_refuses_a_layer1_receipt_naming_another_chain(self):
+        layers = TwoLayers()
+        prior = layers.kv_hash()
+        import runtime.kv_skap_layer2 as l2
+        real = l2.receipt_ledger_binding
+        l2.receipt_ledger_binding = lambda which: {**real(which), "location": "elsewhere"} if which == "kv" else real(which)
+        try:
+            out = layers.gate.admit(kv_skap_transition(principal_ref=layers.principal, operation="SKAP_READ",
+                                                       subject_ref="p1", prior_receipt_hash=prior))
+        finally:
+            l2.receipt_ledger_binding = real
+        self.assertEqual(out["disposition"], "FAIL_CLOSED")
+        self.assertIn("LAYER1_RECEIPT_LEDGER_NOT_THE_DESIGNATED_KV_LEDGER", json.dumps(out))
+
+    def test_consumer_config_and_the_superseded_org_rule(self):
+        config = rl.custody_ledgers_config()
+        self.assertEqual(set(config), {"kv", "skap_vault"})
+        for which, entry in config.items():
+            self.assertEqual(entry["carries"], TVC542_CARRIES[which])
+            self.assertEqual(entry["repository_ledger_location"]["repository"], "STEGVERSE_KV")
+            self.assertEqual(entry["ledger_designation"]["stores"][0]["store_type"], "KV_STORAGE_ENDPOINT")
+            self.assertIs(entry["via_kv_intr_only"], which == "skap_vault")
+            # TVC#542 @2b364921's org-shape rule no longer accepts KV's chains: Lane C rebinds
+            self.assertEqual(tvc542_ledger_location(entry["repository_ledger_location"])[1], "NOT_DESIGNATED")
+        self.assertEqual(tvc542_ledger_location(SUPERSEDED_ORG_LOCATION)[1], "OK")
+
+    def test_a_changed_contract_is_not_designated(self):
+        spec = rl.RECEIPT_LEDGERS["skap_vault"]
+        saved = spec["contract_sha256"]
+        spec["contract_sha256"] = "sha256:" + "0" * 64
+        try:
+            out = rl.read_receipt_ledger("skap_vault")
+            self.assertIsNone(rl.custody_ledgers_config()["skap_vault"]["repository_ledger_location"])
+        finally:
+            spec["contract_sha256"] = saved
+        self.assertEqual(out["failure_code"], "CUSTODY_RECEIPT_CHAIN_NOT_DESIGNATED")
+        self.assertEqual(rl.read_receipt_ledger("other")["failure_code"], "RECEIPT_LEDGER_UNKNOWN")
+
+    def test_no_cryptography_import_and_vendored_intr_untouched(self):
+        source = (ROOT / "runtime" / "kv_receipt_ledgers.py").read_text(encoding="utf-8")
+        self.assertNotIn("import cryptography", source)
+        self.assertNotIn("from cryptography", source)
+        modules, why = ep.load_pinned_intr()
+        self.assertIsNotNone(modules, why)  # the vendored #432 bytes still match their pins
