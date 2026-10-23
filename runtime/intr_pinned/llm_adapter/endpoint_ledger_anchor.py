@@ -25,7 +25,13 @@ Endpoint kinds (`endpoint_kind`) and how each is anchored
   ruling), after which the root is inadmissible.
 * ``PERMANENT`` (own ledger, no dissolution). Its anchor body is
   stegverse.endpoint-ledger-anchor/v1 {node_id, endpoint_kind, ledger_lifetime,
-  node_identity_key, genesis_receipt_sha256, pinned_code_digests_sha256}.
+  node_identity_key, genesis_receipt_sha256, pinned_code_digests_sha256}. The
+  ledger is the node's own storage endpoint, designated through
+  endpoint_ledger_designation (store_type NODE_STORAGE_ENDPOINT, the same way as
+  STEGVERSE_KV; Q-PERMANENT-REPOSITORY-LEDGER, StegVerse-org/.github#167 comment
+  6374130335); on an org GIT_REF it is DENY ENDPOINT_ORG_MEMBERSHIP_REFUSED, class A
+  (LC-KV-25). No node reader is documented: production is six-field FAIL_CLOSED
+  NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED.
   EPHEMERAL and PERMANENT ledgers open with a REPOSITORY_LEDGER_INITIALIZATION
   genesis naming the node, its kind, its lifetime, its ``node_identity_key`` (a
   public-key reference only) and the pinned code digests. The anchor is one
@@ -54,7 +60,7 @@ Endpoint kinds (`endpoint_kind`) and how each is anchored
   KV_RECORDED_RECEIPT_CHAIN_HEAD, signed by a kv_ledger_head_signer published in
   .stegverse/node-ledger/kv-ledger-head-signers.v1.json (byte copy of #431's,
   sha256 758d7983...). Reading the chain goes through
-  llm_adapter.endpoint_ledger_designation (byte copy of #431 @2494d75a), whose
+  llm_adapter.endpoint_ledger_designation (byte copy of #431 @64121f4d), whose
   reader id is not documented: FAIL_CLOSED
   KV_RECEIPT_CHAIN_READER_ID_NOT_DOCUMENTED, six fields.
 * ``GATEWAY``: no gateway chain is carried on the org ledger. A gateway's
@@ -522,29 +528,9 @@ def append_receipt(ledger_root: Any, transition_class: str, transition_id: str, 
         return receipt
 
 
-def retain(org_ledger_root: Any, receipt: Mapping[str, Any]) -> Path:
-    """The protocol's dual-ledger retained copy: source-receipts/<hex>.json on the org ledger.
-
-    Kept for the InTr transport carrier's own pairs (intr_transport_carrier); the anchor and the dissolution never
-    put an endpoint's record on the org ledger."""
-    emit = _emitter()
-    path = Path(org_ledger_root) / "source-receipts" / (receipt["receipt_sha256"][7:] + ".json")
-    if path.is_file() and json.loads(path.read_text()) != dict(receipt):
-        raise SystemExit("retained copy collision")
-    if not path.is_file():
-        emit._put(path, dict(receipt))
-    return path
-
-
-def read_retained(org_ledger_root: Any, digest: Any) -> dict[str, Any] | None:
-    if not isinstance(digest, str) or not digest.startswith("sha256:"):
-        return None
-    try:
-        copy = json.loads((Path(org_ledger_root) / "source-receipts" / (digest[7:] + ".json")).read_text())
-    except Exception:
-        return None
-    body = {k: v for k, v in copy.items() if k != "receipt_sha256"} if isinstance(copy, dict) else None
-    return copy if body is not None and copy.get("receipt_sha256") == digest and sha(body) == digest else None
+#: Q-PERMANENT-REPOSITORY-LEDGER (StegVerse-org/.github#167 comment 6374130335): the retained-copy writer
+#: (source-receipts/<hex>.json on the org ledger) is withdrawn. Nothing here, in the dissolution or in the InTr
+#: carrier puts an endpoint's record on the org ledger; every Org record of a crossing is digest-only.
 
 
 # -- open (genesis) ----------------------------------------------------------------------------------
@@ -821,10 +807,15 @@ def provenance_failure(chain: list[dict[str, Any]], node_id: str, kind: str) -> 
             return "FOREIGN_PRODUCER_RECEIPT", f"{addr} successor_state_sha256 is not the digest of its evidence"
         if cls == SOURCE_CLASS:
             body = (ev.get("message") or {}).get("body") or {}
+            # the node's own egress record of an ingress signal it sent (the InTr carrier's source half, kept on the
+            # node's own ledger, never on the org ledger)
+            carried = ev.get("endpoint_kind") == carrier.ENDPOINT_KIND and body.get("node_ref") == node_id
             if (ev.get("schema") != SOURCE_EVIDENCE_SCHEMA or not payload_ok(ev) or ev.get("path_id") != path_id(node_id)
-                    or body.get("schema") not in ((SIGNED_OPENED_SCHEMA, GENERATION_SCHEMA, DISBURSEMENT_BODY_SCHEMA) if kind == EPHEMERAL
-                                                  else (ANCHOR_BODY_SCHEMA,))):
-                return "FOREIGN_PRODUCER_RECEIPT", f"{addr} is not an anchor or disbursement path receipt for {node_id}"
+                    or (not carried and body.get("schema") not in (
+                        (SIGNED_OPENED_SCHEMA, GENERATION_SCHEMA, DISBURSEMENT_BODY_SCHEMA) if kind == EPHEMERAL
+                        else (ANCHOR_BODY_SCHEMA,)))):
+                return "FOREIGN_PRODUCER_RECEIPT", f"{addr} is not an anchor, disbursement or carrier path receipt " \
+                                                   f"for {node_id}"
             continue
         if cls not in PINNED_FILES_PRODUCING:
             return "FOREIGN_PRODUCER_RECEIPT", f"{addr} class {cls!r} is written by no pinned producer"
@@ -889,6 +880,10 @@ def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
                          "inside the org ledger", node_id=node_id, kind_for_code=kind)
     if kind in INDEPENDENT_KINDS:
         return verify_independent(node_id, endpoint, org_ledger_root, org_ledger_head_receipt_sha256)
+    if kind == PERMANENT:   # the node's own storage endpoint, designated; on an org ref it is DENY (LC-KV-25)
+        refused = permanent_designation_failure(node_id, endpoint)
+        if refused:
+            return refused
     if not isinstance(node_id, str) or not node_id or kind not in ENDPOINT_KINDS \
             or endpoint.get("ledger_root") is None:
         return non_allow("ENDPOINT_INVALID", f"endpoint {endpoint!r}", node_id=node_id, kind_for_code=kind)
@@ -898,6 +893,10 @@ def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
     org_chain, failed = _org_chain(org_ledger_root, org_ledger_head_receipt_sha256)
     if failed:
         return non_allow(*failed, node_id=node_id, kind_for_code=kind)
+    if kind == PERMANENT:
+        refused = permanent_read_failure(node_id, endpoint)
+        if refused:
+            return refused
     root = Path(endpoint["ledger_root"])
     chain, failure, detail = hne.read_chain(root)
     if failure:
@@ -922,11 +921,10 @@ def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
                          node_id=node_id, **anchor_info, kind_for_code=kind)
     want_body = (SIGNED_OPENED_SCHEMA, GENERATION_SCHEMA) if kind == EPHEMERAL else (ANCHOR_BODY_SCHEMA,)
     on_chain = {r["receipt_sha256"]: r for r in chain}
-    # The transport carrier's own ingress pairs (endpoint_kind NODE_INGRESS_SIGNAL) share the path and are judged by
-    # intr_carrier_on_org_chain; their shape is #433's (carrier byte-identical across #431/#432/#433), open on #162.
+    # Every Org record on this node's path, the transport carrier's ingress pairs included, is the Org's own
+    # digest-only record (the carrier is digest-only too; Q-PERMANENT-REPOSITORY-LEDGER).
     crossings = [r for r in org_chain if r.get("transition_class") == DESTINATION_CLASS
-                 and eld._boundary_fields(r).get("path_id") == path_id(node_id)
-                 and _ev(r).get("endpoint_kind") != carrier.ENDPOINT_KIND]
+                 and eld._boundary_fields(r).get("path_id") == path_id(node_id)]
     for r in crossings:     # every other Org record on this node's path is digest-only, the org's own, supplied epoch
         failed = crossing_record_failure(r, node_id)
         if failed:
@@ -997,10 +995,47 @@ def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
             "producer_provenance": "NOT_PROVEN_BEYOND_PINNED_SHAPE", "authority_effect": "NONE_EVALUATION_ONLY"}
 
 
+def _permanent_base(node_id: Any) -> dict[str, Any]:
+    return {"schema": RESULT_SCHEMA, "node_id": node_id if isinstance(node_id, str) else None,
+            "endpoint_kind": PERMANENT, "endpoint_id": node_id if isinstance(node_id, str) else None,
+            "path_id": path_id(node_id) if isinstance(node_id, str) else None, "healthy_node_established": False,
+            "authority_effect": "NONE_EVALUATION_ONLY"}
+
+
+def permanent_designation_failure(node_id: Any, endpoint: Mapping[str, Any]) -> dict[str, Any] | None:
+    """PERMANENT: the node's own recorded receipt chain on its own storage endpoint, designated the same way as
+    STEGVERSE_KV (Q-PERMANENT-REPOSITORY-LEDGER, StegVerse-org/.github#167 comment 6374130335; LC-KV-25). The
+    designation is endpoint_ledger_designation's (byte copy of #431's): store_type NODE_STORAGE_ENDPOINT,
+    head_signer_source NODE_IDENTITY_KEY (proven here by the identity proof), rollback watermark the node's own
+    recorded head, cross-check path_ids at most the node's own path. On an org GIT_REF it is DENY
+    ENDPOINT_ORG_MEMBERSHIP_REFUSED, class A. Six fields from that module on any refusal. Pure."""
+    designation = endpoint.get("designation")
+    failed = eld.designation_failure(designation)
+    if failed is None and (designation["endpoint_kind"] != PERMANENT or designation["endpoint_id"] != node_id
+                           or eld.crossing_path_ids(designation) != [path_id(node_id)]):
+        failed = eld.refusal("ENDPOINT_LEDGER_DESIGNATION_INVALID", f"PERMANENT {node_id!r} designates its own "
+                             f"ledger as endpoint_id {node_id!r} on path {path_id(node_id)!r} only; got "
+                             f"{designation.get('endpoint_kind')!r} {designation.get('endpoint_id')!r}")
+    return {**failed, **_permanent_base(node_id), "reason": failed["failure_code"]} if failed else None
+
+
+def permanent_read_failure(node_id: str, endpoint: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Read the node's own chain only through endpoint_ledger_designation.read_designated (its reader for
+    NODE_STORAGE_ENDPOINT, of which none is admitted: six-field FAIL_CLOSED NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED,
+    open item NODE-STORAGE-ENDPOINT-DESCRIPTOR). The watermark is the node's own read-back head record and the Org
+    side of each crossing is read by that module itself (LC-KV-23, cvk#263 @9bc54d05); ``recorded_head`` is only
+    the caller's claim. ``ledger_root`` is the read-back root handed to that reader."""
+    with eld.read_designated(endpoint["designation"], source=endpoint.get("ledger_root"),
+                             recorded_head=endpoint.get("recorded_head")) as (chain, failed):
+        if failed:
+            return {**failed, **_permanent_base(node_id), "reason": failed["failure_code"]}
+    return None
+
+
 def verify_independent(node_id: Any, endpoint: Mapping[str, Any], org_ledger_root: Any,
                        org_ledger_head_receipt_sha256: Any) -> dict[str, Any]:
     """KV and SKAP_VAULT: STEGVERSE_KV:<location> with the cvk storage-endpoint keys, read only through
-    endpoint_ledger_designation (byte copy of #431 @2494d75a). Six fields from that module on any refusal."""
+    endpoint_ledger_designation (byte copy of #431 @64121f4d). Six fields from that module on any refusal."""
     kind = endpoint["endpoint_kind"]
     designation = endpoint.get("designation")
     base = {"schema": RESULT_SCHEMA, "node_id": node_id if isinstance(node_id, str) else None,
@@ -1019,14 +1054,15 @@ def verify_independent(node_id: Any, endpoint: Mapping[str, Any], org_ledger_roo
         return refused(failed)
     if designation["endpoint_kind"] != kind or designation["endpoint_id"] != kv_endpoint_id(kind) \
             or node_id != kv_endpoint_id(kind) \
-            or eld.crossing_path_ids(designation) not in ([], [base["path_id"]]):
-        # cvk#263 @bf684aad: the watermark is KV's own recorded head; path_ids are only the optional cross-check
+            or eld.crossing_path_ids(designation) != [base["path_id"]]:
+        # cvk#263 @9bc54d05: the watermark is KV's own head record; the required cross-check names KV's own path
         return refused(eld.refusal("ENDPOINT_LEDGER_DESIGNATION_INVALID", f"{kind} is {kv_endpoint_id(kind)} on "
                                    f"path {base['path_id']}; got {designation.get('endpoint_id')!r} for {node_id!r}"))
     org_chain, failure = _org_chain(org_ledger_root, org_ledger_head_receipt_sha256)
     if failure:
         return non_allow(*failure, node_id=node_id, kind_for_code=kind)
-    with eld.read_designated(designation, source=None, org_chain=org_chain,
+    del org_chain   # the Org side is read by endpoint_ledger_designation itself (LC-KV-23 (b)), never passed in
+    with eld.read_designated(designation, source=None,
                              recorded_head=endpoint.get("recorded_head")) as (chain, failed):
         if failed:
             return refused(failed)
@@ -1140,31 +1176,34 @@ def intr_carrier_on_org_chain(org_ledger_root: Any, node_id: str, seen: Mapping[
     """The InTr path pair on the authenticated org chain that carried this node's admitted signal, or a refusal.
 
     A NODE_INGRESS_ADMITTED record on the node's own ledger is something the node can append itself; it counts
-    only when its signal is the body of an INTR_MESH_PATH_INGRESS on the org chain (read back at the pinned
-    genesis with an authenticated head), newer than the anchor, verified by intr_transport_carrier.verify. Pure
-    apart from reading the already read-back org tree.
+    only when the Org's digest-only INTR_MESH_PATH_INGRESS on the org chain (read back at the pinned genesis with
+    an authenticated head), newer than the anchor, names by seal the node's own INTR_MESH_PATH_TRANSFER on the
+    node's own ledger whose body is the signal, verified by intr_transport_carrier.verify. Pure apart from reading
+    the already read-back org tree and the anchored node ledger.
     """
     chain, failure, detail = hne.read_chain(org_ledger_root)
     if failure:
         return None, ("ORG_LEDGER_UNREADABLE", f"{failure}: {detail}")
+    node_chain, failure, _ = hne.read_chain(anchored["ledger_root"])
+    on_node = {r.get("receipt_sha256"): r for r in (node_chain if not failure else [])}
     anchor_sha = anchored.get("anchor_destination_receipt_sha256")
     limit = next((i for i, r in enumerate(chain) if r.get("receipt_sha256") == anchor_sha), len(chain))
     last = None
     for r in chain[:limit]:     # newest first, only after the anchor
         if r.get("transition_class") != carrier.DESTINATION_CLASS:
             continue
-        retained = carrier.read_retained(org_ledger_root, _ev(r).get("source_repository_receipt_sha256"))
-        body = ((retained or {}).get("evidence") or {}).get("message", {}).get("body") \
-            if isinstance(retained, Mapping) and isinstance(retained.get("evidence"), Mapping) \
-            and isinstance(retained["evidence"].get("message"), Mapping) else None
+        source = on_node.get(_ev(r).get("source_repository_receipt_sha256"))
+        body = (source.get("evidence") or {}).get("message", {}).get("body") \
+            if isinstance(source, Mapping) and isinstance(source.get("evidence"), Mapping) \
+            and isinstance(source["evidence"].get("message"), Mapping) else None
         if not isinstance(body, Mapping) or body.get("node_ref") != node_id or sha(dict(body)) != seen.get("signal_sha256"):
             continue
         last = carrier.verify(body, destination_receipt_sha256=r["receipt_sha256"],
                               org_ledger_head_receipt_sha256=chain[0]["receipt_sha256"], org_chain=chain,
-                              retained_source=retained)
+                              source_record=source)
         if last is None:
             return {"destination_receipt_sha256": r["receipt_sha256"],
-                    "source_receipt_sha256": retained["receipt_sha256"],
+                    "source_receipt_sha256": source["receipt_sha256"],
                     "org_ledger_head_receipt_sha256": chain[0]["receipt_sha256"],
                     "carrier_classes": [carrier.SOURCE_CLASS, carrier.DESTINATION_CLASS]}, None
     return None, last or ("INTR_CARRIER_NOT_ON_AUTHENTICATED_ORG_LEDGER", "no InTr path pair after the anchor on the "
