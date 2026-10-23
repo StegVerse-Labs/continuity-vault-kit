@@ -23,7 +23,7 @@ if str(ROOT) not in sys.path:
 from runtime import kv_skap_vault as kv  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "tests"))
-from kv_two_layer_e0 import TwoLayers, intr_receipt  # noqa: E402,F401
+from tests.kv_two_layer_e0 import TwoLayers, intr_receipt  # noqa: E402,F401  (package path: in the pinned closure)
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
@@ -493,9 +493,8 @@ class EvidenceDrivenVerdict(unittest.TestCase):
                         self.assertTrue(row[field], field)
                     self.assertEqual(row["owning_existing_goal"], kv.GOAL_REF)
         # health decided by anything but the pinned InTr evaluator is never evidence (class B, InTr-owned)
-        exercise = TwoLayers(evaluator=kv._exercise_only_healthy_node_evaluator, node=kv._ExerciseHarness.node)
-        exercise_evidence = {"label": kv.LOCAL_EXERCISE_LABEL, "node_ref": kv._ExerciseHarness.node}
-        exercise.kv_access = (lambda orig: (lambda **kw: orig(evidence=exercise_evidence)))(exercise.kv_access)
+        exercise = TwoLayers(evaluator=kv._exercise_only_healthy_node_evaluator, node=kv._ExerciseHarness.node,
+                             ledger_root=kv.LOCAL_EXERCISE_LABEL)
         verdict = kv.evaluate(evidence_bundle(exercise))
         row = next(a for a in verdict["access_constraints"] if a["constraint"] == L1)
         self.assertEqual((row["failure_code"], row["failure_class"], row["refusal_cause"]),

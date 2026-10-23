@@ -2,19 +2,25 @@
 
 Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (INTR_KV_SKAP).
 
-``e0_standin_healthy_node_evaluator`` is a STAND-IN for the pinned InTr evaluator
-(StegVerse-org/LLM-adapter llm_adapter.node_ingress_boundary.evaluate_requester_is_currently_admitted_healthy_node,
-LC-KV-13/14). That evaluator is not implemented on any observed head: LLM-adapter main ece815b1 has no PR for it.
-* The stand-in implements only the pinned interface. It carries the pinned identity so the finish-point evidence
-  path can be exercised end to end at E0.
-* It is never installed as a module and never resolved by the runtime. The runtime resolves only the real import
-  path, and with that absent, layer 1 is a six-field FAIL_CLOSED.
-* Real healthy-node receipts are UNKNOWN_NOT_AUTHENTICALLY_OBSERVED.
+Health is decided by the REAL pinned InTr evaluator: runtime/intr_pinned/healthy_node_evaluator.py, vendored
+byte-identical from StegVerse-org/LLM-adapter#428 @0b37fe3b (LC-KV-13/14), with require_admission=True.
+* The only E0 stand-in is ``e0_health_ledger``. It writes a scratch node-exchange transition ledger (HEAD.json plus
+  hash-addressed receipts) in a temporary directory, holding a NODE_HEALTH_REPORTED report and a
+  NODE_INGRESS_ADMITTED admission.
+* It stands in for the NODE_HEALTH_REPORTED producer, which does not exist yet (Lane B asked Coordination to assign
+  one).
+* It is never the real ledger, and its receipts are E0 test fixtures, not evidence.
+* Real health reports are UNKNOWN_NOT_AUTHENTICALLY_OBSERVED. Without a bound ledger, layer 1 is a six-field
+  FAIL_CLOSED.
 """
 from __future__ import annotations
 
+import atexit
 import hashlib
+import json
+import shutil
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,32 +33,58 @@ from runtime import kv_interlock_endpoint as ep  # noqa: E402
 from runtime import kv_skap_vault as kv  # noqa: E402
 from runtime.kv_skap_layer2 import SkapLayer2Gate, kv_skap_transition  # noqa: E402
 
-E0_EVIDENCE_SCHEMA = "stegverse.e0-standin.healthy-node-evidence/v1"
 NOW = datetime(2026, 10, 23, 12, 0, 0, tzinfo=timezone.utc)
+LEDGER_REPOSITORY = "StegVerse-org/LLM-adapter"  # the pinned evaluator's expected ledger repository
+_SCRATCH: list[str] = []
 
 
-def healthy_evidence(node_ref: str, *, admitted: bool = True, healthy: bool = True) -> dict[str, Any]:
-    return {"schema": E0_EVIDENCE_SCHEMA, "node_ref": node_ref, "admitted": admitted, "healthy": healthy,
-            "ingress_receipt_sha256": kv.sha256_uri({"e0_standin_ingress": node_ref})}
+@atexit.register
+def _cleanup() -> None:
+    for path in _SCRATCH:
+        shutil.rmtree(path, ignore_errors=True)
 
 
-def e0_standin_healthy_node_evaluator(evidence: Any, *, requester_node_ref: str) -> dict[str, Any]:
-    if not isinstance(evidence, dict) or evidence.get("schema") != E0_EVIDENCE_SCHEMA \
-            or evidence.get("node_ref") != requester_node_ref or evidence.get("admitted") is not True \
-            or evidence.get("healthy") is not True:
-        return {"disposition": "DENY", "failure_code": ep.HEALTHY_NODE_REFUSAL_CODE,
-                "failed_predicate": ep.HEALTHY_NODE_PREDICATE,
-                "required_evidence_or_repair": f"{requester_node_ref} is not a currently admitted healthy node",
-                "retry_entrypoint": "llm_adapter.node_ingress_boundary (E0 stand-in)",
-                "owning_existing_goal": "LC-KV-13/14", "next_attempt": "on the node's next healthy ingress"}
-    body = {**ep._HEALTHY_RECEIPT_EXACT, "node_ref": requester_node_ref,
-            "ingress_receipt_sha256": evidence["ingress_receipt_sha256"]}
-    return {"disposition": "ALLOW", "healthy_node_receipt": {**body, "receipt_sha256": kv.sha256_uri(body)}}
+def _write_receipt(root: Path, previous: str | None, transition_class: str, evidence: dict[str, Any],
+                   repository: str = LEDGER_REPOSITORY) -> str:
+    body = {"schema": "stegverse.e0-standin.transition-receipt/v1", "repository": repository,
+            "transition_class": transition_class, "previous_receipt_sha256": previous, "evidence": evidence,
+            "label": "E0_STANDIN_TEST_LEDGER_NOT_EVIDENCE"}
+    digest = kv.sha256_uri(body)
+    (root / "receipts" / (digest[7:] + ".json")).write_text(json.dumps({**body, "receipt_sha256": digest}),
+                                                            encoding="utf-8")
+    return digest
 
 
-# the stand-in answers to the pinned interface identity (never installed in sys.modules)
-e0_standin_healthy_node_evaluator.__module__ = ep.PINNED_HEALTHY_NODE_EVALUATOR["module"]
-e0_standin_healthy_node_evaluator.__qualname__ = ep.PINNED_HEALTHY_NODE_EVALUATOR["callable"]
+def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = True, report: bool = True,
+                     superseded_by: str | None = None, repository: str = LEDGER_REPOSITORY,
+                     ) -> tuple[str, str | None]:
+    """A scratch E0 ledger read by the real pinned evaluator. Returns (ledger_root, first report sha or None).
+
+    * report=False: the chain has no NODE_HEALTH_REPORTED receipt, which is today's real state (HEALTH_REPORT_MISSING).
+    * superseded_by: a newer report with that status follows the first one, so citing the first is superseded.
+    """
+    root = Path(tempfile.mkdtemp(prefix="e0-health-ledger-"))
+    _SCRATCH.append(str(root))
+    (root / "receipts").mkdir()
+    head = _write_receipt(root, None, "LEDGER_GENESIS", {"label": "E0"}, repository)
+    first = None
+    if report:
+        first = head = _write_receipt(root, head, "NODE_HEALTH_REPORTED", {
+            "schema": "stegverse.node-health-report/v1", "node_id": node_id, "status": status}, repository)
+        current = first
+        if superseded_by is not None:
+            current = head = _write_receipt(root, head, "NODE_HEALTH_REPORTED", {
+                "schema": "stegverse.node-health-report/v1", "node_id": node_id, "status": superseded_by}, repository)
+        head = _write_receipt(root, head, "NODE_INGRESS_ADMITTED" if admitted else "NODE_INGRESS_REFUSED", {
+            "node_endpoint": {"node_id": node_id}, "healthy_node_established": admitted,
+            "health_report_receipt_sha256": current}, repository)
+    (root / "HEAD.json").write_text(json.dumps({"receipt_sha256": head}), encoding="utf-8")
+    return str(root), first
+
+
+def healthy_node_kwargs(node_id: str, **ledger: Any) -> dict[str, Any]:
+    """Runtime kwargs binding an E0 health ledger for node_id. The evaluator is the real pinned one."""
+    return {"healthy_node_ledger_root": e0_health_ledger(node_id, **ledger)[0]}
 
 
 def intr_receipt(transition_id: str, principal: str = "principal:test", outcome: str = "ADMITTED") -> dict[str, Any]:
@@ -85,10 +117,11 @@ def request_and_envelope(n: int, node: str, verification_state: str = "VERIFIED"
 
 
 class TwoLayers:
-    """Both gates wired together with the E0 stand-in evaluator. It collects every receipt for evidence bundles."""
+    """Both gates wired together. Health is decided by the real pinned evaluator over an E0 health ledger (or by an
+    injected evaluator, which the finish point refuses). It collects every receipt for evidence bundles."""
 
-    def __init__(self, principal: str = "principal:test", node: str = "device:test:1", evaluator: Any = "standin",
-                 intr_edit: Any = None):
+    def __init__(self, principal: str = "principal:test", node: str = "device:test:1", evaluator: Any = None,
+                 intr_edit: Any = None, ledger_root: Any = "e0"):
         self.principal, self.node, self.n = principal, node, 0
         self.intr_edit = intr_edit
         self.layer1 = ep.KVInterlockRuntime(
@@ -96,12 +129,13 @@ class TwoLayers:
             policy_evaluator=lambda r: {"decision": "ALLOW_BOUNDED_CONTEXT", "granted_scope": list(r["requested_scope"]),
                                         "context": {}, "source_refs": [], "policy_profile": "test"},
             receipt_store=lambda receipt: "urn:test:" + receipt["receipt_id"], clock=lambda: NOW,
-            healthy_node_evaluator=e0_standin_healthy_node_evaluator if evaluator == "standin" else evaluator)
+            healthy_node_evaluator=evaluator,
+            healthy_node_ledger_root=e0_health_ledger(node)[0] if ledger_root == "e0" else ledger_root)
         self.gate = SkapLayer2Gate(self.layer1)
         self.intr_receipts: list[dict[str, Any]] = []
         self.layer1_receipts: list[dict[str, Any]] = []
 
-    def kv_access(self, *, evidence: Any = "healthy", verification_state: str = "VERIFIED") -> dict[str, Any]:
+    def kv_access(self, *, evidence: Any = None, verification_state: str = "VERIFIED") -> dict[str, Any]:
         self.n += 1
         request, envelope = request_and_envelope(self.n, self.node, verification_state)
         intr = intr_receipt(f"t{self.n}", self.principal)
@@ -109,7 +143,7 @@ class TwoLayers:
             self.intr_edit(intr)
         self.intr_receipts.append(intr)
         out = self.layer1.handle(request, intr_envelope=envelope, intr_receipt_ref=kv.sha256_uri(intr),
-                                 healthy_node_evidence=healthy_evidence(self.node) if evidence == "healthy" else evidence)
+                                 healthy_node_evidence=evidence)
         if out.get("kv_access_receipt"):
             self.layer1_receipts.append(out["kv_access_receipt"])
         return out

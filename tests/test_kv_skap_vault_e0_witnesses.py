@@ -36,7 +36,7 @@ from runtime.task_registry_event_sovereign_kv_binding import (  # noqa: E402
     build_vault_lineage_record,
     validate_vault_lineage_custody_result,
 )
-from kv_two_layer_e0 import TwoLayers  # noqa: E402
+from tests.kv_two_layer_e0 import TwoLayers  # noqa: E402
 from test_kv_skap_vault_finish_point import scratch_ledger, tvc_issuance  # noqa: E402
 from test_task_registry_event_sovereign_kv_binding import provider_receipt  # noqa: E402
 

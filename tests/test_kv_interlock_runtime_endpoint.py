@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 from datetime import datetime, timezone
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "runtime" / "kv_interlock_endpoint.py"
 sys.path.insert(0, str(ROOT / "tests"))
 
-from kv_two_layer_e0 import e0_standin_healthy_node_evaluator, healthy_evidence  # noqa: E402
+from kv_two_layer_e0 import e0_health_ledger, healthy_node_kwargs  # noqa: E402
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
@@ -37,7 +38,7 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             receipt_store=self.store_receipt,
             candidate_store=self.store_candidate,
             clock=lambda: self.now,
-            healthy_node_evaluator=e0_standin_healthy_node_evaluator,
+            **healthy_node_kwargs("device:test:1"),
         )
 
     def assert_layer1_refusal(self, response, text, cause=None):
@@ -145,7 +146,6 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             request,
             intr_envelope=envelope,
             intr_receipt_ref="sha256:" + "a" * 64,
-            healthy_node_evidence=healthy_evidence(envelope["boundary_proof"]["source_identity_ref"]),
         )
 
     def test_verified_request_returns_bounded_context_and_hash_verified_receipt(self):
@@ -200,14 +200,13 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             policy_evaluator=bad_policy,
             receipt_store=self.store_receipt,
             clock=lambda: self.now,
-            healthy_node_evaluator=e0_standin_healthy_node_evaluator,
+            **healthy_node_kwargs("device:test:1"),
         )
         request = self.request()
         response = runtime.handle(
             request,
             intr_envelope=self.envelope(request),
             intr_receipt_ref="sha256:" + "a" * 64,
-            healthy_node_evidence=healthy_evidence("device:test:1"),
         )
         self.assertEqual(response["decision"], "FAIL_CLOSED")
         self.assertEqual(response["context"], {})
@@ -223,14 +222,13 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             policy_evaluator=bad_policy,
             receipt_store=self.store_receipt,
             clock=lambda: self.now,
-            healthy_node_evaluator=e0_standin_healthy_node_evaluator,
+            **healthy_node_kwargs("device:test:1"),
         )
         request = self.request()
         response = runtime.handle(
             request,
             intr_envelope=self.envelope(request),
             intr_receipt_ref="sha256:" + "a" * 64,
-            healthy_node_evidence=healthy_evidence("device:test:1"),
         )
         self.assertEqual(response["decision"], "FAIL_CLOSED")
         self.assertNotIn("should-never-pass", self.m.canonical_json(response))
@@ -254,14 +252,13 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             receipt_store=self.store_receipt,
             candidate_store=None,
             clock=lambda: self.now,
-            healthy_node_evaluator=e0_standin_healthy_node_evaluator,
+            **healthy_node_kwargs("device:test:1"),
         )
         request = self.request("COMMIT_CANDIDATE")
         response = runtime.handle(
             request,
             intr_envelope=self.envelope(request),
             intr_receipt_ref="sha256:" + "a" * 64,
-            healthy_node_evidence=healthy_evidence("device:test:1"),
         )
         self.assertEqual(response["decision"], "FAIL_CLOSED")
         self.assertIsNone(response["receipt"]["writeback_candidate_ref"])
@@ -310,14 +307,18 @@ class KVInterlockRuntimeTests(unittest.TestCase):
 
 
 class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
-    """LC-KV-07/10/11 (StegVerse-Labs/.github#3330 rev 1): KV is reachable only via InTr from a healthy node."""
+    """LC-KV-07/10/11 (StegVerse-Labs/.github#3330 rev 1): KV is reachable only via InTr from a healthy node, as
+    decided by the pinned InTr evaluator (StegVerse-org/LLM-adapter#428 @0b37fe3b, LC-KV-13/14)."""
 
-    def handle(self, runtime, evidence="healthy", envelope=None):
+    def handle(self, runtime, evidence=None, envelope=None):
         request = self.request()
         return runtime.handle(request, intr_envelope=envelope or self.envelope(request),
-                              intr_receipt_ref="sha256:" + "a" * 64,
-                              healthy_node_evidence=healthy_evidence("device:test:1") if evidence == "healthy"
-                              else evidence)
+                              intr_receipt_ref="sha256:" + "a" * 64, healthy_node_evidence=evidence)
+
+    def runtime_for(self, ledger_root, evaluator=None):
+        return self.m.KVInterlockRuntime(authority_validator=lambda *_: True, policy_evaluator=self.policy,
+                                         receipt_store=self.store_receipt, clock=lambda: self.now,
+                                         healthy_node_evaluator=evaluator, healthy_node_ledger_root=ledger_root)
 
     def test_admitted_healthy_node_gets_a_kv_access_receipt(self):
         response = self.handle(self.runtime)
@@ -328,40 +329,96 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         self.assertEqual(receipt["requester_node_ref"], "device:test:1")
         self.assertEqual(receipt["response_hash"], response["receipt"]["response_hash"])
         self.assertEqual(receipt["healthy_node_evaluator"], self.m.PINNED_HEALTHY_NODE_EVALUATOR_ID)
+        self.assertEqual(receipt["healthy_node_evaluator_source_sha256"],
+                         self.m.PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"])
+        evaluation = receipt["healthy_node_receipt"]
+        self.assertEqual((evaluation["schema"], evaluation["disposition"], evaluation["node_id"],
+                          evaluation["admission_required"]),
+                         ("stegverse.healthy-node-evaluation/v1", "ALLOW", "device:test:1", True))
         self.assertEqual(self.runtime.verify_kv_access_receipt(receipt["receipt_hash"]), receipt)
         self.assertIsNone(self.runtime.verify_kv_access_receipt(self.m.sha256_uri({"forged": True})))
 
-    def test_no_health_evidence_or_an_unhealthy_node_is_refused(self):
-        for evidence in (None, {}, healthy_evidence("device:other"), healthy_evidence("device:test:1", healthy=False),
-                         healthy_evidence("device:test:1", admitted=False)):
-            self.assert_layer1_refusal(self.handle(self.runtime, evidence), "", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
+    def test_the_vendored_evaluator_is_byte_identical_to_the_pin(self):
+        evaluator, why = self.m.resolve_pinned_healthy_node_evaluator()
+        self.assertEqual(why, "")
+        self.assertEqual(self.m.evaluator_identity(evaluator), "llm_adapter.healthy_node_evaluator.evaluate")
+        source = ROOT / "runtime" / "intr_pinned" / "healthy_node_evaluator.py"
+        self.assertEqual("sha256:" + hashlib.sha256(source.read_bytes()).hexdigest(),
+                         self.m.PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"])
+
+    def test_the_real_path_today_fails_closed_health_report_missing(self):
+        """No NODE_HEALTH_REPORTED producer exists yet: no ledger bound, or a bound ledger with no report."""
+        for root, reason in ((None, "LEDGER_HEAD_UNREADABLE"),
+                             (e0_health_ledger("device:test:1", report=False)[0], "HEALTH_REPORT_MISSING")):
+            response = self.handle(self.runtime_for(root))
+            self.assert_layer1_refusal(response, reason)
+            self.assertEqual(response["failure_class"], "B")
+            self.assertEqual(response["refusal_cause"], "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
+            evaluation = response["health_evaluation"]
+            self.assertEqual((evaluation["disposition"], evaluation["reason"],
+                              evaluation["failure_code"]), ("FAIL_CLOSED", reason, "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"))
+            self.assertIsNone(response["kv_access_receipt"])
+        self.assertEqual(self.receipts, [])
+
+    def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):
+        sick_root, _ = e0_health_ledger("device:test:1", status="DEGRADED")
+        old_root, old = e0_health_ledger("device:test:1", superseded_by="HEALTHY")
+        cases = (
+            (sick_root, None, "DENY", "HEALTH_REPORTED_NOT_HEALTHY"),
+            (old_root, {"health_report_receipt_sha256": old}, "FAIL_CLOSED", "HEALTH_REPORT_SUPERSEDED"),
+            (e0_health_ledger("device:test:1", admitted=False)[0], None, "FAIL_CLOSED", "NODE_NOT_ADMITTED"),
+            (e0_health_ledger("device:other")[0], None, "FAIL_CLOSED", "HEALTH_REPORT_MISSING"),
+            (e0_health_ledger("device:test:1", repository="x/y")[0], None, "FAIL_CLOSED",
+             "RECEIPT_REPOSITORY_MISMATCH"),
+            (e0_health_ledger("device:test:1")[0], {"health_report_receipt_sha256": "sha256:" + "0" * 64},
+             "FAIL_CLOSED", "HEALTH_REPORT_NOT_RECEIPTED"),
+        )
+        for root, evidence, disposition, reason in cases:
+            response = self.handle(self.runtime_for(root), evidence)
+            self.assert_layer1_refusal(response, reason)
+            self.assertEqual((response["health_evaluation"]["disposition"], response["health_evaluation"]["reason"]),
+                             (disposition, reason))
         self.assertEqual(self.receipts, [])  # refused before authority, policy or any receipt
 
-    def test_without_the_intr_evaluator_layer1_fails_closed_and_never_self_asserts(self):
-        runtime = self.m.KVInterlockRuntime(authority_validator=lambda *_: True, policy_evaluator=self.policy,
-                                            receipt_store=self.store_receipt, clock=lambda: self.now)
-        self.assertIsNone(self.m.resolve_pinned_healthy_node_evaluator())  # LC-KV-13/14 not installed here
-        response = self.handle(runtime)
-        self.assert_layer1_refusal(response, "is not installed", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
-        self.assertEqual(response["failure_class"], "B")
-        self.assertIn("LLM-adapter", response["next_attempt"])
+    def test_health_is_never_caller_asserted(self):
+        for evidence in ({"healthy": True}, {"healthy_node_established": True}, "yes",
+                         {"health_report_receipt_sha256": "not-a-sha"}):
+            response = self.handle(self.runtime, evidence)
+            self.assert_layer1_refusal(response, "never caller-asserted")
+            self.assertEqual(response["failure_class"], "C")
 
-    def test_an_evaluator_that_raises_or_returns_a_malformed_receipt_is_refused(self):
+    def test_a_tampered_vendored_evaluator_is_not_resolved(self):
+        original = self.m._file_sha256
+        self.m._file_sha256 = lambda path: "sha256:" + "f" * 64
+        try:
+            evaluator, why = self.m.resolve_pinned_healthy_node_evaluator()
+            self.assertIsNone(evaluator)
+            self.assertIn("not the pinned", why)
+            runtime = self.runtime_for(e0_health_ledger("device:test:1")[0])
+        finally:
+            self.m._file_sha256 = original
+        response = self.handle(runtime)
+        self.assert_layer1_refusal(response, "never asserts a node's health itself")
+        self.assertEqual(response["failure_class"], "B")
+        self.assertIn("LLM-adapter", response["required_evidence_or_repair"])
+
+    def test_an_evaluator_that_raises_or_returns_a_malformed_allow_is_refused(self):
+        evaluator, _ = self.m.resolve_pinned_healthy_node_evaluator()
+        root = e0_health_ledger("device:test:1")[0]
+
         def raising(*_, **__):
             raise RuntimeError("down")
 
-        def flagged(evidence, *, requester_node_ref):  # a bare caller flag is not a healthy-node receipt
+        def flagged(*_, **__):  # a bare caller flag is not the evaluator's ALLOW
             return {"disposition": "ALLOW", "healthy_node_established": True}
 
-        def rehashed(evidence, *, requester_node_ref):
-            out = e0_standin_healthy_node_evaluator(evidence, requester_node_ref=requester_node_ref)
-            out["healthy_node_receipt"]["node_ref"] = "device:other"
-            return out
-        for evaluator in (raising, flagged, rehashed):
-            runtime = self.m.KVInterlockRuntime(authority_validator=lambda *_: True, policy_evaluator=self.policy,
-                                                receipt_store=self.store_receipt, clock=lambda: self.now,
-                                                healthy_node_evaluator=evaluator)
-            self.assert_layer1_refusal(self.handle(runtime), "", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
+        def other_node(node_id, **kw):
+            return {**evaluator(node_id, **kw), "node_id": "device:other"}
+
+        def no_admission(node_id, **kw):
+            return evaluator(node_id, **{**kw, "require_admission": False})
+        for bad in (raising, flagged, other_node, no_admission):
+            self.assert_layer1_refusal(self.handle(self.runtime_for(root, bad)), "", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
 
     def test_malformed_transitions_return_dispositions(self):
         for request in (None, [], {"schema_version": "x"}):

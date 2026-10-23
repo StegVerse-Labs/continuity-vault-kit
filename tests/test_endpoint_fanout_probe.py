@@ -14,9 +14,8 @@ from tools.run_endpoint_fanout_probe import (
 
 
 def e0_probe():
-    evaluator, evidence = e0_standin_healthy_node()
-    return run_probe("alpha-probe-value", probe_id="probe-alpha", healthy_node_evaluator=evaluator,
-                     healthy_node_evidence=evidence, healthy_node_locus=E0_STANDIN_LABEL)
+    return run_probe("alpha-probe-value", probe_id="probe-alpha", healthy_node_ledger_root=e0_standin_healthy_node(),
+                     healthy_node_locus=E0_STANDIN_LABEL)
 
 class EndpointFanoutProbeTests(unittest.TestCase):
     def test_one_probe_becomes_exactly_two_reports(self):
@@ -99,12 +98,13 @@ class EndpointFanoutProbeTests(unittest.TestCase):
 
 
 class EndpointFanoutProbeLayer1Tests(unittest.TestCase):
-    def test_without_the_pinned_intr_evaluator_the_probe_fails_closed_at_layer1(self) -> None:
-        result = run_probe("alpha-probe-value", probe_id="probe-alpha")
+    def test_without_a_receipted_health_report_the_probe_fails_closed_at_layer1(self) -> None:
+        result = run_probe("alpha-probe-value", probe_id="probe-alpha")  # real path: no health ledger bound
         self.assertFalse(result["pass"])
         refusal = result["layer1_refusal"]
         self.assertEqual((refusal["decision"], refusal["failure_code"]), ("FAIL_CLOSED", "KV_ACCESS_LAYER1_REFUSED"))
         self.assertEqual(refusal["refusal_cause"], "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
+        self.assertEqual(refusal["health_evaluation"]["reason"], "LEDGER_HEAD_UNREADABLE")
         self.assertNotIn("reports", result)
 
     def test_e0_standin_run_is_labelled_not_evidence(self) -> None:

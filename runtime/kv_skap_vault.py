@@ -482,18 +482,21 @@ _EVIDENCE_KEYS = {
 LOCAL_EXERCISE_LABEL = "LOCAL_EXERCISE_ONLY_NOT_EVIDENCE"
 
 
-def _exercise_only_healthy_node_evaluator(evidence: Any, *, requester_node_ref: str) -> dict[str, Any]:
-    """LOCAL_EXERCISE_ONLY_NOT_EVIDENCE: used only so _exercise can drive both gates locally.
+def _exercise_only_healthy_node_evaluator(node_id: Any, *, ledger_root: Any, transport_state: Any = "INSTALLED",
+                                          report_receipt_sha256: Any = None, require_admission: bool = False,
+                                          **_: Any) -> dict[str, Any]:
+    """LOCAL_EXERCISE_ONLY_NOT_EVIDENCE: used only so _exercise can drive both gates locally, with no ledger I/O.
 
-    This is not the InTr evaluator, so its identity is not PINNED_HEALTHY_NODE_EVALUATOR_ID. The finish-point evidence
-    checks refuse every layer-1 receipt it produced. It asserts the health of nothing outside this process.
+    This is not the pinned InTr evaluator. Its identity and source digest are not the pin's, so the finish-point
+    evidence checks refuse every layer-1 receipt it produced. It asserts the health of nothing outside this process.
     """
-    if evidence != {"label": LOCAL_EXERCISE_LABEL, "node_ref": requester_node_ref}:
-        return {"disposition": "DENY", "failure_code": "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY",
-                "required_evidence_or_repair": "local exercise evidence absent"}
-    body = {**_HEALTHY_RECEIPT_EXACT, "node_ref": requester_node_ref,
-            "ingress_receipt_sha256": sha256_uri({"label": LOCAL_EXERCISE_LABEL, "node_ref": requester_node_ref})}
-    return {"disposition": "ALLOW", "healthy_node_receipt": {**body, "receipt_sha256": sha256_uri(body)}}
+    if ledger_root != LOCAL_EXERCISE_LABEL or transport_state != "INSTALLED" or not require_admission:
+        return {"disposition": "FAIL_CLOSED", "failure_code": "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY",
+                "reason": "LOCAL_EXERCISE_LEDGER_ABSENT", "required_evidence_or_repair": "local exercise only"}
+    report = sha256_uri({"label": LOCAL_EXERCISE_LABEL, "node_id": node_id})
+    return {**_HEALTHY_RECEIPT_EXACT, "node_id": node_id, "health_report_receipt_sha256": report,
+            "chain_head_receipt_sha256": report, "chain_length": 1, "health_report_authenticated": "NOT_PROVEN",
+            "label": LOCAL_EXERCISE_LABEL}
 
 
 class _ExerciseHarness:
@@ -510,7 +513,8 @@ class _ExerciseHarness:
                                               "granted_scope": list(request["requested_scope"]), "context": {},
                                               "source_refs": [], "policy_profile": LOCAL_EXERCISE_LABEL},
             receipt_store=lambda receipt: "local-exercise:" + receipt["receipt_id"],
-            clock=lambda: fixed, healthy_node_evaluator=_exercise_only_healthy_node_evaluator)
+            clock=lambda: fixed, healthy_node_evaluator=_exercise_only_healthy_node_evaluator,
+            healthy_node_ledger_root=LOCAL_EXERCISE_LABEL)
         self.gate = SkapLayer2Gate(self.layer1)
         self.count = 0
 
@@ -539,9 +543,12 @@ class _ExerciseHarness:
 
     def kv_access(self, health: Any = "default", verification_state: str = "VERIFIED") -> dict[str, Any]:
         request, envelope, intr_ref = self.request(verification_state)
-        evidence = {"label": LOCAL_EXERCISE_LABEL, "node_ref": self.node} if health == "default" else health
-        return self.layer1.handle(request, intr_envelope=envelope, intr_receipt_ref=intr_ref,
-                                  healthy_node_evidence=evidence)
+        # health=None: no health ledger is bound for this call, so the evaluator cannot ALLOW
+        self.layer1.healthy_node_ledger_root = LOCAL_EXERCISE_LABEL if health == "default" else None
+        try:
+            return self.layer1.handle(request, intr_envelope=envelope, intr_receipt_ref=intr_ref)
+        finally:
+            self.layer1.healthy_node_ledger_root = LOCAL_EXERCISE_LABEL
 
     def kv_hash(self) -> str:
         return self.kv_access()["kv_access_receipt"]["receipt_hash"]
@@ -742,17 +749,21 @@ def _evidence_intr(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
 # --- access constraints (the two credential layers), each evidence-bound -------------------------------------------
 ACCESS_EVIDENCE_KEYS = ("layer1_kv_access_receipts", "layer2_skap_access_receipts")
 ACCESS_CONSTRAINT_OWNER = {
-    LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter "
-                         "llm_adapter/node_ingress_boundary.py, InTr and Mesh Destinations lane)"),
+    LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter#428 "
+                         "llm_adapter/healthy_node_evaluator.py, InTr and Mesh Destinations lane); the NODE_HEALTH_REPORTED "
+                         "producer is unassigned (Lane B asked Coordination)"),
     LAYER_PREDICATE_L2: GOAL_REF,
     LAYER_PREDICATE_PRIOR: GOAL_REF,
 }
 ACCESS_REPAIR = {
     LAYER_PREDICATE_L1: (
         "supply evidence.layer1_kv_access_receipts: one stegverse.kv-access-receipt/v1 minted by "
-        "KVInterlockRuntime.handle (INTR_DEVICE_KV) per lineage receipt. Each must carry a healthy-node receipt from "
-        f"the pinned InTr evaluator {PINNED_HEALTHY_NODE_EVALUATOR['repository']}:{PINNED_HEALTHY_NODE_EVALUATOR_ID} "
-        "(LC-KV-13/14). KV never asserts health, and the local exercise evaluator is not evidence."),
+        "KVInterlockRuntime.handle (INTR_DEVICE_KV) per lineage receipt. Each must carry the ALLOW evaluation of "
+        f"the pinned InTr evaluator {PINNED_HEALTHY_NODE_EVALUATOR['repository']}@"
+        f"{PINNED_HEALTHY_NODE_EVALUATOR['commit'][:8]}:{PINNED_HEALTHY_NODE_EVALUATOR_ID} "
+        f"(source {PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}, require_admission=True, LC-KV-13/14) over a "
+        "receipted HEALTHY NODE_HEALTH_REPORTED report. KV never asserts health, and the local exercise evaluator "
+        "is not evidence."),
     LAYER_PREDICATE_L2: (
         "supply evidence.layer2_skap_access_receipts: one stegverse.skap-access-receipt/v1 minted by "
         "SkapLayer2Gate.admit (INTR_KV_SKAP) per lineage receipt, used once, for the operation and principal it names"),
@@ -769,11 +780,13 @@ def _rederives(receipt: Any, key: str) -> bool:
 
 
 def _healthy_receipt_verifies(layer1: dict[str, Any]) -> bool:
+    """The layer-1 receipt carries the pinned evaluator's exact ALLOW shape for its own requester node."""
     healthy = layer1.get("healthy_node_receipt")
     return isinstance(healthy, dict) and all(healthy.get(k) == v for k, v in _HEALTHY_RECEIPT_EXACT.items()) \
         and healthy.get("schema") == HEALTHY_NODE_RECEIPT_SCHEMA \
-        and healthy.get("node_ref") == layer1.get("requester_node_ref") and _is_sha256(healthy.get("ingress_receipt_sha256")) \
-        and _rederives(healthy, "receipt_sha256")
+        and healthy.get("node_id") == layer1.get("requester_node_ref") \
+        and _is_sha256(healthy.get("health_report_receipt_sha256")) \
+        and _is_sha256(healthy.get("chain_head_receipt_sha256"))
 
 
 def _access_failures(evidence: Any, lineage_failure: tuple[str, str, str] | None) -> dict[str, tuple[str, str, str] | None]:
@@ -822,10 +835,12 @@ def _check_layer1(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
         if not _healthy_receipt_verifies(kv):
             return ("HEALTHY_NODE_RECEIPT_INVALID", "C",
                     f"{where}: the layer-1 receipt carries no verifying REQUESTER_IS_CURRENTLY_ADMITTED_HEALTHY_NODE receipt")
-        if kv.get("healthy_node_evaluator") != PINNED_HEALTHY_NODE_EVALUATOR_ID:
+        if kv.get("healthy_node_evaluator") != PINNED_HEALTHY_NODE_EVALUATOR_ID \
+                or kv.get("healthy_node_evaluator_source_sha256") != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"]:
             return ("HEALTHY_NODE_EVALUATOR_NOT_THE_PINNED_INTR_EVALUATOR", "B",
-                    f"{where}: health was evaluated by {kv.get('healthy_node_evaluator')!r}, not "
-                    f"{PINNED_HEALTHY_NODE_EVALUATOR_ID}; {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
+                    f"{where}: health was evaluated by {kv.get('healthy_node_evaluator')!r} "
+                    f"(source {kv.get('healthy_node_evaluator_source_sha256')}), not {PINNED_HEALTHY_NODE_EVALUATOR_ID} "
+                    f"({PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}); {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
     return None
 
 

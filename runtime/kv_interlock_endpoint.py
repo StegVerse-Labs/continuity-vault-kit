@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import importlib
+import inspect
 import json
 from datetime import datetime, timezone
 from typing import Any, Callable
@@ -42,11 +43,16 @@ class KVInterlockRuntimeError(ValueError):
 # --- Layer 1 of the two credential layers (StegVerse-Labs/.github#3330 rev 1, LC-KV-07/08/10/11) -------------------
 # KV is reachable only through InTr from a currently admitted healthy node. handle() is the DEVICE->KV InTr entry
 # (INTR_DEVICE_KV). It first requires REQUESTER_IS_CURRENTLY_ADMITTED_HEALTHY_NODE, decided by the healthy-node
-# evaluator that InTr owns (LC-KV-13/14, Lane B, StegVerse-org/LLM-adapter llm_adapter/node_ingress_boundary.py).
-# This runtime never decides health itself: it consumes the evaluator through the pinned interface below and then
-# verifies the receipt the evaluator returns. With no evaluator, or anything but a verified ALLOW, handle() returns
-# the six-field FAIL_CLOSED KV_ACCESS_LAYER1_REFUSED. An admitted request mints one KV-access receipt into this
-# runtime's own layer-1 receipt store, and the separate layer-2 gate (runtime/kv_skap_layer2.py) verifies against it.
+# evaluator that InTr owns: LC-KV-13/14, Lane B, StegVerse-org/LLM-adapter llm_adapter/healthy_node_evaluator.py at the
+# pinned commit. It is vendored byte-identical in runtime/intr_pinned/ and verified by sha256 before every resolution.
+# This runtime never decides health itself.
+# * It calls the evaluator with require_admission=True over the node-exchange transition ledger bound to this runtime.
+#   The ledger is never supplied by the requester.
+# * It accepts only the evaluator's exact ALLOW shape for the InTr source identity.
+# * Anything else is the six-field FAIL_CLOSED KV_ACCESS_LAYER1_REFUSED, carrying the evaluator's six fields as
+#   health_evaluation.
+# An admitted request mints one KV-access receipt into this runtime's own layer-1 receipt store. The separate layer-2
+# gate (runtime/kv_skap_layer2.py) verifies against that store.
 GOAL_REF = "KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324)"
 LAYER1_REFUSAL_CODE = "KV_ACCESS_LAYER1_REFUSED"
 LAYER1_BOUNDARY = "INTR_DEVICE_KV"
@@ -55,46 +61,79 @@ LAYER1_RETRY = "runtime.kv_interlock_endpoint.KVInterlockRuntime.handle (StegVer
 KV_ACCESS_RECEIPT_SCHEMA = "stegverse.kv-access-receipt/v1"
 HEALTHY_NODE_PREDICATE = "REQUESTER_IS_CURRENTLY_ADMITTED_HEALTHY_NODE"
 HEALTHY_NODE_REFUSAL_CODE = "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"
-HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-receipt/v1"
+HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinned evaluator's RESULT_SCHEMA
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
-#: The pinned interface for the InTr-owned evaluator (LC-KV-13/14). The callable takes the requester's healthy-node
-#: evidence and its node reference, and returns either ALLOW with a healthy-node receipt (HEALTHY_NODE_RECEIPT_SCHEMA,
-#: the fields in _HEALTHY_RECEIPT_EXACT, node_ref, ingress_receipt_sha256 and receipt_sha256 over the rest) or a
-#: six-field DENY/FAIL_CLOSED with failure_code NODE_NOT_CURRENTLY_ADMITTED_HEALTHY.
+#: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md
+#: at the commit below:
+#:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
 PINNED_HEALTHY_NODE_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
-    "module": "llm_adapter.node_ingress_boundary",
-    "callable": "evaluate_requester_is_currently_admitted_healthy_node",
+    "commit": "0b37fe3b786a2de687235f5d9d146af49ffee9cd",
+    "pull_request": "StegVerse-org/LLM-adapter#428 (draft)",
+    "module": "llm_adapter.healthy_node_evaluator",
+    "callable": "evaluate",
+    "source_path": "llm_adapter/healthy_node_evaluator.py",
+    "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+    "interface_doc": "docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md",
+    "interface_doc_sha256": "sha256:757d697ca385f5d4709d8b26e51119330bb685b4770512312313fc42460bb76d",
+    "vendored_module": "runtime.intr_pinned.healthy_node_evaluator",
     "owning_task": "LC-KV-13/LC-KV-14 (InTr and Mesh Destinations lane, StegVerse-org/.github#162)",
 }
 PINNED_HEALTHY_NODE_EVALUATOR_ID = (PINNED_HEALTHY_NODE_EVALUATOR["module"] + "."
                                     + PINNED_HEALTHY_NODE_EVALUATOR["callable"])
+#: The exact fields of the pinned evaluator's ALLOW result when called with require_admission=True.
 _HEALTHY_RECEIPT_EXACT = {
     "schema": HEALTHY_NODE_RECEIPT_SCHEMA,
+    "disposition": "ALLOW",
     "predicate": HEALTHY_NODE_PREDICATE,
     "gate": HEALTHY_NODE_GATE,
     "healthy_node_established": True,
-    "transport_state": "INSTALLED",
-    "authority_effect": "NONE",
+    "health_status": "HEALTHY",
+    "admission_required": True,
+    "authority_effect": "NONE_EVALUATION_ONLY",
 }
 
 
-def resolve_pinned_healthy_node_evaluator() -> Callable[..., Any] | None:
-    """The InTr-owned evaluator at its pinned import path, or None when it is not installed here."""
+def _file_sha256(path: Any) -> str | None:
     try:
-        module = importlib.import_module(PINNED_HEALTHY_NODE_EVALUATOR["module"])
+        with open(path, "rb") as handle:
+            return "sha256:" + hashlib.sha256(handle.read()).hexdigest()
     except Exception:
         return None
+
+
+def _callable_source_sha256(fn: Any) -> str | None:
+    """sha256 of the bytes of the file that defines fn (the observed source, never the pin's claim)."""
+    try:
+        return _file_sha256(inspect.getsourcefile(fn))
+    except Exception:
+        return None
+
+
+def resolve_pinned_healthy_node_evaluator() -> tuple[Callable[..., Any] | None, str]:
+    """(the pinned evaluator, "") when the vendored bytes re-derive the pinned sha256, else (None, why not)."""
+    try:
+        module = importlib.import_module("runtime.intr_pinned.healthy_node_evaluator")
+    except Exception as exc:
+        return None, f"the vendored pinned evaluator does not import ({type(exc).__name__})"
+    observed = _file_sha256(getattr(module, "__file__", None))
+    if observed != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"]:
+        return None, (f"the vendored evaluator source hashes to {observed}, not the pinned "
+                      f"{PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}")
     candidate = getattr(module, PINNED_HEALTHY_NODE_EVALUATOR["callable"], None)
-    return candidate if callable(candidate) else None
+    return (candidate, "") if callable(candidate) else (None, "the vendored evaluator has no evaluate callable")
 
 
 def evaluator_identity(evaluator: Any) -> str:
-    return f"{getattr(evaluator, '__module__', '?')}.{getattr(evaluator, '__qualname__', type(evaluator).__name__)}"
+    module = getattr(evaluator, "__module__", "?")
+    if module == PINNED_HEALTHY_NODE_EVALUATOR["vendored_module"]:
+        module = PINNED_HEALTHY_NODE_EVALUATOR["module"]
+    return f"{module}.{getattr(evaluator, '__qualname__', type(evaluator).__name__)}"
 
 
 def layer1_refusal(request: Any, cause: str, detail: str, *, predicate: str = LAYER1_PREDICATE,
-                   failure_class: str = "B", next_attempt: str | None = None) -> dict[str, Any]:
+                   failure_class: str = "B", next_attempt: str | None = None,
+                   health_evaluation: Any = None) -> dict[str, Any]:
     """Six-field FAIL_CLOSED for layer 1, returned (never raised) by handle()."""
     request_id = request.get("request_id") if isinstance(request, dict) else None
     return {
@@ -114,6 +153,7 @@ def layer1_refusal(request: Any, cause: str, detail: str, *, predicate: str = LA
         "granted_scope": [],
         "context": {},
         "kv_access_receipt": None,
+        "health_evaluation": health_evaluation,
         "authority_effect": "NONE",
     }
 
@@ -201,14 +241,22 @@ class KVInterlockRuntime:
         candidate_store: Callable[[dict[str, Any]], str] | None = None,
         clock: Callable[[], datetime] | None = None,
         healthy_node_evaluator: Callable[..., Any] | None = None,
+        healthy_node_ledger_root: Any = None,
     ) -> None:
         self.authority_validator = authority_validator
         self.policy_evaluator = policy_evaluator
         self.receipt_store = receipt_store
         self.candidate_store = candidate_store
         self.clock = clock or (lambda: datetime.now(timezone.utc))
-        # Layer 1 consumes the InTr-owned evaluator; it never supplies one of its own.
-        self.healthy_node_evaluator = healthy_node_evaluator or resolve_pinned_healthy_node_evaluator()
+        # Layer 1 consumes the InTr-owned evaluator; it never supplies one of its own. An injected evaluator (tests
+        # only) is recorded with its own identity and source digest, never with the pin's.
+        if healthy_node_evaluator is None:
+            healthy_node_evaluator, self._evaluator_unavailable = resolve_pinned_healthy_node_evaluator()
+        else:
+            self._evaluator_unavailable = ""
+        self.healthy_node_evaluator = healthy_node_evaluator
+        # The node-exchange transition ledger the evaluator reads, bound by KV, never supplied by a requester.
+        self.healthy_node_ledger_root = healthy_node_ledger_root
         self._kv_access_receipts: dict[str, dict[str, Any]] = {}
 
     def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
@@ -222,49 +270,61 @@ class KVInterlockRuntime:
 
     def _healthy_node(self, request: dict[str, Any], envelope: dict[str, Any],
                       evidence: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-        """(verified healthy-node receipt, None) or (None, six-field refusal)."""
+        """(the pinned evaluator's verified ALLOW, None) or (None, six-field refusal).
+
+        ``evidence`` is what the requester may cite: None, or {"health_report_receipt_sha256": <sha256>}. Health is
+        decided only by the evaluator over the KV-bound ledger.
+        """
         node_ref = envelope["boundary_proof"]["source_identity_ref"]
-        unavailable_next = ("on the next push to StegVerse-org/LLM-adapter main touching "
-                            "llm_adapter/node_ingress_boundary.py (LC-KV-13/14)")
+        pin = PINNED_HEALTHY_NODE_EVALUATOR
         if self.healthy_node_evaluator is None:
             return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
-                f"no {HEALTHY_NODE_PREDICATE} evaluator is available: the pinned InTr evaluator "
-                f"{PINNED_HEALTHY_NODE_EVALUATOR['repository']}:{PINNED_HEALTHY_NODE_EVALUATOR_ID} is not installed, "
-                "and KV never asserts a node's health itself"), predicate=HEALTHY_NODE_PREDICATE,
-                next_attempt=unavailable_next)
-        if evidence is None:
-            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
-                f"the requester {node_ref!r} supplied no healthy-node evidence; present the node's current "
-                "admitted-healthy ingress evidence with the DEVICE->KV InTr transition"),
-                predicate=HEALTHY_NODE_PREDICATE)
+                f"no {HEALTHY_NODE_PREDICATE} evaluator is available ({self._evaluator_unavailable}); the pinned "
+                f"InTr evaluator is {pin['repository']}@{pin['commit'][:8]}:{pin['source_path']} "
+                f"({pin['source_sha256']}), and KV never asserts a node's health itself"),
+                predicate=HEALTHY_NODE_PREDICATE,
+                next_attempt="when runtime/intr_pinned/ is re-vendored at a pinned LLM-adapter commit (LC-KV-13/14)")
+        cite = None
+        if evidence is not None:
+            cite = evidence.get("health_report_receipt_sha256") if isinstance(evidence, dict) else evidence
+            if not (isinstance(evidence, dict) and set(evidence) <= {"health_report_receipt_sha256"}
+                    and (cite is None or _is_sha256_uri(cite))):
+                return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
+                    "healthy_node_evidence may only cite health_report_receipt_sha256 (a sha256 receipt address); "
+                    "health itself is never caller-asserted"), predicate=HEALTHY_NODE_PREDICATE, failure_class="C")
         try:
-            out = self.healthy_node_evaluator(copy.deepcopy(evidence), requester_node_ref=node_ref)
+            out = self.healthy_node_evaluator(node_ref, ledger_root=self.healthy_node_ledger_root,
+                                              transport_state="INSTALLED", report_receipt_sha256=cite,
+                                              require_admission=True)
         except Exception as exc:  # an evaluator fault is a refusal, never an admission
-            out = {"disposition": "FAIL_CLOSED", "failure_code": HEALTHY_NODE_REFUSAL_CODE,
+            out = {"disposition": "FAIL_CLOSED", "failure_code": HEALTHY_NODE_REFUSAL_CODE, "reason": "EVALUATOR_FAULT",
                    "required_evidence_or_repair": f"the evaluator raised {type(exc).__name__}"}
         if not isinstance(out, dict) or out.get("disposition") != "ALLOW":
-            detail = out.get("required_evidence_or_repair") if isinstance(out, dict) else None
+            evaluation = copy.deepcopy(out) if isinstance(out, dict) else None
+            reason = (evaluation or {}).get("reason")
+            # No NODE_HEALTH_REPORTED producer exists yet, and no ledger is bound: class B (a producer to assign).
+            failure_class = "B" if reason in ("HEALTH_REPORT_MISSING", "LEDGER_HEAD_UNREADABLE") else "C"
             return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
-                f"the healthy-node evaluator did not ALLOW {node_ref!r}"
-                + (f" ({out.get('failure_code')}: {detail})" if detail else "")),
-                predicate=HEALTHY_NODE_PREDICATE, failure_class="C",
-                next_attempt="on the node's next admitted-healthy ingress")
-        receipt = out.get("healthy_node_receipt")
+                f"the pinned healthy-node evaluator did not ALLOW {node_ref!r}"
+                + (f" ({(evaluation or {}).get('disposition')} {reason}: "
+                   f"{(evaluation or {}).get('required_evidence_or_repair')})" if evaluation else "")),
+                predicate=HEALTHY_NODE_PREDICATE, failure_class=failure_class, health_evaluation=evaluation,
+                next_attempt=(evaluation or {}).get("next_attempt") or "on the node's next receipted HEALTHY report")
         problem = None
-        if not isinstance(receipt, dict):
-            problem = "the evaluator returned no healthy-node receipt"
-        elif any(receipt.get(k) != v for k, v in _HEALTHY_RECEIPT_EXACT.items()):
-            problem = "the healthy-node receipt does not carry the pinned interface fields"
-        elif receipt.get("node_ref") != node_ref:
-            problem = "the healthy-node receipt names another node than the InTr source identity"
-        elif not _is_sha256_uri(receipt.get("ingress_receipt_sha256")):
-            problem = "the healthy-node receipt binds no ingress receipt"
-        elif receipt.get("receipt_sha256") != sha256_uri({k: v for k, v in receipt.items() if k != "receipt_sha256"}):
-            problem = "the healthy-node receipt hash does not re-derive"
+        if any(out.get(k) != v for k, v in _HEALTHY_RECEIPT_EXACT.items()):
+            problem = "the evaluator's ALLOW does not carry the pinned interface fields (require_admission=True)"
+        elif out.get("node_id") != node_ref:
+            problem = "the evaluator's ALLOW names another node than the InTr source identity"
+        elif not _is_sha256_uri(out.get("health_report_receipt_sha256")) \
+                or not _is_sha256_uri(out.get("chain_head_receipt_sha256")):
+            problem = "the evaluator's ALLOW binds no receipted health report on a ledger chain"
+        elif cite is not None and out.get("health_report_receipt_sha256") != cite:
+            problem = "the evaluator's ALLOW is for another health report than the one cited"
         if problem:
             return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, problem,
-                                        predicate=HEALTHY_NODE_PREDICATE, failure_class="C")
-        return copy.deepcopy(receipt), None
+                                        predicate=HEALTHY_NODE_PREDICATE, failure_class="C",
+                                        health_evaluation=copy.deepcopy(out))
+        return copy.deepcopy(out), None
 
     def _mint_kv_access_receipt(self, request: dict[str, Any], envelope: dict[str, Any], intr_receipt_ref: str,
                                 healthy: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
@@ -285,6 +345,7 @@ class KVInterlockRuntime:
             "healthy_node_predicate": HEALTHY_NODE_PREDICATE,
             "healthy_node_receipt": healthy,
             "healthy_node_evaluator": evaluator_identity(self.healthy_node_evaluator),
+            "healthy_node_evaluator_source_sha256": _callable_source_sha256(self.healthy_node_evaluator),
             "granted_scope": list(response["granted_scope"]),
             "response_hash": response["receipt"]["response_hash"],
             "prior_receipt_hash": None,

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from kv_two_layer_e0 import e0_standin_healthy_node_evaluator, healthy_evidence  # noqa: E402
+from kv_two_layer_e0 import healthy_node_kwargs  # noqa: E402
 
 from runtime.kv_interlock_endpoint import KVInterlockRuntime, sha256_uri
 from runtime.persistent_session_interlock import (
@@ -125,14 +125,13 @@ def test_request_returns_bounded_reconstruction_projection_through_existing_runt
             head_reader=lambda session_id: current if session_id == "sv-session-001" else None
         ),
         receipt_store=lambda receipt: receipts.append(receipt) or "receipt://session-read",
-        healthy_node_evaluator=e0_standin_healthy_node_evaluator,
+        **healthy_node_kwargs("node://device"),
     )
     request = make_request()
     response = runtime.handle(
         request,
         intr_envelope=make_envelope(request),
         intr_receipt_ref="sha256:" + ("1" * 64),
-        healthy_node_evidence=healthy_evidence("node://device"),
     )
     assert response["decision"] == "ALLOW_BOUNDED_CONTEXT"
     projection = response["context"]["session_head"]
@@ -167,14 +166,13 @@ def test_commit_candidate_stages_exact_successor_without_canonical_mutation():
         policy_evaluator=PersistentSessionPolicyAdapter(head_reader=lambda _: current),
         candidate_store=store,
         receipt_store=lambda receipt: receipts.append(receipt) or "receipt://candidate",
-        healthy_node_evaluator=e0_standin_healthy_node_evaluator,
+        **healthy_node_kwargs("node://device"),
     )
     request = make_request("COMMIT_CANDIDATE")
     response = runtime.handle(
         request,
         intr_envelope=make_envelope(request),
         intr_receipt_ref="sha256:" + ("2" * 64),
-        healthy_node_evidence=healthy_evidence("node://device"),
     )
     assert response["decision"] == "ALLOW_BOUNDED_CONTEXT"
     assert response["context"] == {}
