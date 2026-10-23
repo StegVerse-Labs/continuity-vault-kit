@@ -22,6 +22,8 @@ import hashlib
 import json
 from typing import Any
 
+from runtime.kv_receipt_ledgers import KV_LEDGER, SKAP_VAULT_LEDGER, receipt_ledger_binding
+
 GOAL_REF = "KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324)"
 LAYER2_REFUSAL_CODE = "SKAP_ACCESS_LAYER2_REFUSED"
 LAYER1_REFUSAL_CODE = "KV_ACCESS_LAYER1_REFUSED"
@@ -118,10 +120,25 @@ class SkapLayer2Gate:
                 or not isinstance(receipt.get("healthy_node_receipt"), dict) \
                 or receipt["healthy_node_receipt"].get("healthy_node_established") is not True:
             return None, "LAYER1_KV_ACCESS_RECEIPT_NOT_MINTED_BY_LAYER1"
+        if receipt.get("receipt_ledger") != receipt_ledger_binding(KV_LEDGER):
+            # KV-SKAP-LEDGER-LOCATION-001: a layer-1 receipt must name KV's own receipt chain (_StegVerse/Receipts)
+            return None, "LAYER1_RECEIPT_LEDGER_NOT_THE_DESIGNATED_KV_LEDGER"
         why = self._layer1_conforms(receipt)
         if why is not None:
             return None, why
         return receipt, ""
+
+    def receipt_ledger(self, kv_access_receipt_hash: Any = None, storage_endpoint: Any = None,
+                       readback_root: Any = None, head_attestation: Any = None,
+                       recorded_head: Any = None) -> dict[str, Any]:
+        """Layer 2's recorded receipt chain inside KV, reachable only through KV's InTr (STEGVERSE_KV
+        _Vault/SKAP/Receipts; KV-SKAP-LEDGER-LOCATION-001): layer-2, TV/TVC custody-issuance (TVC#537) and
+        custody-result receipts. It needs a layer-1 KV-access receipt the layer-1 runtime minted; without one it is
+        FAIL_CLOSED SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR. Then FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR
+        and KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED. Genesis: two-event crossing model (ENVELOPE v2 line 55)."""
+        from runtime.kv_receipt_ledgers import _read
+        layer1 = self.verify_kv_access_receipt(kv_access_receipt_hash)
+        return _read(SKAP_VAULT_LEDGER, storage_endpoint, readback_root, head_attestation, layer1, recorded_head)
 
     def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
         """A layer-1 receipt minted and still held by the layer-1 runtime, and minted under the pinned evaluator and
@@ -155,7 +172,7 @@ class SkapLayer2Gate:
             return layer2_refusal(why, (
                 f"{prior} was not minted by the real KVInterlockRuntime under the pinned healthy-node evaluator "
                 "(runtime/intr_pinned, sha256:fdaa2005...1f58) reached through #432's evaluate_anchored "
-                "(sha256:5fcc9018...3d10), the installed InTr transport, the contract-location org ledger with a node "
+                "(sha256:d47cd0a4...fc6f4), the installed InTr transport, the contract-location org ledger with a node "
                 "root evaluate_anchored admitted, and the trust anchors in force; it is refused"),
                 predicate=PREDICATE_HEALTHY_NODE, failure_class="B" if why in (
                     "LAYER1_TRANSPORT_NOT_THE_INSTALLED_ONE", "LAYER1_LEDGER_NOT_BOUND_BY_CONTRACT_LOCATION",
@@ -183,7 +200,10 @@ class SkapLayer2Gate:
             "layer1_intr_receipt_ref": layer1_receipt["intr_receipt_ref"],
             "layer1_requester_node_ref": layer1_receipt["requester_node_ref"],
             "layer1_healthy_node_evaluator": layer1_receipt["healthy_node_evaluator"],
+            "layer1_receipt_ledger": copy.deepcopy(layer1_receipt["receipt_ledger"]),
             "sequence": len(self._receipts),
+            # KV-SKAP-LEDGER-LOCATION-001: the receipt belongs on the SKAP receipt chain inside KV (_Vault/SKAP/Receipts)
+            "receipt_ledger": receipt_ledger_binding(SKAP_VAULT_LEDGER),
             "authority_effect": "NONE",
         }
         receipt = {**body, "receipt_hash": sha256_uri(body)}

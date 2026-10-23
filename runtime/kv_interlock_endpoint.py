@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from runtime.kv_receipt_ledgers import KV_LEDGER, read_receipt_ledger, receipt_ledger_binding
 from runtime.secret_field_policy import field_name_is_forbidden
 
 
@@ -1005,6 +1006,15 @@ class KVInterlockRuntime:
 
     _EXERCISE_ONLY_UNPINNED_DECIDER = False
 
+    @staticmethod
+    def receipt_ledger(storage_endpoint: Any = None, readback_root: Any = None, head_attestation: Any = None,
+                       recorded_head: Any = None) -> dict[str, Any]:
+        """Layer 1's recorded receipt chain, read back from KV's own location (STEGVERSE_KV _StegVerse/Receipts,
+        through the documented storage endpoint v2 of the KV #2 lineage; KV-SKAP-LEDGER-LOCATION-001). Six-field
+        FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR while KV #2 is PENDING_INTERLOCK_INTR, then
+        KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED until the genesis pin."""
+        return read_receipt_ledger(KV_LEDGER, storage_endpoint, readback_root, head_attestation, recorded_head)
+
     def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
         """The layer-1 receipt this runtime minted under receipt_hash, re-derived, or None. Layer 2 calls this."""
         receipt = self._kv_access_receipts.get(receipt_hash) if isinstance(receipt_hash, str) else None
@@ -1259,6 +1269,8 @@ class KVInterlockRuntime:
             "granted_scope": list(response["granted_scope"]),
             "response_hash": response["receipt"]["response_hash"],
             "prior_receipt_hash": None,
+            # KV-SKAP-LEDGER-LOCATION-001: the receipt belongs on KV's own receipt chain (_StegVerse/Receipts)
+            "receipt_ledger": receipt_ledger_binding(KV_LEDGER),
             "authority_effect": "NONE",
         }
         receipt = {**body, "receipt_hash": sha256_uri(body)}

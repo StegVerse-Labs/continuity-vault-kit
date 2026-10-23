@@ -1807,11 +1807,108 @@
   "delegation/lifecycle.py": [
    "delegation/decision.py"
   ],
+  "execution/communication_runtime.py": [
+   "execution/adapter.py",
+   "execution/vault_store.py"
+  ],
+  "execution/extensions.py": [
+   "execution/adapter.py"
+  ],
+  "execution/recovery.py": [
+   "execution/adapter.py"
+  ],
   "execution/vault_store.py": [
+   "execution/adapter.py",
    "runtime/kv_skap_layer2.py"
   ],
   "multimodal_storage/budget_planner.py": [
    "tools/validate_storage_budget_policy.py"
+  ],
+  "reconstructive_memory/__init__.py": [
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/authority.py",
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/deployment.py",
+   "reconstructive_memory/ingestion.py",
+   "reconstructive_memory/journal.py",
+   "reconstructive_memory/lifecycle.py",
+   "reconstructive_memory/master_records.py",
+   "reconstructive_memory/master_records_state.py",
+   "reconstructive_memory/proofs.py",
+   "reconstructive_memory/provider_activation.py",
+   "reconstructive_memory/provider_conformance.py",
+   "reconstructive_memory/provider_probes.py",
+   "reconstructive_memory/readiness.py",
+   "reconstructive_memory/replay.py",
+   "reconstructive_memory/routing.py",
+   "reconstructive_memory/session.py",
+   "reconstructive_memory/transport.py"
+  ],
+  "reconstructive_memory/access.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/authority.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/journal.py",
+   "reconstructive_memory/lifecycle.py",
+   "reconstructive_memory/session.py"
+  ],
+  "reconstructive_memory/deployment.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/master_records.py",
+   "reconstructive_memory/master_records_state.py"
+  ],
+  "reconstructive_memory/ingestion.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/lifecycle.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/master_records_state.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/master_records.py"
+  ],
+  "reconstructive_memory/proofs.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/provider_conformance.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/provider_activation.py"
+  ],
+  "reconstructive_memory/provider_incident.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/provider_drift.py"
+  ],
+  "reconstructive_memory/provider_probes.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/provider_activation.py",
+   "reconstructive_memory/provider_conformance.py"
+  ],
+  "reconstructive_memory/replay.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/transport.py"
+  ],
+  "reconstructive_memory/routing.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/session.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/lifecycle.py",
+   "reconstructive_memory/proofs.py",
+   "reconstructive_memory/routing.py"
+  ],
+  "reconstructive_memory/transport.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/ingestion.py"
   ],
   "runtime/cloud_peer_adoption_provider_binding.py": [
    "runtime/kv_storage_provider_adapter.py"
@@ -1854,9 +1951,13 @@
   "runtime/intr_epistemic_roundtrip.py": [
    "runtime/intr_epistemic_state.py"
   ],
+  "runtime/intr_lifecycle_closure.py": [
+   "runtime/secret_field_policy.py"
+  ],
   "runtime/kv_interlock_endpoint.py": [
    "runtime/intr_pinned/**",
    "runtime/intr_pinned/llm_adapter/healthy_node_evaluator.py",
+   "runtime/kv_receipt_ledgers.py",
    "runtime/secret_field_policy.py"
   ],
   "runtime/kv_my_kv_projection.py": [
@@ -1866,6 +1967,14 @@
   "runtime/kv_provider_operation_store.py": [
    "runtime/kv_storage_provider_adapter.py"
   ],
+  "runtime/kv_receipt_ledgers.py": [
+   ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+   ".stegverse/receipt-chains/skap-receipts.contract.json",
+   ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
+   "KV_STORAGE_ENDPOINT_V2_MIRROR_HANDOFF.md",
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_storage_provider_adapter.py"
+  ],
   "runtime/kv_relationship_state_store.py": [
    "runtime/kv_instance_relationships.py"
   ],
@@ -1873,10 +1982,12 @@
    "runtime/secret_field_policy.py"
   ],
   "runtime/kv_skap_layer2.py": [
-   "runtime/kv_interlock_endpoint.py"
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_receipt_ledgers.py"
   ],
   "runtime/kv_skap_vault.py": [
    "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_receipt_ledgers.py",
    "runtime/kv_skap_layer2.py",
    "runtime/secret_field_policy.py"
   ],
@@ -1971,6 +2082,9 @@
    "skap/browser_ingress.py",
    "skap/crypto_boundary.py"
   ],
+  "skap/ingress.py": [
+   "skap/crypto_boundary.py"
+  ],
   "skap/portable_envelope.py": [
    "skap/crypto_boundary.py"
   ],
@@ -1985,7 +2099,8 @@
   "tests/test_action_execution.py": [
    "execution/adapter.py",
    "fixtures/action-execution/**",
-   "fixtures/action-execution/facebook-good-times.prepared.json"
+   "fixtures/action-execution/facebook-good-times.prepared.json",
+   "tests/fixtures/**"
   ],
   "tests/test_admit_transport_capability_evidence.py": [
    "scripts/admit_transport_capability_evidence.py",
@@ -2001,7 +2116,8 @@
   "tests/test_budget_planner.py": [
    "fixtures/storage-budget/**",
    "fixtures/storage-budget/semantic-recall.json",
-   "multimodal_storage/budget_planner.py"
+   "multimodal_storage/budget_planner.py",
+   "tests/fixtures/**"
   ],
   "tests/test_cloud_peer_adoption_provider_binding.py": [
    "runtime/cloud_peer_adoption_provider_binding.py"
@@ -2044,7 +2160,8 @@
    "execution/vault_store.py"
   ],
   "tests/test_cross_platform_recovery.py": [
-   "fixtures/kv_cross_platform_recovery_cases.json"
+   "fixtures/kv_cross_platform_recovery_cases.json",
+   "tests/fixtures/**"
   ],
   "tests/test_cross_repo_inputs.py": [
    ".github/workflows/**",
@@ -2058,15 +2175,18 @@
   "tests/test_delegation_cases.py": [
    "delegation/decision.py",
    "fixtures/delegation-decisions/**",
-   "fixtures/delegation-decisions/act-ask-deny.json"
+   "fixtures/delegation-decisions/act-ask-deny.json",
+   "tests/fixtures/**"
   ],
   "tests/test_delegation_decision.py": [
    "delegation/decision.py",
-   "fixtures/delegation/**"
+   "fixtures/delegation/**",
+   "tests/fixtures/**"
   ],
   "tests/test_delegation_lifecycle.py": [
    "delegation/lifecycle.py",
-   "fixtures/delegation/**"
+   "fixtures/delegation/**",
+   "tests/fixtures/**"
   ],
   "tests/test_delegation_onboarding.py": [
    "delegation/onboarding.py"
@@ -2077,7 +2197,8 @@
   "tests/test_document_export.py": [
    "fixtures/document-export/**",
    "fixtures/document-export/admitted.json",
-   "runtime/document_export.py"
+   "runtime/document_export.py",
+   "tests/fixtures/**"
   ],
   "tests/test_document_intr_transfer.py": [
    "fixtures/document-export/admitted.json",
@@ -2113,6 +2234,7 @@
   ],
   "tests/test_experience_capsule.py": [
    "fixtures/multimodal/**",
+   "tests/fixtures/**",
    "tools/validate_experience_capsule.py"
   ],
   "tests/test_finish_point_verdict.py": [
@@ -2232,15 +2354,21 @@
    "tests/kv_two_layer_e0.py"
   ],
   "tests/test_kv_ladder_conformance_lc_kv.py": [
+   ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+   "SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md",
    "execution/adapter.py",
    "execution/vault_store.py",
    "runtime/intr_pinned/**",
    "runtime/intr_pinned/llm_adapter/**",
    "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
    "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_receipt_ledgers.py",
    "runtime/kv_skap_layer2.py",
    "runtime/kv_skap_vault.py",
+   "runtime/kv_storage_provider_adapter.py",
    "runtime/task_registry_event_sovereign_kv_binding.py",
+   "specs/kv-ai-persistence-layouts.v1.json",
+   "specs/skap-kv-storage-layout.v2.json",
    "tests/kv_two_layer_e0.py",
    "tests/test_skap_kv_persistence.py"
   ],
@@ -2264,7 +2392,9 @@
    "runtime/kv_relationship_state_store.py"
   ],
   "tests/test_kv_skap_account_transfer.py": [
-   "runtime/kv_skap_account_transfer.py"
+   "runtime/kv_skap_account_transfer.py",
+   "tests/fixtures/**",
+   "tests/fixtures/kv_skap_account_metadata_conformance_v1.json"
   ],
   "tests/test_kv_skap_vault_e0_witnesses.py": [
    "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
@@ -2314,7 +2444,8 @@
   ],
   "tests/test_multimodal_storage_adapter.py": [
    "fixtures/multimodal/**",
-   "multimodal_storage/adapter.py"
+   "multimodal_storage/adapter.py",
+   "tests/fixtures/**"
   ],
   "tests/test_organization_security_posture.py": [
    "runtime/organization_security_posture.py"
@@ -2450,7 +2581,8 @@
   "tests/test_relationship_declaration.py": [
    "delegation/relationship.py",
    "fixtures/relationship-declarations/**",
-   "fixtures/relationship-declarations/user-auri-v0.1.json"
+   "fixtures/relationship-declarations/user-auri-v0.1.json",
+   "tests/fixtures/**"
   ],
   "tests/test_release_reconciliation_hosted_authority_retirement.py": [
    ".github/workflows/downstream-propagation.yml",
@@ -2483,6 +2615,8 @@
   "tests/test_skap_kv_persistence.py": [
    "execution/adapter.py",
    "execution/vault_store.py",
+   "tests/fixtures/**",
+   "tests/fixtures/skap_sealed_material.synthetic.json",
    "tests/kv_two_layer_e0.py"
   ],
   "tests/test_skap_loader_js.py": [
@@ -2527,6 +2661,7 @@
   "tests/test_storage_budget_policy.py": [
    "fixtures/storage-budget/**",
    "fixtures/storage-budget/semantic-recall.json",
+   "tests/fixtures/**",
    "tools/validate_storage_budget_policy.py"
   ],
   "tests/test_storage_endpoint_v2.py": [
