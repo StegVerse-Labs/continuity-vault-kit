@@ -724,6 +724,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_kv_ecosystem_git_ref_custody.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_ecosystem_git_ref_custody.py"
+   ],
+   "tests": [
+    "tests.test_kv_ecosystem_git_ref_custody"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_kv_email_ingress_policy.py",
    "inputs": [],
    "surfaces": [
@@ -851,6 +863,18 @@
    ],
    "tests": [
     "tests.test_kv_skap_account_transfer"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_skap_vault_e0_witnesses.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_skap_vault_e0_witnesses.py"
+   ],
+   "tests": [
+    "tests.test_kv_skap_vault_e0_witnesses"
    ]
   },
   {
@@ -1578,6 +1602,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_sovereign_kv_vault_lineage_record.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_sovereign_kv_vault_lineage_record.py"
+   ],
+   "tests": [
+    "tests.test_sovereign_kv_vault_lineage_record"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_stage_kv_ai_memory_resident_inputs.py",
    "inputs": [],
    "surfaces": [
@@ -1791,6 +1827,10 @@
   ],
   "runtime/intr_epistemic_roundtrip.py": [
    "runtime/intr_epistemic_state.py"
+  ],
+  "runtime/kv_ecosystem_git_ref_custody.py": [
+   "runtime/kv_storage_provider_adapter.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py"
   ],
   "runtime/kv_interlock_endpoint.py": [
    "runtime/secret_field_policy.py"
@@ -2129,6 +2169,12 @@
    "scripts/validate_kv_cross_class_intr_fixtures.py",
    "specs/kv-cross-class-intr-transition-fixtures.v1.json"
   ],
+  "tests/test_kv_ecosystem_git_ref_custody.py": [
+   "runtime/kv_ecosystem_git_ref_custody.py",
+   "runtime/kv_storage_provider_adapter.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py",
+   "tests/test_sovereign_kv_vault_lineage_record.py"
+  ],
   "tests/test_kv_email_ingress_policy.py": [
    "tools/check_kv_email_ingress_policy.py"
   ],
@@ -2162,6 +2208,12 @@
   ],
   "tests/test_kv_skap_account_transfer.py": [
    "runtime/kv_skap_account_transfer.py"
+  ],
+  "tests/test_kv_skap_vault_e0_witnesses.py": [
+   "runtime/kv_ecosystem_git_ref_custody.py",
+   "runtime/kv_skap_vault.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py",
+   "tests/test_kv_skap_vault_finish_point.py"
   ],
   "tests/test_kv_skap_vault_finish_point.py": [
    "runtime/kv_skap_vault.py"
@@ -2394,6 +2446,11 @@
   "tests/test_source_change_monitor.py": [
    "runtime/connection_assembly.py",
    "runtime/source_change_monitor.py"
+  ],
+  "tests/test_sovereign_kv_vault_lineage_record.py": [
+   "runtime/kv_storage_provider_adapter.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py",
+   "tests/test_task_registry_event_sovereign_kv_binding.py"
   ],
   "tests/test_stage_kv_ai_memory_resident_inputs.py": [
    "scripts/stage_kv_ai_memory_resident_inputs.py"

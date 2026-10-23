@@ -1,9 +1,13 @@
 """KV-SKAP-VAULT-FUNCTIONAL-001: KnowledgeVault with a SKAP Vault inside KV (E0, stdlib only).
 
 Proposed Goal: StegVerse-Labs/.github#3324. The Goal is sealed with scope_digest SCOPE_DIGEST, and the
-finish point is ``python -m runtime.kv_skap_vault finish-point``. That command returns ALLOW only when every
-sealed expected_evidence_predicate is ALLOW over one receipt-hash lineage. Until then it returns a
-six-field FAIL_CLOSED for each unmet predicate.
+finish point is ``python -m runtime.kv_skap_vault finish-point [--evidence FILE] [--scratch-ledger-git-dir DIR]``.
+That command returns ALLOW only when every sealed expected_evidence_predicate is ALLOW over one receipt-hash
+lineage. Each verdict is computed: the local exercise runs, and then the supplied evidence bundle is checked
+(``stegverse.kv-skap-vault-finish-point-evidence/v1``). Any predicate not yet evidenced gets a six-field
+FAIL_CLOSED. No constant decides a verdict. Once the verdict is ALLOW, the finish point appends an
+organization-ledger receipt (``stegverse.canonical-state-transition-receipt/v1``). Until the ledger genesis is
+observed, that append is a six-field FAIL_CLOSED pending genesis.
 
 Authority is unchanged and is not duplicated here:
 
@@ -25,6 +29,8 @@ import argparse
 import copy
 import hashlib
 import json
+import os
+import subprocess
 import sys
 from typing import Any
 
@@ -271,26 +277,51 @@ def verify_lineage(exported: dict[str, Any]) -> None:
 
 
 # --- finish point -------------------------------------------------------------------------------
-#: Pieces not yet built. Each is reported as an honest six-field FAIL_CLOSED, never as a skip.
-#: predicate -> (failure_code, failure_class, repair, owning_existing_goal, dependency_relation)
+# Every verdict is computed. The local exercise runs every predicate on a fresh vault, and the evidence
+# bundle supplies the parts that only other authorities produce:
+#   * Interlock/InTr transition receipts for each write and revoke;
+#   * the durable-custody exact-hash read-back receipt, consumed from TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001;
+#   * TV/TVC custody-key issuance receipts.
+# Binding is structural and by hash: refs match receipt ids, the lineage hash matches the read-back hash,
+# and the TVC receipt hash re-derives. The producing authority's own signature or admission is consumed,
+# not re-verified, so no governance or credential verifier is duplicated here.
+EVIDENCE_SCHEMA = "stegverse.kv-skap-vault-finish-point-evidence/v1"
+LINEAGE_SCHEMA = "stegverse.kv-skap-vault-lineage/v1"
+INTR_RECEIPT_SCHEMA = "stegverse.canonical-state-transition-receipt/v1"
+INTR_ADMITTED_OUTCOMES = ("ADMITTED", "APPLIED")
+CUSTODY_READBACK_SCHEMA = "stegverse.task-registry-sovereign-kv-vault-lineage-receipt/v1"
+TVC_ISSUANCE_SCHEMA = "stegverse.tvc.skap-custody-reference-issuance/v1"
 SOVEREIGN_KV_CUSTODY_GOAL = "TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001"
-NOT_YET_BUILT = {
+EVIDENCE_NEXT = "on the next finish-point run whose evidence bundle carries the repair"
+
+#: predicate -> (failure_code when its evidence is absent, failure_class, repair, owning goal, relation).
+#: These describe the missing input only. The verdict is computed by the _evidence_* checks below.
+EVIDENCE_BOUND = {
     "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": (
         "INTR_TRANSITION_RECEIPTS_NOT_OBSERVED", "B",
-        "the local round-trip is exact, but each write and revoke must bind a real Interlock/InTr "
-        "transition receipt; bind the InTr adapter (STEGOS-DEVICE-KV-SKAP-ROUNDTRIP-001 lane) and verify "
-        "its receipts here", GOAL_REF, None),
+        "the local round-trip is exact; supply evidence.lineage plus evidence.intr_transition_receipts, one "
+        f"{INTR_RECEIPT_SCHEMA} per write/revoke intr:<id> (transition_id == <id>, outcome in "
+        f"{INTR_ADMITTED_OUTCOMES}, subject_or_correlation_id == principal_ref) from Interlock/InTr",
+        GOAL_REF, None),
     "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED": (
         "KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND", "B",
         "reconstruction from the lineage alone is exact on a fresh instance; the durable KV custody location "
         "the lineage is read from on any device is consumed from " + SOVEREIGN_KV_CUSTODY_GOAL + " (provider-"
         "neutral write and exact-hash readback; its first unresolved predicate is AUTHENTIC_ADMITTED_PROVIDER_"
-        "WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV) and is not re-implemented here; bind its "
-        "admitted readback receipt when it exists", SOVEREIGN_KV_CUSTODY_GOAL, "CONSUMES"),
+        "WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV) and is not re-implemented here; supply its ALLOW "
+        "readback receipt as evidence.durable_custody_readback_receipt (lineage_sha256 == sha256 of "
+        "evidence.lineage, provider not device-local)", SOVEREIGN_KV_CUSTODY_GOAL, "CONSUMES"),
     "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER": (
         "TVC_CUSTODY_KEY_ISSUANCE_NOT_OBSERVED", "B",
-        "the vault refuses every non-TV/TVC writer and all key material; a real TV/TVC custody-key issuance "
-        "receipt must be observed and bound (a TV/TVC transition, not a blocker)", GOAL_REF, None),
+        "the vault refuses every non-TV/TVC writer and all key material; supply evidence.tvc_issuance_receipts, "
+        f"one {TVC_ISSUANCE_SCHEMA} per bound custody key whose receipt_sha256 equals its "
+        "tvc_issuance_receipt_ref (TVC_SKAP_CUSTODY_REFERENCE_ISSUE, a TV/TVC transition, not a blocker)",
+        GOAL_REF, None),
+}
+_EVIDENCE_KEYS = {
+    "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": "intr_transition_receipts",
+    "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED": "durable_custody_readback_receipt",
+    "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER": "tvc_issuance_receipts",
 }
 
 
@@ -300,14 +331,15 @@ def _exercise() -> dict[str, bool]:
     vault = KVSkapVault("principal:fixture")
     ref = CUSTODY_REF_PREFIX + "fixture-0001"
     vault.bind_custody_key_reference(custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
-                                     tvc_issuance_receipt_ref="fixture:tvc-issuance-unobserved")
+                                     tvc_issuance_receipt_ref="local-exercise:tvc-issuance")
     consent = vault.grant_consent(purposes=["WRITE", "READ"], projection_ids=["notes/profile"],
-                                  observed_at="fixture")["receipt_hash"]
-    content = {"title": "profile", "fields": {"display_name": "Fixture", "languages": ["en", "es"]}}
+                                  observed_at="local-exercise")["receipt_hash"]
+    content = {"title": "profile", "fields": {"display_name": "Exercise", "languages": ["en", "es"]}}
     vault.write_projection(projection_id="notes/profile", content=content, consent_receipt_hash=consent,
-                           custody_key_ref=ref, intr_transition_ref="intr:fixture-write")
+                           custody_key_ref=ref, intr_transition_ref="intr:local-exercise-write")
     read, _ = vault.read_projection(projection_id="notes/profile", consent_receipt_hash=consent)
-    vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:fixture-revoke", observed_at="fixture")
+    vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:local-exercise-revoke",
+                         observed_at="local-exercise")
     try:
         vault.read_projection(projection_id="notes/profile", consent_receipt_hash=consent)
         revoked_blocks = False
@@ -325,8 +357,9 @@ def _exercise() -> dict[str, bool]:
     other = KVSkapVault("principal:fixture")
     live = KVSkapVault("principal:fixture")
     live.bind_custody_key_reference(custody_key_ref=ref, issued_by=CREDENTIAL_AUTHORITY,
-                                    tvc_issuance_receipt_ref="fixture:tvc-issuance-unobserved")
-    live_consent = live.grant_consent(purposes=["WRITE"], projection_ids=["p"], observed_at="fixture")["receipt_hash"]
+                                    tvc_issuance_receipt_ref="local-exercise:tvc-issuance")
+    live_consent = live.grant_consent(purposes=["WRITE"], projection_ids=["p"],
+                                      observed_at="local-exercise")["receipt_hash"]
     ok["SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY"] = all([
         refused(lambda: other.bind_custody_key_reference(custody_key_ref="raw-bytes", issued_by=CREDENTIAL_AUTHORITY,
                                                          tvc_issuance_receipt_ref="x"), "SKAP_CUSTODY_KEY_REFERENCE_INVALID"),
@@ -366,42 +399,317 @@ def _exercise() -> dict[str, bool]:
     return ok
 
 
-def finish_point() -> dict[str, Any]:
+# --- evidence checks: each returns None (ALLOW) or (failure_code, failure_class, repair)
+def _receipts_of(lineage: dict[str, Any], kind: str) -> list[dict[str, Any]]:
+    return [r for r in lineage["receipts"] if r.get("kind") == kind]
+
+
+def _evidence_lineage(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    """The supplied lineage verifies and itself shows consent-before-use, a revocation and an exact read."""
+    lineage = evidence.get("lineage")
+    if not isinstance(lineage, dict) or lineage.get("schema") != LINEAGE_SCHEMA \
+            or lineage.get("task_id") != TASK_ID or not isinstance(lineage.get("receipts"), list):
+        return ("KV_EVIDENCE_LINEAGE_MISSING", "B", f"supply evidence.lineage as a {LINEAGE_SCHEMA} export")
+    try:
+        verify_lineage(lineage)
+        _refuse_material(lineage, "evidence.lineage", "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY")
+    except VaultRefusal as exc:
+        return (exc.fields["failure_code"], "C", exc.fields["required_evidence_or_repair"])
+    granted: set[str] = set()
+    revoked: set[str] = set()
+    written: dict[str, str] = {}
+    read_exact = False
+    for receipt in lineage["receipts"]:
+        kind, body = receipt.get("kind"), receipt.get("body") or {}
+        if kind == "CONSENT_GRANTED":
+            granted.add(receipt["receipt_hash"])
+        elif kind == "CONSENT_REVOKED":
+            revoked.add(body.get("consent_receipt_hash"))
+        elif kind in ("KV_PROJECTION_WRITTEN", "KV_PROJECTION_READ"):
+            consent = body.get("consent_receipt_hash")
+            if consent not in granted or consent in revoked:
+                return ("KV_EVIDENCE_OPERATION_WITHOUT_LIVE_CONSENT", "C",
+                        f"receipt {receipt['sequence']} uses a consent that was not granted earlier or was revoked")
+            if kind == "KV_PROJECTION_WRITTEN":
+                written[body.get("projection_id")] = body.get("content_sha256")
+            elif written.get(body.get("projection_id")) == body.get("content_sha256"):
+                read_exact = True
+    if not (written and read_exact and revoked):
+        return ("KV_EVIDENCE_LINEAGE_NOT_A_WRITE_READ_REVOKE_ROUNDTRIP", "B",
+                "the evidence lineage must hold a write, an exact read of it and a consent revocation")
+    return None
+
+
+def _manifest_entries_verify(receipt: dict[str, Any]) -> bool:
+    entries = receipt.get("required_evidence_manifest")
+    if not isinstance(entries, list) or not entries:
+        return False
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("encoding") != "canonical-json" \
+                or entry.get("origin_transition_id") != receipt.get("transition_id"):
+            return False
+        if entry.get("sha256") != hashlib.sha256(canonical_json(entry.get("content")).encode("utf-8")).hexdigest():
+            return False
+    return True
+
+
+def _evidence_intr(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    lineage = evidence["lineage"]
+    receipts = evidence.get("intr_transition_receipts")
+    if not isinstance(receipts, list) or not receipts:
+        return ("INTR_TRANSITION_RECEIPTS_NOT_OBSERVED", "B",
+                EVIDENCE_BOUND["KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT"][2])
+    by_id = {r.get("transition_id"): r for r in receipts if isinstance(r, dict)}
+    for receipt in _receipts_of(lineage, "KV_PROJECTION_WRITTEN") + _receipts_of(lineage, "CONSENT_REVOKED"):
+        ref = receipt["body"].get("intr_transition_ref", "")
+        intr = by_id.get(ref[len("intr:"):]) if ref.startswith("intr:") else None
+        if intr is None:
+            return ("INTR_TRANSITION_RECEIPT_NOT_BOUND", "B",
+                    f"no Interlock/InTr receipt for {ref!r} (lineage receipt {receipt['sequence']})")
+        if intr.get("schema") != INTR_RECEIPT_SCHEMA or intr.get("transition_outcome") not in INTR_ADMITTED_OUTCOMES \
+                or intr.get("subject_or_correlation_id") != lineage["principal_ref"] or not _manifest_entries_verify(intr):
+            return ("INTR_TRANSITION_RECEIPT_INVALID", "C",
+                    f"the InTr receipt for {ref!r} must be an {INTR_RECEIPT_SCHEMA} with outcome in "
+                    f"{INTR_ADMITTED_OUTCOMES}, the principal as subject and a verifying evidence manifest")
+    return None
+
+
+def _evidence_custody(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    lineage = evidence["lineage"]
+    receipt = evidence.get("durable_custody_readback_receipt")
+    if not isinstance(receipt, dict) or not receipt:
+        return ("KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND", "B",
+                EVIDENCE_BOUND["ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED"][2])
+    digest = sha256_uri(lineage)
+    if receipt.get("schema") != CUSTODY_READBACK_SCHEMA or receipt.get("disposition") != "ALLOW" \
+            or receipt.get("exact_hash_readback_verified") is not True or receipt.get("authority_effect") != "NONE":
+        return ("KV_DURABLE_CUSTODY_READBACK_NOT_ALLOW", "B",
+                f"the custody read-back must be an ALLOW {CUSTODY_READBACK_SCHEMA} with exact_hash_readback_verified")
+    if receipt.get("lineage_sha256") != digest or receipt.get("read_back_lineage_sha256") != digest \
+            or receipt.get("head_receipt_hash") != lineage["head"] \
+            or receipt.get("principal_ref") != lineage["principal_ref"]:
+        return ("KV_DURABLE_CUSTODY_READBACK_NOT_THIS_LINEAGE", "C",
+                "the read-back receipt must bind sha256 and head of evidence.lineage for the same principal")
+    if str(receipt.get("provider_adapter_ref", "")).endswith("#device-local"):
+        return ("KV_DURABLE_CUSTODY_IS_DEVICE_LOCAL", "B",
+                "a device-local provider requires that device; bind a custody provider readable from any device")
+    return None
+
+
+def _evidence_tvc(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    lineage = evidence["lineage"]
+    receipts = evidence.get("tvc_issuance_receipts")
+    if not isinstance(receipts, list) or not receipts:
+        return ("TVC_CUSTODY_KEY_ISSUANCE_NOT_OBSERVED", "B",
+                EVIDENCE_BOUND["TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER"][2])
+    by_hash = {r.get("receipt_sha256"): r for r in receipts if isinstance(r, dict)}
+    bound = _receipts_of(lineage, "CUSTODY_KEY_REFERENCE_BOUND")
+    if not bound:
+        return ("TVC_CUSTODY_KEY_REFERENCE_NOT_IN_LINEAGE", "B", "bind a TV/TVC custody-key reference in the lineage")
+    for receipt in bound:
+        body = receipt["body"]
+        tvc = by_hash.get(body.get("tvc_issuance_receipt_ref"))
+        if tvc is None:
+            return ("TVC_CUSTODY_KEY_ISSUANCE_NOT_BOUND", "B",
+                    f"no TV/TVC issuance receipt hashes to {body.get('tvc_issuance_receipt_ref')!r}")
+        unsigned = {k: v for k, v in tvc.items() if k != "receipt_sha256"}
+        derived = CUSTODY_REF_PREFIX + str(tvc.get("manifest_sha256", ""))[7:39]
+        if tvc.get("schema") != TVC_ISSUANCE_SCHEMA or tvc.get("disposition") != "ALLOW" \
+                or tvc.get("issuer") != CREDENTIAL_AUTHORITY or sha256_uri(unsigned) != tvc.get("receipt_sha256") \
+                or tvc.get("key_material_present") is not False or tvc.get("credential_material_present") is not False \
+                or tvc.get("authority_effect") != "NONE" or tvc.get("custody_key_ref") != body.get("custody_key_ref") \
+                or tvc.get("custody_key_ref") != derived or tvc.get("principal_ref") != lineage["principal_ref"]:
+            return ("TVC_CUSTODY_KEY_ISSUANCE_RECEIPT_INVALID", "C",
+                    f"the issuance receipt for {body.get('custody_key_ref')!r} must re-derive as a TV/TVC "
+                    f"{TVC_ISSUANCE_SCHEMA} for this principal and reference, with no material")
+    return None
+
+
+_EVIDENCE_CHECKS = {
+    "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": _evidence_intr,
+    "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED": _evidence_custody,
+    "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER": _evidence_tvc,
+}
+
+
+def _guarded(check, evidence: dict[str, Any]) -> tuple[str, str, str] | None:
+    try:
+        return check(evidence)
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        return ("KV_FINISH_POINT_EVIDENCE_MALFORMED", "C",
+                f"{check.__name__}: {type(exc).__name__}; supply a well-formed {EVIDENCE_SCHEMA} bundle")
+
+
+def _row(predicate: str, code: str, klass: str, repair: str, owner: str = GOAL_REF,
+         relation: str | None = None, next_attempt: str = EVIDENCE_NEXT) -> dict[str, Any]:
+    row = {"predicate": predicate, "disposition": "FAIL_CLOSED", "failure_code": code,
+           "failed_predicate": predicate, "required_evidence_or_repair": repair, "retry_entrypoint": RETRY,
+           "owning_existing_goal": owner, "next_attempt": next_attempt, "failure_class": klass}
+    if relation:
+        row["dependency_relation"] = relation
+    return row
+
+
+def evaluate(evidence: Any = None) -> dict[str, Any]:
+    """Compute the finish-point verdict from the local exercise and the evidence bundle. It never raises."""
     local = _exercise()
+    if evidence is not None and (not isinstance(evidence, dict) or evidence.get("schema") != EVIDENCE_SCHEMA):
+        evidence = {"schema": "INVALID"}
+    lineage_failure = _guarded(_evidence_lineage, evidence) if evidence and evidence.get("schema") == EVIDENCE_SCHEMA \
+        else None
     results = []
     for predicate in PREDICATES:
         if not local.get(predicate):
-            code, klass, repair, owner, relation = (
-                "FINISH_POINT_PREDICATE_NOT_LOCALLY_SATISFIED", "A",
-                f"repair runtime/kv_skap_vault.py so {predicate} holds locally", GOAL_REF, None)
-        elif predicate in NOT_YET_BUILT:
-            code, klass, repair, owner, relation = NOT_YET_BUILT[predicate]
-        else:
-            results.append({"predicate": predicate, "disposition": "ALLOW"})
+            results.append(_row(predicate, "FINISH_POINT_PREDICATE_NOT_LOCALLY_SATISFIED", "A",
+                                f"repair runtime/kv_skap_vault.py so {predicate} holds locally",
+                                next_attempt="on the next finish-point run after the code repair"))
             continue
-        row = {"predicate": predicate, "disposition": "FAIL_CLOSED", "failure_code": code,
-               "failed_predicate": predicate, "required_evidence_or_repair": repair,
-               "retry_entrypoint": RETRY, "owning_existing_goal": owner,
-               "next_attempt": "on the next finish-point run after the repair is bound",
-               "failure_class": klass}
-        if relation:
-            row["dependency_relation"] = relation
-        results.append(row)
+        if predicate not in _EVIDENCE_CHECKS:
+            results.append({"predicate": predicate, "disposition": "ALLOW", "locus": "LOCAL_EXERCISE"})
+            continue
+        code, klass, repair, owner, relation = EVIDENCE_BOUND[predicate]
+        if evidence is not None and evidence.get("schema") != EVIDENCE_SCHEMA:
+            failure = ("KV_FINISH_POINT_EVIDENCE_INVALID", "B", f"supply a {EVIDENCE_SCHEMA} evidence bundle")
+        elif evidence is None or not evidence.get(_EVIDENCE_KEYS[predicate]):
+            failure = (code, klass, repair)
+        elif lineage_failure is not None:
+            failure = lineage_failure
+        else:
+            failure = _guarded(_EVIDENCE_CHECKS[predicate], evidence)
+        if failure is None:
+            results.append({"predicate": predicate, "disposition": "ALLOW", "locus": "LOCAL_EXERCISE+EVIDENCE"})
+        else:
+            results.append(_row(predicate, failure[0], failure[1], failure[2],
+                                owner if failure[0] == code else GOAL_REF, relation if failure[0] == code else None))
     unmet = [r for r in results if r["disposition"] != "ALLOW"]
     return {"schema": VERDICT_SCHEMA, "task_id": TASK_ID, "scope_digest": SCOPE_DIGEST,
             "lowest_supported_mode": LOWEST_SUPPORTED_MODE, "mode": LOWEST_SUPPORTED_MODE,
             "disposition": "FAIL_CLOSED" if unmet else "ALLOW",
             "unmet_predicates": [r["predicate"] for r in unmet], "predicates": results,
+            "evidence_sha256": sha256_uri(evidence) if evidence is not None else None,
+            "evidence_lineage_head": evidence["lineage"].get("head")
+            if isinstance(evidence, dict) and isinstance(evidence.get("lineage"), dict) else None,
             "authority_model": AUTHORITY_MODEL, "llm_used": False, "network_used": False, "clock_read": False}
+
+
+# --- organization-ledger receipt (LC-KV-06) -------------------------------------------------------
+# The finish point records an ALLOW verdict as an organization-ledger receipt. Shape and append
+# semantics follow StegVerse-org/.github .stegverse/transition-ledger/org-contract.json:
+# MANIFEST_DIRECTED_APPEND under ORGANIZATION_LEDGER_LOCK on refs/stegverse/organization-ledger.
+# This module writes only to a caller-named scratch git directory that has no remote. It never pushes,
+# never writes a real ledger, and never fabricates a genesis.
+ORGANIZATION_LEDGER_REF = "refs/stegverse/organization-ledger"
+ORGANIZATION_RECEIPT_SCHEMA = INTR_RECEIPT_SCHEMA
+LEDGER_GENESIS_OWNER = ("organization-ledger writer split (StegVerse-Labs/.github#3255) / StegVerse-org/.github "
+                        "transition-ledger genesis")
+_ZERO_OID = "0" * 40
+_GIT_ENV = {"GIT_AUTHOR_NAME": "kv-skap-vault", "GIT_AUTHOR_EMAIL": "kv-skap-vault@stegverse.invalid",
+            "GIT_COMMITTER_NAME": "kv-skap-vault", "GIT_COMMITTER_EMAIL": "kv-skap-vault@stegverse.invalid",
+            "GIT_AUTHOR_DATE": "1970-01-01T00:00:00Z", "GIT_COMMITTER_DATE": "1970-01-01T00:00:00Z",
+            "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull, "PATH": "/usr/bin:/bin:/usr/local/bin"}
+
+
+def organization_ledger_receipt(verdict: dict[str, Any]) -> dict[str, Any]:
+    """The canonical-state-transition receipt for a finish-point verdict (deterministic, no clock)."""
+    content = {k: v for k, v in verdict.items() if k != "ledger_append"}
+    transition_id = f"{TASK_ID}:FINISH_POINT:{sha256_uri(content)[7:39]}"
+    return {"schema": ORGANIZATION_RECEIPT_SCHEMA, "transition_id": transition_id, "transition_sequence": 1,
+            "subject_or_correlation_id": TASK_ID, "transition_outcome": verdict["disposition"],
+            "prior_state_ref_or_hash": verdict.get("evidence_lineage_head"),
+            "required_evidence_manifest": [{
+                "evidence_id": "kv_skap_vault_finish_point_verdict", "evidence_type": "KV_SKAP_VAULT_FINISH_POINT_VERDICT",
+                "origin_transition_id": transition_id, "encoding": "canonical-json", "content": content,
+                "sha256": hashlib.sha256(canonical_json(content).encode("utf-8")).hexdigest()}]}
+
+
+def _ledger_fail(code: str, klass: str, repair: str, next_attempt: str) -> dict[str, Any]:
+    return {"disposition": "FAIL_CLOSED", "failure_code": code,
+            "failed_predicate": "FINISH_POINT_APPENDS_ORGANIZATION_LEDGER_RECEIPT",
+            "required_evidence_or_repair": repair,
+            "retry_entrypoint": RETRY + " --evidence <file> --scratch-ledger-git-dir <dir>",
+            "owning_existing_goal": GOAL_REF if klass != "B" else LEDGER_GENESIS_OWNER,
+            "next_attempt": next_attempt, "failure_class": klass, "ledger_ref": ORGANIZATION_LEDGER_REF,
+            "real_ledger_written": False}
+
+
+def _git(git_dir: str, *args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "--git-dir", git_dir, *args], input=stdin, capture_output=True, text=True,
+                          env=_GIT_ENV, check=False)
+
+
+def append_organization_ledger_receipt(receipt: dict[str, Any], scratch_ledger_git_dir: str | None) -> dict[str, Any]:
+    """Append one receipt to a scratch ledger ref by compare-and-swap. Every refusal is six-field FAIL_CLOSED."""
+    genesis_next = "on the organization-ledger genesis event (StegVerse-Labs/.github#3255 admission)"
+    if scratch_ledger_git_dir is None:
+        return _ledger_fail("ORGANIZATION_LEDGER_GENESIS_NOT_OBSERVED", "B",
+                            "no organization-ledger genesis is observed by this finish point; once the writer split "
+                            "establishes it, the ledger writer appends this receipt under ORGANIZATION_LEDGER_LOCK "
+                            "(a scratch append can be exercised with --scratch-ledger-git-dir)", genesis_next)
+    probe = _git(scratch_ledger_git_dir, "rev-parse", "--git-dir")
+    if probe.returncode != 0:
+        return _ledger_fail("SCRATCH_LEDGER_NOT_A_GIT_DIR", "A", "name an existing scratch git directory",
+                            "on the next run naming a scratch git directory")
+    if _git(scratch_ledger_git_dir, "remote").stdout.strip():
+        return _ledger_fail("LEDGER_TARGET_NOT_SCRATCH", "C",
+                            "the target has a remote; this module never writes a real ledger, only a remote-less "
+                            "scratch git directory", "on the next run naming a remote-less scratch directory")
+    tip = _git(scratch_ledger_git_dir, "rev-parse", "--verify", "--quiet", ORGANIZATION_LEDGER_REF + "^{commit}")
+    if tip.returncode != 0:
+        return _ledger_fail("ORGANIZATION_LEDGER_GENESIS_ABSENT", "B",
+                            f"{ORGANIZATION_LEDGER_REF} has no genesis in the target; a genesis is never fabricated "
+                            "here", genesis_next)
+    predecessor = tip.stdout.strip()
+    blob = _git(scratch_ledger_git_dir, "hash-object", "-w", "--stdin", stdin=canonical_json(receipt))
+    name = receipt["transition_id"].replace(":", "_") + ".json"
+    tree = _git(scratch_ledger_git_dir, "mktree", stdin=f"100644 blob {blob.stdout.strip()}\t{name}\n")
+    commit = _git(scratch_ledger_git_dir, "commit-tree", tree.stdout.strip(), "-p", predecessor,
+                  "-m", f"{ORGANIZATION_RECEIPT_SCHEMA} {receipt['transition_id']}")
+    if blob.returncode or tree.returncode or commit.returncode:
+        return _ledger_fail("SCRATCH_LEDGER_OBJECT_WRITE_FAILED", "A", "the scratch git directory refused objects",
+                            "on the next run after the scratch directory is repaired")
+    new = commit.stdout.strip()
+    swap = _git(scratch_ledger_git_dir, "update-ref", ORGANIZATION_LEDGER_REF, new, predecessor)
+    if swap.returncode != 0:
+        return _ledger_fail("ORGANIZATION_LEDGER_PREDECESSOR_MOVED", "B",
+                            "the ledger tip moved during the append; re-run against the new tip",
+                            "on the next run after the concurrent append")
+    return {"disposition": "ALLOW", "ledger_ref": ORGANIZATION_LEDGER_REF, "predecessor_commit": predecessor,
+            "appended_commit": new, "receipt_transition_id": receipt["transition_id"],
+            "receipt_sha256": sha256_uri(receipt), "locus": "SCRATCH_LEDGER", "real_ledger_written": False}
+
+
+def finish_point(evidence: Any = None, scratch_ledger_git_dir: str | None = None) -> dict[str, Any]:
+    verdict = evaluate(evidence)
+    if verdict["disposition"] == "ALLOW":
+        verdict["ledger_append"] = append_organization_ledger_receipt(
+            organization_ledger_receipt(verdict), scratch_ledger_git_dir)
+    else:
+        verdict["ledger_append"] = {**_ledger_fail(
+            "FINISH_POINT_VERDICT_NOT_ALLOW", "B",
+            "only an ALLOW finish-point verdict is recorded on the organization ledger; repair the unmet predicates "
+            f"{verdict['unmet_predicates']}", "on the next finish-point run whose verdict is ALLOW"),
+            "owning_existing_goal": GOAL_REF, "ledger_append_attempted": False}
+    verdict["runtime_disposition"] = ("ALLOW" if verdict["disposition"] == "ALLOW"
+                                      and verdict["ledger_append"]["disposition"] == "ALLOW" else "FAIL_CLOSED")
+    return verdict
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m runtime.kv_skap_vault")
     parser.add_argument("command", choices=["finish-point"])
-    parser.parse_args(argv)
-    verdict = finish_point()
+    parser.add_argument("--evidence", help=f"{EVIDENCE_SCHEMA} JSON file")
+    parser.add_argument("--scratch-ledger-git-dir", help="remote-less scratch git dir holding the ledger ref")
+    args = parser.parse_args(argv)
+    evidence: Any = None
+    if args.evidence:
+        try:
+            with open(args.evidence, encoding="utf-8") as stream:
+                evidence = json.load(stream)
+        except (OSError, ValueError):
+            evidence = {"schema": "UNREADABLE"}
+    verdict = finish_point(evidence, args.scratch_ledger_git_dir)
     print(json.dumps(verdict, indent=2, sort_keys=True))
-    return 0 if verdict["disposition"] == "ALLOW" else 2
+    return 0 if verdict["runtime_disposition"] == "ALLOW" else 2
 
 
 if __name__ == "__main__":
