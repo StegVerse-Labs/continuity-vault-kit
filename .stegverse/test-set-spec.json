@@ -6,12 +6,18 @@
   "tests": []
  },
  "extra_surfaces": {
+  "tests/test_finish_point_verdict.py": [
+   ".github/workflows/runtime-import-and-secret-policy.yml",
+   ".stegverse/finish_point_verdict.py"
+  ],
   "tests/test_kv_skap_vault_finish_point.py": [
-   ".github/workflows/runtime-import-and-secret-policy.yml"
+   ".github/workflows/runtime-import-and-secret-policy.yml",
+   ".stegverse/finish_point_verdict.py"
   ]
  },
  "extra_surfaces_why": {
-  "tests/test_kv_skap_vault_finish_point.py": "the runner workflow holds the step that runs this test (Lane D adjacency ruling, finish_test_runners); the imports and file reads (runtime/kv_skap_vault.py, runtime/secret_field_policy.py) are found statically"
+  "tests/test_finish_point_verdict.py": "tests both verdict paths: it loads .stegverse/finish_point_verdict.py by file path (not an import a static scan follows) and reads the runner workflow to assert no step carries an if:",
+  "tests/test_kv_skap_vault_finish_point.py": "the runner workflow holds the step that runs this test (Lane D adjacency ruling, finish_test_runners); the imports and file reads (runtime/kv_skap_vault.py, runtime/secret_field_policy.py) are found statically; .stegverse/finish_point_verdict.py decides whether the finish step runs the test (SELECTED) or receipts NOT_SELECTED, so an edit to it is routed to this set"
  },
  "finish_point_set": "tests/test_kv_skap_vault_finish_point.py",
  "import_roots": [],

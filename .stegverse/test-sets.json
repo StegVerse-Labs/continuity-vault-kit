@@ -3,7 +3,7 @@
  "generated_from": {
   "generator": "scripts/test_set_selection.py (StegVerse-Labs/.github)",
   "spec": ".stegverse/test-set-spec.json",
-  "spec_sha256": "a0e6e6979e6089a0aac04370ec54258f8d4d5f966b651d43a3d9beaf37d390ea"
+  "spec_sha256": "80990bbcabe3bbb81bb0249065fb66dbb038149ec3ae107848493709d3a8f5dd"
  },
  "inputs": {},
  "repository": "StegVerse-Labs/continuity-vault-kit",
@@ -405,6 +405,20 @@
    ],
    "tests": [
     "tests.test_experience_capsule"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_finish_point_verdict.py",
+   "inputs": [],
+   "surfaces": [
+    ".github/workflows/runtime-import-and-secret-policy.yml",
+    ".stegverse/finish_point_verdict.py",
+    "tests/test_finish_point_verdict.py"
+   ],
+   "tests": [
+    "tests.test_finish_point_verdict"
    ]
   },
   {
@@ -846,6 +860,7 @@
    "inputs": [],
    "surfaces": [
     ".github/workflows/runtime-import-and-secret-policy.yml",
+    ".stegverse/finish_point_verdict.py",
     "tests/test_kv_skap_vault_finish_point.py"
    ],
    "tests": [
@@ -2012,6 +2027,10 @@
   "tests/test_experience_capsule.py": [
    "fixtures/multimodal/**",
    "tools/validate_experience_capsule.py"
+  ],
+  "tests/test_finish_point_verdict.py": [
+   ".stegverse/finish_point_verdict.py",
+   ".stegverse/test-set-spec.json"
   ],
   "tests/test_global_hosted_workflow_authority.py": [
    ".github/workflows/**"
