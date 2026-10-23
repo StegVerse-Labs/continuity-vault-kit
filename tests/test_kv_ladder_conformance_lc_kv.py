@@ -242,9 +242,11 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
     def kv(self, **ledger):
         return TwoLayers(ledger_checkout=e0_health_ledger(NODE, **ledger)[0]).kv_access()
 
-    def anchor_refused(self, out, reason):
-        refused(self, out, "NODE_ROOT_NOT_ANCHORED_" + reason, code=ep.ANCHOR_REFUSAL_CODE)
-        self.assertEqual(out["failure_code"], "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED")
+    def anchor_refused(self, out, reason, code="ENDPOINT_LEDGER_NOT_ANCHORED"):
+        # #432 @c4cfc145 (Lane D finding 3): per-kind code; a PERMANENT root's non-org-ledger refusal is
+        # ENDPOINT_LEDGER_NOT_ANCHORED, an EPHEMERAL one is EPHEMERAL_NODE_LEDGER_NOT_ANCHORED
+        refused(self, out, "NODE_ROOT_NOT_ANCHORED_" + reason, code=code)
+        self.assertEqual(out["failure_code"], code)
         self.assertEqual(out["health_evaluation"]["schema"], ep.PINNED_ANCHORED_EVALUATOR["result_schema"])
         self.assertEqual(out["health_evaluation"]["reason"], reason)
 
@@ -279,7 +281,7 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
 
     def test_an_unanchored_node_root_is_refused(self):
         out = self.kv(anchored=False)
-        self.assertEqual(out["failure_code"], ep.ANCHOR_REFUSAL_CODE)
+        self.assertEqual(out["failure_code"], ep.ENDPOINT_ANCHOR_REFUSAL_CODE)
         self.assertTrue(out["refusal_cause"].startswith("NODE_ROOT_NOT_ANCHORED_"), out)
 
     def test_the_transport_key_must_be_the_anchored_genesis_key(self):
@@ -292,7 +294,7 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
         self.assertEqual(json.loads((Path(ep._INTR_PINNED_ROOT) / ".stegverse/node-ledger/node-ledger-opened-signers.v1.json")
                                     .read_text(encoding="utf-8"))["signers"], [])
         out = self.kv(kind="EPHEMERAL")
-        self.anchor_refused(out, "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED")
+        self.anchor_refused(out, "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED", code=ep.ANCHOR_REFUSAL_CODE)
         self.assertEqual(out["failure_class"], "B")
         self.assertTrue(out["owning_existing_goal"].startswith("TV/TVC"), out["owning_existing_goal"])
         self.assertEqual(out["failed_predicate"], "NODE_LEDGER_OPENED_SIGNED_BY_PUBLISHED_KEY")

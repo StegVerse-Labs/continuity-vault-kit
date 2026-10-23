@@ -155,7 +155,7 @@ class SkapLayer2Gate:
             return layer2_refusal(why, (
                 f"{prior} was not minted by the real KVInterlockRuntime under the pinned healthy-node evaluator "
                 "(runtime/intr_pinned, sha256:fdaa2005...1f58) reached through #432's evaluate_anchored "
-                "(sha256:5fcc9018...3d10), the installed InTr transport, the contract-location org ledger with a node "
+                "(sha256:2d80e443...b6b8), the installed InTr transport, the contract-location org ledger with a node "
                 "root evaluate_anchored admitted, and the trust anchors in force; it is refused"),
                 predicate=PREDICATE_HEALTHY_NODE, failure_class="B" if why in (
                     "LAYER1_TRANSPORT_NOT_THE_INSTALLED_ONE", "LAYER1_LEDGER_NOT_BOUND_BY_CONTRACT_LOCATION",

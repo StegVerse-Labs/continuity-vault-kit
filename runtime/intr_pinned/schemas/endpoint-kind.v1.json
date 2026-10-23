@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stegverse.org/schemas/endpoint-kind.v1.json",
   "title": "StegVerse InTr endpoint kind v1",
-  "description": "Every InTr endpoint declares endpoint_kind and reuses the org InTr classes (INTR_MESH_PATH_TRANSFER, INTR_MESH_PATH_INGRESS / ORGANIZATION_INTR_DESTINATION_INGRESS; StegVerse-org/.github data/intr-protocol/v1/protocol.json). Own-ledger kinds open with a REPOSITORY_LEDGER_INITIALIZATION genesis (stegverse.endpoint-ledger-genesis/v1) and are anchored on the org ledger by an InTr path receipt pair. GATEWAY is carried inside the org ledger at node-ledger/StegVerse-org/<node_id> and never imports an external chain. Only EPHEMERAL dissolves (NODE_DISSOLUTION; full chain disbursed and read back; root inadmissible after). ORG is an organization's .github ledger: it issues anchors (issuer ORGANIZATION_LEDGER) and is never a node health root. Code: StegVerse-org/LLM-adapter llm_adapter.endpoint_ledger_anchor.",
+  "description": "Every InTr endpoint declares endpoint_kind and reuses the org InTr classes (INTR_MESH_PATH_TRANSFER, INTR_MESH_PATH_INGRESS / ORGANIZATION_INTR_DESTINATION_INGRESS; StegVerse-org/.github data/intr-protocol/v1/protocol.json). Rule (1): no endpoint chain is anchored on the org ledger. EPHEMERAL and PERMANENT keep their own ledger (REPOSITORY_LEDGER_INITIALIZATION genesis, stegverse.endpoint-ledger-genesis/v1); the anchor record is on that ledger and the Org records only its own digest-only crossing receipt. KV and SKAP_VAULT are STEGVERSE_KV:<location> designations with the cvk storage-endpoint keys (llm_adapter.endpoint_ledger_designation), never opened on an org ref. GATEWAY has no designated carrier ledger: refused (GATEWAY_CARRIER_LEDGER_NOT_DESIGNATED). Only EPHEMERAL dissolves (NODE_DISSOLUTION; disbursed to the Org Ledger as digest-only crossing receipts and read back; root inadmissible after). ORG is an organization's .github ledger: it issues anchors (issuer ORGANIZATION_LEDGER) and is never a node health root. Code: StegVerse-org/LLM-adapter llm_adapter.endpoint_ledger_anchor.",
   "$defs": {
     "endpoint_kind": {
       "enum": [
@@ -34,7 +34,8 @@
     "ledger_model": {
       "enum": [
         "OWN_LEDGER",
-        "ORG_CARRIED_LOCATION",
+        "STEGVERSE_KV_DESIGNATION",
+        "NOT_DESIGNATED",
         "ORGANIZATION_LEDGER"
       ]
     },
@@ -58,7 +59,8 @@
       "enum": [
         "NODE_LEDGER_OPENED_VIA_INTR_PATH_RECEIPT_PAIR",
         "INTR_PATH_RECEIPT_PAIR",
-        "ORG_LEDGER_LOCATION_GENESIS",
+        "ENDPOINT_LEDGER_DESIGNATION",
+        "REFUSED_GATEWAY_CARRIER_LEDGER_NOT_DESIGNATED",
         "NONE_IS_THE_ISSUER"
       ]
     }
@@ -111,11 +113,7 @@
       "if": {
         "properties": {
           "endpoint_kind": {
-            "enum": [
-              "PERMANENT",
-              "KV",
-              "SKAP_VAULT"
-            ]
+            "const": "PERMANENT"
           }
         }
       },
@@ -134,6 +132,28 @@
       "if": {
         "properties": {
           "endpoint_kind": {
+            "enum": [
+              "KV",
+              "SKAP_VAULT"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "STEGVERSE_KV_DESIGNATION"
+          },
+          "anchor": {
+            "const": "ENDPOINT_LEDGER_DESIGNATION"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
             "const": "GATEWAY"
           }
         }
@@ -141,10 +161,10 @@
       "then": {
         "properties": {
           "ledger_model": {
-            "const": "ORG_CARRIED_LOCATION"
+            "const": "NOT_DESIGNATED"
           },
           "anchor": {
-            "const": "ORG_LEDGER_LOCATION_GENESIS"
+            "const": "REFUSED_GATEWAY_CARRIER_LEDGER_NOT_DESIGNATED"
           }
         }
       }

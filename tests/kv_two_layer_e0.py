@@ -2,7 +2,7 @@
 
 Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (INTR_KV_SKAP).
 
-Health is decided by the REAL pinned InTr code, vendored byte-identical from StegVerse-org/LLM-adapter#432 @74509fec
+Health is decided by the REAL pinned InTr code, vendored byte-identical from StegVerse-org/LLM-adapter#432 @c4cfc145
 (code unchanged since a2ee67e6) under runtime/intr_pinned/: layer 1 calls
 llm_adapter.endpoint_ledger_anchor.evaluate_anchored (Lane B's anchored-root check with LC-KV-16 inside: org ledger from the contract designation at the contract-pinned genesis with an append-route
 head attestation, identity proven by an Ed25519 signature under the anchored node_identity_key, health and admission by
@@ -91,7 +91,7 @@ def pinned() -> dict[str, Any]:
 
 TEST_ONLY_DIR = ROOT / "tests" / "fixtures" / "intr_pinned_test_only"
 #: Lane B's TEST-ONLY stdlib signer, #431 fixture contracts, org test genesis and org-ledger harness, vendored
-#: byte-identical from LLM-adapter#432 @74509fec (org_ledger_harness.py is kept for provenance and never executed: it
+#: byte-identical from LLM-adapter#432 @c4cfc145 (org_ledger_harness.py is kept for provenance and never executed: it
 #: imports tests.ed25519_test_signer; e0_attest and the E0 route below follow it with the same seed and key_id).
 TEST_ONLY_PINS = {
     "ed25519_test_signer.py": "sha256:3173bfcfca33129cd31942783b9e3e4c9380022f308f2fc31ccdda3dc2f6fe52",

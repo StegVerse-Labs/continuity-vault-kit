@@ -413,7 +413,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
     def test_the_pin_records_428_429_and_430_provenance(self):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
         self.assertEqual([p["commit"][:8] for p in pin["provenance"]],
-                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e", "a2ee67e6", "73316297", "74509fec"])
+                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e", "a2ee67e6", "73316297", "74509fec", "c4cfc145"])
         self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):
@@ -442,7 +442,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
                              (e0_health_ledger("SV-NODE-E0TEST0001", foreign=True)[0], "FOREIGN_PRODUCER_RECEIPT")):
             response = self.handle(self.runtime_for(root))
             self.assertEqual((response["decision"], response["failure_code"]),
-                             ("FAIL_CLOSED", self.m.ANCHOR_REFUSAL_CODE), response)
+                             ("FAIL_CLOSED", self.m.ENDPOINT_ANCHOR_REFUSAL_CODE), response)
             self.assertIsNone(response["kv_access_receipt"])
             if reason:
                 self.assertEqual(response["health_evaluation"]["reason"], reason)
