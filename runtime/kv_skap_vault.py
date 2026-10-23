@@ -47,6 +47,7 @@ from runtime.kv_interlock_endpoint import (FINISH_POINT_NODE_ENDPOINT_KIND, HEAL
                                            PINNED_HEALTHY_NODE_EVALUATOR_ID, TRUST_ANCHORS, KVInterlockRuntime,
                                            _HEALTHY_RECEIPT_EXACT, healthy_node_ledger_root,
                                            layer1_receipt_conformance, layer1_refusal, org_ledger_prerequisites)
+from runtime.kv_receipt_ledgers import SKAP_VAULT_LEDGER, receipt_ledger_binding, receipt_ledger_prerequisites
 from runtime.kv_skap_layer2 import (LAYER1_REFUSAL_CODE, LAYER2_REFUSAL_CODE, SKAP_ACCESS_RECEIPT_SCHEMA,
                                     SkapLayer2Gate, kv_skap_transition)
 from runtime.secret_field_policy import find_forbidden_field
@@ -233,7 +234,9 @@ class KVSkapVault:
                                "bind the receipt_sha256 (sha256:<64 hex>) of the TV/TVC issuance receipt for this "
                                "custody key; a free-form string is not an issuance receipt")
         body = {"custody_key_ref": custody_key_ref, "issued_by": issued_by,
-                "tvc_issuance_receipt_ref": tvc_issuance_receipt_ref, "access": access}
+                "tvc_issuance_receipt_ref": tvc_issuance_receipt_ref, "access": access,
+                # the TV/TVC#537 issuance receipt and this custody result belong on 02_SKAP_Vault_Ledger
+                "receipt_ledger": receipt_ledger_binding(SKAP_VAULT_LEDGER)}
         _refuse_material(body, "custody", pred)
         return self._append("CUSTODY_KEY_REFERENCE_BOUND", body)
 
@@ -1213,6 +1216,8 @@ def finish_point(evidence: Any = None, scratch_ledger_git_dir: str | None = None
     # LC-KV-18 and the #431 legs: the pinned org-ledger read's prerequisites, recorded with six fields. They gate every
     # PERMANENT anchor at layer 1, so the finish point cannot reach ALLOW in production while any is FAIL_CLOSED.
     verdict["org_ledger_prerequisites"] = org_ledger_prerequisites()
+    # KV-SKAP-LEDGER-LOCATION-001: the KV and SKAP Vault receipt ledgers (FAIL_CLOSED until their genesis pin)
+    verdict["receipt_ledger_prerequisites"] = receipt_ledger_prerequisites()
     if verdict["disposition"] == "ALLOW":
         verdict["ledger_append"] = append_organization_ledger_receipt(
             organization_ledger_receipt(verdict), scratch_ledger_git_dir)

@@ -1,0 +1,6 @@
+{
+  "schema": "stegverse.published-public-key-references/v1",
+  "purpose": "Public-key references of the kv_ledger_head_signer for KV's own recorded receipt chains (STEGVERSE_KV _StegVerse/Receipts and _Vault/SKAP/Receipts; the head-signer pattern of StegVerse-Labs/TVC#542 applied to KV, read by StegVerse-org/LLM-adapter#431 @a2237bc3 llm_adapter/endpoint_ledger_designation.py). runtime.kv_receipt_ledgers accepts a read-back chain only when its head carries an Ed25519 stegverse.kv-ledger-head-attestation/v1 (schema, endpoint_id, store_location, genesis_receipt_sha256, head_receipt_sha256, signer_role kv_ledger_head_signer) by one of these keys (signs KV_RECORDED_RECEIPT_CHAIN_HEAD, StegVerse-Labs/TVC#542 @4c2504da: the head digest the InTr crossing receipt carries to the Org ledger).",
+  "state": "NONE_PUBLISHED: every read is FAIL_CLOSED KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED until a signer is published by an admitted change. Public-key references only; bots never hold keys.",
+  "signers": []
+}
