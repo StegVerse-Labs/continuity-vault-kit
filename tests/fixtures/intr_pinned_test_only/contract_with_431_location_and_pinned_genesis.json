@@ -1,0 +1,33 @@
+{
+  "schema": "stegverse.repo-transition-ledger-contract/v1",
+  "repository": "StegVerse-org/LLM-adapter",
+  "ledger_level": "REPOSITORY",
+  "receipt_schema": "stegverse.repo-transition-receipt/v1",
+  "append_only_receipts": true,
+  "required_fields": [
+    "repository",
+    "transition_id",
+    "transition_class",
+    "predecessor_state_sha256",
+    "successor_state_sha256",
+    "evidence",
+    "authority_effect",
+    "observed_at",
+    "previous_receipt_sha256"
+  ],
+  "replay_rule": "REPOSITORY_REPLAY_MUST_NOT_REQUIRE_ORGANIZATION_OR_ECOSYSTEM_REPLAY",
+  "repository_ledger_location": {
+    "repository": "StegVerse-org/.github",
+    "ref": "refs/stegverse/organization-ledger",
+    "namespace": "repository-ledger/StegVerse-org/LLM-adapter",
+    "locator_form": "git+<checkout>#refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/LLM-adapter",
+    "new_ledger_root": false,
+    "designation_source": "StegVerse-org/.github .stegverse/transition-ledger/org-contract.json organization_ledger_ref (StegVerse-org/LLM-adapter#368 issuecomment-6092785329); the same subtree form StegVerse-org/.github declares for its own repository chain and StegVerse-org/StegVerse-SDK declares for the SDK.",
+    "initialization": "Genesis is a REPOSITORY_LEDGER_INITIALIZATION transition whose first receipt has previous_receipt_sha256 null. Publication of the ref is the organization's own append under ORGANIZATION_LEDGER_LOCK. Not performed by this repository.",
+    "rule": "The repository chain is kept in its own subtree of the designated organization ledger ref. Repository replay walks repository-ledger/StegVerse-org/LLM-adapter/HEAD.json back through its own receipts and never reads an organization receipt. Existing organization-ledger commits are not rewritten.",
+    "expected_genesis_receipt_sha256": "sha256:e7175b7ad2beb11330f4cba79c7e922636b9fef008eca9001e2ffbb059b6f2d1",
+    "expected_genesis_note": "TEST FIXTURE: #431's real contract shape (contract_with_431_repository_ledger_location.json, a byte copy of StegVerse-org/LLM-adapter#431's contract.json), with its null expected_genesis_receipt_sha256 replaced by the receipt_sha256 of tests/fixtures/node_receipts/org_ledger_test_genesis.json. This is not the production genesis; production is null until the genesis is observed, and is refused ORG_LEDGER_GENESIS_NOT_PINNED."
+  },
+  "propagation_rule": "PROPAGATE_ONLY_EVIDENCE_NEEDED_BY_NEXT_HIGHER_LEVEL",
+  "authority_effect": "NONE_CONTRACT_ONLY"
+}
