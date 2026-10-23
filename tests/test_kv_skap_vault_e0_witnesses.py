@@ -109,6 +109,33 @@ class KvSkapVaultE0Witnesses(unittest.TestCase):
                               text=True, check=False)
         self.assertEqual(proc.returncode, 0, proc.stdout[-2000:])
 
+    def test_an_unsigned_ephemeral_opened_record_is_refused_then_the_finish_point_runs(self) -> None:
+        """LC-KV-17 (P1 rev 5, class A, E0_TERMINAL_DECIDES_AS_REQUIRED): the vendored evaluate_anchored is #432
+        @1cbad77e, which refuses an EPHEMERAL node whose NODE_LEDGER_OPENED record is unsigned (c2c57505 admitted it)
+        with EPHEMERAL_NODE_LEDGER_NOT_ANCHORED; a signed envelope whose key is not published is refused the same way
+        (owner TV/TVC). Neither mints a receipt, and the finish point still runs to ALLOW with the PERMANENT node."""
+        from runtime import kv_interlock_endpoint as ep
+        from tests.kv_two_layer_e0 import NODE, e0_health_ledger
+        self.assertEqual(ep.PINNED_ANCHORED_EVALUATOR["commit"], "1cbad77eaff3254ea30fb9d3377d40abcf6728df")
+        anchor_source = (ROOT / "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py").read_text(encoding="utf-8")
+        self.assertNotIn("TEMP_NODE_LEDGER_NOT_ANCHORED", anchor_source)
+        six = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
+               "owning_existing_goal", "next_attempt")
+        for signed, reason, failure_class in ((False, "NODE_LEDGER_OPENED_UNSIGNED", "C"),
+                                              (True, "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED", "B")):
+            source = e0_health_ledger(NODE, kind="EPHEMERAL", opened_signed=signed)[0]
+            out = TwoLayers(principal=PRINCIPAL, ledger_checkout=source).kv_access()
+            self.assertEqual((out["decision"], out["failure_code"], out["failure_class"],
+                              out["health_evaluation"]["reason"], out["kv_access_receipt"]),
+                             ("FAIL_CLOSED", "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED", failure_class, reason, None), signed)
+            for field in six:
+                self.assertTrue(isinstance(out[field], str) and out[field].strip(), (signed, field))
+        # the PERMANENT node's own ledger and identity proof (the E0 transport holds the latest proof per node)
+        self.layers = TwoLayers(principal=PRINCIPAL)
+        verdict = kv.finish_point(self.evidence(), self.ledger_git)
+        self.assertEqual((verdict["disposition"], verdict["runtime_disposition"]), ("ALLOW", "ALLOW"),
+                         [(r["predicate"], r.get("failure_code")) for r in verdict["predicates"]])
+
     def test_unbound_custody_receipt_is_a_disposition_and_keeps_the_verdict_closed(self) -> None:
         evidence = self.evidence()
         binding = self.binding(evidence["lineage"])

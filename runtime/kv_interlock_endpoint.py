@@ -3,11 +3,8 @@ from __future__ import annotations
 import ast
 import copy
 import hashlib
-import importlib
-import importlib.util
 import json
 import io
-import marshal
 import os
 import shutil
 import subprocess
@@ -17,6 +14,7 @@ import tempfile
 import threading
 import types
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 
 from runtime.secret_field_policy import field_name_is_forbidden
@@ -76,13 +74,14 @@ HEALTHY_NODE_REFUSAL_CODE = "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"
 HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinned evaluator's RESULT_SCHEMA
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
 #: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md.
-#: The evaluator bytes (fdaa2005...1f58) are unchanged from #428 @0b37fe3b through #429, #430 and #432 @c2c57505.
+#: The evaluator bytes (fdaa2005...1f58) are unchanged from #428 @0b37fe3b through #429, #430 and #432 @c2c57505 and
+#: @1cbad77e (vendored head).
 #: Layer 1 never calls evaluate() bare any more: it calls #432's evaluate_anchored (PINNED_ANCHORED_EVALUATOR), which
 #: runs Lane B's anchored-root check and then this evaluate(), unchanged, over the anchored root only.
 #:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
 PINNED_HEALTHY_NODE_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
-    "commit": "c2c57505535fb89ee88477eda1378c5fc610e0f7",
+    "commit": "1cbad77eaff3254ea30fb9d3377d40abcf6728df",
     "pull_request": "StegVerse-org/LLM-adapter#432 (draft; evaluator bytes unchanged since #428)",
     "module": "llm_adapter.healthy_node_evaluator",
     "callable": "evaluate",
@@ -116,25 +115,34 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
          "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
          "pinned_code_digests_file_sha256":
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; head moved from c2c57505: schemas published, LC-KV-16 "
+                         "in the wrapper; evaluator bytes unchanged)",
+         "commit": "1cbad77eaff3254ea30fb9d3377d40abcf6728df",
+         "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+         "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
+         "pinned_code_digests_file_sha256":
+             "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
     ],
     "admission_order": "StegVerse-org/LLM-adapter#429 lands with or before #428; #432 builds on #430",
     "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430, #431 onboarding, #432) settles",
 }
-#: Lane B's anchored-root check (StegVerse-org/LLM-adapter#432 @c2c57505, draft). It is authoritative for whether a
+#: Lane B's anchored-root check (StegVerse-org/LLM-adapter#432 @1cbad77e, draft). It is authoritative for whether a
 #: caller-supplied node root is anchored on the org ledger; KV does not re-implement it. It needs the pinned producer
 #: modules at their upstream-relative paths (it hashes ROOT/<path> for every entry of the pinned-code-digests file, with
 #: ROOT = runtime/intr_pinned), so every file below is vendored byte-identical at that layout and re-hashed before every
 #: resolution. node_ingress_boundary.py is vendored and pin-hashed but never executed: it imports the StegVerse SDK
 #: (node_standing -> stegverse.manifest_contract), which is not a cvk dependency. endpoint_ledger_anchor reads only its
-#: three string constants, which KV reads from the pinned bytes by AST (constants_only).
+#: four string constants, which KV reads from the pinned bytes by AST (constants_only). org_ledger_location.py is
+#: executed: it is evaluate_anchored's one I/O boundary (a local `git archive` of the contract-designated ref and
+#: namespace, protocol.allow=never), reading the designation from the vendored contract.json.
 PINNED_ANCHORED_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
     "pull_request": "StegVerse-org/LLM-adapter#432 (draft, Lane B anchored-root check)",
-    "commit": "c2c57505535fb89ee88477eda1378c5fc610e0f7",
+    "commit": "1cbad77eaff3254ea30fb9d3377d40abcf6728df",
     "module": "llm_adapter.endpoint_ledger_anchor",
     "callable": "evaluate_anchored",
     "source_path": "llm_adapter/endpoint_ledger_anchor.py",
-    "source_sha256": "sha256:5fcc9018e18d709ab5b9c9ea5195e751abf2d01b4c124cf4fafdcfb617023d10",
+    "source_sha256": "sha256:7a998544707e8fce7164d9229116942501b141b13a4f5af8772a3dbd8feb8403",
     "result_schema": "stegverse.endpoint-ledger-anchor-result/v1",
     "pinned_code_digests_path": ".stegverse/node-ledger/pinned-code-digests.v1.json",
     "pinned_code_digests_file_sha256": "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8",
@@ -143,7 +151,9 @@ PINNED_ANCHORED_EVALUATOR = {
     "vendored_root": "runtime/intr_pinned",
     "vendored_files": {
         "llm_adapter/endpoint_ledger_anchor.py":
-            "sha256:5fcc9018e18d709ab5b9c9ea5195e751abf2d01b4c124cf4fafdcfb617023d10",
+            "sha256:7a998544707e8fce7164d9229116942501b141b13a4f5af8772a3dbd8feb8403",
+        "llm_adapter/org_ledger_location.py":
+            "sha256:2ffaa91a606d18c45f239930e0e50292cb12461be22dc370fb6343037e3fce78",
         "llm_adapter/healthy_node_evaluator.py":
             "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
         "llm_adapter/ed25519_verify.py": "sha256:ab05e39a3e40b99f02ff199b178554e0ba435c3ff387dca3f896619770770232",
@@ -162,12 +172,24 @@ PINNED_ANCHORED_EVALUATOR = {
         ".stegverse/node-ledger/pinned-code-digests.v1.json":
             "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8",
         ".stegverse/transition-ledger/emit.py": "sha256:9579726de7ef915ac8cd61be1ba1c5ef6e34de4ca996504374b0dce7f7c2c9c3",
-        # supporting data read by the pinned modules (not in the pin set; byte-identical at c2c57505)
+        # supporting data read by the pinned modules (not in the pin set; byte-identical at 1cbad77e)
         ".stegverse/transition-ledger/contract.json":
             "sha256:a59040e8cabe6dc618af0ba340cb5563ce726f645a76248ccb354961d29144e7",
         ".stegverse/heartbeat-awareness.json": "sha256:87b1c4006d3829ea70626d481012791c557e97bcd580a6c3d5ccc61389a6951b",
+        # published NODE_LEDGER_OPENED signer references (TV/TVC custody); empty at 1cbad77e, so EPHEMERAL fails closed
+        ".stegverse/node-ledger/node-ledger-opened-signers.v1.json":
+            "sha256:478174cb89dc173e9bf7e8deb1db8b3881161e5a2fd10d6435298f74b6d3c63d",
+        # Lane B's published v1 schemas (#432 @1cbad77e); KV takes the endpoint_kind enum from endpoint-kind.v1.json
+        "schemas/endpoint-kind.v1.json": "sha256:94fe6fe18a38f33d9a1730b81d1f92ded06df288262b22e7d01cc11119d93d60",
+        "schemas/node-ledger-opened.v1.json":
+            "sha256:2ef662f3cbe5da67aeae3732e526b86e71010c51a95887686d24d65ce919a352",
+        "schemas/node-ledger-opened-signed.v1.json":
+            "sha256:74cdc7e520d55f1bc1f964485ecada2a3953e331b1a87cca6dc9d36f74c5efa1",
+        "schemas/node-ledger-opened-generation.v1.json":
+            "sha256:7012ff4993213ce2ecbfa17ec01eeb149d2c0b999152a37e65f6205e6f48f0d4",
     },
-    "constants_only": {"llm_adapter/node_ingress_boundary.py": ("ADMITTED_CLASS", "REFUSED_CLASS", "RECORD_SCHEMA")},
+    "constants_only": {"llm_adapter/node_ingress_boundary.py": ("ADMITTED_CLASS", "REFUSED_CLASS", "RECORD_SCHEMA",
+                                                               "INTERLOCK_INTR")},
     "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
 }
 #: Where the evaluator's chain lives. It is bound by contract location: the existing org-ledger contract location
@@ -225,15 +247,29 @@ def _file_sha256(path: Any) -> str | None:
 
 
 def _code_sha256(fn: Any) -> str | None:
-    """sha256 of fn's compiled code object (marshal), observed from the object itself, never from what it reports
+    """sha256 of a deterministic view of fn's compiled code object, observed from the object itself, never from what it reports
     about itself (__module__, __qualname__, co_filename). None for anything that is not a plain Python function."""
     code = getattr(fn, "__code__", None)
     if not isinstance(fn, types.FunctionType) or not isinstance(code, types.CodeType):
         return None
     try:
-        return "sha256:" + hashlib.sha256(marshal.dumps(code)).hexdigest()
+        return "sha256:" + hashlib.sha256(repr(_code_shape(code)).encode("utf-8")).hexdigest()
     except Exception:
         return None
+
+
+def _code_shape(value: Any) -> Any:
+    """A deterministic, recursive view of a code object (bytecode, constants, names, signature counts, flags).
+    marshal.dumps is not used: its output depends on reference counts (FLAG_REF), so the same unchanged code object
+    can marshal differently after it has run."""
+    if isinstance(value, types.CodeType):
+        return ("code", value.co_code, tuple(_code_shape(c) for c in value.co_consts), value.co_names,
+                value.co_varnames, value.co_freevars, value.co_cellvars, value.co_argcount, value.co_posonlyargcount,
+                value.co_kwonlyargcount, value.co_flags, value.co_name)
+    if isinstance(value, (tuple, frozenset)):
+        items = tuple(_code_shape(v) for v in value)
+        return (type(value).__name__, tuple(sorted(items, key=repr)) if isinstance(value, frozenset) else items)
+    return (type(value).__name__, repr(value))
 
 
 _INTR_PINNED_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "intr_pinned")
@@ -241,7 +277,19 @@ _PINNED_PACKAGE = "llm_adapter"
 #: Load order of the executed pinned modules (each imports only earlier ones, the stdlib and, lazily, emit.py).
 _PINNED_LOAD_ORDER = ("healthy_node_evaluator", "ed25519_verify", "node_receipt_common", "node_existence_readback",
                       "node_health_check_projection", "node_health_report_producer", "node_identity_binding_producer",
-                      "endpoint_ledger_anchor")
+                      "org_ledger_location", "endpoint_ledger_anchor")
+#: The executed vendored modules, in load order, as static paths (so a closure checker resolves every load target).
+_PINNED_EXEC_SOURCES = (
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "healthy_node_evaluator.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "ed25519_verify.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_receipt_common.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_existence_readback.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_health_check_projection.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_health_report_producer.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_identity_binding_producer.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "org_ledger_location.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "endpoint_ledger_anchor.py"),
+)
 _PINNED_LOCK = threading.Lock()
 _PINNED_MODULES: dict[str, Any] = {}
 #: LC-KV-10 (P1 rev 4, class A): what the pinned callables ARE, recorded at load time. Each executed module is compiled
@@ -318,14 +366,19 @@ def load_pinned_intr() -> tuple[dict[str, Any] | None, str]:
         staged = {package.__name__: package, boundary.__name__: boundary}
         try:
             sys.modules.update(staged)
-            for name in _PINNED_LOAD_ORDER:
+            for source_path in _PINNED_EXEC_SOURCES:
+                name = os.path.basename(source_path)[:-len(".py")]
                 rel = f"{_PINNED_PACKAGE}/{name}.py"
-                path = os.path.join(_INTR_PINNED_ROOT, _PINNED_PACKAGE, name + ".py")
-                spec = importlib.util.spec_from_file_location(f"{_PINNED_PACKAGE}.{name}", path)
-                module = importlib.util.module_from_spec(spec)
-                staged[spec.name] = sys.modules[spec.name] = module
-                # executed from the digest-checked bytes, not re-read: what runs is what was hashed
-                exec(compile(blobs[rel], path, "exec", dont_inherit=True), module.__dict__)  # noqa: S102
+                pinned_source = Path(source_path).read_bytes()
+                # what runs is exactly what was hashed: these bytes are checked against the pin, then compiled
+                if "sha256:" + hashlib.sha256(pinned_source).hexdigest() != \
+                        PINNED_ANCHORED_EVALUATOR["vendored_files"][rel] or pinned_source != blobs[rel]:
+                    raise ValueError(f"runtime/intr_pinned/{rel} changed while loading; not the pinned bytes")
+                module = types.ModuleType(f"{_PINNED_PACKAGE}.{name}")
+                module.__file__ = source_path
+                module.__package__ = _PINNED_PACKAGE
+                staged[module.__name__] = sys.modules[module.__name__] = module
+                exec(compile(pinned_source, source_path, "exec", dont_inherit=True), module.__dict__)  # noqa: S102
                 setattr(package, name, module)
         except Exception as exc:
             return None, f"the pinned InTr code does not load ({type(exc).__name__}: {exc})"
@@ -337,10 +390,15 @@ def load_pinned_intr() -> tuple[dict[str, Any] | None, str]:
                 or getattr(anchor, "RESULT_SCHEMA", None) != PINNED_ANCHORED_EVALUATOR["result_schema"] \
                 or getattr(anchor, "EVALUATOR_SHA256", None) != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"]:
             return None, "the pinned anchored-root check does not declare the endpoint kinds, schema and evaluator KV pins"
-        if (getattr(anchor, "GENESIS_SCHEMA", None), getattr(anchor, "ANCHOR_BODY_SCHEMA", None),
-                getattr(anchor, "OPENED_SCHEMA", None)) != (ENDPOINT_KIND_SCHEMA, ENDPOINT_ANCHOR_SCHEMA,
-                                                             EPHEMERAL_NODE_LEDGER_OPENED_SCHEMA):
-            return None, "the pinned anchored-root check does not declare the v1 genesis, anchor and opened schemas"
+        if (getattr(anchor, "ENDPOINT_KIND_SCHEMA", None), getattr(anchor, "GENESIS_SCHEMA", None),
+                getattr(anchor, "ANCHOR_BODY_SCHEMA", None), getattr(anchor, "OPENED_ANCHOR_SCHEMA", None),
+                getattr(anchor, "SIGNED_OPENED_SCHEMA", None), getattr(anchor, "GENERATION_SCHEMA", None),
+                getattr(anchor, "TRANSPORT_FAILURE_CODE", None), getattr(anchor, "FAILURE_CODE", None)) != (
+                ENDPOINT_KIND_SCHEMA, ENDPOINT_GENESIS_SCHEMA, ENDPOINT_ANCHOR_SCHEMA,
+                EPHEMERAL_NODE_LEDGER_OPENED_SCHEMA, EPHEMERAL_NODE_LEDGER_OPENED_SIGNED_SCHEMA,
+                EPHEMERAL_NODE_LEDGER_OPENED_GENERATION_SCHEMA, "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED",
+                ANCHOR_REFUSAL_CODE):
+            return None, "the pinned anchored-root check does not declare the v1 schemas and failure codes KV pins"
         for pin, module_name, rel in (
                 (PINNED_ANCHORED_EVALUATOR, "endpoint_ledger_anchor", PINNED_ANCHORED_EVALUATOR["source_path"]),
                 (PINNED_HEALTHY_NODE_EVALUATOR, "healthy_node_evaluator", PINNED_HEALTHY_NODE_EVALUATOR["source_path"])):
@@ -445,32 +503,73 @@ PINNED_NODE_HEALTH_REPORT_PRODUCER = {
         {"pull_request": "StegVerse-org/LLM-adapter#429 (draft)", "commit": "5f5f7bbeea96d5f313effaa02f86b01196465247"},
         {"pull_request": "StegVerse-org/LLM-adapter#430 (draft)", "commit": "3c106de4d9b87da498e620e5db33f8b922773c26"},
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft)", "commit": "c2c57505535fb89ee88477eda1378c5fc610e0f7"},
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head)",
+         "commit": "1cbad77eaff3254ea30fb9d3377d40abcf6728df"},
     ],
 }
-# Org InTr endpoint model, aligned to #432 @c2c57505 (llm_adapter.endpoint_ledger_anchor.ENDPOINT_KINDS and its docs):
+# Org InTr endpoint model, aligned to #432 @1cbad77e and its published v1 schemas (runtime/intr_pinned/schemas/):
 # EPHEMERAL (a temporary StegOS-generated StegApp/StegBrowser/StegNode node, own ledger bounded until dissolution,
-# anchored by StegOS's NODE_LEDGER_OPENED record), PERMANENT, KV and SKAP_VAULT (own unbounded ledgers anchored by an
-# InTr path receipt pair), GATEWAY (no own ledger: its root derives from the org root,
-# node-ledger/StegVerse-org/<node_id>) and ORG (the .github ledger, never a node health root). KV's layer-1 receipts are
-# endpoint_kind KV and the SKAP Vault's layer-2 receipts SKAP_VAULT. The finish point expects a PERMANENT node
-# (LC-KV-13 completes with one; EPHEMERAL generation is a separate task and does not block it).
-# ENDPOINT_KIND_SCHEMA_PENDING is closed (P1 rev 4): KV uses #432's v1 schema ids. endpoint_kind is a field of
-# stegverse.endpoint-ledger-genesis/v1 (enum ENDPOINT_KINDS), the PERMANENT/KV/SKAP_VAULT anchor body is
-# stegverse.endpoint-ledger-anchor/v1 and the EPHEMERAL anchor body is StegOS's stegverse.node-ledger-opened/v1. At
-# c2c57505 these are defined by the pinned module and its docs; no separate JSON schema files are published.
-ENDPOINT_KINDS = ("EPHEMERAL", "PERMANENT", "GATEWAY", "KV", "SKAP_VAULT", "ORG")
-NODE_ROOT_ENDPOINT_KINDS = ("EPHEMERAL", "PERMANENT", "GATEWAY", "KV", "SKAP_VAULT")
+# anchored by StegOS's NODE_LEDGER_OPENED generation record inside a signed envelope), PERMANENT, KV and SKAP_VAULT (own
+# unbounded ledgers anchored by an InTr path receipt pair), GATEWAY (no own ledger: its root derives from the org root,
+# node-ledger/StegVerse-org/<node_id>) and ORG (the .github ledger; it issues anchors and is never a node health root).
+# KV's layer-1 receipts are endpoint_kind KV and the SKAP Vault's layer-2 receipts SKAP_VAULT. The finish point expects
+# a PERMANENT node (LC-KV-13 completes with one; EPHEMERAL generation is a separate task and does not block it).
+# The endpoint-kind schema is no longer pending: Lane B published schemas/endpoint-kind.v1.json, and KV takes the
+# endpoint_kind enum from that file's bytes (digest-pinned above), never from a hand-written list. If the vendored
+# schema does not re-derive its pin, the enum is empty and every endpoint is refused.
+ENDPOINT_KIND_SCHEMA_PATH = "schemas/endpoint-kind.v1.json"
+
+
+def _endpoint_kinds_from_schema() -> tuple[str, ...]:
+    """The endpoint_kind enum ($defs.endpoint_kind.enum) of the digest-checked vendored endpoint-kind.v1.json."""
+    want = PINNED_ANCHORED_EVALUATOR["vendored_files"][ENDPOINT_KIND_SCHEMA_PATH]
+    try:
+        data = Path(os.path.join(_INTR_PINNED_ROOT, "schemas", "endpoint-kind.v1.json")).read_bytes()
+        if "sha256:" + hashlib.sha256(data).hexdigest() != want:
+            return ()
+        enum = json.loads(data.decode("utf-8"))["$defs"]["endpoint_kind"]["enum"]
+    except Exception:
+        return ()
+    return tuple(enum) if isinstance(enum, list) and all(isinstance(k, str) and k for k in enum) else ()
+
+
+ENDPOINT_KINDS = _endpoint_kinds_from_schema()
+#: ORG issues anchors and is never a node health root (endpoint-kind.v1.json "anchor": NONE_IS_THE_ISSUER).
+NODE_ROOT_ENDPOINT_KINDS = tuple(k for k in ENDPOINT_KINDS if k != "ORG")
 FINISH_POINT_NODE_ENDPOINT_KIND = "PERMANENT"
-ENDPOINT_KIND_SCHEMA = "stegverse.endpoint-ledger-genesis/v1"  # #432 GENESIS_SCHEMA, carries endpoint_kind
-ENDPOINT_ANCHOR_SCHEMA = "stegverse.endpoint-ledger-anchor/v1"  # #432 ANCHOR_BODY_SCHEMA
-EPHEMERAL_NODE_LEDGER_OPENED_SCHEMA = "stegverse.node-ledger-opened/v1"  # #432 OPENED_SCHEMA (StegOS)
+ENDPOINT_KIND_SCHEMA = "stegverse.endpoint-kind/v1"  # schemas/endpoint-kind.v1.json ($id endpoint-kind.v1.json)
+ENDPOINT_GENESIS_SCHEMA = "stegverse.endpoint-ledger-genesis/v1"  # #432 GENESIS_SCHEMA, carries endpoint_kind
+ENDPOINT_ANCHOR_SCHEMA = "stegverse.endpoint-ledger-anchor/v1"  # #432 ANCHOR_BODY_SCHEMA (PERMANENT/KV/SKAP_VAULT)
+#: the issued EPHEMERAL anchor (schemas/node-ledger-opened.v1.json); issuer and issuer_receipt_ref exist only here
+EPHEMERAL_NODE_LEDGER_OPENED_SCHEMA = "stegverse.node-ledger-opened/v1"
+EPHEMERAL_NODE_LEDGER_OPENED_SIGNED_SCHEMA = "stegverse.node-ledger-opened-signed/v1"  # the signed InTr body
+EPHEMERAL_NODE_LEDGER_OPENED_GENERATION_SCHEMA = "stegverse.node-ledger-opened-generation/v1"  # StegOS's record
+#: evaluate_anchored refusals that wait on TV/TVC publishing a NODE_LEDGER_OPENED signer (signers file empty).
+EPHEMERAL_SIGNER_REASONS = ("NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED",)
+EPHEMERAL_SIGNER_OWNER = ("TV/TVC (publishes the NODE_LEDGER_OPENED signer reference in "
+                          ".stegverse/node-ledger/node-ledger-opened-signers.v1.json; LC-KV-16, StegVerse-org/LLM-adapter"
+                          "#432); EPHEMERAL generation does not block the finish point, which expects PERMANENT")
+EPHEMERAL_SIGNER_NEXT = ("when TV/TVC publishes a NODE_LEDGER_OPENED signer reference (with its publication receipt) in "
+                         "the vendored signers file and KV re-vendors it; event-driven, never on a timer")
 LEDGER_SOURCE_ANCHORED = "ANCHORED_ENDPOINT_LEDGER"
+#: evaluate_anchored's own failure codes for transport (read from receipts) and identity (proven by signature), #432
+INTR_TRANSPORT_REFUSAL_CODE = "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED"
+IDENTITY_REFUSAL_CODE = "NODE_IDENTITY_NOT_PROVEN"
+IDENTITY_ESTABLISHED_BY = "NODE_IDENTITY_KEY_ED25519_PROOF"
+#: The pins the anchored genesis binds, as evaluate_anchored's ALLOW returns them (anchor.pinned_digests, in KV's key
+#: names). Health receipts carry no per-receipt evidence.pinned_digests (adding them would change producer 21249f25);
+#: KV checks these on the ALLOW instead.
+PINNED_DIGESTS_FROM_GENESIS = {
+    "evaluator_source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+    "producer_source_sha256": "sha256:21249f2505505afd60eb14188ea638202f2926b207d64cfcf8c3bc5db2d9f361",
+}
 #: Six-field failure_code when Lane B's anchored-root check refuses the node root (evaluate_anchored's own six fields
 #: are carried verbatim as health_evaluation). The older temporary-ledger code is gone, with no alias.
 ANCHOR_REFUSAL_CODE = "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED"
 ANCHOR_PREDICATE = "NODE_ROOT_ANCHORED_ON_ORG_LEDGER_BY_EVALUATE_ANCHORED"
 #: evaluate_anchored reasons that wait on an upstream event (class B); every other anchor refusal is class C.
-ANCHOR_CLASS_B_REASONS = ("UNANCHORED", "ENDPOINT_LEDGER_UNREADABLE", "ORG_LEDGER_UNREADABLE")
+ANCHOR_CLASS_B_REASONS = ("UNANCHORED", "ENDPOINT_LEDGER_UNREADABLE", "ORG_LEDGER_UNREADABLE",
+                          "ORG_LEDGER_LOCATION_NOT_DESIGNATED", "ORG_LEDGER_LOCATION_UNREADABLE")
 INTR_TRANSPORT_PREDICATE = "REQUESTER_IDENTITY_AUTHENTICATED_BY_INSTALLED_INTR_TRANSPORT"
 INTR_TRANSPORT_RETRY = ("the installed InTr DEVICE->KV transport (Lane B, InTr and Mesh Destinations, "
                         "StegVerse-org/.github#162), then runtime.kv_interlock_endpoint.KVInterlockRuntime.handle")
@@ -550,8 +649,11 @@ def _resolve_git_dir(path: str) -> str | None:
     return None
 
 
-def _bind_organization_ledger(git_path: Any) -> tuple[dict[str, Any], str]:
-    """Materialize the contract-location namespace from the exactly observed org-ledger head. (binding, ledger_root)."""
+def _bind_organization_ledger(git_path: Any) -> tuple[dict[str, Any], str, str]:
+    """Materialize the contract-location namespace from the exactly observed org-ledger head.
+
+    Returns (binding, scratch workdir, git dir). The git dir is what evaluate_anchored reads the designated ref and
+    namespace from itself (org_ledger_git_dir); KV's own materialization derives the genesis and the head pin."""
     loc = HEALTHY_NODE_LEDGER_LOCATION
     git_dir = _resolve_git_dir(str(git_path)) if isinstance(git_path, (str, os.PathLike)) and str(git_path) else None
     if git_dir is None:
@@ -600,12 +702,13 @@ def _bind_organization_ledger(git_path: Any) -> tuple[dict[str, Any], str]:
         raise
     return {"kind": LEDGER_SOURCE_ANCHORED, "repository": loc["repository"], "ref": loc["ref"],
             "namespace": loc["namespace"], "observed_head": observed_head, "genesis_receipt_sha256": genesis,
-            "genesis_derived_from": GENESIS_DERIVATION, "chain_head_receipt_sha256": chain[0].get("receipt_sha256")}, workdir
+            "genesis_derived_from": GENESIS_DERIVATION, "chain_head_receipt_sha256": chain[0].get("receipt_sha256")}, \
+        workdir, git_dir
 
 
-def bind_healthy_node_ledger(source: Any) -> tuple[dict[str, Any], str, str | None, Any]:
-    """The single ledger binding. Returns (org binding, org ledger root, scratch dir to remove or None, endpoint) or
-    raises LedgerBindingRefused.
+def bind_healthy_node_ledger(source: Any) -> tuple[dict[str, Any], str, str | None, Any, str]:
+    """The single ledger binding. Returns (org binding, org ledger root, scratch dir to remove or None, endpoint, org
+    ledger git dir) or raises LedgerBindingRefused.
 
     source is the deployment's binding, never a requester's:
     * {"kind": LEDGER_SOURCE_ANCHORED, "org_ledger_git_dir": path, "endpoint": {"endpoint_kind", "ledger_root"}}: the
@@ -627,8 +730,9 @@ def bind_healthy_node_ledger(source: Any) -> tuple[dict[str, Any], str, str | No
                 predicate=ANCHOR_PREDICATE, failure_code=ANCHOR_REFUSAL_CODE)
         endpoint = copy.deepcopy(source["endpoint"])
         source = source["org_ledger_git_dir"]
-    binding, workdir = _bind_organization_ledger(source)
-    return binding, os.path.join(workdir, *HEALTHY_NODE_LEDGER_LOCATION["namespace"].split("/")), workdir, endpoint
+    binding, workdir, git_dir = _bind_organization_ledger(source)
+    return (binding, os.path.join(workdir, *HEALTHY_NODE_LEDGER_LOCATION["namespace"].split("/")), workdir, endpoint,
+            git_dir)
 
 
 def observe_intr_transport() -> tuple[Any, str, str | None]:
@@ -688,7 +792,8 @@ def layer1_receipt_conformance(receipt: Any) -> str | None:
             or anchored.get("schema") != PINNED_ANCHORED_EVALUATOR["result_schema"] \
             or anchored.get("disposition") != "ALLOW" or anchored.get("node_id") != identity.get("node_id") \
             or anchored.get("endpoint_kind") != binding.get("endpoint_kind") \
-            or anchored.get("ledger_genesis_sha256") != binding.get("ledger_genesis_sha256") \
+            or anchored.get("genesis_receipt_sha256") != binding.get("endpoint_genesis_receipt_sha256") \
+            or anchored.get("pinned_digests") != PINNED_DIGESTS_FROM_GENESIS \
             or anchored.get("org_ledger_head_receipt_sha256") != binding.get("chain_head_receipt_sha256") \
             or anchored.get("evaluator_sha256") != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"] \
             or anchored.get("pinned_code_digests_sha256") != PINNED_ANCHORED_EVALUATOR["pinned_code_digests_sha256"] \
@@ -862,7 +967,7 @@ class KVInterlockRuntime:
         claimed = envelope["boundary_proof"]["source_identity_ref"]
         scratch = None
         try:
-            binding, org_root, scratch, endpoint = bind_healthy_node_ledger(self.healthy_node_ledger_checkout)
+            binding, org_root, scratch, endpoint, git_dir = bind_healthy_node_ledger(self.healthy_node_ledger_checkout)
             transport, state, transport_id = observe_intr_transport()
             if transport is None or state != "INSTALLED":
                 raise LedgerBindingRefused("INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", (
@@ -892,6 +997,7 @@ class KVInterlockRuntime:
                 shutil.rmtree(scratch, ignore_errors=True)
             return None, self._refused(request, exc)
         return {"org_ledger_root": org_root, "org_ledger_head_receipt_sha256": binding["chain_head_receipt_sha256"],
+                "org_ledger_git_dir": git_dir, "identity_proof": copy.deepcopy(identity.get("identity_proof")),
                 "endpoint": endpoint, "binding": binding, "scratch": scratch, "transport_state": state,
                 "transport_id": transport_id, "trust_anchors_label": TRUST_ANCHORS.get("label"),
                 "identity": {"node_id": identity["node_id"],
@@ -948,26 +1054,44 @@ class KVInterlockRuntime:
         shape, the anchor block, and the authenticated node_identity_key equal to the anchored genesis key."""
         node_ref = ctx["identity"]["node_id"]
         try:
+            # #432 @1cbad77e (LC-KV-16 inside the wrapper): the node_id is what the identity proof establishes (the
+            # transport-authenticated node is passed as claimed_node_id, which must agree), the org ledger is read from
+            # the contract designation in the object store KV bound, transport is read from the node's receipts (the
+            # observed state is passed, recorded, and decides nothing there), and admission is always required.
             out = self.healthy_node_evaluator(
-                node_ref, endpoint=copy.deepcopy(ctx["endpoint"]), org_ledger_root=ctx["org_ledger_root"],
+                node_ref, endpoint=copy.deepcopy(ctx["endpoint"]), org_ledger_git_dir=ctx["org_ledger_git_dir"],
                 org_ledger_head_receipt_sha256=ctx["org_ledger_head_receipt_sha256"],
-                transport_state=ctx["transport_state"], report_receipt_sha256=cite, require_admission=True)
+                identity_proof=copy.deepcopy(ctx["identity_proof"]), transport_state=ctx["transport_state"],
+                report_receipt_sha256=cite)
         except Exception as exc:  # an evaluator fault is a refusal, never an admission
             out = {"disposition": "FAIL_CLOSED", "failure_code": HEALTHY_NODE_REFUSAL_CODE, "reason": "EVALUATOR_FAULT",
                    "required_evidence_or_repair": f"the evaluator raised {type(exc).__name__}"}
         if not isinstance(out, dict) or out.get("disposition") != "ALLOW":
             evaluation = copy.deepcopy(out) if isinstance(out, dict) else None
             reason = (evaluation or {}).get("reason")
+            failure_code = (evaluation or {}).get("failure_code")
+            if failure_code in (INTR_TRANSPORT_REFUSAL_CODE, IDENTITY_REFUSAL_CODE):
+                # evaluate_anchored enforces transport (from receipts) and identity (from the proof); authoritative
+                return None, None, layer1_refusal(request, str(reason), (
+                    f"evaluate_anchored refused {node_ref!r} ({reason}: {evaluation.get('required_evidence_or_repair')}; "
+                    f"{evaluation.get('detail')})"), predicate=evaluation.get("failed_predicate") or HEALTHY_NODE_PREDICATE,
+                    failure_class="C" if reason == "NODE_IDENTITY_PROOF_INVALID" else "B",
+                    health_evaluation=evaluation, retry_entrypoint=evaluation.get("retry_entrypoint") or LAYER1_RETRY,
+                    owning_existing_goal=evaluation.get("owning_existing_goal") or GOAL_REF,
+                    next_attempt=evaluation.get("next_attempt"), failure_code=failure_code)
             if (evaluation or {}).get("schema") == PINNED_ANCHORED_EVALUATOR["result_schema"]:
                 # Lane B's anchored-root check refused the node root; its six fields are authoritative and carried.
                 return None, None, layer1_refusal(request, f"NODE_ROOT_NOT_ANCHORED_{reason}", (
                     f"evaluate_anchored refused the {(ctx.get('endpoint') or {}).get('endpoint_kind')!r} root of "
                     f"{node_ref!r} ({reason}: {evaluation.get('required_evidence_or_repair')}; {evaluation.get('detail')})"),
                     predicate=evaluation.get("failed_predicate") or ANCHOR_PREDICATE,
-                    failure_class="B" if reason in ANCHOR_CLASS_B_REASONS else "C", health_evaluation=evaluation,
+                    failure_class="B" if reason in ANCHOR_CLASS_B_REASONS + EPHEMERAL_SIGNER_REASONS else "C",
+                    health_evaluation=evaluation,
                     retry_entrypoint=evaluation.get("retry_entrypoint") or LAYER1_RETRY,
-                    owning_existing_goal=evaluation.get("owning_existing_goal") or GOAL_REF,
-                    next_attempt=evaluation.get("next_attempt"), failure_code=ANCHOR_REFUSAL_CODE)
+                    owning_existing_goal=EPHEMERAL_SIGNER_OWNER if reason in EPHEMERAL_SIGNER_REASONS
+                    else evaluation.get("owning_existing_goal") or GOAL_REF,
+                    next_attempt=EPHEMERAL_SIGNER_NEXT if reason in EPHEMERAL_SIGNER_REASONS
+                    else evaluation.get("next_attempt"), failure_code=ANCHOR_REFUSAL_CODE)
             # No receipted report yet (the #429 producer is not admitted): class B.
             failure_class = "B" if reason == "HEALTH_REPORT_MISSING" else "C"
             return None, None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
@@ -994,15 +1118,22 @@ class KVInterlockRuntime:
                 or anchored.get("org_ledger_head_receipt_sha256") != ctx["org_ledger_head_receipt_sha256"] \
                 or anchored.get("evaluator_sha256") != PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"] \
                 or anchored.get("pinned_code_digests_sha256") != PINNED_ANCHORED_EVALUATOR["pinned_code_digests_sha256"] \
-                or not _is_sha256_uri(anchored.get("ledger_genesis_sha256")):
+                or anchored.get("pinned_digests") != PINNED_DIGESTS_FROM_GENESIS \
+                or not _is_sha256_uri(anchored.get("genesis_receipt_sha256")):
             problem = ("the ALLOW is not evaluate_anchored's over the bound endpoint at the observed org-ledger head "
-                       "(anchor block absent or for another node, kind, head, evaluator or pin set)")
+                       "(anchor block absent or for another node, kind, head, evaluator, pin set or pinned digests)")
+        elif (out.get("identity") or {}).get("node_id") != node_ref \
+                or (out.get("identity") or {}).get("established_by") != IDENTITY_ESTABLISHED_BY \
+                or (out.get("observed_transport") or {}).get("transport") != "INTERLOCK_INTR" \
+                or (out.get("observed_transport") or {}).get("transport_state") != "INSTALLED":
+            problem = ("the ALLOW does not carry evaluate_anchored's proven identity for the transport-authenticated node "
+                       "and an installed InTr transport observed on receipts")
         else:
             chain, reason, _ = _read_chain(str(anchored.get("ledger_root") or ""))
             genesis = chain[-1] if chain and reason is None else {}
             genesis_key = (genesis.get("evidence") or {}).get("node_identity_key") \
                 if isinstance(genesis.get("evidence"), dict) else None
-            if genesis.get("receipt_sha256") != anchored.get("ledger_genesis_sha256") or genesis_key is None \
+            if genesis.get("receipt_sha256") != anchored.get("genesis_receipt_sha256") or genesis_key is None \
                     or genesis_key != ctx["identity"]["node_identity_key"]:
                 cause = "REQUESTER_KEY_NOT_THE_ANCHORED_NODE_IDENTITY_KEY"
                 problem = ("the transport-authenticated node_identity_key is not the key the anchored genesis binds; "
@@ -1011,16 +1142,16 @@ class KVInterlockRuntime:
             return None, None, layer1_refusal(request, cause, problem, predicate=HEALTHY_NODE_PREDICATE,
                                               failure_class="C", health_evaluation=copy.deepcopy(out))
         ctx["binding"] = {**ctx["binding"], "endpoint_kind": endpoint_kind,
-                          "ledger_genesis_sha256": anchored["ledger_genesis_sha256"],
+                          "endpoint_genesis_receipt_sha256": anchored["genesis_receipt_sha256"],
                           "node_identity_key": copy.deepcopy(genesis_key),
                           "anchor": {k: copy.deepcopy(anchored.get(k)) for k in (
                               "anchor", "anchor_source_receipt_sha256", "anchor_destination_receipt_sha256",
-                              "node_ledger_opened_record_sha256", "location", "ledger_lifetime", "node_kind")
+                              "node_ledger_opened", "location", "ledger_lifetime", "node_kind", "org_ledger_location")
                               if k in anchored},
                           "anchored_by": PINNED_ANCHORED_EVALUATOR_ID}
         recorded = copy.deepcopy(out)
         # the node root's local filesystem path is a deployment detail, not evidence: the receipt binds the endpoint
-        # by its anchored genesis (ledger_genesis_sha256) instead, so receipts are reproducible across machines
+        # by its anchored genesis (genesis_receipt_sha256) instead, so receipts are reproducible across machines
         recorded["anchor"].pop("ledger_root", None)
         return recorded, ctx, None
 

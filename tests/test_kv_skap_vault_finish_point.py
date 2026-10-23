@@ -580,14 +580,29 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             self.assertTrue(refused[field], field)
 
     def test_the_finish_point_expects_a_permanent_node(self) -> None:
-        """LC-KV-13 completes with a PERMANENT node; an EPHEMERAL (StegOS-generated) node binds at layer 1 but its
-        receipts do not complete the finish point (EPHEMERAL generation is a separate task)."""
+        """LC-KV-13 completes with a PERMANENT node. Another own-ledger kind (here SKAP_VAULT) binds at layer 1, but its
+        receipts do not complete the finish point."""
         from tests.kv_two_layer_e0 import NODE, e0_health_ledger
         self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
-        ephemeral = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="EPHEMERAL")[0])
-        verdict = kv.evaluate(evidence_bundle(ephemeral))
+        other = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="SKAP_VAULT")[0])
+        verdict = kv.evaluate(evidence_bundle(other))
         self.assertIn("KV_ACCESS_LAYER1_REFUSED", set(failure_codes(verdict).values()))
         self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS", json.dumps(verdict))
+
+    def test_an_ephemeral_node_fails_closed_until_tv_tvc_publishes_a_signer(self) -> None:
+        """EPHEMERAL anchors are signed envelopes (#432 @1cbad77e); the signers file is empty, so layer 1 is a six-field
+        FAIL_CLOSED owned by TV/TVC. It does not block the finish point, which completes with a PERMANENT node."""
+        from tests.kv_two_layer_e0 import NODE, e0_health_ledger
+        ephemeral = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="EPHEMERAL")[0])
+        out = ephemeral.kv_access()
+        self.assertEqual((out["decision"], out["failure_code"], out["failure_class"], out["refusal_cause"]),
+                         ("FAIL_CLOSED", "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED", "B",
+                          "NODE_ROOT_NOT_ANCHORED_NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED"))
+        self.assertTrue(out["owning_existing_goal"].startswith("TV/TVC"), out["owning_existing_goal"])
+        self.assertIn("TV/TVC publishes", out["next_attempt"])
+        for field in SIX:
+            self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
+        self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
 
     def test_a_tampered_or_malformed_bundle_never_raises(self) -> None:
         evidence = evidence_bundle()

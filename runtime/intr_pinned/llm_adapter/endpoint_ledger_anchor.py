@@ -21,7 +21,7 @@ Endpoint kinds (`endpoint_kind`) and how each is anchored
 * ``PERMANENT``, ``KV``, ``SKAP_VAULT`` (own ledger, no dissolution). The
   ledger corresponds to the org ledger for as long as it exists. Its anchor body
   is stegverse.endpoint-ledger-anchor/v1 {node_id, endpoint_kind,
-  ledger_lifetime, node_identity_key, ledger_genesis_sha256,
+  ledger_lifetime, node_identity_key, genesis_receipt_sha256,
   pinned_code_digests_sha256}.
   Every own-ledger kind opens with a REPOSITORY_LEDGER_INITIALIZATION genesis
   naming the node, its kind, its lifetime, its ``node_identity_key`` (a
@@ -58,16 +58,69 @@ those bytes ran: the anchor binds the pin set and this module checks shape,
 seal and re-derivation (``producer_provenance`` NOT_PROVEN_BEYOND_PINNED_SHAPE).
 
 Anything unanchored, mismatched, foreign or dissolved is a six-field
-FAIL_CLOSED, failure_code TEMP_NODE_LEDGER_NOT_ANCHORED. ``evaluate_anchored``
-then calls llm_adapter.healthy_node_evaluator.evaluate unchanged on the anchored
-root, so this closes LC-KV-15 (layer 1 trusting a caller-supplied root) without
-touching the evaluator Lane D vendors byte-identical.
+FAIL_CLOSED, failure_code EPHEMERAL_NODE_LEDGER_NOT_ANCHORED.
 
-Determinism: ``plan_*``, ``verify_anchor`` and ``evaluate_anchored`` read files
-only, with no clock, network or randomness. ``append_*`` write through the
-repository emitter's lock and atomic-replace helpers at the target chain's own
-epoch (no clock sample; observed_at is null and descriptive). They are run on
-temporary directories only; the org-ledger append route is not admitted.
+The issued anchor (stegverse.node-ledger-opened/v1, schemas/node-ledger-opened.v1.json)
+---------------------------------------------------------------------------------------
+For an EPHEMERAL ledger, an ALLOW from ``verify_anchor`` carries
+``node_ledger_opened``: exactly {schema, transition_class NODE_LEDGER_OPENED,
+node_id, node_identity_key, genesis_receipt_sha256, issuer ORGANIZATION_LEDGER,
+issuer_receipt_ref, receipt_sha256}, the shape StegVerse-Labs/continuity-vault-kit
+#258 consumes. ``issuer_receipt_ref`` is the org ledger's own INTR_MESH_PATH_INGRESS
+receipt that carried StegOS's generation record. ``verify_node_ledger_opened_anchor``
+is the ORGANIZATION_LEDGER issuer verifier: it re-derives that anchor from the
+pinned org-ledger head and the endpoint ledger, and accepts nothing else.
+
+LC-KV-15 and LC-KV-16 inside the wrapper (``evaluate_anchored``)
+-----------------------------------------------------------------
+LC-KV-16 (StegVerse-Labs/.github#3330 @c8b8d156) closes three holes:
+* Org ledger: only the contract location. The org ledger is read from
+  .stegverse/transition-ledger/contract.json ``repository_ledger_location``
+  (repository, ref refs/stegverse/organization-ledger, namespace
+  repository-ledger/StegVerse-org/LLM-adapter, as #431 designates), through
+  llm_adapter.org_ledger_location.designated_org_ledger: a local
+  ``git archive`` of that ref and namespace only, from the object store the
+  caller names (``org_ledger_git_dir``). No caller-chosen org-ledger path is
+  accepted. No designation is ORG_LEDGER_LOCATION_NOT_DESIGNATED; a missing
+  ref, namespace or REPOSITORY_LEDGER_INITIALIZATION genesis is
+  ORG_LEDGER_LOCATION_UNREADABLE. The head is pinned as before.
+* Anchor: signed. An EPHEMERAL anchor body must be
+  stegverse.node-ledger-opened-signed/v1 (schemas/node-ledger-opened-signed.v1.json):
+  StegOS's record plus an Ed25519 signature verified with the stdlib verifier
+  under a key published in
+  .stegverse/node-ledger/node-ledger-opened-signers.v1.json (TV/TVC custody;
+  bots never hold keys, tests use fixture keys only). Unsigned is
+  NODE_LEDGER_OPENED_UNSIGNED, an unpublished key_id
+  NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED, a bad signature
+  NODE_LEDGER_OPENED_SIGNATURE_INVALID. No signer is published yet.
+* Identity: derived from the proof. The node_id comes only from a
+  node_identity_key proof, an Ed25519 signature (llm_adapter.ed25519_verify,
+  stdlib only) under the anchored genesis key over ``identity_challenge``: a
+  deterministic challenge bound to the node, its genesis, the endpoint chain
+  head, the anchor receipt and the pinned org-ledger head. ``claimed_node_id``
+  is optional, recorded, decides nothing, and must equal the proven node.
+  No proof is NODE_IDENTITY_PROOF_ABSENT; a non-verifying one or a different
+  claim is NODE_IDENTITY_PROOF_INVALID (failure_code NODE_IDENTITY_NOT_PROVEN).
+* Transport: read from receipts, no default. The node's current
+  NODE_INGRESS_ADMITTED record on the anchored chain must say transport
+  INTERLOCK_INTR with transport_state INSTALLED. Anything else, an absent
+  state or a caller-asserted ``transport_state`` included, is six-field
+  FAIL_CLOSED INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED. The caller's value is
+  recorded and decides nothing.
+* Root: only the anchored root above; never a caller-supplied one.
+Then llm_adapter.healthy_node_evaluator.evaluate runs unchanged on the anchored
+root, with the observed transport state passed explicitly and require_admission
+True, so this closes LC-KV-15 without touching the evaluator Lane D vendors
+byte-identical.
+
+Determinism: ``plan_*``, ``verify_anchor`` and the checks in
+``evaluate_anchored`` read files only, with no clock, network or randomness.
+The one I/O boundary is llm_adapter.org_ledger_location: a local
+``git archive`` subprocess (protocol.allow=never, no network, minimal env) into
+a temporary directory. ``append_*`` write through the repository emitter's lock
+and atomic-replace helpers at the target chain's own epoch (no clock sample;
+observed_at is null and descriptive). They are run on temporary directories
+only; the org-ledger append route is not admitted.
 """
 from __future__ import annotations
 
@@ -77,6 +130,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from llm_adapter import ed25519_verify
 from llm_adapter import healthy_node_evaluator as hne
 from llm_adapter import node_existence_readback as readback
 from llm_adapter import node_health_check_projection as health_check
@@ -84,9 +138,12 @@ from llm_adapter import node_health_report_producer as producer
 from llm_adapter import node_identity_binding_producer as binding
 from llm_adapter import node_ingress_boundary as boundary
 from llm_adapter import node_receipt_common as common
+from llm_adapter.org_ledger_location import designated_org_ledger, org_ledger_location
 
 ROOT = Path(__file__).resolve().parents[1]
 PIN_PATH = ROOT / ".stegverse/node-ledger/pinned-code-digests.v1.json"
+#: published public-key references of NODE_LEDGER_OPENED signers (TV/TVC custody; no key material)
+OPENED_SIGNERS_PATH = ROOT / ".stegverse/node-ledger/node-ledger-opened-signers.v1.json"
 EVALUATOR_SHA256 = "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58"
 
 ALLOW, DENY, FAIL_CLOSED = hne.ALLOW, hne.DENY, hne.FAIL_CLOSED
@@ -120,16 +177,33 @@ DISSOLVED_CLASS = "NODE_LEDGER_DISSOLVED"
 GENESIS_SCHEMA = "stegverse.endpoint-ledger-genesis/v1"
 ANCHOR_BODY_SCHEMA = "stegverse.endpoint-ledger-anchor/v1"
 # Emitted by StegOS at EPHEMERAL node generation (stegos/ephemeral_node_ledger_open.py); mirrored here, not imported.
-OPENED_EVENT = "NODE_LEDGER_OPENED"
-OPENED_SCHEMA = "stegverse.node-ledger-opened/v1"
+# Schema: schemas/node-ledger-opened-generation.v1.json.
+OPENED_CLASS = "NODE_LEDGER_OPENED"
+GENERATION_SCHEMA = "stegverse.node-ledger-opened-generation/v1"
 OPENED_EMITTER = "stegos.ephemeral_node_ledger_open"
+# The issued anchor KV consumes (continuity-vault-kit#258). Schema: schemas/node-ledger-opened.v1.json.
+SIGNED_OPENED_SCHEMA = "stegverse.node-ledger-opened-signed/v1"   # schemas/node-ledger-opened-signed.v1.json
+OPENED_SIGNATURE_DOMAIN = "stegverse.node-ledger-opened-signature/v1"
+OPENED_SIGNERS_SCHEMA = "stegverse.published-public-key-references/v1"
+OPENED_ANCHOR_SCHEMA = "stegverse.node-ledger-opened/v1"
+OPENED_ANCHOR_FIELDS = ("schema", "transition_class", "node_id", "node_identity_key", "genesis_receipt_sha256",
+                        "issuer", "issuer_receipt_ref", "receipt_sha256")
+ISSUER_ORGANIZATION_LEDGER = "ORGANIZATION_LEDGER"
+#: The schema's issuer enum. Only ORGANIZATION_LEDGER is issued or verified here: TV/TVC receipts are unsigned
+#: (TVC#537, LC-KV-08), so a TV/TVC-issued anchor is refused until a verifier exists.
+ANCHOR_ISSUERS = (ISSUER_ORGANIZATION_LEDGER, "TV/TVC")
+ENDPOINT_KIND_SCHEMA = "stegverse.endpoint-kind/v1"   # schemas/endpoint-kind.v1.json
 DISBURSEMENT_BODY_SCHEMA = "stegverse.node-ledger-disbursement/v1"
 RESULT_SCHEMA = "stegverse.endpoint-ledger-anchor-result/v1"
 RECEIPT_SCHEMA = "stegverse.repo-transition-receipt/v1"
 
-FAILURE_CODE = "TEMP_NODE_LEDGER_NOT_ANCHORED"
-RETRY_ENTRYPOINT = ("llm_adapter.endpoint_ledger_anchor.evaluate_anchored(node_id, endpoint=..., org_ledger_root=..., "
-                    "org_ledger_head_receipt_sha256=...) on the next anchor or org-ledger head event")
+FAILURE_CODE = "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED"
+TRANSPORT_FAILURE_CODE = "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED"   # Lane D's code (cvk#258)
+IDENTITY_FAILURE_CODE = "NODE_IDENTITY_NOT_PROVEN"
+IDENTITY_CHALLENGE_SCHEMA = "stegverse.node-identity-challenge/v1"
+IDENTITY_PROOF_SCHEMA = "stegverse.node-identity-proof/v1"
+RETRY_ENTRYPOINT = ("llm_adapter.endpoint_ledger_anchor.evaluate_anchored(endpoint=..., org_ledger_git_dir=..., "
+                    "org_ledger_head_receipt_sha256=..., identity_proof=...) on the next anchor or org-ledger head event")
 OWNING_GOAL = ("KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324) via LC-KV-13 (closes LC-KV-15's "
                "caller-supplied root), InTr and Mesh Destinations lane StegVerse-org/.github#162")
 NEXT_ATTEMPT = ("re-evaluate when the endpoint's anchor (InTr path receipt pair, or the gateway location genesis) is "
@@ -145,6 +219,13 @@ REASONS: dict[str, tuple[str, str]] = {
                                     ".stegverse/node-ledger/pinned-code-digests.v1.json (evaluator fdaa2005...1f58)"),
     "ORG_LEDGER_HEAD_NOT_PINNED": ("ORG_LEDGER_HEAD_PINNED", "org_ledger_head_receipt_sha256 read back from "
                                    + ORG_LEDGER_LOCATION + ", equal to the supplied copy's HEAD.json"),
+    "ORG_LEDGER_LOCATION_NOT_DESIGNATED": ("ORG_LEDGER_LOCATION_FROM_CONTRACT", "the repository_ledger_location "
+                                           "(repository, ref, namespace) in .stegverse/transition-ledger/contract.json, "
+                                           "as StegVerse-org/LLM-adapter#431 designates; a caller-chosen path is never "
+                                           "the org ledger"),
+    "ORG_LEDGER_LOCATION_UNREADABLE": ("ORG_LEDGER_LOCATION_FROM_CONTRACT", "the designated ref and namespace read back "
+                                       "from a local StegVerse-org/.github object store (git archive <ref> <namespace>; "
+                                       "no network), with a REPOSITORY_LEDGER_INITIALIZATION genesis for this repository"),
     "ORG_LEDGER_UNREADABLE": ("ORG_LEDGER_READ_BACK", "a sealed, intact org-ledger chain at " + ORG_LEDGER_LOCATION),
     "ENDPOINT_LEDGER_UNREADABLE": ("ENDPOINT_LEDGER_READ_BACK", "a sealed, intact endpoint chain from HEAD.json to genesis"),
     "ENDPOINT_GENESIS_INVALID": ("ENDPOINT_GENESIS_DECLARES_THE_NODE", "a REPOSITORY_LEDGER_INITIALIZATION genesis "
@@ -154,6 +235,16 @@ REASONS: dict[str, tuple[str, str]] = {
                    "endpoint ledger and INTR_MESH_PATH_INGRESS (ORGANIZATION_INTR_DESTINATION_INGRESS) on the org "
                    "ledger, linked by seal, with the source half retained; for EPHEMERAL its body is the StegOS NODE_LEDGER_OPENED "
                    "record emitted at generation"),
+    "NODE_LEDGER_OPENED_UNSIGNED": ("NODE_LEDGER_OPENED_SIGNED_BY_PUBLISHED_KEY", "the InTr pair must carry a "
+                                    "stegverse.node-ledger-opened-signed/v1 envelope: StegOS's record plus an Ed25519 "
+                                    "signature over it by a key in .stegverse/node-ledger/node-ledger-opened-signers.v1.json"),
+    "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED": ("NODE_LEDGER_OPENED_SIGNED_BY_PUBLISHED_KEY", "the signature's key_id "
+                                                "must be a published public-key reference in "
+                                                ".stegverse/node-ledger/node-ledger-opened-signers.v1.json (TV/TVC "
+                                                "custody publishes it; none is published yet)"),
+    "NODE_LEDGER_OPENED_SIGNATURE_INVALID": ("NODE_LEDGER_OPENED_SIGNED_BY_PUBLISHED_KEY", "the Ed25519 signature "
+                                             "(llm_adapter.ed25519_verify) must verify over the record under the "
+                                             "published public key it names"),
     "GENESIS_MISMATCH": ("ANCHOR_BINDS_ENDPOINT_GENESIS", "the anchor must name this endpoint ledger's genesis hash"),
     "KEY_MISMATCH": ("ANCHOR_BINDS_NODE_IDENTITY_KEY", "the anchor, the genesis and the node's existence and binding "
                      "receipts must carry the same node_identity_key"),
@@ -164,9 +255,35 @@ REASONS: dict[str, tuple[str, str]] = {
                                  "ledger instead"),
     "EXTERNAL_CHAIN_IMPORTED": ("GATEWAY_LEDGER_NEVER_IMPORTS", "a gateway node's org-carried chain carries no InTr "
                                 "transfer of an external ledger"),
-    "TEMP_NODE_LEDGER_DISSOLVED": ("ENDPOINT_LEDGER_NOT_DISSOLVED", "a dissolved ledger is not admissible; anchor a "
-                                   "new endpoint ledger"),
+    "EPHEMERAL_NODE_LEDGER_DISSOLVED": ("ENDPOINT_LEDGER_NOT_DISSOLVED", "a dissolved ledger is not admissible; anchor a "
+                                        "new endpoint ledger"),
+    "NODE_LEDGER_OPENED_ANCHOR_NOT_ISSUED": ("NODE_LEDGER_OPENED_ANCHOR_ISSUED_BY_ORGANIZATION_LEDGER",
+                                             "a stegverse.node-ledger-opened/v1 anchor with exactly its eight fields, "
+                                             "issuer ORGANIZATION_LEDGER and issuer_receipt_ref the org ledger's "
+                                             "INTR_MESH_PATH_INGRESS that carried StegOS's generation record, re-derived "
+                                             "at the pinned org-ledger head"),
 }
+TRANSPORT_PREDICATE = "INSTALLED_INTR_TRANSPORT_OBSERVED_ON_RECEIPTS"
+TRANSPORT_REASONS: dict[str, tuple[str, str]] = {
+    TRANSPORT_FAILURE_CODE: (TRANSPORT_PREDICATE, "the node's current NODE_INGRESS_ADMITTED record on the anchored chain "
+                             "must say transport INTERLOCK_INTR, transport_state INSTALLED (llm_adapter.node_ingress_"
+                             "boundary); a caller-asserted transport_state is never accepted"),
+}
+TRANSPORT_RETRY = ("llm_adapter.endpoint_ledger_anchor.evaluate_anchored(...) after the node arrives over the installed "
+                   "InTr transport and the boundary records it (node_ingress_boundary INTERLOCK_INTR is NOT_YET_ENABLED "
+                   "on main)")
+TRANSPORT_NEXT = "on the next NODE_INGRESS_ADMITTED receipt carried by an installed InTr transport; never on a timer"
+IDENTITY_PREDICATE = "NODE_IDENTITY_PROVEN_BY_NODE_IDENTITY_KEY_SIGNATURE"
+IDENTITY_REASONS: dict[str, tuple[str, str]] = {
+    "NODE_IDENTITY_PROOF_ABSENT": (IDENTITY_PREDICATE, "a stegverse.node-identity-proof/v1 signature by the anchored "
+                                   "node_identity_key over identity_challenge(...); an asserted identity is not proof"),
+    "NODE_IDENTITY_PROOF_INVALID": (IDENTITY_PREDICATE, "the proof must name the anchored key_id and the current "
+                                    "challenge digest, and its Ed25519 signature must verify under the anchored "
+                                    "public key"),
+}
+IDENTITY_RETRY = ("llm_adapter.endpoint_ledger_anchor.evaluate_anchored(..., identity_proof=...) with a proof over the "
+                  "challenge for the current endpoint and org-ledger heads")
+IDENTITY_NEXT = "when the node signs the current challenge with its TV/TVC-held key; event-driven, never on a timer"
 
 PINNED_FILES_PRODUCING = {
     readback.TRANSITION_CLASS: "llm_adapter/node_existence_readback.py",
@@ -406,32 +523,80 @@ def append_destination(org_ledger_root: Any, source: Mapping[str, Any]) -> dict[
                           chain[0]["receipt_sha256"], destination_evidence(source), epoch_of(chain))
 
 
-def anchor_body(genesis: Mapping[str, Any]) -> dict[str, Any]:
+def anchor_body(genesis: Mapping[str, Any]) -> dict[str, Any]:  # PERMANENT, KV, SKAP_VAULT
     g = _ev(genesis)
     return {"schema": ANCHOR_BODY_SCHEMA, "node_id": g.get("node_id"), "endpoint_kind": g.get("endpoint_kind"),
             "ledger_lifetime": g.get("ledger_lifetime"), "node_identity_key": g.get("node_identity_key"),
-            "ledger_genesis_sha256": genesis.get("receipt_sha256"),
+            "genesis_receipt_sha256": genesis.get("receipt_sha256"),
             "pinned_code_digests_sha256": g.get("pinned_code_digests_sha256")}
 
 
 def opened_record_sha256(record: Mapping[str, Any]) -> str:
-    return sha({k: v for k, v in record.items() if k != "record_sha256"})
+    """The seal of StegOS's generation record or of an issued anchor (receipt_sha256 excluded)."""
+    return sha({k: v for k, v in record.items() if k != "receipt_sha256"})
 
 
 def opened_record_failure(record: Any, genesis: Mapping[str, Any]) -> tuple[str, str] | None:
     """(reason, detail) when `record` is not StegOS's NODE_LEDGER_OPENED for this genesis, or None. Pure."""
     g = _ev(genesis)
-    if not isinstance(record, Mapping) or record.get("schema") != OPENED_SCHEMA or record.get("event") != OPENED_EVENT \
+    if not isinstance(record, Mapping) or record.get("schema") != GENERATION_SCHEMA \
+            or record.get("transition_class") != OPENED_CLASS \
             or record.get("disposition") != ALLOW or record.get("emitted_by") != OPENED_EMITTER \
-            or record.get("record_sha256") != opened_record_sha256(record):
+            or "issuer" in record or "issuer_receipt_ref" in record \
+            or record.get("receipt_sha256") != opened_record_sha256(record):
         return "ANCHOR_LINK_UNVERIFIED", "the anchor body is not a sealed StegOS NODE_LEDGER_OPENED record"
-    if record.get("ledger_genesis_sha256") != genesis.get("receipt_sha256"):
-        return "GENESIS_MISMATCH", f"NODE_LEDGER_OPENED names genesis {record.get('ledger_genesis_sha256')}"
+    if record.get("genesis_receipt_sha256") != genesis.get("receipt_sha256"):
+        return "GENESIS_MISMATCH", f"NODE_LEDGER_OPENED names genesis {record.get('genesis_receipt_sha256')}"
     if record.get("node_identity_key") != g.get("node_identity_key"):
         return "KEY_MISMATCH", "NODE_LEDGER_OPENED binds another node_identity_key than the genesis"
     if (record.get("node_id"), record.get("endpoint_kind"), record.get("node_kind"), record.get("ledger_lifetime")) != \
             (g.get("node_id"), EPHEMERAL, g.get("node_kind"), BOUNDED):
         return "ENDPOINT_GENESIS_INVALID", "NODE_LEDGER_OPENED names another node, kind or lifetime than the genesis"
+    return None
+
+
+def load_opened_signers() -> list[dict[str, Any]]:
+    """The published NODE_LEDGER_OPENED signer public-key references (empty until TV/TVC publishes one)."""
+    try:
+        published = json.loads(OPENED_SIGNERS_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if not isinstance(published, Mapping) or published.get("schema") != OPENED_SIGNERS_SCHEMA:
+        return []
+    return [dict(k) for k in published.get("signers") or [] if isinstance(k, Mapping)]
+
+
+def opened_signing_message(record: Mapping[str, Any]) -> bytes:
+    """The bytes a NODE_LEDGER_OPENED signer signs: the domain line, then StegOS's sealed record. Pure."""
+    return common.signed_message(OPENED_SIGNATURE_DOMAIN, dict(record))
+
+
+def signed_opened(record: Mapping[str, Any], signature: Mapping[str, Any]) -> dict[str, Any]:
+    """The InTr body for an EPHEMERAL anchor: StegOS's record plus a published signer's detached signature.
+
+    The signature is produced by the TV/TVC custody signer; this module never holds or touches key material.
+    """
+    return {"schema": SIGNED_OPENED_SCHEMA, "genesis_receipt_sha256": record.get("genesis_receipt_sha256"),
+            "node_ledger_opened": dict(record), "signature": dict(signature)}
+
+
+def opened_signature_failure(body: Mapping[str, Any]) -> tuple[str, str] | None:
+    """(reason, detail) unless `body` is StegOS's record signed by a published key, else None. Pure."""
+    if body.get("schema") != SIGNED_OPENED_SCHEMA or not isinstance(body.get("signature"), Mapping) \
+            or not isinstance(body.get("node_ledger_opened"), Mapping):
+        return "NODE_LEDGER_OPENED_UNSIGNED", "the anchor body carries no signed NODE_LEDGER_OPENED envelope"
+    signature, record = body["signature"], body["node_ledger_opened"]
+    if sorted(body) != ["genesis_receipt_sha256", "node_ledger_opened", "schema", "signature"] \
+            or body.get("genesis_receipt_sha256") != record.get("genesis_receipt_sha256"):
+        return "ANCHOR_LINK_UNVERIFIED", "the signed envelope does not name its record's genesis"
+    signer = next((k for k in load_opened_signers() if k.get("key_id") == signature.get("key_id")
+                   and k.get("algorithm") == "Ed25519" and signature.get("algorithm") == "Ed25519"), None)
+    if signer is None:
+        return "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED", f"key_id {signature.get('key_id')!r} is not a published signer"
+    public, raw = common.b64(signer.get("public_key_b64")), common.b64(signature.get("signature_b64"))
+    if public is None or len(public) != 32 or raw is None or len(raw) != 64 \
+            or not ed25519_verify.verify(public, opened_signing_message(record), raw):
+        return "NODE_LEDGER_OPENED_SIGNATURE_INVALID", f"the signature does not verify under {signer.get('key_id')}"
     return None
 
 
@@ -442,7 +607,8 @@ def anchor_communication_id(node_id: str, genesis_sha: str) -> str:
 def anchor(ledger_root: Any, org_ledger_root: Any, node_id: str, node_ledger_opened: Any = None) -> dict[str, Any]:
     """Run both halves of the anchor path for an own-ledger endpoint (temporary directories only).
 
-    EPHEMERAL: the body is the NODE_LEDGER_OPENED record StegOS emitted when it generated the node.
+    EPHEMERAL: the body is the NODE_LEDGER_OPENED record StegOS emitted when it generated the node, inside
+    the signed envelope ``signed_opened`` builds from the custody signer's signature.
     """
     chain, failure, detail = hne.read_chain(ledger_root)
     if failure:
@@ -450,7 +616,7 @@ def anchor(ledger_root: Any, org_ledger_root: Any, node_id: str, node_ledger_ope
     genesis = chain[-1]
     if _ev(genesis).get("endpoint_kind") == EPHEMERAL:
         if node_ledger_opened is None:
-            raise ValueError("an EPHEMERAL ledger is anchored by StegOS's NODE_LEDGER_OPENED record")
+            raise ValueError("an EPHEMERAL ledger is anchored by StegOS's signed NODE_LEDGER_OPENED record")
         body = dict(node_ledger_opened)
     else:
         body = anchor_body(genesis)
@@ -480,7 +646,7 @@ def _org_chain(org_ledger_root: Any, head: Any):
 
 def dissolution_on(chain: list[dict[str, Any]], genesis_sha: str) -> dict[str, Any] | None:
     return next((r for r in chain if r.get("transition_class") == DISSOLVED_CLASS
-                 and _ev(r).get("ledger_genesis_sha256") == genesis_sha), None)
+                 and _ev(r).get("genesis_receipt_sha256") == genesis_sha), None)
 
 
 def _key_of_receipt(receipt: Mapping[str, Any]) -> Any:
@@ -510,7 +676,7 @@ def provenance_failure(chain: list[dict[str, Any]], node_id: str, kind: str) -> 
                 return "EXTERNAL_CHAIN_IMPORTED", f"{addr} is an InTr transfer on a gateway node's org-carried chain"
             body = (ev.get("message") or {}).get("body") or {}
             if (ev.get("schema") != SOURCE_EVIDENCE_SCHEMA or not payload_ok(ev) or ev.get("path_id") != path_id(node_id)
-                    or body.get("schema") not in ((OPENED_SCHEMA, DISBURSEMENT_BODY_SCHEMA) if kind == EPHEMERAL
+                    or body.get("schema") not in ((SIGNED_OPENED_SCHEMA, GENERATION_SCHEMA, DISBURSEMENT_BODY_SCHEMA) if kind == EPHEMERAL
                                                   else (ANCHOR_BODY_SCHEMA,))):
                 return "FOREIGN_PRODUCER_RECEIPT", f"{addr} is not an anchor or disbursement path receipt for {node_id}"
             continue
@@ -556,7 +722,7 @@ def provenance_failure(chain: list[dict[str, Any]], node_id: str, kind: str) -> 
 
 def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
                   org_ledger_head_receipt_sha256: Any, check_provenance: bool = True) -> dict[str, Any]:
-    """ALLOW with the anchored `ledger_root`, or six-field FAIL_CLOSED TEMP_NODE_LEDGER_NOT_ANCHORED. Pure."""
+    """ALLOW with the anchored `ledger_root`, or six-field FAIL_CLOSED EPHEMERAL_NODE_LEDGER_NOT_ANCHORED. Pure."""
     kind = endpoint.get("endpoint_kind") if isinstance(endpoint, Mapping) else None
     if kind == ORG:
         return non_allow("ENDPOINT_KIND_NOT_A_NODE_ROOT", "endpoint_kind ORG", node_id=node_id)
@@ -586,26 +752,26 @@ def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
                          f"{node_id} as {kind} with the pinned digests", node_id=node_id)
     key, genesis_sha = g["node_identity_key"], genesis["receipt_sha256"]
     anchor_info: dict[str, Any] = {"endpoint_kind": kind, "ledger_lifetime": g.get("ledger_lifetime"),
-                                   "ledger_genesis_sha256": genesis_sha, "ledger_root": str(root)}
+                                   "genesis_receipt_sha256": genesis_sha, "ledger_root": str(root)}
     if kind == EPHEMERAL:
         anchor_info["node_kind"] = g.get("node_kind")
     if kind == GATEWAY:
         anchor_info.update(anchor="ORG_LEDGER_LOCATION_GENESIS", location=gateway_location(node_id))
     else:
         if dissolution_on(org_chain, genesis_sha) is not None:
-            return non_allow("TEMP_NODE_LEDGER_DISSOLVED", f"genesis {genesis_sha} was dissolved on the org ledger",
+            return non_allow("EPHEMERAL_NODE_LEDGER_DISSOLVED", f"genesis {genesis_sha} was dissolved on the org ledger",
                              node_id=node_id, **anchor_info)
-        want_body = OPENED_SCHEMA if kind == EPHEMERAL else ANCHOR_BODY_SCHEMA
+        want_body = (SIGNED_OPENED_SCHEMA, GENERATION_SCHEMA) if kind == EPHEMERAL else (ANCHOR_BODY_SCHEMA,)
         ingresses = [r for r in org_chain if r.get("transition_class") == DESTINATION_CLASS
                      and _ev(r).get("path_id") == path_id(node_id)
-                     and ((_ev(r).get("message") or {}).get("body") or {}).get("schema") == want_body]
+                     and ((_ev(r).get("message") or {}).get("body") or {}).get("schema") in want_body]
         if not ingresses:
             return non_allow("UNANCHORED", f"no anchor ingress for {path_id(node_id)} on the org ledger",
                              node_id=node_id, **anchor_info)
         bodies = [((_ev(r).get("message") or {}).get("body") or {}) for r in ingresses]
-        match = [(r, b) for r, b in zip(ingresses, bodies) if b.get("ledger_genesis_sha256") == genesis_sha]
+        match = [(r, b) for r, b in zip(ingresses, bodies) if b.get("genesis_receipt_sha256") == genesis_sha]
         if not match:
-            return non_allow("GENESIS_MISMATCH", f"anchors name {[b.get('ledger_genesis_sha256') for b in bodies]}, "
+            return non_allow("GENESIS_MISMATCH", f"anchors name {[b.get('genesis_receipt_sha256') for b in bodies]}, "
                              f"the ledger's genesis is {genesis_sha}", node_id=node_id, **anchor_info)
         ingress, body = match[0]
         ev = _ev(ingress)
@@ -618,10 +784,16 @@ def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
             return non_allow("ANCHOR_LINK_UNVERIFIED", f"ingress {ingress['receipt_sha256']} does not link a source half "
                              "on this endpoint ledger by seal", node_id=node_id, **anchor_info)
         if kind == EPHEMERAL:
-            opened = opened_record_failure(body, genesis)
+            unsigned = opened_signature_failure(body)
+            if unsigned:
+                return non_allow(*unsigned, node_id=node_id, **anchor_info)
+            record = body["node_ledger_opened"]
+            opened = opened_record_failure(record, genesis)
             if opened:
                 return non_allow(*opened, node_id=node_id, **anchor_info)
-            anchor_info.update(node_ledger_opened_record_sha256=body["record_sha256"])
+            anchor_info.update(node_ledger_opened_signer_key_id=body["signature"]["key_id"],
+                               node_ledger_opened_generation_receipt_sha256=record["receipt_sha256"],
+                               node_ledger_opened=issued_anchor(node_id, key, genesis_sha, ingress["receipt_sha256"]))
         else:
             if body.get("node_identity_key") != key:
                 return non_allow("KEY_MISMATCH", "the anchor binds another node_identity_key than the genesis",
@@ -642,24 +814,171 @@ def verify_anchor(node_id: Any, *, endpoint: Any, org_ledger_root: Any,
         if foreign:
             return non_allow(*foreign, node_id=node_id, **anchor_info)
     return {"schema": RESULT_SCHEMA, "disposition": ALLOW, "node_id": node_id, **anchor_info,
+            "chain_head_receipt_sha256": chain[0]["receipt_sha256"],
             "org_ledger_head_receipt_sha256": org_ledger_head_receipt_sha256,
             "pinned_code_digests_sha256": pinned_digests_sha256(), "evaluator_sha256": EVALUATOR_SHA256,
+            "pinned_digests": pinned_digests(),
             "producer_provenance": "NOT_PROVEN_BEYOND_PINNED_SHAPE", "authority_effect": "NONE_EVALUATION_ONLY"}
 
 
-def evaluate_anchored(node_id: Any, *, endpoint: Any, org_ledger_root: Any, org_ledger_head_receipt_sha256: Any,
-                      transport_state: Any = hne.INSTALLED, report_receipt_sha256: Any = None,
-                      require_admission: bool = False) -> dict[str, Any]:
-    """healthy_node_evaluator.evaluate, unchanged, over the anchored root only."""
-    anchored = verify_anchor(node_id, endpoint=endpoint, org_ledger_root=org_ledger_root,
-                             org_ledger_head_receipt_sha256=org_ledger_head_receipt_sha256)
-    if anchored["disposition"] != ALLOW:
-        return {**anchored, "predicate": hne.PREDICATE, "gate": hne.GATE}
-    result = hne.evaluate(node_id, ledger_root=anchored["ledger_root"], transport_state=transport_state,
-                          report_receipt_sha256=report_receipt_sha256, require_admission=require_admission)
-    return {**result, "anchor": anchored}
+def pinned_digests() -> dict[str, str]:
+    """The evaluator and producer digests, as KV names them (evidence.pinned_digests in cvk#258)."""
+    pins = load_pins()["digests"]
+    return {"evaluator_source_sha256": pins["llm_adapter/healthy_node_evaluator.py"],
+            "producer_source_sha256": pins["llm_adapter/node_health_report_producer.py"]}
 
 
-__all__ = ["ENDPOINT_KINDS", "EPHEMERAL", "FAILURE_CODE", "GATEWAY", "opened_record_failure", "OWN_LEDGER_KINDS", "REASONS", "anchor", "append_destination",
-           "append_receipt", "append_source", "evaluate_anchored", "open_gateway_location", "open_ledger", "plan_open",
-           "verify_anchor"]
+def issued_anchor(node_id: str, node_identity_key: Mapping[str, Any], genesis_sha: str,
+                  ingress_sha: str) -> dict[str, Any]:
+    """The stegverse.node-ledger-opened/v1 anchor the org ledger's ingress issues. Pure."""
+    body = {"schema": OPENED_ANCHOR_SCHEMA, "transition_class": OPENED_CLASS, "node_id": node_id,
+            "node_identity_key": dict(node_identity_key), "genesis_receipt_sha256": genesis_sha,
+            "issuer": ISSUER_ORGANIZATION_LEDGER, "issuer_receipt_ref": ingress_sha}
+    return {**body, "receipt_sha256": opened_record_sha256(body)}
+
+
+def verify_node_ledger_opened_anchor(anchor_receipt: Any, *, ledger_root: Any, org_ledger_git_dir: Any,
+                                     org_ledger_head_receipt_sha256: Any) -> dict[str, Any]:
+    """The ORGANIZATION_LEDGER issuer verifier: ALLOW only for the anchor the designated org ledger re-derives.
+
+    The org ledger is the contract's repository_ledger_location read back from the object store, at the pinned head.
+    """
+    node_id = anchor_receipt.get("node_id") if isinstance(anchor_receipt, Mapping) else None
+    if not isinstance(anchor_receipt, Mapping) or tuple(sorted(anchor_receipt)) != tuple(sorted(OPENED_ANCHOR_FIELDS)) \
+            or anchor_receipt.get("schema") != OPENED_ANCHOR_SCHEMA \
+            or anchor_receipt.get("transition_class") != OPENED_CLASS \
+            or anchor_receipt.get("issuer") != ISSUER_ORGANIZATION_LEDGER \
+            or anchor_receipt.get("receipt_sha256") != opened_record_sha256(anchor_receipt):
+        return non_allow("NODE_LEDGER_OPENED_ANCHOR_NOT_ISSUED", "not a sealed stegverse.node-ledger-opened/v1 anchor "
+                         "issued by ORGANIZATION_LEDGER", node_id=node_id)
+    with designated_org_ledger(org_ledger_git_dir) as (org_root, failed):
+        if failed:
+            return non_allow(*failed, node_id=node_id)
+        verified = verify_anchor(node_id, endpoint={"endpoint_kind": EPHEMERAL, "ledger_root": ledger_root},
+                                 org_ledger_root=org_root, org_ledger_head_receipt_sha256=org_ledger_head_receipt_sha256)
+    if verified["disposition"] != ALLOW:
+        return verified
+    if verified["node_ledger_opened"] != dict(anchor_receipt):
+        return non_allow("NODE_LEDGER_OPENED_ANCHOR_NOT_ISSUED", "the anchor differs from the one the org ledger's "
+                         f"ingress {verified['anchor_destination_receipt_sha256']} issues", node_id=node_id)
+    return {"schema": RESULT_SCHEMA, "disposition": ALLOW, "node_id": node_id, "issuer": ISSUER_ORGANIZATION_LEDGER,
+            "issuer_receipt_ref": anchor_receipt["issuer_receipt_ref"], "anchor": verified,
+            "org_ledger_location": ORG_LEDGER_LOCATION, "authority_effect": "NONE_EVALUATION_ONLY"}
+
+
+def identity_challenge(anchored: Mapping[str, Any]) -> dict[str, Any]:
+    """The deterministic challenge a node signs to prove its identity, bound to the receipt chain. Pure."""
+    return {"schema": IDENTITY_CHALLENGE_SCHEMA, "node_id": anchored.get("node_id"),
+            "endpoint_kind": anchored.get("endpoint_kind"),
+            "genesis_receipt_sha256": anchored.get("genesis_receipt_sha256"),
+            "chain_head_receipt_sha256": anchored.get("chain_head_receipt_sha256"),
+            "anchor_receipt_sha256": anchored.get("anchor_destination_receipt_sha256")
+            or anchored.get("genesis_receipt_sha256"),
+            "org_ledger_head_receipt_sha256": anchored.get("org_ledger_head_receipt_sha256")}
+
+
+def identity_challenge_message(challenge: Mapping[str, Any]) -> bytes:
+    """The bytes the node signs (the same domain-separated encoding as NODE_IDENTITY_BINDING's claim)."""
+    return common.signed_message(IDENTITY_CHALLENGE_SCHEMA, dict(challenge))
+
+
+def _genesis_key(anchored: Mapping[str, Any]) -> Mapping[str, Any]:
+    chain, _, _ = hne.read_chain(anchored["ledger_root"])
+    return _ev(chain[-1]).get("node_identity_key") or {}
+
+
+def identity_proof_failure(proof: Any, anchored: Mapping[str, Any]) -> tuple[str, str] | None:
+    """(reason, detail) unless `proof` is the anchored key's signature over the current challenge, else None."""
+    if not isinstance(proof, Mapping) or proof.get("schema") != IDENTITY_PROOF_SCHEMA:
+        return "NODE_IDENTITY_PROOF_ABSENT", "no stegverse.node-identity-proof/v1; identity is never taken as asserted"
+    key = _genesis_key(anchored)
+    challenge = identity_challenge(anchored)
+    public = common.b64(key.get("public_key_b64"))
+    signature = common.b64(proof.get("signature_b64"))
+    if proof.get("node_id") != anchored.get("node_id") or proof.get("key_id") != key.get("key_id"):
+        return "NODE_IDENTITY_PROOF_INVALID", "the proof names another node or key than the anchored genesis"
+    if proof.get("challenge_sha256") != sha(challenge):
+        return "NODE_IDENTITY_PROOF_INVALID", "the proof is over another challenge (stale chain or org-ledger head)"
+    if public is None or len(public) != 32 or signature is None or len(signature) != 64 \
+            or not ed25519_verify.verify(public, identity_challenge_message(challenge), signature):
+        return "NODE_IDENTITY_PROOF_INVALID", "the Ed25519 signature does not verify under the anchored public key"
+    return None
+
+
+def observed_transport(ledger_root: Any, node_id: str) -> dict[str, Any] | None:
+    """The transport the node's current NODE_INGRESS_ADMITTED record says carried it, or None. Pure."""
+    chain, failure, _ = hne.read_chain(ledger_root)
+    if failure:
+        return None
+    for r in chain:   # newest first: the node's latest ingress record decides
+        if r.get("transition_class") in (boundary.ADMITTED_CLASS, boundary.REFUSED_CLASS):
+            ev = _ev(r)
+            node = ((ev.get("node_endpoint") or {}).get("node_id") if r["transition_class"] == boundary.ADMITTED_CLASS
+                    else ev.get("evaluated_node_id"))
+            if node == node_id:
+                return {"transport": ev.get("transport"), "transport_state": ev.get("transport_state"),
+                        "receipt_sha256": r["receipt_sha256"], "transition_class": r["transition_class"]}
+    return None
+
+
+def evaluate_anchored(claimed_node_id: Any = None, *, endpoint: Any, org_ledger_git_dir: Any,
+                      org_ledger_head_receipt_sha256: Any, identity_proof: Any = None,
+                      transport_state: Any = None, report_receipt_sha256: Any = None) -> dict[str, Any]:
+    """healthy_node_evaluator.evaluate, unchanged, over the anchored root, the observed transport and a proven identity.
+
+    LC-KV-16: the node_id is the one the verified node_identity_key proof establishes; ``claimed_node_id`` only has
+    to agree with it and selects nothing. ``transport_state`` is a caller assertion and decides nothing; there is no
+    transport default. The org ledger is the contract's designated location read from ``org_ledger_git_dir``.
+    """
+    asserted = {"asserted_transport_state": transport_state, "asserted_transport_state_decides": False,
+                "claimed_node_id": claimed_node_id, "claimed_node_id_decides": False}
+    gate = {"predicate": hne.PREDICATE, "gate": hne.GATE}
+
+    def identity_refusal(reason, detail, node_id=None, **extra):
+        return {**non_allow(reason, detail, node_id=node_id, failure_code=IDENTITY_FAILURE_CODE,
+                            reasons=IDENTITY_REASONS, retry_entrypoint=IDENTITY_RETRY, next_attempt=IDENTITY_NEXT,
+                            **extra, **asserted), **gate}
+
+    if not isinstance(identity_proof, Mapping) or identity_proof.get("schema") != IDENTITY_PROOF_SCHEMA \
+            or not isinstance(identity_proof.get("node_id"), str) or not identity_proof.get("node_id"):
+        return identity_refusal("NODE_IDENTITY_PROOF_ABSENT", "no stegverse.node-identity-proof/v1; the node_id is "
+                                "derived only from a verified proof, never taken as asserted")
+    node_id = identity_proof["node_id"]      # a candidate until the signature below verifies
+    with designated_org_ledger(org_ledger_git_dir) as (org_root, failed):
+        if failed:
+            return {**non_allow(*failed, node_id=node_id, **asserted), **gate}
+        anchored = verify_anchor(node_id, endpoint=endpoint, org_ledger_root=org_root,
+                                 org_ledger_head_receipt_sha256=org_ledger_head_receipt_sha256)
+        if anchored["disposition"] != ALLOW:
+            return {**anchored, **asserted, **gate}
+        anchored = {**anchored, "org_ledger_location": ORG_LEDGER_LOCATION}
+        failed = identity_proof_failure(identity_proof, anchored)
+        if failed:
+            return {**identity_refusal(*failed, node_id=node_id, identity_challenge=identity_challenge(anchored)),
+                    "anchor": anchored}
+        if claimed_node_id is not None and claimed_node_id != node_id:
+            return {**identity_refusal("NODE_IDENTITY_PROOF_INVALID", f"claimed node_id {claimed_node_id!r} is not "
+                                       f"the proven {node_id}", node_id=node_id), "anchor": anchored}
+        seen = observed_transport(anchored["ledger_root"], node_id)
+        if seen is None or seen.get("transition_class") != boundary.ADMITTED_CLASS \
+                or seen.get("transport") != boundary.INTERLOCK_INTR or seen.get("transport_state") != hne.INSTALLED:
+            return {**non_allow(TRANSPORT_FAILURE_CODE, f"observed on receipts: {seen!r}; no installed InTr transport "
+                                "receipt for this node's current ingress", node_id=node_id,
+                                failure_code=TRANSPORT_FAILURE_CODE, reasons=TRANSPORT_REASONS,
+                                retry_entrypoint=TRANSPORT_RETRY, next_attempt=TRANSPORT_NEXT,
+                                observed_transport=seen, **asserted), **gate, "anchor": anchored}
+        observed_state = seen["transport_state"]     # from the receipt; passed explicitly, never the evaluator default
+        result = hne.evaluate(node_id, ledger_root=anchored["ledger_root"], transport_state=observed_state,
+                              report_receipt_sha256=report_receipt_sha256, require_admission=True)
+        key_id = _genesis_key(anchored).get("key_id")
+    return {**result, "anchor": anchored, "observed_transport": seen, **asserted,
+            "identity": {"node_id": node_id, "key_id": key_id, "established_by": "NODE_IDENTITY_KEY_ED25519_PROOF",
+                         "challenge_sha256": sha(identity_challenge(anchored))}}
+
+
+__all__ = ["ENDPOINT_KINDS", "EPHEMERAL", "FAILURE_CODE", "GATEWAY", "IDENTITY_FAILURE_CODE", "OWN_LEDGER_KINDS",
+           "REASONS", "TRANSPORT_FAILURE_CODE", "anchor", "append_destination", "append_receipt", "append_source",
+           "designated_org_ledger", "evaluate_anchored", "identity_challenge", "identity_challenge_message", "issued_anchor",
+           "load_opened_signers", "open_gateway_location", "opened_signature_failure", "opened_signing_message",
+           "org_ledger_location", "signed_opened",
+           "open_ledger", "opened_record_failure", "plan_open", "verify_anchor", "verify_node_ledger_opened_anchor"]

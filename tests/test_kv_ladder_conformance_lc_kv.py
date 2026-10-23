@@ -27,7 +27,7 @@ from execution.adapter import canonical_sha256  # noqa: E402
 from execution.vault_store import KnowledgeVaultExecutionStore, SkapAccessRefused  # noqa: E402
 from kv_two_layer_e0 import (  # noqa: E402
     E0_GENESIS, E0_LABEL, E0_TRANSPORT, NEVER_ENROLLED_NODE, NODE, TwoLayers, e0_health_ledger, e0_node_identity_key,
-    e0_scratch_ledger_root, e0_trust_anchors, pinned, production_trust_anchors,
+    PRODUCTION_TRUST_ANCHORS, e0_scratch_ledger_root, e0_trust_anchors, pinned, production_trust_anchors,
 )
 from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401
 from runtime import kv_interlock_endpoint as ep  # noqa: E402
@@ -197,6 +197,26 @@ class LcKv15LedgerIdentityTransport(unittest.TestCase):
                 ep.TRUST_ANCHORS["intr_transport"] = saved
             refused(self, out, "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", "B")
 
+    def test_production_transport_is_observed_state_and_refuses_with_six_fields(self):
+        """LC-KV-15 (rev 5): production has no installed InTr transport (intr_transport None). It is read as observed
+        state, UNKNOWN_NOT_AUTHENTICALLY_OBSERVED, never assumed, and layer 1 refuses with six fields."""
+        self.assertIsNone(PRODUCTION_TRUST_ANCHORS["intr_transport"])
+        with production_trust_anchors():
+            self.assertEqual(ep.observe_intr_transport(), (None, "UNKNOWN_NOT_AUTHENTICALLY_OBSERVED", None))
+            production = TwoLayers().kv_access()
+        self.assertEqual((production["decision"], production["kv_access_receipt"]), ("FAIL_CLOSED", None))
+        for field in SIX:
+            self.assertTrue(production[field], field)
+        # with the ledger bound, the unobserved production transport itself is the six-field refusal (class B)
+        saved = ep.TRUST_ANCHORS["intr_transport"]
+        ep.TRUST_ANCHORS["intr_transport"] = PRODUCTION_TRUST_ANCHORS["intr_transport"]
+        try:
+            out = TwoLayers().kv_access()
+        finally:
+            ep.TRUST_ANCHORS["intr_transport"] = saved
+        refused(self, out, "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", "B")
+        self.assertIn("UNKNOWN_NOT_AUTHENTICALLY_OBSERVED", out["required_evidence_or_repair"])
+
     def test_caller_asserted_identity_is_refused(self):
         stranger = TwoLayers(node=NEVER_ENROLLED_NODE, ledger_checkout=e0_health_ledger(NODE)[0])
         E0_TRANSPORT.enrolled.pop(NEVER_ENROLLED_NODE, None)  # the envelope claims it; the transport never saw it
@@ -258,13 +278,44 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
         refused(self, self.kv(transport_key=e0_node_identity_key(NODE, salt="other")),
                 "REQUESTER_KEY_NOT_THE_ANCHORED_NODE_IDENTITY_KEY", "C")
 
-    def test_an_ephemeral_node_binds_but_the_finish_point_expects_permanent(self):
+    def test_an_ephemeral_node_fails_closed_until_tv_tvc_publishes_a_signer(self):
+        """EPHEMERAL anchors are signed envelopes (#432 @1cbad77e). The vendored signers file is empty, so the E0
+        envelope's key is not published: six-field FAIL_CLOSED, class B, owner TV/TVC. The file is never patched."""
+        self.assertEqual(json.loads((Path(ep._INTR_PINNED_ROOT) / ".stegverse/node-ledger/node-ledger-opened-signers.v1.json")
+                                    .read_text(encoding="utf-8"))["signers"], [])
         out = self.kv(kind="EPHEMERAL")
-        self.assertEqual(out["decision"], "ALLOW_BOUNDED_CONTEXT", out)
-        binding = out["kv_access_receipt"]["healthy_node_ledger_binding"]
-        self.assertEqual((binding["endpoint_kind"], binding["anchor"]["ledger_lifetime"]),
-                         ("EPHEMERAL", "BOUNDED_UNTIL_DISSOLUTION"))
+        self.anchor_refused(out, "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED")
+        self.assertEqual(out["failure_class"], "B")
+        self.assertTrue(out["owning_existing_goal"].startswith("TV/TVC"), out["owning_existing_goal"])
+        self.assertEqual(out["failed_predicate"], "NODE_LEDGER_OPENED_SIGNED_BY_PUBLISHED_KEY")
         self.assertEqual(ep.FINISH_POINT_NODE_ENDPOINT_KIND, "PERMANENT")
+
+    def test_the_pins_are_checked_on_evaluate_anchoreds_allow(self):
+        """No per-receipt pinned_digests (#432 @1cbad77e): the pins are bound in the genesis and returned on the ALLOW's
+        anchor under KV's key names; KV checks them there."""
+        receipt = TwoLayers().kv_access()["kv_access_receipt"]
+        self.assertEqual(receipt["healthy_node_receipt"]["anchor"]["pinned_digests"], ep.PINNED_DIGESTS_FROM_GENESIS)
+        self.assertEqual(pinned()["endpoint_ledger_anchor"].pinned_digests(), ep.PINNED_DIGESTS_FROM_GENESIS)
+
+    def test_transport_is_read_from_the_nodes_ingress_receipt(self):
+        out = self.kv(transport_installed=False)
+        self.assertEqual((out["decision"], out["failure_code"], out["failure_class"]),
+                         ("FAIL_CLOSED", "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", "B"))
+        for field in SIX:
+            self.assertTrue(out[field], field)
+        self.assertIsNone(out["kv_access_receipt"])
+
+    def test_identity_must_be_proven_by_the_anchored_key(self):
+        for proof, reason, failure_class in ((None, "NODE_IDENTITY_PROOF_ABSENT", "B"),
+                                             ("other_key", "NODE_IDENTITY_PROOF_INVALID", "C"),
+                                             ("stale", "NODE_IDENTITY_PROOF_INVALID", "C")):
+            out = self.kv(proof=proof)
+            self.assertEqual((out["decision"], out["failure_code"], out["refusal_cause"], out["failure_class"]),
+                             ("FAIL_CLOSED", "NODE_IDENTITY_NOT_PROVEN", reason, failure_class), proof)
+            for field in SIX:
+                self.assertTrue(out[field], field)
+        identity = TwoLayers().kv_access()["kv_access_receipt"]["healthy_node_receipt"]["identity"]
+        self.assertEqual((identity["node_id"], identity["established_by"]), (NODE, "NODE_IDENTITY_KEY_ED25519_PROOF"))
 
     def test_no_temp_code_alias_remains(self):
         self.assertFalse([name for name in vars(ep) if "TEMP_" in name])
@@ -350,14 +401,22 @@ class LcKv03OnlyTheRealGateAttests(unittest.TestCase):
 class EndpointKindDeclaration(unittest.TestCase):
     def test_kinds_and_schemas_are_432s_v1(self):
         anchor = pinned()["endpoint_ledger_anchor"]
+        schema = json.loads((Path(ep._INTR_PINNED_ROOT) / ep.ENDPOINT_KIND_SCHEMA_PATH).read_text(encoding="utf-8"))
+        self.assertEqual(ep.ENDPOINT_KINDS, tuple(schema["$defs"]["endpoint_kind"]["enum"]))  # taken from the schema
         self.assertEqual(ep.ENDPOINT_KINDS, tuple(anchor.ENDPOINT_KINDS))
-        self.assertEqual((ep.ENDPOINT_KIND_SCHEMA, ep.ENDPOINT_ANCHOR_SCHEMA, ep.EPHEMERAL_NODE_LEDGER_OPENED_SCHEMA),
-                         (anchor.GENESIS_SCHEMA, anchor.ANCHOR_BODY_SCHEMA, anchor.OPENED_SCHEMA))
-        self.assertNotIn("PENDING", ep.ENDPOINT_KIND_SCHEMA)
+        self.assertTrue({"PERMANENT", "GATEWAY"} <= set(ep.ENDPOINT_KINDS))
+        self.assertEqual((ep.ENDPOINT_KIND_SCHEMA, ep.ENDPOINT_GENESIS_SCHEMA, ep.ENDPOINT_ANCHOR_SCHEMA,
+                          ep.EPHEMERAL_NODE_LEDGER_OPENED_SCHEMA, ep.EPHEMERAL_NODE_LEDGER_OPENED_SIGNED_SCHEMA,
+                          ep.EPHEMERAL_NODE_LEDGER_OPENED_GENERATION_SCHEMA),
+                         (anchor.ENDPOINT_KIND_SCHEMA, anchor.GENESIS_SCHEMA, anchor.ANCHOR_BODY_SCHEMA,
+                          anchor.OPENED_ANCHOR_SCHEMA, anchor.SIGNED_OPENED_SCHEMA, anchor.GENERATION_SCHEMA))
+        self.assertEqual(ep.ENDPOINT_KIND_SCHEMA, "stegverse.endpoint-kind/v1")
+        self.assertFalse([n for n in vars(ep) if "SCHEMA_PENDING" in n])
+        self.assertNotIn("ENDPOINT_KIND_SCHEMA_PENDING", Path(ep.__file__).read_text(encoding="utf-8"))
         layers = TwoLayers()
         skap = layers.gate.verify_skap_access_receipt(layers.skap_hash("SKAP_READ", "s"))
         self.assertEqual((skap["endpoint_kind"], skap["layer1_endpoint_kind"], skap["endpoint_kind_schema"]),
-                         ("SKAP_VAULT", "KV", "stegverse.endpoint-ledger-genesis/v1"))
+                         ("SKAP_VAULT", "KV", "stegverse.endpoint-kind/v1"))
 
 
 class AdmissionOrder(unittest.TestCase):
