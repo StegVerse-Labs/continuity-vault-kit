@@ -1,0 +1,21 @@
+{
+  "envelope": {
+    "aad_hash": "sha256:103469b78ee7b0811821c689b2b750179cea188ef23730382d1e7c64bb57a548",
+    "authority_transfer": false,
+    "ciphertext_b64": "sXubNOaqKev9voDXnENCAtL6z_rhbK7ej8dKWYOj0iexqmmlmlaGNIczozut",
+    "credential_version": 1,
+    "endpoint_ref": "https://api.coinbase.com",
+    "format": "stegverse.skap.sealed_material/aes256gcm-hkdf-sha256/v1",
+    "kdf_salt_b64": "tEpWFRQ5PF6x4PcBirHV0SS4FMRWKwcWua6NwoCNGEw",
+    "key_authority_ref": "tvc://credential-root/test-only",
+    "key_material_persisted": false,
+    "nonce_b64": "sDkwgTs9XIcVSKEw",
+    "object_id": "skap://APIs/coinbase/test/v1",
+    "plaintext_persisted": false,
+    "purpose": "coinbase.permission_observation",
+    "wrapping_policy_ref": "policy://skap/coinbase/advanced-trade"
+  },
+  "label": "SYNTHETIC_TEST_FIXTURE_NOT_A_CREDENTIAL",
+  "note": "skap.crypto_boundary.seal output for the synthetic plaintext b'synthetic-coinbase-credential' under the test-only root key b'k'*32, generated once and stored so the KV/SKAP persistence tests need no cryptography import (Coordination class D ruling). The vault store never decrypts it.",
+  "plaintext_length": 29
+}

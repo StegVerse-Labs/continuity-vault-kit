@@ -90,13 +90,19 @@ class SkapLayer2Gate:
         return self._layer1
 
     def _layer1_conforms(self, receipt: dict[str, Any]) -> str | None:
-        """LC-KV-10/15: the layer-1 receipt was minted by the real KVInterlockRuntime under the pinned evaluator, the
-        installed transport, a contract-location (or anchored temporary) ledger binding and the trust anchors in force.
+        """LC-KV-10/15: the layer-1 receipt was minted by the real KVInterlockRuntime through #432's evaluate_anchored
+        over the pinned evaluator, the installed transport, the contract-location org ledger with an anchored node root
+        and the trust anchors in force.
         None when it conforms, else the refusal cause."""
-        from runtime.kv_interlock_endpoint import KVInterlockRuntime, layer1_receipt_conformance
+        from runtime.kv_interlock_endpoint import (KVInterlockRuntime, layer1_receipt_conformance,
+                                                   pinned_decider_identity)
         if type(self._layer1) is not KVInterlockRuntime:  # noqa: E721 - a subclass could re-implement minting
             return "LAYER1_RUNTIME_NOT_KV_INTERLOCK_RUNTIME"
-        return layer1_receipt_conformance(receipt)
+        why = layer1_receipt_conformance(receipt)
+        if why is None and pinned_decider_identity(getattr(self._layer1, "healthy_node_evaluator", None)) is None:
+            # LC-KV-10: the layer-1 runtime's decider must BE the loaded evaluate_anchored, not just name itself so
+            return "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED"
+        return why
 
     def _verify_kv_access_receipt(self, receipt_hash: Any) -> tuple[dict[str, Any] | None, str]:
         verify = getattr(self._layer1, "verify_kv_access_receipt", None)
@@ -124,6 +130,7 @@ class SkapLayer2Gate:
 
     def admit(self, transition: Any) -> dict[str, Any]:
         """ALLOW with a SKAP-access receipt, or a six-field FAIL_CLOSED SKAP_ACCESS_LAYER2_REFUSED."""
+        from runtime.kv_interlock_endpoint import ANCHOR_REFUSAL_CODE, ENDPOINT_KIND_SCHEMA
         if not isinstance(transition, dict) or set(transition) != _TRANSITION_KEYS \
                 or transition.get("schema") != TRANSITION_SCHEMA or transition.get("boundary") != LAYER2_BOUNDARY \
                 or transition.get("from_role") != "KV" or transition.get("to_role") != "SKAP_VAULT":
@@ -147,11 +154,12 @@ class SkapLayer2Gate:
                     "health-less layer-1 receipt is refused"), predicate=PREDICATE_PRIOR_LAYER1)
             return layer2_refusal(why, (
                 f"{prior} was not minted by the real KVInterlockRuntime under the pinned healthy-node evaluator "
-                "(runtime.intr_pinned, sha256:fdaa2005...1f58), the installed InTr transport, a contract-location or "
-                "anchored temporary ledger binding and the trust anchors in force; it is refused"),
+                "(runtime/intr_pinned, sha256:fdaa2005...1f58) reached through #432's evaluate_anchored "
+                "(sha256:5fcc9018...3d10), the installed InTr transport, the contract-location org ledger with a node "
+                "root evaluate_anchored admitted, and the trust anchors in force; it is refused"),
                 predicate=PREDICATE_HEALTHY_NODE, failure_class="B" if why in (
                     "LAYER1_TRANSPORT_NOT_THE_INSTALLED_ONE", "LAYER1_LEDGER_NOT_BOUND_BY_CONTRACT_LOCATION",
-                    "TEMP_NODE_LEDGER_NOT_ANCHORED") else "C")
+                    ANCHOR_REFUSAL_CODE) else "C")
         if prior in self._priors_used:
             return layer2_refusal("LAYER1_KV_ACCESS_RECEIPT_ALREADY_USED", (
                 f"{prior} already admitted one KV->SKAP transition; each SKAP operation needs its own DEVICE->KV "
@@ -165,8 +173,8 @@ class SkapLayer2Gate:
             "from_role": "KV",
             "to_role": "SKAP_VAULT",
             "minted_by": "SkapLayer2Gate.admit",
-            "endpoint_kind": "SKAP_VAULT",  # Org InTr endpoint model; schema PENDING Lane B
-            "endpoint_kind_schema": "PENDING_LANE_B_ENDPOINT_KIND_SCHEMA",
+            "endpoint_kind": "SKAP_VAULT",  # Org InTr endpoint model, #432 enum
+            "endpoint_kind_schema": ENDPOINT_KIND_SCHEMA,
             "layer1_endpoint_kind": layer1_receipt.get("endpoint_kind"),
             "principal_ref": transition["principal_ref"],
             "operation": transition["operation"],

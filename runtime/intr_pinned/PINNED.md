@@ -1,62 +1,61 @@
-# Pinned InTr healthy-node evaluator (vendored, digest-pinned; not a dependency)
+# Pinned InTr code (vendored byte-identical, digest-pinned; not a dependency)
 
-`healthy_node_evaluator.py` is a byte-identical copy of `llm_adapter/healthy_node_evaluator.py` at
-StegVerse-org/LLM-adapter@0b37fe3b786a2de687235f5d9d146af49ffee9cd (draft PR StegVerse-org/LLM-adapter#428,
-LC-KV-13/14, owned by the InTr and Mesh Destinations lane, StegVerse-org/.github#162).
+Everything under `runtime/intr_pinned/` is a byte-identical copy of StegVerse-org/LLM-adapter at
+`c2c57505535fb89ee88477eda1378c5fc610e0f7` (draft PR StegVerse-org/LLM-adapter#432, Lane B anchored-root check,
+LC-KV-13, InTr and Mesh Destinations lane, StegVerse-org/.github#162), kept at its upstream-relative layout because
+#432's `pinned_code_failure` hashes `ROOT/<path>` for every entry of its pinned-code-digests file (ROOT =
+`runtime/intr_pinned`). Stdlib only: `llm_adapter/ed25519_verify.py` is Lane B's stdlib Ed25519 verify (#430/#432).
 
-* Provenance: the same bytes are at StegVerse-org/LLM-adapter#429 @5f5f7bbeea96d5f313effaa02f86b01196465247.
-  #429 is the NODE_HEALTH_REPORTED producer and contains #428; it lands with or before #428. At #429 the interface doc
-  only gains the producer section, sha256 `a363ff9bb498aa816adf9cc9d64559a389dec6acd3d02144056ee9c2540b91f0`.
-  The same bytes are also at #430 @4e1499ab88144e8eae341058f7360b0d2a805b56, which carries #429 and adds the class B
-  inputs; the ALLOW shape is unchanged. Its interface doc adds a section, sha256
-  `6b523e3949d89a4cb85904559d5bb458b9796ec910fde2c26296096f0d3f8b62`. The #430 head has since moved to
-  3c106de4d9b87da498e620e5db33f8b922773c26 with the evaluator bytes unchanged (interface doc sha256
-  `d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de`).
-* Producer pin: `llm_adapter/node_health_report_producer.py`, sha256
-  `21249f2505505afd60eb14188ea638202f2926b207d64cfcf8c3bc5db2d9f361`, observed at #429 @5f5f7bbe and #430 @3c106de4
-  (`PINNED_NODE_HEALTH_REPORT_PRODUCER`). Not vendored: KV only checks that an anchored temporary ledger's health
-  receipts carry this digest and the evaluator digest.
-  A final re-vendor follows once Lane B's stack (#429, #430, #431) settles.
-* Source sha256: `fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58`.
-* Interface: `docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md` at the same commit, sha256 `757d697ca385f5d4709d8b26e51119330bb685b4770512312313fc42460bb76d`.
-* Do not edit the vendored file. `runtime.kv_interlock_endpoint.resolve_pinned_healthy_node_evaluator` re-derives the
-  sha256 of these bytes before every resolution. On a mismatch, layer 1 fails closed.
-* To re-pin, copy the file from the new LLM-adapter commit and update `PINNED_HEALTHY_NODE_EVALUATOR` in
-  `runtime/kv_interlock_endpoint.py`.
+| file | sha256 |
+| --- | --- |
+| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `5fcc9018e18d709ab5b9c9ea5195e751abf2d01b4c124cf4fafdcfb617023d10` |
+| `llm_adapter/healthy_node_evaluator.py` (evaluate, unchanged since #428) | `fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58` |
+| `llm_adapter/ed25519_verify.py` | `ab05e39a3e40b99f02ff199b178554e0ba435c3ff387dca3f896619770770232` |
+| `llm_adapter/node_existence_readback.py` | `cbed113d7fe59fc0919953bad5a0a08cdaeba3ad70a4e728e572c360f6fb2fb7` |
+| `llm_adapter/node_health_check_projection.py` | `97cb7043c3f43d9aab2f0a591e1eefb94d3b127efc542d75be8d7574ce561ae8` |
+| `llm_adapter/node_health_report_producer.py` | `21249f2505505afd60eb14188ea638202f2926b207d64cfcf8c3bc5db2d9f361` |
+| `llm_adapter/node_identity_binding_producer.py` | `ab578c921c6de5f50b9ecca50a71645e10582a051d2dd3417faa62d0dfdec01a` |
+| `llm_adapter/node_ingress_boundary.py` (hashed, never executed) | `86bae0426956581b862dd085c4ac64bf0a4f7dc37b0309ca9d223a3306754339` |
+| `llm_adapter/node_receipt_common.py` | `7e73b65b649c7238aa6ae47409282b2fb729157de083c093fe595611966e43c7` |
+| `.stegverse/node-ledger/pinned-code-digests.v1.json` | `9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8` |
+| `.stegverse/transition-ledger/emit.py` | `9579726de7ef915ac8cd61be1ba1c5ef6e34de4ca996504374b0dce7f7c2c9c3` |
+| `.stegverse/transition-ledger/contract.json` (supporting data) | `a59040e8cabe6dc618af0ba340cb5563ce726f645a76248ccb354961d29144e7` |
+| `.stegverse/heartbeat-awareness.json` (supporting data) | `87b1c4006d3829ea70626d481012791c557e97bcd580a6c3d5ccc61389a6951b` |
 
-Layer 1 (`KVInterlockRuntime.handle`, INTR_DEVICE_KV), after P1's LC-KV-15 DENY on cvk#258 @61104a57
-(StegVerse-Labs/.github#3330 @578583be):
-* Ledger binding (`bind_healthy_node_ledger`, the single binding function). The deployment binds a git repository of
-  StegVerse-org/.github. KV reads `refs/stegverse/organization-ledger` at the head it observes now, materializes only
-  `repository-ledger/StegVerse-org/LLM-adapter` from that commit, and requires the chain's genesis to equal the pinned
-  `TRUST_ANCHORS["healthy_node_ledger_genesis_receipt_sha256"]`. The binding (repository, ref, namespace,
-  observed_head, genesis, chain head) is recorded on the KV-access receipt. A bare directory, a scratch ledger root or
-  any other caller root is refused. There is no new ref and no new ledger root.
-* Anchored temporary node ledger (steering 2). `{"kind": "ANCHORED_TEMPORARY_NODE_LEDGER", "ledger_root",
-  "node_ledger_opened"}` binds only with a NODE_LEDGER_OPENED anchor issued by the org ledger or TV/TVC. The anchor
-  must bind node_id, node_identity_key (both equal to the transport-authenticated identity) and the ledger's genesis
-  hash, and every NODE_HEALTH_REPORTED receipt on it must carry `evidence.pinned_digests` =
-  {evaluator_source_sha256, producer_source_sha256}. Otherwise: failure_code `TEMP_NODE_LEDGER_NOT_ANCHORED`, owner
-  KV-SKAP-VAULT-FUNCTIONAL-001, retry = Lane B's anchor and dissolution transition. The anchor shape
-  (`NODE_LEDGER_OPENED_FIELDS`) is minimal and PENDING Lane B's schema; no issuer verifier is pinned in production.
-* Identity. The requester node is the identity the installed InTr transport authenticates from the envelope, never
-  the caller's claim; a mismatch with `boundary_proof.source_identity_ref` is refused (class C).
-* Transport. `transport_state` passed to the evaluator is the installed transport's observed state. No transport is
-  installed today, so it is `UNKNOWN_NOT_AUTHENTICALLY_OBSERVED` and layer 1 refuses
-  (`INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED`, class B, Lane B).
-* `TRUST_ANCHORS` is the single seam. Production: label PRODUCTION, genesis None, transport None, no anchor issuers,
-  so the real path FAILS_CLOSED until StegVerse-Labs/.github#3255 and StegVerse-org/LLM-adapter#429/#431 are admitted.
-  Tests swap in labelled `E0_STANDIN_TEST_ONLY_NOT_EVIDENCE` anchors (tests/kv_two_layer_e0.py) only inside
-  setUpModule/tearDownModule or a context manager. Every receipt records its trust_anchors_label; layer 2 and the
-  finish point refuse receipts minted under other anchors.
-* Layer 2 (`SkapLayer2Gate`) re-checks every layer-1 receipt with `layer1_receipt_conformance` (evaluator id and source
-  sha256 pin, anchors label, endpoint_kind KV, INSTALLED transport, transport-authenticated identity, contract-location
-  or anchored binding) and accepts only an exact `KVInterlockRuntime` (LC-KV-10).
-* It maps any non-ALLOW to `KV_ACCESS_LAYER1_REFUSED` and keeps the evaluator's six fields as `health_evaluation`.
-* KV never decides health itself.
-* Until the chain is onboarded with a genesis, layer 1 is FAIL_CLOSED class B `HEALTHY_NODE_LEDGER_NOT_ONBOARDED` (or
-  `HEALTHY_NODE_LEDGER_GENESIS_NOT_PINNED` once readable but not pinned). Its retry entrypoint is
-  StegVerse-org/LLM-adapter#431, the organization-ledger onboarding (Lane B draft, like StegVerse-SDK#558), which is
-  FAIL_CLOSED until genesis and an admitted append route exist (StegVerse-Labs/.github#3255).
-* Residual risk (LC-KV-08, class C, TV/TVC and Lane C): ledger receipts are unsigned (TVC#537), so a forged local copy
-  of the org-ledger repository that keeps the real genesis and appends forged receipts is not detectable by KV.
+The canonical digests map in the pinned-code-digests file hashes to
+`sha256:86f8b5d008a5e70e7843238388fbddf6975ec994f9fcc1b115d56dd3f40a3360`; an anchored genesis binds that value.
+Evaluator provenance (same bytes): #428 @0b37fe3b, #429 @5f5f7bbe, #430 @4e1499ab and @3c106de4, #432 @c2c57505.
+Interface doc `docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md` sha256 `d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de`.
+
+* Do not edit these files. `runtime.kv_interlock_endpoint.load_pinned_intr` reads every file once, checks its sha256
+  against `PINNED_ANCHORED_EVALUATOR["vendored_files"]`, and compiles the executed modules from exactly those bytes
+  (never re-read from disk), under the names `llm_adapter.*` with an empty package search path, removing them from
+  `sys.modules` afterwards. A process that already imported another `llm_adapter` is refused.
+* `node_ingress_boundary.py` imports the StegVerse SDK, which is not a cvk dependency, so it is never executed: KV reads
+  its three string constants (ADMITTED_CLASS, REFUSED_CLASS, RECORD_SCHEMA) from the pinned bytes by AST.
+* LC-KV-10 (pinned by identity): layer 1 accepts only the `evaluate_anchored` function object produced by that load,
+  whose code object still hashes (marshal) to the digest recorded at load. A callable's `__module__`, `__qualname__` or
+  source filename is never consulted; anything else is refused at layer 1
+  (`LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED`) and, if it ever minted a receipt, at layer 2 and the finish point.
+* To re-pin, copy the files from the new LLM-adapter commit and update `PINNED_HEALTHY_NODE_EVALUATOR` and
+  `PINNED_ANCHORED_EVALUATOR` in `runtime/kv_interlock_endpoint.py`. A final re-vendor follows once Lane B's stack
+  (#429, #430, #431 onboarding, #432) settles.
+
+Layer 1 (`KVInterlockRuntime.handle`, INTR_DEVICE_KV):
+* Org ledger. The deployment binds a git repository of StegVerse-org/.github. KV reads
+  `refs/stegverse/organization-ledger` at the head it observes now and materializes only
+  `repository-ledger/StegVerse-org/LLM-adapter`. No genesis constant is pinned (LC-KV-15, P1 rev 4): the genesis is
+  derived from the org chain's own oldest receipt, which must be the LLM-adapter repository-ledger initialization in
+  the pinned receipt body, and a genesis labelled for other trust anchors is refused. The head pin handed to
+  evaluate_anchored is that tree's HEAD.json. Unobserved: six-field FAIL_CLOSED `HEALTHY_NODE_LEDGER_NOT_ONBOARDED`.
+* Node root. The deployment's endpoint `{endpoint_kind, ledger_root}` (#432 enum: EPHEMERAL, PERMANENT, GATEWAY, KV,
+  SKAP_VAULT, ORG). Only evaluate_anchored decides whether it is anchored (InTr path receipt pair for own ledgers,
+  StegOS NODE_LEDGER_OPENED for EPHEMERAL, org-root derivation for GATEWAY; ORG is never a node root). Its refusal is
+  `EPHEMERAL_NODE_LEDGER_NOT_ANCHORED` with evaluate_anchored's own result carried as `health_evaluation`.
+* Identity and transport. The requester is the identity the installed InTr transport authenticates; its
+  node_identity_key must equal the anchored genesis key. The observed transport state is passed; unobserved is
+  `INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED` (class B, Lane B).
+* `TRUST_ANCHORS` holds only the label and the observed transport object (None in production). Tests put labelled
+  `E0_STANDIN_TEST_ONLY_NOT_EVIDENCE` anchors in force only inside setUpModule/tearDownModule or a context manager.
+* The finish point expects a PERMANENT node (LC-KV-13; EPHEMERAL generation is a separate task).
+* Residual risk (LC-KV-08, class C, TV/TVC and Lane C): ledger receipts are unsigned (TVC#537).

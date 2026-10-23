@@ -530,7 +530,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
 
         def edit_l1_rehash(e):  # a caller recomputing the receipt hash after editing still cannot pass
             r = e["layer1_kv_access_receipts"][0]
-            r["healthy_node_receipt"]["node_id"] = "device:other"
+            r["healthy_node_receipt"]["node_id"] = "SV-NODE-E0OTHER001"
             r["receipt_hash"] = kv.sha256_uri({k: v for k, v in r.items() if k != "receipt_hash"})
 
         def edit_l2(e):
@@ -558,21 +558,36 @@ class EvidenceDrivenVerdict(unittest.TestCase):
                     self.assertEqual(row["owning_existing_goal"], kv.GOAL_REF)
         # health decided by anything but the pinned InTr evaluator never reaches layer 2 (LC-KV-10), so it can never
         # become evidence; the finish point applies the same conformance function to every layer-1 receipt.
-        from runtime.intr_pinned.healthy_node_evaluator import evaluate as pinned
+        from kv_two_layer_e0 import pinned
 
         def injected(node_id, **kw):
-            return pinned(node_id, **kw)
-        exercise = TwoLayers(evaluator=injected)
+            return pinned()["endpoint_ledger_anchor"].evaluate_anchored(node_id, **kw)
+        out = TwoLayers(evaluator=injected).kv_access()  # refused at layer 1 by identity: no receipt to carry
+        self.assertEqual((out["decision"], out["refusal_cause"], out["kv_access_receipt"]),
+                         ("FAIL_CLOSED", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED", None))
+        exercise = TwoLayers()
         out = exercise.kv_access()
-        self.assertEqual(out["decision"], "ALLOW_BOUNDED_CONTEXT")  # layer 1 records it under its own identity
-        self.assertEqual(kv.layer1_receipt_conformance(out["kv_access_receipt"]), "LAYER1_HEALTH_EVALUATOR_NOT_PINNED")
+        self.assertEqual(out["decision"], "ALLOW_BOUNDED_CONTEXT")
+        edited = {**out["kv_access_receipt"], "healthy_node_anchor_check": "someone.else"}
+        self.assertEqual(kv.layer1_receipt_conformance(edited), "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED")
+        exercise.layer1.healthy_node_evaluator = injected  # swapped after minting
         refused = exercise.gate.admit(kv.kv_skap_transition(
             principal_ref=exercise.principal, operation="SKAP_READ", subject_ref="p",
             prior_receipt_hash=out["kv_access_receipt"]["receipt_hash"]))
         self.assertEqual((refused["disposition"], refused["failure_code"], refused["refusal_cause"]),
-                         ("FAIL_CLOSED", "SKAP_ACCESS_LAYER2_REFUSED", "LAYER1_HEALTH_EVALUATOR_NOT_PINNED"))
+                         ("FAIL_CLOSED", "SKAP_ACCESS_LAYER2_REFUSED", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED"))
         for field in SIX:
             self.assertTrue(refused[field], field)
+
+    def test_the_finish_point_expects_a_permanent_node(self) -> None:
+        """LC-KV-13 completes with a PERMANENT node; an EPHEMERAL (StegOS-generated) node binds at layer 1 but its
+        receipts do not complete the finish point (EPHEMERAL generation is a separate task)."""
+        from tests.kv_two_layer_e0 import NODE, e0_health_ledger
+        self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
+        ephemeral = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="EPHEMERAL")[0])
+        verdict = kv.evaluate(evidence_bundle(ephemeral))
+        self.assertIn("KV_ACCESS_LAYER1_REFUSED", set(failure_codes(verdict).values()))
+        self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS", json.dumps(verdict))
 
     def test_a_tampered_or_malformed_bundle_never_raises(self) -> None:
         evidence = evidence_bundle()

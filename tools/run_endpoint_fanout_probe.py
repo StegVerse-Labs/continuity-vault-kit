@@ -208,7 +208,7 @@ def build_envelope(request: Mapping[str, Any], *, now: datetime) -> dict[str, An
     }
 
 
-PROBE_SOURCE_IDENTITY = "device:test:endpoint-fanout-probe"
+PROBE_SOURCE_IDENTITY = "SV-NODE-E0FANOUT01"
 E0_STANDIN_LABEL = "E0_STANDIN_HEALTHY_NODE_NOT_EVIDENCE"
 
 
