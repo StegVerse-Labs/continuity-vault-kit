@@ -254,14 +254,67 @@ VAULT_LINEAGE_CUSTODY_RETRY = ("runtime.task_registry_event_sovereign_kv_binding
                                "tests.test_sovereign_kv_vault_lineage_record")
 
 
-def vault_lineage_custody_fail_closed(code: str, detail: str, *, failure_class: str = "B") -> Dict[str, Any]:
+# Two sequential credential layers (StegVerse-Labs/.github#3330 rev 1, LC-KV-03/08): a custody result is admitted only
+# when the provider receipt binds a layer-1 KV-access receipt (INTR_DEVICE_KV, minted by KVInterlockRuntime.handle for
+# a currently admitted healthy node) and a layer-2 SKAP-access receipt (INTR_KV_SKAP, minted by the separate layer-2
+# gate inside KV, prior_receipt_hash == the layer-1 receipt). Both are verified against the gates' own receipt stores
+# through access_receipt_verifier; a non-empty string is never accepted. This module mints neither receipt.
+KV_ACCESS_LAYER1_REFUSED = "KV_ACCESS_LAYER1_REFUSED"
+SKAP_ACCESS_LAYER2_REFUSED = "SKAP_ACCESS_LAYER2_REFUSED"
+LAYER_PREDICATES = {
+    KV_ACCESS_LAYER1_REFUSED: "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
+    SKAP_ACCESS_LAYER2_REFUSED: "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT",
+}
+
+
+class VaultLineageAccessLayerRefused(TaskRegistryEventCustodyBindingError):
+    def __init__(self, code: str, detail: str) -> None:
+        super().__init__(detail)
+        self.code = code
+
+
+def _is_sha256_uri(value: Any) -> bool:
+    return isinstance(value, str) and value.startswith("sha256:") and len(value) == 71 \
+        and all(c in "0123456789abcdef" for c in value[7:])
+
+
+def _require_access_layers(provider_receipt: Dict[str, Any], verifier: Any) -> tuple[str, str]:
+    kv_hash = provider_receipt.get("kv_access_receipt_hash")
+    skap_hash = provider_receipt.get("skap_access_receipt_hash")
+    if not _is_sha256_uri(kv_hash):
+        raise VaultLineageAccessLayerRefused(KV_ACCESS_LAYER1_REFUSED, (
+            "the provider receipt binds no layer-1 kv_access_receipt_hash; custody is reached only through "
+            "KVInterlockRuntime.handle (INTR_DEVICE_KV) from a currently admitted healthy node"))
+    if not _is_sha256_uri(skap_hash):
+        raise VaultLineageAccessLayerRefused(SKAP_ACCESS_LAYER2_REFUSED, (
+            "the provider receipt binds no layer-2 skap_access_receipt_hash; custody records enter or leave the SKAP "
+            "Vault only through the INTR_KV_SKAP gate whose prior_receipt_hash is the layer-1 receipt"))
+    if verifier is None:
+        raise VaultLineageAccessLayerRefused(KV_ACCESS_LAYER1_REFUSED, (
+            "no access_receipt_verifier was supplied, so the layer receipts cannot be checked against the gates' "
+            "receipt stores; supply the layer-2 gate's verify_access_chain"))
+    try:
+        out = verifier(kv_hash, skap_hash)
+    except Exception as exc:  # a verifier fault is a refusal, never an admission
+        out = {"failure_code": KV_ACCESS_LAYER1_REFUSED,
+               "required_evidence_or_repair": f"the access-layer verifier raised {type(exc).__name__}"}
+    if not isinstance(out, dict) or out.get("disposition") != "ALLOW":
+        code = out.get("failure_code") if isinstance(out, dict) else None
+        detail = out.get("required_evidence_or_repair") if isinstance(out, dict) else None
+        raise VaultLineageAccessLayerRefused(code if code in LAYER_PREDICATES else KV_ACCESS_LAYER1_REFUSED,
+                                             detail or "the access-layer receipts did not verify")
+    return kv_hash, skap_hash
+
+
+def vault_lineage_custody_fail_closed(code: str, detail: str, *, failure_class: str = "B",
+                                      failed_predicate: str = VAULT_LINEAGE_CUSTODY_PREDICATE) -> Dict[str, Any]:
     """Six-field FAIL_CLOSED disposition for the vault-lineage custody handoff (never an exception)."""
     return {
         "schema": VAULT_LINEAGE_RECEIPT_SCHEMA,
         "record_type": "KV_SKAP_VAULT_LINEAGE",
         "disposition": "FAIL_CLOSED",
         "failure_code": code,
-        "failed_predicate": VAULT_LINEAGE_CUSTODY_PREDICATE,
+        "failed_predicate": failed_predicate,
         "required_evidence_or_repair": detail,
         "retry_entrypoint": VAULT_LINEAGE_CUSTODY_RETRY,
         "owning_existing_goal": VAULT_LINEAGE_CUSTODY_GOAL,
@@ -277,12 +330,16 @@ def validate_vault_lineage_custody_result(
     binding: Dict[str, Any],
     provider_receipt: Dict[str, Any],
     read_back_lineage: Dict[str, Any],
+    access_receipt_verifier: Any = None,
 ) -> Dict[str, Any]:
     """E0 terminal of the durable-custody validation handoff. Returns a disposition, never raises: ALLOW with the
     custody receipt, or a six-field FAIL_CLOSED naming what the provider receipt or read-back lacks."""
     try:
         return _validate_vault_lineage_custody_result_strict(
-            binding=binding, provider_receipt=provider_receipt, read_back_lineage=read_back_lineage)
+            binding=binding, provider_receipt=provider_receipt, read_back_lineage=read_back_lineage,
+            access_receipt_verifier=access_receipt_verifier)
+    except VaultLineageAccessLayerRefused as exc:
+        return vault_lineage_custody_fail_closed(exc.code, str(exc), failed_predicate=LAYER_PREDICATES[exc.code])
     except TaskRegistryEventCustodyBindingError as exc:
         return vault_lineage_custody_fail_closed(
             "VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED",
@@ -299,6 +356,7 @@ def _validate_vault_lineage_custody_result_strict(
     binding: Dict[str, Any],
     provider_receipt: Dict[str, Any],
     read_back_lineage: Dict[str, Any],
+    access_receipt_verifier: Any = None,
 ) -> Dict[str, Any]:
     """The admitted provider WRITE receipt plus the lineage read back from custody: the read-back bytes must
     re-derive to the bound lineage hash and head, so reconstruction on any device starts from exactly them."""
@@ -322,6 +380,7 @@ def _validate_vault_lineage_custody_result_strict(
     readback = build_vault_lineage_record(exported_lineage=read_back_lineage)
     _require(readback["lineage_sha256"] == binding.get("lineage_sha256"), "read-back lineage hash mismatch")
     _require(readback["head_receipt_hash"] == binding.get("head_receipt_hash"), "read-back lineage head mismatch")
+    kv_access_receipt_hash, skap_access_receipt_hash = _require_access_layers(provider_receipt, access_receipt_verifier)
     return {
         "schema": VAULT_LINEAGE_RECEIPT_SCHEMA,
         "record_type": "KV_SKAP_VAULT_LINEAGE",
@@ -340,6 +399,8 @@ def _validate_vault_lineage_custody_result_strict(
         "provider_readback_request_id": binding["provider_readback_request"]["request_id"],
         "provider_result_ref": provider_receipt["provider_result_ref"],
         "skap_credential_ref": provider_receipt["skap_credential_ref"],
+        "kv_access_receipt_hash": kv_access_receipt_hash,
+        "skap_access_receipt_hash": skap_access_receipt_hash,
         "exact_hash_readback_verified": True,
         "authority_effect": "NONE",
     }
