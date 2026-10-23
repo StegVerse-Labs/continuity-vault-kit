@@ -1,5 +1,63 @@
 # Pinned InTr code (vendored byte-identical, digest-pinned; not a dependency)
 
+## Pin entry 2026-10-23: StegVerse-org/LLM-adapter#432 @eecf4843 (current)
+
+Source PR StegVerse-org/LLM-adapter#432 (draft), head `eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e`, re-pinned by Lane B to
+cvk#263 @9bc54d05 (StegVerse-org/.github#162 comment 6374660708; #431 @`64121f4d7dafd04a7ad926a2c20165bcd73d2ff4`,
+#433 unchanged @3f15a691). Every file below is a byte copy of `eecf4843:<path>` (checked byte-for-byte and by sha256).
+Q-PERMANENT-REPOSITORY-LEDGER / LC-KV-25: PERMANENT is designated on the node's own storage endpoint (store_type
+`NODE_STORAGE_ENDPOINT`, watermark `NODE_RECORDED_RECEIPT_CHAIN_HEAD`); no node storage-endpoint descriptor or reader is
+documented, so production is FAIL_CLOSED `NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED` (class B, reader id
+UNKNOWN_NOT_AUTHENTICALLY_OBSERVED). A PERMANENT org GIT_REF is DENY `ENDPOINT_ORG_MEMBERSHIP_REFUSED` (class A). The
+Org-side crossing readback (`ORG_CROSSING_READER`) is unset in production (`KV_CROSSING_RECORD_NOT_OBSERVED`, class B).
+The carrier is v2: the INTR_MESH_PATH_TRANSFER source half lives on the sender's own ledger, and nothing is retained on
+the org ledger (`retain` / `read_retained` are removed). The cvk#263 @9bc54d05 contracts #432 carries as test fixtures
+(`tests/fixtures/endpoint-ledger-designation/cvk263-9bc54d05/`) are kv `c9cc8913...89ce1` and skap `7f0a0536...a86f`,
+equal to cvk#263's own; they are not vendored here.
+
+Changed at eecf4843 (previous digest from the c4cfc145 entry below):
+
+| file | sha256 at eecf4843 | at c4cfc145 |
+| --- | --- | --- |
+| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09` | `2d80e443...b6b8` |
+| `llm_adapter/endpoint_ledger_designation.py` (= #431 @64121f4d) | `d69dbb22a1446a22e84b86532f93d9698ac6dc3c82e6aa6ee20882c6764049d8` | `35217d33...b883` |
+| `llm_adapter/intr_transport_carrier.py` (carrier v2, digest-only) | `9d3e69c838d7e20533f0c5a06401b018948cb12a4201889f6b41d4b497df720f` | `81ad9d3b...1aca6` |
+| `schemas/endpoint-kind.v1.json` | `592bb3e5d67685912426a331769c44f60e75ff914138e0b0afc279c0c177b7a7` | `9952a545...dda27` |
+
+Every other vendored file is byte-identical at eecf4843 (same digests); the changed modules add no imports, so the load
+order is unchanged. KV's E0 harness adds one TEST-ONLY fixture, `tests/fixtures/intr_pinned_test_only/node.designation.json`
+(byte copy of `eecf4843:tests/fixtures/endpoint-ledger-designation/node.designation.json`,
+`d004bb72cba3143b2a4a544851eff1ae688094a44ceb72c9b4c1b5a41e091b15`), and TEST-ONLY `NODE_STORAGE_ENDPOINT` reader and
+`ORG_CROSSING_READER` stand-ins in force only with the labelled E0 anchors (as #432's own tests do).
+
+## Pin entry (history): StegVerse-org/LLM-adapter#432 @c4cfc145 (superseded by eecf4843 above; kept unedited)
+
+Source PR StegVerse-org/LLM-adapter#432 (draft), head `c4cfc14566786e9da43d7a6d45d569745a582a3d`, re-pinned by Lane B to
+cvk#263 @bf684aad (StegVerse-org/.github#162 comment 6373907403; #431 @`2494d75a02751ec534d613e000e97ad8bf68180f`,
+#433 unchanged @d9164df9). Every file below is a byte copy of `c4cfc145:<path>` (checked byte-for-byte and by sha256).
+Rule (1): no endpoint chain is anchored on the org ledger; KV and SKAP_VAULT are `STEGVERSE_KV:<location>` designations
+read by `endpoint_ledger_designation` (cvk#263), GATEWAY is refused `GATEWAY_CARRIER_LEDGER_NOT_DESIGNATED`; per-kind
+failure_code (`EPHEMERAL_NODE_LEDGER_NOT_ANCHORED` for EPHEMERAL only; `ENDPOINT_LEDGER_NOT_ANCHORED` or the org-ledger
+reason for PERMANENT; rule (1) reasons are their own code), which KV now carries instead of overriding.
+
+Changed or added at c4cfc145 (previous digest from the 74509fec entry below):
+
+| file | sha256 at c4cfc145 | at 74509fec |
+| --- | --- | --- |
+| `llm_adapter/endpoint_ledger_anchor.py` (evaluate_anchored) | `2d80e443a96df667ba93da91e271549ee763d3eb570dfea9a808103f4b1ab6b8` | `d47cd0a4...c6f4` |
+| `llm_adapter/endpoint_ledger_designation.py` (NEW; also = #431 @2494d75a) | `35217d335ae6c054e1d0dfb0ffb72befc9ded184c93dee105093df5cd1b2b883` | not vendored |
+| `llm_adapter/supplied_epoch.py` (NEW; imported by the designation module; no imports) | `be91daad3d5557f810872731c3ea8cc36e1f13af569e1b7634f487fd36f44534` | not vendored |
+| `llm_adapter/intr_transport_carrier.py` (adds destination_evidence_failure / refusal) | `81ad9d3b42076c991443f3d79ec82c5f306eb8a8aa5f21228fe9faeb8b21aca6` | `9f460c07...01bf` |
+| `schemas/endpoint-kind.v1.json` (ledger_model OWN_LEDGER / STEGVERSE_KV_DESIGNATION / NOT_DESIGNATED / ORGANIZATION_LEDGER) | `9952a54526bf71809968ed719fcb5ea2fc55e865a1fbd0d67449d50561fdda27` | `94fe6fe1...3d60` |
+| `.stegverse/node-ledger/kv-ledger-head-signers.v1.json` (NEW, supporting data; signers `[]`) | `758d798388599171c145e3d19ca4eb155ad3d3762a3721804da65c08ebc1fe72` | not vendored |
+
+Every other file in the 74509fec table is byte-identical at c4cfc145 (same digests). The pinned-code-digests file
+(`9ed1e817...30f8`, canonical map `sha256:86f8b5d0...3360`) and the interface doc (`d4a53471...c6de`) are unchanged.
+`node_ledger_dissolution.py` is still not imported by evaluate_anchored and is not vendored. Load order adds
+`supplied_epoch` and `endpoint_ledger_designation` before `intr_transport_carrier`.
+
+## Pin entry (history): StegVerse-org/LLM-adapter#432 @74509fec (superseded by c4cfc145 above; kept unedited)
+
 Everything under `runtime/intr_pinned/` is a byte-identical copy of StegVerse-org/LLM-adapter at
 `74509feca062d5f17dbefe5730cbb1304ab6b318` (draft PR StegVerse-org/LLM-adapter#432, Lane B anchored-root check with
 LC-KV-16 inside evaluate_anchored, published v1 schemas; code byte-identical to @a2ee67e6, which reworked the failure

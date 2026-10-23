@@ -111,12 +111,12 @@ class KvSkapVaultE0Witnesses(unittest.TestCase):
 
     def test_an_unsigned_ephemeral_opened_record_is_refused_then_the_finish_point_runs(self) -> None:
         """LC-KV-17 (P1 rev 5, class A, E0_TERMINAL_DECIDES_AS_REQUIRED): the vendored evaluate_anchored is #432
-        @74509fec (this check unchanged since 1cbad77e), which refuses an EPHEMERAL node whose NODE_LEDGER_OPENED record is unsigned (c2c57505 admitted it)
+        @eecf4843 (this check unchanged since 1cbad77e), which refuses an EPHEMERAL node whose NODE_LEDGER_OPENED record is unsigned (c2c57505 admitted it)
         with EPHEMERAL_NODE_LEDGER_NOT_ANCHORED; a signed envelope whose key is not published is refused the same way
         (owner TV/TVC). Neither mints a receipt, and the finish point still runs to ALLOW with the PERMANENT node."""
         from runtime import kv_interlock_endpoint as ep
         from tests.kv_two_layer_e0 import NODE, e0_health_ledger
-        self.assertEqual(ep.PINNED_ANCHORED_EVALUATOR["commit"], "74509feca062d5f17dbefe5730cbb1304ab6b318")
+        self.assertEqual(ep.PINNED_ANCHORED_EVALUATOR["commit"], "eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e")
         anchor_source = (ROOT / "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py").read_text(encoding="utf-8")
         self.assertNotIn("TEMP_NODE_LEDGER_NOT_ANCHORED", anchor_source)
         six = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",

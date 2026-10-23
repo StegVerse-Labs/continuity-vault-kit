@@ -242,9 +242,11 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
     def kv(self, **ledger):
         return TwoLayers(ledger_checkout=e0_health_ledger(NODE, **ledger)[0]).kv_access()
 
-    def anchor_refused(self, out, reason):
-        refused(self, out, "NODE_ROOT_NOT_ANCHORED_" + reason, code=ep.ANCHOR_REFUSAL_CODE)
-        self.assertEqual(out["failure_code"], "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED")
+    def anchor_refused(self, out, reason, code="ENDPOINT_LEDGER_NOT_ANCHORED"):
+        # #432 @c4cfc145 (Lane D finding 3): per-kind code; a PERMANENT root's non-org-ledger refusal is
+        # ENDPOINT_LEDGER_NOT_ANCHORED, an EPHEMERAL one is EPHEMERAL_NODE_LEDGER_NOT_ANCHORED
+        refused(self, out, "NODE_ROOT_NOT_ANCHORED_" + reason, code=code)
+        self.assertEqual(out["failure_code"], code)
         self.assertEqual(out["health_evaluation"]["schema"], ep.PINNED_ANCHORED_EVALUATOR["result_schema"])
         self.assertEqual(out["health_evaluation"]["reason"], reason)
 
@@ -279,7 +281,7 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
 
     def test_an_unanchored_node_root_is_refused(self):
         out = self.kv(anchored=False)
-        self.assertEqual(out["failure_code"], ep.ANCHOR_REFUSAL_CODE)
+        self.assertEqual(out["failure_code"], ep.ENDPOINT_ANCHOR_REFUSAL_CODE)
         self.assertTrue(out["refusal_cause"].startswith("NODE_ROOT_NOT_ANCHORED_"), out)
 
     def test_the_transport_key_must_be_the_anchored_genesis_key(self):
@@ -292,7 +294,7 @@ class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
         self.assertEqual(json.loads((Path(ep._INTR_PINNED_ROOT) / ".stegverse/node-ledger/node-ledger-opened-signers.v1.json")
                                     .read_text(encoding="utf-8"))["signers"], [])
         out = self.kv(kind="EPHEMERAL")
-        self.anchor_refused(out, "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED")
+        self.anchor_refused(out, "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED", code=ep.ANCHOR_REFUSAL_CODE)
         self.assertEqual(out["failure_class"], "B")
         self.assertTrue(out["owning_existing_goal"].startswith("TV/TVC"), out["owning_existing_goal"])
         self.assertEqual(out["failed_predicate"], "NODE_LEDGER_OPENED_SIGNED_BY_PUBLISHED_KEY")
@@ -700,23 +702,56 @@ def _receipt(repository, klass, transition_id, evidence, previous):
     return {**body, "receipt_sha256": hne.sha(body)}
 
 
-def e0_kv_root(which, carried=("sha256:" + "ab" * 32,), repository=None):
+def e0_kv_root(which, carried=("sha256:" + "ab" * 32,), repository=None, klass="RECEIPT_APPENDED", extra=()):
     """A TEST-ONLY scratch KV root holding this chain as plain recorded receipts at the chain's documented location
-    (HEAD.json + receipts/<hex>.json). Returns (root, chain newest first)."""
+    (HEAD.json + receipts/<hex>.json) and KV's append-only head record (one hash-linked entry per recorded head).
+    `extra`: (transition_class, evidence) records appended after `carried`. Returns (root, chain newest first)."""
     spec = rl.RECEIPT_LEDGERS[which]
     repo = repository or spec["repository"]
     chain = [_receipt(repo, rl.GENESIS_CLASS, "REPOSITORY_LEDGER_INITIALIZATION:e0",
                       {"label": E0_LABEL, "repository": repo}, None)]
     for i, h in enumerate(carried):
-        chain.append(_receipt(repo, "RECEIPT_APPENDED", f"e0-{i}", {"receipt_sha256": h, "label": E0_LABEL},
+        chain.append(_receipt(repo, klass, f"e0-{i}", {"receipt_sha256": h, "label": E0_LABEL},
                               chain[-1]["receipt_sha256"]))
+    for i, (k, evidence) in enumerate(extra):
+        chain.append(_receipt(repo, k, f"e0-x{i}", {**evidence, "label": E0_LABEL}, chain[-1]["receipt_sha256"]))
     root = Path(tempfile.mkdtemp(prefix="e0-kv-root-"))
     where = root / spec["storage_location"]
     (where / "receipts").mkdir(parents=True)
     for r in chain:
         (where / "receipts" / (r["receipt_sha256"][7:] + ".json")).write_text(json.dumps(r), encoding="utf-8")
     (where / "HEAD.json").write_text(json.dumps({"receipt_sha256": chain[-1]["receipt_sha256"]}), encoding="utf-8")
+    write_head_record(where, [r["receipt_sha256"] for r in chain])
     return root, list(reversed(chain))
+
+
+def write_head_record(where, heads):
+    """TEST-ONLY: KV's append-only head record (rl.HEAD_RECORD), one hash-linked entry per head, oldest first."""
+    hne, previous, lines = pinned()["healthy_node_evaluator"], None, []
+    for h in heads:
+        body = {"schema": rl.HEAD_RECORD_SCHEMA, "head_receipt_sha256": h, "previous_record_sha256": previous}
+        previous = hne.sha(body)
+        lines.append(json.dumps({**body, "record_sha256": previous}))
+    (Path(where) / rl.HEAD_RECORD).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def org_crossing(which, endpoint_head, receipt="sha256:" + "0c" * 32, path_id=None):
+    """TEST-ONLY: the Org's digest-only crossing record (pointer/digest plus SUPPLIED_HB_EPOCH)."""
+    d = rl.designation(which)[0]
+    ids = d["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]["path_ids"]
+    return {"path_id": path_id or ids[0], "receipt_sha256": receipt, "endpoint_head_sha256": endpoint_head,
+            "supplied_hb_epoch": "33"}
+
+
+@contextlib.contextmanager
+def org_side(reader):
+    """TEST-ONLY: inject the E0 Org-side crossing readback (rl.ORG_CROSSING_READER; never the caller's input)."""
+    saved = rl.ORG_CROSSING_READER
+    rl.ORG_CROSSING_READER = reader
+    try:
+        yield
+    finally:
+        rl.ORG_CROSSING_READER = saved
 
 
 def e0_kv_attestation(which, chain, **override):
@@ -1011,11 +1046,10 @@ class KvSkapLedgerLocation(unittest.TestCase):
                              ["failure_code"], "RECEIPT_NOT_ON_DESIGNATED_RECEIPT_CHAIN")
             self.assertEqual(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good, head)["disposition"],
                              "ALLOW")
-            # LC-KV-23: the watermark is required (absent or malformed -> FAIL_CLOSED, class A: KV's own chain head)
-            self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good),
-                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
-            self.assertSix(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good),
-                           "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
+            # LC-KV-23 (ruling 6374130335): the reader reads KV's recorded head back itself; no claim is needed
+            self.assertEqual(rl.read_receipt_ledger("kv", device_local(), root, good)["disposition"], "ALLOW")
+            self.assertEqual(ep.KVInterlockRuntime.receipt_ledger(device_local(), root, good)["disposition"], "ALLOW")
+            # a malformed claim is still refused (class A)
             self.assertSix(rl.read_receipt_ledger("kv", device_local(), root, good, kvwm("77")),
                            "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
             # KV's own recorded head watermark: on chain ALLOW; not on chain DENY
@@ -1071,15 +1105,21 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 else:
                     read = lambda r, att, wm: rl.read_receipt_ledger(which, device_local(), r, att, wm)
                 self.assertEqual(read(root, e0_kv_attestation(which, chain), kvwm(newest))["disposition"], "ALLOW")
-                # no watermark: FAIL_CLOSED, never ALLOW on the older signed head
-                self.assertSix(read(old_root, older_signed, None), "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
-                # a watermark the read-back regresses from (KV recorded the newer head): DENY
-                self.assertSix(read(old_root, older_signed, kvwm(newest)), "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C",
-                               disposition="DENY")
+                self.assertEqual(read(root, e0_kv_attestation(which, chain), None)["disposition"], "ALLOW")
+                # HEAD.json regressed, KV's head record kept: the reader's own readback catches it, with or without
+                # a claim, and a claim regressed to the presented head cannot rescue it (ruling 6374130335)
+                for claim in (None, kvwm(newest), kvwm(chain[-1]["receipt_sha256"])):
+                    self.assertSix(read(old_root, older_signed, claim), "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C",
+                                   disposition="DENY")
+                # KV's head record absent: the watermark is missing (A), never ALLOW
+                (root / loc / rl.HEAD_RECORD).unlink()
+                self.assertSix(read(root, e0_kv_attestation(which, chain), kvwm(newest)),
+                               "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING", "A")
 
     def test_the_rollback_watermark_comes_from_kv_own_chain_never_the_org_ledger(self):
-        """Coordination's provisional class A repair (.github#167): KV is independent of the Orgs, so the watermark is
-        KV_RECORDED_RECEIPT_CHAIN_HEAD; an Org-linked head is only an optional digest-only cross-check."""
+        """Coordination's ruling (.github#167 6374130335): KV is independent of the Orgs, so the watermark is
+        KV_RECORDED_RECEIPT_CHAIN_HEAD read back by the reader; an Org-linked head is only a digest-only cross-check
+        that the reader reads itself and compares only to refuse."""
         self.assertEqual(rl.WATERMARK_SOURCE, "KV_RECORDED_RECEIPT_CHAIN_HEAD")
         self.assertEqual(rl.CONTRACT_KEY_SCHEMA["ledger_designation"]["rollback_watermark_source"]["source"],
                          ("KV_RECORDED_RECEIPT_CHAIN_HEAD",))
@@ -1098,14 +1138,16 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 # KV-chain-sourced watermark: ALLOW at E0
                 out = read(kvwm(newest))
                 self.assertEqual(out["disposition"], "ALLOW", out)
+                never_crossed = {"observed": False, "compared": 0, "never_crossed": True,
+                                 "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK", "authority_effect": "NONE"}
                 self.assertEqual(out["rollback_watermark"], {"source": "KV_RECORDED_RECEIPT_CHAIN_HEAD",
-                                                             "head_receipt_sha256": newest})
-                # the Org's side of a crossing only as a digest-only cross-check: carried, authority NONE
+                                                             "head_receipt_sha256": newest, "read_from": rl.HEAD_RECORD,
+                                                             "caller_claim": "MATCHED",
+                                                             "org_crossing_cross_check": never_crossed})
+                # a caller-supplied Org digest is only a claim: never relied on, never echoed as evidence
                 out = read(kvwm(newest, org_crossing_cross_check=org_digest))
                 self.assertEqual(out["disposition"], "ALLOW", out)
-                self.assertEqual(out["rollback_watermark"]["org_crossing_cross_check"],
-                                 {"digest": org_digest, "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK",
-                                  "authority_effect": "NONE"})
+                self.assertEqual(out["rollback_watermark"]["org_crossing_cross_check"], never_crossed)
                 # an Org cross-check digest is never compared as the watermark (it cannot rescue a regression)
                 self.assertSix(read(kvwm("sha256:" + "77" * 32, org_crossing_cross_check=newest)),
                                "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
@@ -1139,6 +1181,84 @@ class KvSkapLedgerLocation(unittest.TestCase):
             with self.subTest(which=which, edit="cross_check_wrong_role"), \
                     kv_chain_e0(which, None, cross_check_wrong_role):
                 self.assertSix(rl.read_receipt_ledger(which), "KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2", "C")
+
+    def test_cross_check_path_ids_end_in_intr_destination(self):
+        """Lane B's stricter rule (#432 @c4cfc145 endpoint_ledger_designation), adopted: KV reaches the Orgs only
+        through InTr intr-destination paths, so every cross-check path_id ends in ':intr-destination'."""
+        self.assertEqual(rl.PATH_ID_SUFFIX, ":intr-destination")
+        for which in self.CHAINS:
+            contract = json.loads((ROOT / rl.RECEIPT_LEDGERS[which]["contract_path"]).read_text(encoding="utf-8"))
+            ids = contract["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]["path_ids"]
+            self.assertTrue(ids and all(p.endswith(":intr-destination") for p in ids), ids)
+            for bad in ([ids[0].replace(":intr-destination", ":intr-source")], [ids[0] + ":x"],
+                        [ids[0], "StegVerse-org->STEGVERSE_KV"], ids[0], [], [None]):
+                def edit(c, bad=bad):
+                    c["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]["path_ids"] = bad
+                with self.subTest(which=which, path_ids=bad), kv_chain_e0(which, None, edit):
+                    self.assertSix(rl.read_receipt_ledger(which), "KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2",
+                                   "C")
+
+    def test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record(self):
+        """LC-KV-23 (class A, ruling StegVerse-org/.github#167 comment 6374130335). The storage, its HEAD.json and
+        KV's head record are rolled back together to an older head, so KV's own readback alone cannot see it; the
+        Org's digest-only crossing record (read by the reader, never the caller) names the newer head: DENY
+        KV_LEDGER_HEAD_ROLLBACK_DETECTED, also for REGRESSED_TO_PRESENTED_HEAD. After a crossing an unobservable or
+        omitted Org side is FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED (B); a never-crossed E0 chain ALLOWs at its
+        current head. The Org never grants."""
+        carried, org_rec = "sha256:" + "ab" * 32, "sha256:" + "0c" * 32
+        for which in self.CHAINS:
+            ingress = ("INTR_MESH_PATH_INGRESS", {"organization_receipt_sha256": org_rec})
+            root, chain = e0_kv_root(which, (carried,), extra=(ingress,))
+            crossed_head = chain[0]["receipt_sha256"]
+            old_root, old_chain = e0_kv_root(which, (carried,))       # whole-storage rollback: chain + HEAD + record
+            old_head = old_chain[0]["receipt_sha256"]
+            self.assertEqual(old_chain, chain[1:])
+            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]):
+                if which == "skap_vault":
+                    layers = TwoLayers()
+                    read = lambda r, att, wm=None: layers.gate.receipt_ledger(layers.kv_hash(), device_local(), r,
+                                                                             att, wm)
+                else:
+                    read = lambda r, att, wm=None: rl.read_receipt_ledger(which, device_local(), r, att, wm)
+                att, old_att = e0_kv_attestation(which, chain), e0_kv_attestation(which, old_chain)
+                # never crossed, no Org record observable: comparison skipped, ALLOW at the current head (E0)
+                out = read(old_root, old_att)
+                self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", old_head), out)
+                self.assertTrue(out["rollback_watermark"]["org_crossing_cross_check"]["never_crossed"])
+                with org_side(lambda d, w: [org_crossing(which, crossed_head)]):
+                    # the current chain, both sides recorded: ALLOW (the Org digest refused nothing; it grants nothing)
+                    out = read(root, att, kvwm(crossed_head))
+                    self.assertEqual(out["disposition"], "ALLOW", out)
+                    self.assertEqual(out["rollback_watermark"]["org_crossing_cross_check"],
+                                     {"observed": True, "compared": 1, "never_crossed": False,
+                                      "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK", "authority_effect": "NONE"})
+                    # whole-chain rollback, with no claim and with REGRESSED_TO_PRESENTED_HEAD: DENY
+                    for claim in (None, kvwm(old_head), kvwm(old_head, org_crossing_cross_check=old_head)):
+                        out = read(old_root, old_att, claim)
+                        self.assertSix(out, "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
+                        self.assertIn(crossed_head, out["detail"])
+                # the Org side names a head that is not an ancestor of the KV head (a fork): DENY
+                with org_side(lambda d, w: [org_crossing(which, "sha256:" + "5e" * 32)]):
+                    self.assertSix(read(old_root, old_att), "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
+                # crossed, Org side unobservable, empty, unreadable, malformed or only caller-supplied: never ALLOW
+                def boom(d, w):
+                    raise OSError("no readback")
+                for reader in (None, lambda d, w: None, lambda d, w: [], boom, lambda d, w: [{"digest": org_rec}],
+                               lambda d, w: [org_crossing(which, crossed_head, path_id="StegVerse-org->X:intr-source")]):
+                    with org_side(reader):
+                        for claim in (None, kvwm(crossed_head, org_crossing_cross_check=org_rec)):
+                            out = read(root, att, claim)
+                            self.assertSix(out, "KV_CROSSING_RECORD_NOT_OBSERVED", "B")
+                            self.assertEqual(out["failed_predicate"], "ORG_SIDE_OF_EACH_CROSSING_OBSERVED_BY_THE_READER")
+                            self.assertTrue(out["owning_existing_goal"].startswith("StegVerse-org/.github#162"))
+                # an ingress record whose Org peer was not observed: one-sided (Lane B's rule)
+                with org_side(lambda d, w: [org_crossing(which, crossed_head, receipt="sha256:" + "9d" * 32)]):
+                    out = read(root, att)
+                    self.assertSix(out, "INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES", "B")
+                    self.assertEqual(out["failed_predicate"], "EACH_CROSSING_RECORDED_BY_BOTH_ENDPOINTS")
+                # an egress-only (TRANSFER) chain with no Org side observed: not observed, never ALLOW
+                t_root, t_chain = e0_kv_root(which, (carried,), klass="INTR_MESH_PATH_TRANSFER")
+                self.assertSix(read(t_root, e0_kv_attestation(which, t_chain)), "KV_CROSSING_RECORD_NOT_OBSERVED", "B")
 
     def test_external_storage_records_are_refused(self):
         """The provider's own records (Drive metadata files, revisions) never cross into KV."""

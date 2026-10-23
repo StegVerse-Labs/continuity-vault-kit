@@ -49,9 +49,9 @@ class KvSkapVaultFinishPoint(unittest.TestCase):
         verdict = kv.finish_point()
         self.assertEqual(verdict["task_id"], "KV-SKAP-VAULT-FUNCTIONAL-001")
         self.assertEqual(verdict["scope_digest"],
-                         "sha256:d68e239bd1eeabe6558b52928632e9e1df35656e55b3f899755924e66b862ada")
+                         "sha256:d4a98dc0c0ff9db7dbc05b1b97d93573dda7b59dcd2a7628e2cf6620e26c7ef2")  # LC-KV-09 reseal
         self.assertEqual([r["predicate"] for r in verdict["predicates"]], list(kv.PREDICATES))
-        self.assertEqual(len(kv.PREDICATES), 9)
+        self.assertEqual(len(kv.PREDICATES), 13)
         unmet = [r for r in verdict["predicates"] if r["disposition"] != "ALLOW"]
         self.assertEqual(verdict["disposition"], "FAIL_CLOSED" if unmet else "ALLOW")
         for row in unmet:
@@ -84,7 +84,10 @@ class KvSkapVaultFinishPoint(unittest.TestCase):
         self.assertEqual({r["predicate"]: r.get("failure_code") for r in verdict["predicates"]
                           if r["disposition"] != "ALLOW"},
                          {**{p: "KV_FINISH_POINT_EVIDENCE_INVALID" for p in kv._EVIDENCE_CHECKS},
-                          "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY": "SKAP_ACCESS_LAYER2_REFUSED"})
+                          "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY": "SKAP_ACCESS_LAYER2_REFUSED",
+                          "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE": "KV_ACCESS_LAYER1_REFUSED",
+                          "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV": "SKAP_ACCESS_LAYER2_REFUSED",
+                          "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT": "SKAP_ACCESS_LAYER2_REFUSED"})
 
 
 class RoundTrip(unittest.TestCase):
@@ -460,7 +463,8 @@ class EvidenceDrivenVerdict(unittest.TestCase):
 
     def test_every_access_row_failure_fails_its_mapped_sealed_predicate(self) -> None:
         """LC-KV-09 E1 condition (Coordination, Oct 23): for each access row, if the row fails, the sealed predicate
-        it maps to (ACCESS_CONSTRAINT_PREDICATE) fails. The mapping stands without a re-seal (scope_digest d68e239b).
+        it maps to (ACCESS_CONSTRAINT_PREDICATE) fails. Since the LC-KV-09 reseal (d68e239b -> d4a98dc0) each row is
+        also its own sealed predicate, and a failing row fails that predicate too.
 
         Part 1 isolates each row: only that row is made to fail. Part 2 uses real evidence mutations, including
         multi-row ones.
@@ -468,7 +472,8 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         mapping = kv.ACCESS_CONSTRAINT_PREDICATE
         self.assertEqual(set(mapping), {kv.LAYER_PREDICATE_L1, kv.LAYER_PREDICATE_L2, kv.LAYER_PREDICATE_PRIOR})
         self.assertTrue(set(mapping.values()) <= set(kv.PREDICATES), mapping)
-        self.assertTrue(kv.SCOPE_DIGEST.startswith("sha256:d68e239b"))
+        self.assertTrue(set(mapping) <= set(kv.PREDICATES), mapping)  # LC-KV-09: each row is a sealed predicate
+        self.assertTrue(kv.SCOPE_DIGEST.startswith("sha256:d4a98dc0"))
         baseline = kv.evaluate(evidence_bundle())
         self.assertEqual(baseline["access_constraints_conformant"], 3)
         allowed = {r["predicate"] for r in baseline["predicates"] if r["disposition"] == "ALLOW"}
@@ -496,6 +501,15 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             self.assertIn(row, mapped["access_constraints_unmet"])
             for field in SIX:
                 self.assertTrue(mapped[field], (row, field))
+            own = preds[row]
+            self.assertEqual(own["disposition"], "FAIL_CLOSED", row)
+            self.assertEqual(own["failure_code"], next(a["failure_code"] for a in verdict["access_constraints"]
+                                                       if a["constraint"] == row), row)
+            self.assertEqual(own["access_constraints_unmet"], [row])
+            for field in SIX:
+                self.assertTrue(own[field], (row, field))
+            for sibling in set(mapping) - {row}:
+                self.assertEqual(preds[sibling]["disposition"], "ALLOW", (row, sibling))
             for other in set(mapping.values()) - {mapping[row]}:
                 if all(mapping[r] != other for r in rows if rows[r] != "ALLOW"):
                     self.assertEqual(preds[other]["disposition"], "ALLOW", (row, other))
@@ -519,6 +533,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             self.assertTrue(failing, name)
             for row in failing:
                 self.assertNotEqual(preds[mapping[row]]["disposition"], "ALLOW", (name, row))
+                self.assertNotEqual(preds[row]["disposition"], "ALLOW", (name, row))
 
     def test_each_access_layer_gap_is_a_six_field_fail_closed(self) -> None:
         """LC-KV-09/10/11: the three access constraints, each evidence-bound and named by its own layer."""
@@ -551,6 +566,10 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             self.assertEqual({a["constraint"] for a in verdict["access_constraints"] if a["disposition"] != "ALLOW"},
                              unmet, codes)
             self.assertEqual({k: v for k, v in failure_codes(verdict).items() if k in (RT, SK)}, codes)
+            own = {k: v for k, v in failure_codes(verdict).items() if k in (L1, L2, PRIOR)}
+            self.assertEqual(set(own), unmet, codes)  # LC-KV-09: each failing row fails its own sealed predicate
+            rows = {r["constraint"]: r.get("failure_code") for r in verdict["access_constraints"]}
+            self.assertEqual(own, {c: rows[c] for c in unmet})
             for row in verdict["access_constraints"]:
                 if row["disposition"] != "ALLOW":
                     for field in SIX:
@@ -579,15 +598,65 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         for field in SIX:
             self.assertTrue(refused[field], field)
 
+    def test_endpoint_not_an_org_member_reuses_the_closed_membership_schema(self) -> None:
+        """LC-KV-09 P4 (ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER): decided by runtime.kv_receipt_ledgers' closed
+        membership schema and by both digest-pinned contracts loading through designation(); nothing re-implemented."""
+        P4 = kv.MEMBERSHIP_PREDICATE
+        self.assertIn(P4, kv.PREDICATES)
+        self.assertNotIn(P4, kv.EVIDENCE_BOUND)  # decided without evidence, at E0
+        from runtime import kv_receipt_ledgers as ledgers
+        self.assertIs(kv._closed_schema, ledgers._closed_schema)
+        self.assertIs(kv.designation, ledgers.designation)
+        for verdict in (kv.evaluate(), kv.evaluate(evidence_bundle())):
+            row = next(r for r in verdict["predicates"] if r["predicate"] == P4)
+            self.assertEqual((row["disposition"], row["locus"]), ("ALLOW", "LOCAL_EXERCISE+CONTRACTS"))
+        for probe in kv._MEMBERSHIP_PROBES:  # every probe is refused by the shared checks
+            closed = ledgers._closed_schema(probe)
+            self.assertTrue((closed and closed[0] == ledgers.MEMBERSHIP_CODE) or ledgers._org_membership(probe)
+                            or ledgers._org_designation(probe), probe)
+
+    def test_endpoint_org_membership_fails_closed(self) -> None:
+        P4 = kv.MEMBERSHIP_PREDICATE
+        # a contract that binds an org membership: designation() refuses it, and P4 fails closed with six fields
+        original = kv.designation
+        refusal = {"failure_code": kv.MEMBERSHIP_CODE, "failure_class": "C",
+                   "required_evidence_or_repair": "remove the organization binding"}
+        kv.designation = lambda which: (None, refusal) if which == kv.SKAP_VAULT_LEDGER else original(which)
+        try:
+            self.assertEqual(kv._contracts_membership()[0], kv.MEMBERSHIP_CODE)
+            verdict = kv.evaluate(evidence_bundle())
+        finally:
+            kv.designation = original
+        row = next(r for r in verdict["predicates"] if r["predicate"] == P4)
+        self.assertEqual(row["disposition"], "FAIL_CLOSED")
+        self.assertNotEqual(verdict["disposition"], "ALLOW")
+        for field in SIX:
+            self.assertTrue(row[field], field)
+        # a shared schema that stopped refusing membership keys is a local regression: P4 fails closed
+        original_closed = kv._closed_schema
+        kv._closed_schema = lambda contract: None
+        try:
+            self.assertFalse(kv._membership_exercise())
+            verdict = kv.evaluate(evidence_bundle())
+        finally:
+            kv._closed_schema = original_closed
+        self.assertEqual(failure_codes(verdict).keys(), {P4})
+        row = next(r for r in verdict["predicates"] if r["predicate"] == P4)
+        for field in SIX:
+            self.assertTrue(row[field], field)
+
     def test_the_finish_point_expects_a_permanent_node(self) -> None:
-        """LC-KV-13 completes with a PERMANENT node. Another own-ledger kind (here SKAP_VAULT) binds at layer 1, but its
-        receipts do not complete the finish point."""
+        """LC-KV-13 completes with a PERMANENT node. Since #432 @c4cfc145 (rule 1) a SKAP_VAULT is a STEGVERSE_KV:<location>
+        designation (cvk#263), never an opened node ledger: evaluate_anchored refuses to open one, so no SKAP_VAULT node
+        receipt exists to complete the finish point. KV's own PERMANENT-only check stays as defense in depth."""
         from tests.kv_two_layer_e0 import NODE, e0_health_ledger
         self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
-        other = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="SKAP_VAULT")[0])
-        verdict = kv.evaluate(evidence_bundle(other))
-        self.assertIn("KV_ACCESS_LAYER1_REFUSED", set(failure_codes(verdict).values()))
-        self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS", json.dumps(verdict))
+        with self.assertRaises(AssertionError) as refused_open:
+            e0_health_ledger(NODE, kind="SKAP_VAULT")
+        self.assertIn("ENDPOINT_INVALID", str(refused_open.exception))
+        self.assertIn("STEGVERSE_KV:_Vault/SKAP/Receipts", str(refused_open.exception))
+        self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS",
+                      (ROOT / "runtime/kv_skap_vault.py").read_text(encoding="utf-8"))
 
     def test_an_ephemeral_node_fails_closed_until_tv_tvc_publishes_a_signer(self) -> None:
         """EPHEMERAL anchors are signed envelopes (#432 @1cbad77e); the signers file is empty, so layer 1 is a six-field
