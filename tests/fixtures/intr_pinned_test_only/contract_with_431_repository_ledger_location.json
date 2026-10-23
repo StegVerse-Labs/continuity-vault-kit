@@ -24,7 +24,9 @@
     "new_ledger_root": false,
     "designation_source": "StegVerse-org/.github .stegverse/transition-ledger/org-contract.json organization_ledger_ref (StegVerse-org/LLM-adapter#368 issuecomment-6092785329); the same subtree form StegVerse-org/.github declares for its own repository chain and StegVerse-org/StegVerse-SDK declares for the SDK.",
     "initialization": "Genesis is a REPOSITORY_LEDGER_INITIALIZATION transition whose first receipt has previous_receipt_sha256 null. Publication of the ref is the organization's own append under ORGANIZATION_LEDGER_LOCK. Not performed by this repository.",
-    "rule": "The repository chain is kept in its own subtree of the designated organization ledger ref. Repository replay walks repository-ledger/StegVerse-org/LLM-adapter/HEAD.json back through its own receipts and never reads an organization receipt. Existing organization-ledger commits are not rewritten."
+    "rule": "The repository chain is kept in its own subtree of the designated organization ledger ref. Repository replay walks repository-ledger/StegVerse-org/LLM-adapter/HEAD.json back through its own receipts and never reads an organization receipt. Existing organization-ledger commits are not rewritten.",
+    "expected_genesis_receipt_sha256": null,
+    "expected_genesis_note": "Null on purpose: the REPOSITORY_LEDGER_INITIALIZATION genesis receipt for repository-ledger/StegVerse-org/LLM-adapter cannot be known before it is observed. Its receipt_sha256 covers observed_at, which emit.py stamps from datetime.now(), and an hb_reference derived from a clock sample unless an epoch is supplied. The organization's own append writes it, and the org's precedent genesis for repository-ledger/StegVerse-org/.github carries derived_from_clock true. No digest is invented. Until an admitted change sets this field to the observed genesis receipt_sha256 (read back from refs/stegverse/organization-ledger), consumers fail closed ORG_LEDGER_GENESIS_NOT_PINNED (StegVerse-org/LLM-adapter#432 org_ledger_location)."
   },
   "propagation_rule": "PROPAGATE_ONLY_EVIDENCE_NEEDED_BY_NEXT_HIGHER_LEVEL",
   "authority_effect": "NONE_CONTRACT_ONLY"

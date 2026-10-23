@@ -1,0 +1,16 @@
+{
+  "schema": "stegverse.published-public-key-references/v1",
+  "purpose": "Public-key references of the admitted organization-ledger append route's head attesters. llm_adapter.org_ledger_location accepts a caller-named StegVerse-org/.github object store only when its refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/LLM-adapter head and namespace tree carry an Ed25519 stegverse.org-ledger-head-attestation/v1 by one of these keys (LC-KV-16 rev 5).",
+  "custody": "TV/TVC. Keys are generated and held by TV/TVC custody for the admitted append route only; bots and this repository never hold key material. A reference is added here only by an admitted change carrying TV/TVC's publication receipt.",
+  "signers": [],
+  "state": "NONE_PUBLISHED: the org-ledger append route is not admitted (MERGE_APPEND_PATH_NOT_ADMITTED), so every org-ledger read is FAIL_CLOSED and nothing on the anchored layer-1 path or the InTr carrier path can ALLOW.",
+  "entry_shape": {
+    "key_id": "string",
+    "algorithm": "Ed25519",
+    "public_key_b64": "32-byte Ed25519 public key, base64",
+    "custody": "TV/TVC",
+    "signs": "ORG_LEDGER_HEAD",
+    "publication_receipt_ref": "sha256:<TV/TVC publication receipt>"
+  },
+  "authority_effect": "NONE_PUBLIC_KEY_REFERENCES_ONLY"
+}
