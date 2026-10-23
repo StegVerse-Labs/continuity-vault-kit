@@ -408,16 +408,28 @@ def designation(which: str) -> tuple[dict[str, Any] | None, dict[str, Any] | Non
             "expected_genesis_receipt_sha256": genesis if pinned else None}, None
 
 
+#: The one place the six-field refusal for a binding's pending prerequisite is returned.
+BINDING_PREREQUISITE_REF = "runtime.kv_receipt_ledgers.receipt_ledger_prerequisites"
+
+
 def receipt_ledger_binding(which: str) -> dict[str, Any]:
-    """What a minted receipt records about the chain it belongs on (where, under which contract, pinned or not)."""
+    """What a minted receipt records about the chain it belongs on: where it is, under which contract, and whether the
+    genesis is pinned. This is a status note embedded in ALLOW receipts and custody results, not a refusal, so it
+    carries no ``disposition`` and no ``failure_code`` (P4 review N-1, #166 6375605423). An unmet prerequisite is named
+    in ``pending_prerequisite_code``. Its six-field FAIL_CLOSED refusal comes from receipt_ledger_prerequisites() and
+    read_receipt_ledger()."""
     d, refusal = designation(which)
     if refusal:
-        return {"receipt_ledger": which, "disposition": FAIL_CLOSED, "failure_code": refusal["failure_code"]}
+        return {"receipt_ledger": which, "binding_state": "DESIGNATION_REFUSED",
+                "pending_prerequisite_code": refusal["failure_code"], "pending_prerequisite_ref": BINDING_PREREQUISITE_REF}
     out = {k: d[k] for k in ("receipt_ledger", "storage_location", "repository", "location", "contract_sha256",
                              "expected_genesis_receipt_sha256")}
-    out["disposition"] = "DESIGNATED_GENESIS_PINNED" if d["expected_genesis_receipt_sha256"] else FAIL_CLOSED
-    if not d["expected_genesis_receipt_sha256"]:
-        out["failure_code"] = "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED"
+    if d["expected_genesis_receipt_sha256"]:
+        out["binding_state"] = "DESIGNATED_GENESIS_PINNED"
+    else:
+        out.update(binding_state="DESIGNATED_GENESIS_NOT_PINNED",
+                   pending_prerequisite_code="KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED",
+                   pending_prerequisite_ref=BINDING_PREREQUISITE_REF)
     return out
 
 

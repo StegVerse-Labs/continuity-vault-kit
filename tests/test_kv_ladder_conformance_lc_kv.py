@@ -1260,6 +1260,63 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 t_root, t_chain = e0_kv_root(which, (carried,), klass="INTR_MESH_PATH_TRANSFER")
                 self.assertSix(read(t_root, e0_kv_attestation(which, t_chain)), "KV_CROSSING_RECORD_NOT_OBSERVED", "B")
 
+    def test_lc_kv_26_rollback_after_the_last_crossing_is_a_documented_residual(self):
+        """LC-KV-26 (class B, owner Lane B on the node side; StegVerse-org/.github#162). This is a witness of a
+        documented residual and is not a pass condition. P1's joint review of #263 @34496af5 found
+        WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK.
+
+        The whole store is rolled back together: the receipts, HEAD.json and KV's head record. The rollback point is
+        after the last crossing. It drops the internal heads appended after that crossing and keeps the crossed head.
+        Today that read is ALLOW, for kv and for SKAP through the gate.
+
+        The Org side cannot detect it. The Org's digest-only crossing record names only the crossed head, which is
+        still on the rolled-back chain and is an ancestor of the rolled-back head. Heads appended after the last
+        crossing never crossed, so no Org record names them, and KV's own head record was rolled back with the store.
+
+        This is the counterpart of the pre-first-crossing residual (never crossed, no Org record): see
+        test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record.
+
+        The repair is owned by LC-KV-26: a node->KV crossing recorded at both ends, with a digest-only node-side record
+        of the observed KV head and/or an Org-side genesis/first-head crossing. The repair will turn this witness into
+        DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED, the code Coordination's ruling keeps. P4 reproduced this independently
+        (StegVerse-org/.github#166 comment 6375605423 §3.1, repro_p1_item1.py). This test is that scenario, plus one more leg that
+        drops only one internal head."""
+        carried, org_rec = "sha256:" + "ab" * 32, "sha256:" + "0c" * 32
+        ingress = ("INTR_MESH_PATH_INGRESS", {"organization_receipt_sha256": org_rec})
+        internal = [("RECEIPT_APPENDED", {"receipt_sha256": "sha256:" + h * 32}) for h in ("e1", "e2")]
+        for which in self.CHAINS:
+            root, chain = e0_kv_root(which, (carried,), extra=(ingress, *internal))
+            crossed_head = chain[2]["receipt_sha256"]
+            self.assertEqual(chain[2]["transition_class"], "INTR_MESH_PATH_INGRESS")
+            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]), \
+                    org_side(lambda d, w: [org_crossing(which, crossed_head)]):
+                if which == "skap_vault":
+                    layers = TwoLayers()
+                    read = lambda r, att, wm=None: layers.gate.receipt_ledger(layers.kv_hash(), device_local(), r,
+                                                                             att, wm)
+                else:
+                    read = lambda r, att, wm=None: rl.read_receipt_ledger(which, device_local(), r, att, wm)
+                self.assertEqual(read(root, e0_kv_attestation(which, chain))["disposition"], "ALLOW")
+                # whole-store rollbacks after the last crossing: one internal head dropped, then both
+                for kept in (internal[:1], ()):
+                    old_root, old_chain = e0_kv_root(which, (carried,), extra=(ingress, *kept))
+                    self.assertEqual(old_chain, chain[len(internal) - len(kept):])
+                    self.assertEqual(old_chain[len(kept)]["receipt_sha256"], crossed_head)  # crossed head preserved
+                    old_head = old_chain[0]["receipt_sha256"]
+                    out = read(old_root, e0_kv_attestation(which, old_chain))
+                    # RESIDUAL (LC-KV-26): ALLOW today at the rolled-back head; the Org record refused nothing
+                    self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", old_head), out)
+                    self.assertEqual(out["rollback_watermark"]["org_crossing_cross_check"],
+                                     {"observed": True, "compared": 1, "never_crossed": False,
+                                      "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK", "authority_effect": "NONE"})
+                    # a recorded_head claim equal to the rolled-back head is no help either (P4's repro): ALLOW
+                    out = read(old_root, e0_kv_attestation(which, old_chain), kvwm(old_head))
+                    self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", old_head), out)
+                    # only a party that holds the newer head (today the caller's claim; after LC-KV-26 the node's
+                    # digest-only record of the observed KV head) can see it: DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED
+                    self.assertSix(read(old_root, e0_kv_attestation(which, old_chain), kvwm(chain[0]["receipt_sha256"])),
+                                   "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
+
     def test_external_storage_records_are_refused(self):
         """The provider's own records (Drive metadata files, revisions) never cross into KV."""
         root, chain = e0_kv_root("kv")
@@ -1294,7 +1351,43 @@ class KvSkapLedgerLocation(unittest.TestCase):
         self.assertEqual(l2["receipt_ledger"]["location"], "STEGVERSE_KV#KV_INTR_ENDPOINT:_Vault/SKAP/Receipts")
         self.assertEqual(l2["layer1_receipt_ledger"], l1["receipt_ledger"])
         self.assertEqual(bound["body"]["receipt_ledger"], rl.receipt_ledger_binding("skap_vault"))
-        self.assertEqual(l1["receipt_ledger"]["failure_code"], "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED")
+        self.assertEqual(l1["receipt_ledger"]["pending_prerequisite_code"], "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED")
+
+    def test_n1_the_binding_in_an_allow_receipt_is_a_note_not_a_refusal(self):
+        """P4 review N-1 (#166 6375605423). receipt_ledger_binding() is embedded in every minted layer-1 and
+        layer-2 receipt and in the custody result. It is a status note, so it carries no disposition and no
+        failure_code. The unmet prerequisite is named in pending_prerequisite_code, and its six-field refusal comes
+        from receipt_ledger_prerequisites()."""
+        layers = TwoLayers()
+        vault = layers.vault()
+        bound = layers.bind(vault, custody_key_ref="tvc://skap-custody/e0-ledger", issued_by="TV/TVC",
+                            tvc_issuance_receipt_ref="sha256:" + "cd" * 32)
+        l1, l2 = layers.layer1_receipts[-1], layers.gate.export_receipts()[-1]
+        # the refusals for unmet prerequisites are six-field rows, returned only by receipt_ledger_prerequisites()
+        prerequisites = [row for row in rl.receipt_ledger_prerequisites() if row.get("disposition") != "ALLOW"]
+        self.assertTrue(prerequisites)
+        for row in prerequisites:
+            for field in SIX:
+                self.assertTrue(row.get(field), (field, row))
+        for where, binding in (("layer1", l1["receipt_ledger"]), ("layer2", l2["receipt_ledger"]),
+                               ("layer2.layer1", l2["layer1_receipt_ledger"]),
+                               ("custody", bound["body"]["receipt_ledger"])):
+            with self.subTest(where=where):
+                self.assertNotIn("disposition", binding)
+                self.assertNotIn("failure_code", binding)
+                self.assertEqual(binding["binding_state"], "DESIGNATED_GENESIS_NOT_PINNED")
+                self.assertEqual(binding["pending_prerequisite_code"], "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED")
+                self.assertEqual(binding["pending_prerequisite_ref"], rl.BINDING_PREREQUISITE_REF)
+        # a refused designation is also only a note in the binding
+        def edit(c):
+            c["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]["path_ids"] = []
+        for which in self.CHAINS:
+            with self.subTest(which=which), kv_chain_e0(which, None, edit):
+                binding = rl.receipt_ledger_binding(which)
+                self.assertEqual(binding["binding_state"], "DESIGNATION_REFUSED", binding)
+                self.assertNotIn("disposition", binding)
+                self.assertNotIn("failure_code", binding)
+                self.assertEqual(binding["pending_prerequisite_code"], rl.designation(which)[1]["failure_code"])
 
     def test_layer2_refuses_a_layer1_receipt_naming_another_chain(self):
         layers = TwoLayers()
