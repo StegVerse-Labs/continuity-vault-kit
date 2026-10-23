@@ -397,13 +397,15 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         self.assertEqual(self.receipts, [])
 
     def test_an_onboarded_chain_without_a_report_fails_closed(self):
-        """No report means the boundary never admitted the node over InTr, so #432 @1cbad77e refuses on transport
-        (read from the node's NODE_INGRESS_ADMITTED receipt) before the evaluator runs: class B, six fields."""
+        """No report: #432 @a2ee67e6 runs health/admission before the transport stages (precedence location, anchor,
+        identity, health/admission, transport, carrier), so HEALTH_REPORT_MISSING is no longer masked by transport:
+        class B, six fields."""
         response = self.handle(self.runtime_for(e0_health_ledger("SV-NODE-E0TEST0001", report=False)[0]))
-        code = self.m.INTR_TRANSPORT_REFUSAL_CODE
         self.assertEqual((response["decision"], response["failure_code"], response["failure_class"],
-                          response["refusal_cause"]), ("FAIL_CLOSED", code, "B", code))
-        self.assertEqual(response["health_evaluation"]["observed_transport"], None)
+                          response["refusal_cause"]),
+                         ("FAIL_CLOSED", "KV_ACCESS_LAYER1_REFUSED", "B", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"))
+        self.assertEqual((response["health_evaluation"]["reason"], response["health_evaluation"]["failed_stage"]),
+                         ("HEALTH_REPORT_MISSING", "HEALTH_AND_ADMISSION"))
         for field in SIX:
             self.assertTrue(response[field], field)
         self.assertIsNone(response["kv_access_receipt"])
@@ -411,7 +413,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
     def test_the_pin_records_428_429_and_430_provenance(self):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
         self.assertEqual([p["commit"][:8] for p in pin["provenance"]],
-                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e"])
+                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e", "a2ee67e6", "73316297", "74509fec"])
         self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):
@@ -429,11 +431,12 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
             self.assert_layer1_refusal(response, reason)
             self.assertEqual((response["health_evaluation"]["disposition"], response["health_evaluation"]["reason"]),
                              (disposition, reason))
-        # a node the boundary refused has no NODE_INGRESS_ADMITTED over InTr: #432 refuses on transport first
+        # a node the boundary refused: #432 @a2ee67e6 decides admission before transport, so NODE_NOT_ADMITTED
         response = self.handle(self.runtime_for(e0_health_ledger("SV-NODE-E0TEST0001", admitted=False)[0]))
-        self.assertEqual((response["failure_code"], response["refusal_cause"]),
-                         (self.m.INTR_TRANSPORT_REFUSAL_CODE, self.m.INTR_TRANSPORT_REFUSAL_CODE))
-        self.assertEqual(response["health_evaluation"]["observed_transport"]["transition_class"], "NODE_INGRESS_REFUSED")
+        self.assert_layer1_refusal(response, "NODE_NOT_ADMITTED")
+        self.assertEqual((response["refusal_cause"], response["health_evaluation"]["reason"],
+                          response["health_evaluation"]["failed_stage"]),
+                         ("NODE_NOT_CURRENTLY_ADMITTED_HEALTHY", "NODE_NOT_ADMITTED", "HEALTH_AND_ADMISSION"))
         # another node's endpoint or a foreign producer's receipts are refused by evaluate_anchored's anchored-root check
         for root, reason in ((e0_health_ledger("SV-NODE-E0OTHER001")[0], None),
                              (e0_health_ledger("SV-NODE-E0TEST0001", foreign=True)[0], "FOREIGN_PRODUCER_RECEIPT")):
