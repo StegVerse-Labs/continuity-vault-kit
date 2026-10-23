@@ -1,0 +1,21 @@
+{
+  "authority_effect": "NONE_PIN_RECORD_ONLY",
+  "digests": {
+    ".stegverse/transition-ledger/emit.py": "sha256:9579726de7ef915ac8cd61be1ba1c5ef6e34de4ca996504374b0dce7f7c2c9c3",
+    "llm_adapter/ed25519_verify.py": "sha256:ab05e39a3e40b99f02ff199b178554e0ba435c3ff387dca3f896619770770232",
+    "llm_adapter/healthy_node_evaluator.py": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
+    "llm_adapter/node_existence_readback.py": "sha256:cbed113d7fe59fc0919953bad5a0a08cdaeba3ad70a4e728e572c360f6fb2fb7",
+    "llm_adapter/node_health_check_projection.py": "sha256:97cb7043c3f43d9aab2f0a591e1eefb94d3b127efc542d75be8d7574ce561ae8",
+    "llm_adapter/node_health_report_producer.py": "sha256:21249f2505505afd60eb14188ea638202f2926b207d64cfcf8c3bc5db2d9f361",
+    "llm_adapter/node_identity_binding_producer.py": "sha256:ab578c921c6de5f50b9ecca50a71645e10582a051d2dd3417faa62d0dfdec01a",
+    "llm_adapter/node_ingress_boundary.py": "sha256:86bae0426956581b862dd085c4ac64bf0a4f7dc37b0309ca9d223a3306754339",
+    "llm_adapter/node_receipt_common.py": "sha256:7e73b65b649c7238aa6ae47409282b2fb729157de083c093fe595611966e43c7"
+  },
+  "evaluator_path": "llm_adapter/healthy_node_evaluator.py",
+  "pinned_from": {
+    "evaluator": "StegVerse-org/LLM-adapter#428 (llm_adapter/healthy_node_evaluator.py, vendored byte-identical by Lane D)",
+    "producers": "StegVerse-org/LLM-adapter#429 and #430 at laneb/node-receipt-producers 3c106de4"
+  },
+  "purpose": "The evaluator and producer code whose receipts count on an anchored temporary node ledger (LC-KV-13). A NODE_LEDGER_OPENED anchor binds the sha256 of this pin set; a temp ledger is admissible only while the running files hash to these digests.",
+  "schema": "stegverse.temp-node-ledger-pinned-code-digests/v1"
+}

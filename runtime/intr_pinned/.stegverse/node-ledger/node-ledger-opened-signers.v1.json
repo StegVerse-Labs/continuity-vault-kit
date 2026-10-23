@@ -1,0 +1,16 @@
+{
+  "schema": "stegverse.published-public-key-references/v1",
+  "purpose": "Public-key references of the signers whose Ed25519 signature over StegOS's NODE_LEDGER_OPENED generation record (domain stegverse.node-ledger-opened-signature/v1) llm_adapter.endpoint_ledger_anchor accepts (LC-KV-16).",
+  "custody": "TV/TVC. Keys are generated and held by TV/TVC custody only; bots and this repository never hold key material. A reference is added here only by an admitted change carrying TV/TVC's publication receipt.",
+  "signers": [],
+  "state": "NONE_PUBLISHED: every EPHEMERAL anchor is FAIL_CLOSED NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED until one is published. PERMANENT, KV, SKAP_VAULT and GATEWAY anchors do not use this file.",
+  "entry_shape": {
+    "key_id": "string",
+    "algorithm": "Ed25519",
+    "public_key_b64": "32-byte Ed25519 public key, base64",
+    "custody": "TV/TVC",
+    "signs": "NODE_LEDGER_OPENED",
+    "publication_receipt_ref": "sha256:<TV/TVC publication receipt>"
+  },
+  "authority_effect": "NONE_PUBLIC_KEY_REFERENCES_ONLY"
+}

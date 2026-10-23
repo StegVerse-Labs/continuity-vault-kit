@@ -12,18 +12,18 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "runtime" / "kv_interlock_endpoint.py"
 sys.path.insert(0, str(ROOT / "tests"))
 
-from kv_two_layer_e0 import e0_empty_ref_checkout, e0_health_ledger, healthy_node_kwargs  # noqa: E402
+from kv_two_layer_e0 import e0_empty_ref_checkout, e0_health_ledger, e0_ref_without_namespace, healthy_node_kwargs  # noqa: E402,E501
+from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
 
 
 def load_module():
-    spec = importlib.util.spec_from_file_location("kv_interlock_endpoint", MODULE_PATH)
-    module = importlib.util.module_from_spec(spec)
-    assert spec and spec.loader
-    spec.loader.exec_module(module)
-    return module
+    # The imported module itself: its TRUST_ANCHORS are the ones the E0 harness puts in force (LC-KV-15).
+    from runtime import kv_interlock_endpoint
+    assert Path(kv_interlock_endpoint.__file__).resolve() == MODULE_PATH.resolve()
+    return kv_interlock_endpoint
 
 
 class KVInterlockRuntimeTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             receipt_store=self.store_receipt,
             candidate_store=self.store_candidate,
             clock=lambda: self.now,
-            **healthy_node_kwargs("device:test:1"),
+            **healthy_node_kwargs("SV-NODE-E0TEST0001"),
         )
 
     def assert_layer1_refusal(self, response, text, cause=None):
@@ -100,7 +100,7 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             },
             "boundary_proof": {
                 "required": True,
-                "source_identity_ref": "device:test:1",
+                "source_identity_ref": "SV-NODE-E0TEST0001",
                 "next_boundary_identity_ref": "kv:test:1",
                 "verification_state": "VERIFIED",
             },
@@ -200,7 +200,7 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             policy_evaluator=bad_policy,
             receipt_store=self.store_receipt,
             clock=lambda: self.now,
-            **healthy_node_kwargs("device:test:1"),
+            **healthy_node_kwargs("SV-NODE-E0TEST0001"),
         )
         request = self.request()
         response = runtime.handle(
@@ -222,7 +222,7 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             policy_evaluator=bad_policy,
             receipt_store=self.store_receipt,
             clock=lambda: self.now,
-            **healthy_node_kwargs("device:test:1"),
+            **healthy_node_kwargs("SV-NODE-E0TEST0001"),
         )
         request = self.request()
         response = runtime.handle(
@@ -252,7 +252,7 @@ class KVInterlockRuntimeTests(unittest.TestCase):
             receipt_store=self.store_receipt,
             candidate_store=None,
             clock=lambda: self.now,
-            **healthy_node_kwargs("device:test:1"),
+            **healthy_node_kwargs("SV-NODE-E0TEST0001"),
         )
         request = self.request("COMMIT_CANDIDATE")
         response = runtime.handle(
@@ -326,7 +326,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         receipt = response["kv_access_receipt"]
         self.assertEqual((receipt["boundary"], receipt["layer"], receipt["minted_by"]),
                          ("INTR_DEVICE_KV", 1, "KVInterlockRuntime.handle"))
-        self.assertEqual(receipt["requester_node_ref"], "device:test:1")
+        self.assertEqual(receipt["requester_node_ref"], "SV-NODE-E0TEST0001")
         self.assertEqual(receipt["response_hash"], response["receipt"]["response_hash"])
         self.assertEqual(receipt["healthy_node_evaluator"], self.m.PINNED_HEALTHY_NODE_EVALUATOR_ID)
         self.assertEqual(receipt["healthy_node_evaluator_source_sha256"],
@@ -334,17 +334,21 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         evaluation = receipt["healthy_node_receipt"]
         self.assertEqual((evaluation["schema"], evaluation["disposition"], evaluation["node_id"],
                           evaluation["admission_required"]),
-                         ("stegverse.healthy-node-evaluation/v1", "ALLOW", "device:test:1", True))
+                         ("stegverse.healthy-node-evaluation/v1", "ALLOW", "SV-NODE-E0TEST0001", True))
         self.assertEqual(self.runtime.verify_kv_access_receipt(receipt["receipt_hash"]), receipt)
         self.assertIsNone(self.runtime.verify_kv_access_receipt(self.m.sha256_uri({"forged": True})))
 
     def test_the_vendored_evaluator_is_byte_identical_to_the_pin(self):
         evaluator, why = self.m.resolve_pinned_healthy_node_evaluator()
         self.assertEqual(why, "")
-        self.assertEqual(self.m.evaluator_identity(evaluator), "llm_adapter.healthy_node_evaluator.evaluate")
-        source = ROOT / "runtime" / "intr_pinned" / "healthy_node_evaluator.py"
-        self.assertEqual("sha256:" + hashlib.sha256(source.read_bytes()).hexdigest(),
-                         self.m.PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"])
+        self.assertEqual(self.m.evaluator_identity(evaluator), self.m.PINNED_ANCHORED_EVALUATOR_ID)
+        pinned_dir = ROOT / "runtime" / "intr_pinned" / "llm_adapter"
+        for name, pin in (("healthy_node_evaluator.py", self.m.PINNED_HEALTHY_NODE_EVALUATOR),
+                          ("endpoint_ledger_anchor.py", self.m.PINNED_ANCHORED_EVALUATOR)):
+            self.assertEqual("sha256:" + hashlib.sha256((pinned_dir / name).read_bytes()).hexdigest(),
+                             pin["source_sha256"], name)
+        self.assertEqual(self.m.PINNED_HEALTHY_NODE_EVALUATOR["source_sha256"],
+                         "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58")
 
     def test_the_ledger_is_bound_by_the_org_ledger_contract_location(self):
         loc = self.m.HEALTHY_NODE_LEDGER_LOCATION
@@ -352,59 +356,93 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
                          ("StegVerse-org/.github", "refs/stegverse/organization-ledger",
                           "repository-ledger/StegVerse-org/LLM-adapter", False, False))
         self.assertEqual(self.m.healthy_node_ledger_root("/x"), "/x/repository-ledger/StegVerse-org/LLM-adapter")
-        seen = []
+        anchor = self.m.load_pinned_intr()[0]["endpoint_ledger_anchor"]
+        seen, evaluated = [], []
+        real_verify, real_evaluate = anchor.verify_anchor, anchor.hne.evaluate
 
-        def spy(node_id, **kw):
+        def spy_anchor(*a, **kw):
             seen.append(kw)
-            return {"disposition": "FAIL_CLOSED", "reason": "HEALTH_REPORT_MISSING"}
-        self.handle(self.runtime_for("/x", spy))
-        self.assertEqual((seen[0]["ledger_root"], seen[0]["repository"], seen[0]["require_admission"]),
-                         ("/x/repository-ledger/StegVerse-org/LLM-adapter", "StegVerse-org/LLM-adapter", True))
+            return real_verify(*a, **kw)
+
+        def spy_evaluate(node_id, **kw):
+            evaluated.append(kw)
+            return real_evaluate(node_id, **kw)
+        source = e0_health_ledger("SV-NODE-E0TEST0001")[0]  # (the harness's own proof uses verify_anchor too)
+        anchor.verify_anchor, anchor.hne.evaluate = spy_anchor, spy_evaluate
+        try:
+            response = self.handle(self.runtime_for(source))
+        finally:
+            anchor.verify_anchor, anchor.hne.evaluate = real_verify, real_evaluate
+        self.assertEqual(response["decision"], "ALLOW_BOUNDED_CONTEXT", response)
+        # the org namespace is materialized from the observed org-ledger head and handed to evaluate_anchored, with
+        # its HEAD pin; the node root is the deployment's PERMANENT endpoint; the observed transport state is passed
+        self.assertTrue(str(seen[-1]["org_ledger_root"]).endswith("/repository-ledger/StegVerse-org/LLM-adapter"))
+        self.assertRegex(seen[-1]["org_ledger_head_receipt_sha256"], r"^sha256:[0-9a-f]{64}$")
+        self.assertEqual(seen[-1]["endpoint"]["endpoint_kind"], "PERMANENT")
+        self.assertEqual((evaluated[-1]["ledger_root"], evaluated[-1]["require_admission"],
+                          evaluated[-1]["transport_state"]), (seen[-1]["endpoint"]["ledger_root"], True, "INSTALLED"))
+        self.assertEqual((len(seen), len(evaluated)), (1, 1))
+        self.assertFalse(Path(seen[-1]["org_ledger_root"]).exists())  # the materialized tree is removed after the call
 
     def test_the_real_path_today_fails_closed_ledger_not_onboarded(self):
         """The LLM-adapter chain at the contract location is not onboarded and has no genesis: class B."""
-        for checkout in (None, e0_empty_ref_checkout()):
+        for checkout in (None, e0_empty_ref_checkout(), e0_ref_without_namespace()):
             response = self.handle(self.runtime_for(checkout))
             self.assert_layer1_refusal(response, "repository-ledger/StegVerse-org/LLM-adapter")
             self.assertEqual((response["failure_class"], response["refusal_cause"], response["failed_predicate"]),
                              ("B", "HEALTHY_NODE_LEDGER_NOT_ONBOARDED", "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"))
-            self.assertIn("organization-ledger onboarding", response["retry_entrypoint"])
-            self.assertTrue(response["retry_entrypoint"].startswith("StegVerse-org/LLM-adapter#431"))
+            self.assertIn("StegVerse-org/LLM-adapter#431", response["retry_entrypoint"])
             self.assertIn("LC-KV-13", response["owning_existing_goal"])
             self.assertIsNone(response["kv_access_receipt"])
-        self.assertEqual(response["health_evaluation"]["reason"], "LEDGER_HEAD_UNREADABLE")
         self.assertEqual(self.receipts, [])
 
-    def test_an_onboarded_chain_without_a_report_fails_closed_health_report_missing(self):
-        response = self.handle(self.runtime_for(e0_health_ledger("device:test:1", report=False)[0]))
-        self.assert_layer1_refusal(response, "HEALTH_REPORT_MISSING")
-        self.assertEqual((response["failure_class"], response["refusal_cause"]),
-                         ("B", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"))
-        self.assertEqual(response["health_evaluation"]["reason"], "HEALTH_REPORT_MISSING")
+    def test_an_onboarded_chain_without_a_report_fails_closed(self):
+        """No report means the boundary never admitted the node over InTr, so #432 @1cbad77e refuses on transport
+        (read from the node's NODE_INGRESS_ADMITTED receipt) before the evaluator runs: class B, six fields."""
+        response = self.handle(self.runtime_for(e0_health_ledger("SV-NODE-E0TEST0001", report=False)[0]))
+        code = self.m.INTR_TRANSPORT_REFUSAL_CODE
+        self.assertEqual((response["decision"], response["failure_code"], response["failure_class"],
+                          response["refusal_cause"]), ("FAIL_CLOSED", code, "B", code))
+        self.assertEqual(response["health_evaluation"]["observed_transport"], None)
+        for field in SIX:
+            self.assertTrue(response[field], field)
+        self.assertIsNone(response["kv_access_receipt"])
 
     def test_the_pin_records_428_429_and_430_provenance(self):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
-        self.assertEqual([p["commit"][:8] for p in pin["provenance"]], ["0b37fe3b", "5f5f7bbe", "4e1499ab"])
+        self.assertEqual([p["commit"][:8] for p in pin["provenance"]],
+                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e"])
         self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):
-        sick_root, _ = e0_health_ledger("device:test:1", status="DEGRADED")
-        old_root, old = e0_health_ledger("device:test:1", superseded_by="HEALTHY")
+        # each ledger is built right before it is used: the node's identity proof is over its current chain head
         cases = (
-            (sick_root, None, "DENY", "HEALTH_REPORTED_NOT_HEALTHY"),
-            (old_root, {"health_report_receipt_sha256": old}, "FAIL_CLOSED", "HEALTH_REPORT_SUPERSEDED"),
-            (e0_health_ledger("device:test:1", admitted=False)[0], None, "FAIL_CLOSED", "NODE_NOT_ADMITTED"),
-            (e0_health_ledger("device:other")[0], None, "FAIL_CLOSED", "HEALTH_REPORT_MISSING"),
-            (e0_health_ledger("device:test:1", repository="x/y")[0], None, "FAIL_CLOSED",
-             "RECEIPT_REPOSITORY_MISMATCH"),
-            (e0_health_ledger("device:test:1")[0], {"health_report_receipt_sha256": "sha256:" + "0" * 64},
-             "FAIL_CLOSED", "HEALTH_REPORT_NOT_RECEIPTED"),
+            ({"status": "DEGRADED"}, None, "DENY", "HEALTH_REPORTED_NOT_HEALTHY"),
+            ({"superseded_by": "HEALTHY"}, "first", "FAIL_CLOSED", "HEALTH_REPORT_SUPERSEDED"),
+            ({}, {"health_report_receipt_sha256": "sha256:" + "0" * 64}, "FAIL_CLOSED", "HEALTH_REPORT_NOT_RECEIPTED"),
         )
-        for root, evidence, disposition, reason in cases:
+        for ledger, evidence, disposition, reason in cases:
+            root, first = e0_health_ledger("SV-NODE-E0TEST0001", **ledger)
+            if evidence == "first":
+                evidence = {"health_report_receipt_sha256": first}
             response = self.handle(self.runtime_for(root), evidence)
             self.assert_layer1_refusal(response, reason)
             self.assertEqual((response["health_evaluation"]["disposition"], response["health_evaluation"]["reason"]),
                              (disposition, reason))
+        # a node the boundary refused has no NODE_INGRESS_ADMITTED over InTr: #432 refuses on transport first
+        response = self.handle(self.runtime_for(e0_health_ledger("SV-NODE-E0TEST0001", admitted=False)[0]))
+        self.assertEqual((response["failure_code"], response["refusal_cause"]),
+                         (self.m.INTR_TRANSPORT_REFUSAL_CODE, self.m.INTR_TRANSPORT_REFUSAL_CODE))
+        self.assertEqual(response["health_evaluation"]["observed_transport"]["transition_class"], "NODE_INGRESS_REFUSED")
+        # another node's endpoint or a foreign producer's receipts are refused by evaluate_anchored's anchored-root check
+        for root, reason in ((e0_health_ledger("SV-NODE-E0OTHER001")[0], None),
+                             (e0_health_ledger("SV-NODE-E0TEST0001", foreign=True)[0], "FOREIGN_PRODUCER_RECEIPT")):
+            response = self.handle(self.runtime_for(root))
+            self.assertEqual((response["decision"], response["failure_code"]),
+                             ("FAIL_CLOSED", self.m.ANCHOR_REFUSAL_CODE), response)
+            self.assertIsNone(response["kv_access_receipt"])
+            if reason:
+                self.assertEqual(response["health_evaluation"]["reason"], reason)
         self.assertEqual(self.receipts, [])  # refused before authority, policy or any receipt
 
     def test_health_is_never_caller_asserted(self):
@@ -415,23 +453,27 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
             self.assertEqual(response["failure_class"], "C")
 
     def test_a_tampered_vendored_evaluator_is_not_resolved(self):
-        original = self.m._file_sha256
-        self.m._file_sha256 = lambda path: "sha256:" + "f" * 64
+        source = e0_health_ledger("SV-NODE-E0TEST0001")[0]
+        files = self.m.PINNED_ANCHORED_EVALUATOR["vendored_files"]
+        key = next(k for k in files if k.endswith("healthy_node_evaluator.py"))
+        original = files[key]
+        files[key] = "sha256:" + "f" * 64  # the bytes on disk no longer match the pin
         try:
             evaluator, why = self.m.resolve_pinned_healthy_node_evaluator()
             self.assertIsNone(evaluator)
             self.assertIn("not the pinned", why)
-            runtime = self.runtime_for(e0_health_ledger("device:test:1")[0])
+            runtime = self.runtime_for(source)
+            response = self.handle(runtime)
         finally:
-            self.m._file_sha256 = original
-        response = self.handle(runtime)
+            files[key] = original
         self.assert_layer1_refusal(response, "never asserts a node's health itself")
         self.assertEqual(response["failure_class"], "B")
         self.assertIn("LLM-adapter", response["required_evidence_or_repair"])
 
     def test_an_evaluator_that_raises_or_returns_a_malformed_allow_is_refused(self):
-        evaluator, _ = self.m.resolve_pinned_healthy_node_evaluator()
-        root = e0_health_ledger("device:test:1")[0]
+        anchor = self.m.load_pinned_intr()[0]["endpoint_ledger_anchor"]
+        evaluator = anchor.hne.evaluate
+        root = e0_health_ledger("SV-NODE-E0TEST0001")[0]
 
         def raising(*_, **__):
             raise RuntimeError("down")
@@ -440,12 +482,21 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
             return {"disposition": "ALLOW", "healthy_node_established": True}
 
         def other_node(node_id, **kw):
-            return {**evaluator(node_id, **kw), "node_id": "device:other"}
+            return {**evaluator(node_id, **kw), "node_id": "SV-NODE-E0OTHER001"}
 
         def no_admission(node_id, **kw):
             return evaluator(node_id, **{**kw, "require_admission": False})
         for bad in (raising, flagged, other_node, no_admission):
-            self.assert_layer1_refusal(self.handle(self.runtime_for(root, bad)), "", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
+            # injected as the decider: refused by identity (LC-KV-10) before it is ever called
+            self.assert_layer1_refusal(self.handle(self.runtime_for(root, bad)), "",
+                                       "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED")
+            # behind the genuine evaluate_anchored (the inner evaluate misbehaving): refused by the ALLOW-shape checks
+            anchor.hne.evaluate = bad
+            try:
+                response = self.handle(self.runtime_for(root))
+            finally:
+                anchor.hne.evaluate = evaluator
+            self.assert_layer1_refusal(response, "", "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY")
 
     def test_malformed_transitions_return_dispositions(self):
         for request in (None, [], {"schema_version": "x"}):
