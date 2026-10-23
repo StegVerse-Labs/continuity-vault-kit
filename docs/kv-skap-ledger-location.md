@@ -200,6 +200,29 @@ and ENVELOPE v2 is not amended. The two events are:
 The Org ledger's append and readback is the exactly-once fence for that crossing receipt only. The SKAP genesis itself
 is never held on the Org ledger. The constant is `runtime.kv_receipt_ledgers.GENESIS_CROSSING`.
 
+## LC-KV-09: the finish point's sealed predicates
+
+LC-KV-09 (class A, StegVerse-Labs/.github#3330 `scoped-tasks/LC-KV-09.json` @7fb472a2) reseals
+KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324) from `sha256:d68e239b...` to
+`sha256:d4a98dc0c0ff9db7dbc05b1b97d93573dda7b59dcd2a7628e2cf6620e26c7ef2`. Four predicates join the sealed
+`expected_evidence_predicates`, and `runtime.kv_skap_vault` (SCOPE_DIGEST, PREDICATES) evaluates each with real checks:
+
+- `KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE`: the local exercise refuses KV access without a healthy-node ALLOW,
+  and a healthy node gets a layer-1 receipt minted by `KVInterlockRuntime.handle` on the `INTR_DEVICE_KV` boundary.
+  The evidence is the `access_constraints` row of the same name (`layer1_kv_access_receipts`).
+- `SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV`: an ungated bind, a direct read, a caller-asserted InTr ref and an
+  ungated reconstruct are all refused (`SKAP_ACCESS_LAYER2_REFUSED`). The evidence is `layer2_skap_access_receipts`.
+- `SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT`: SKAP entry with a forged or missing layer-1 prior is refused.
+  The evidence is each layer-2 `prior_receipt_hash` equalling its layer-1 KV-access receipt.
+- `ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER`: reuses this PR's closed membership schema (`_closed_schema`,
+  `_org_membership`, `_org_designation`). Membership probes must be refused, and both digest-pinned contracts must
+  load through `designation()`. It is decided at E0 without evidence.
+
+Each access row now fails its own sealed predicate as well as the predicate it was mapped to before the reseal
+(`ACCESS_CONSTRAINT_PREDICATE`, kept). In production the three access predicates are FAIL_CLOSED, class B, because no
+access receipts are observed. `ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER` is ALLOW. With the E0 evidence fixture all
+13 predicates are ALLOW.
+
 ## E0 testing
 
 The E0 tests use the documented `device-local` storage endpoint (LOCAL_ROOT, `resident-device-local`). It points at
