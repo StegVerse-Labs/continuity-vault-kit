@@ -1,0 +1,56 @@
+name: SKAP Loader Tests (diff-selected callable set)
+
+# The SKAP loader callable test set (StegVerse-org/.github#167 issuecomment-6372524861,
+# SKAP_LOADER_JS_TEST_SKIPS_WITHOUT_NODE). It is selected only when the diff touches the loader
+# surface or the inputs its node test reads. When selected, the job provides the loader's declared
+# runtime (node 22; no new dependency). A selected run with no node runtime FAIL_CLOSEDs with
+# SKAP_LOADER_TEST_RUNTIME_NOT_PRESENT and is never counted as skipped. Read-only.
+
+on:
+  pull_request:
+    paths:
+      - "skap/loader/**"
+      - "tests/loader/**"
+      - "tests/test_skap_loader_js.py"
+      # inputs the node test reads (tests/loader/kv_skap_loader.test.mjs)
+      - "fixtures/skap/portable-envelope-v2.vectors.json"
+      - "fixtures/tvc/**"
+      - ".github/workflows/skap-loader-tests.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "skap/loader/**"
+      - "tests/loader/**"
+      - "tests/test_skap_loader_js.py"
+      - "fixtures/skap/portable-envelope-v2.vectors.json"
+      - "fixtures/tvc/**"
+      - ".github/workflows/skap-loader-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  skap-loader-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node (declared runtime of the loader surface)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run the SKAP loader set (0 skipped required)
+        run: |
+          set -o pipefail
+          python3 -m unittest tests.test_skap_loader_js -v 2>&1 | tee loader-set.log
+          if grep -Eq "skipped=|\.\.\. skipped" loader-set.log; then
+            echo "FAIL_CLOSED SELECTED_TESTS_ZERO_SKIPPED: the loader set reported a skip" >&2
+            exit 1
+          fi
