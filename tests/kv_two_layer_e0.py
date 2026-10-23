@@ -88,6 +88,8 @@ TEST_ONLY_PINS = {
         "sha256:b52ee0faa32db00d2f61a1f78a2f40380c4dcb212004d527a51b1e8fb05972d9",
 }
 E0_CONTRACT_431 = TEST_ONLY_DIR / "contract_with_431_repository_ledger_location.json"
+_SIGNER_SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "intr_pinned_test_only",
+                              "ed25519_test_signer.py")
 _SIGNER: list[Any] = []
 
 
@@ -110,8 +112,10 @@ def signer() -> Any:
         saved = {k: sys.modules.get(k) for k in ("llm_adapter", "llm_adapter.ed25519_verify")}
         try:
             sys.modules.update({"llm_adapter": package, "llm_adapter.ed25519_verify": verify})
-            exec(compile(_test_only_bytes("ed25519_test_signer.py"), "ed25519_test_signer.py", "exec"),  # noqa: S102
-                 module.__dict__)
+            source = Path(_SIGNER_SOURCE).read_bytes()  # a constant path, so the finish-point closure resolves it
+            if "sha256:" + hashlib.sha256(source).hexdigest() != TEST_ONLY_PINS["ed25519_test_signer.py"]:
+                raise AssertionError("tests/fixtures/intr_pinned_test_only/ed25519_test_signer.py is not the vendored bytes")
+            exec(compile(source, _SIGNER_SOURCE, "exec", dont_inherit=True), module.__dict__)  # noqa: S102
         finally:
             for k, v in saved.items():
                 if v is None:
