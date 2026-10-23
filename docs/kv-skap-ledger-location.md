@@ -53,7 +53,7 @@ The receipt-chain reader takes a `KVStorageProviderAdapter` from `default_regist
 from `runtime/kv_storage_provider_adapter.py`. The adapter must be the one the designation names, with the same
 `provider_id` and `access_adapter`.
 
-The reader defines no storage or adapter interface of its own. The gateway storage module that `ddbe7c7f` added
+The reader defines no storage or adapter interface of its own. The storage module that `ddbe7c7f` added
 duplicated this seam, so it has been dropped.
 
 The read-back layout is `HEAD.json` plus `receipts/<sha256 hex>.json`. It is walked by the vendored #432
@@ -72,6 +72,14 @@ endpoint.
 - **The MyKV AI Assistant (WORKSPACE_ASSISTANT).** It proposes; it never transitions a receipt chain. Every mutation
   needs InTr admission.
 
+## What the Org ledger carries
+
+No KV or SKAP Vault recorded receipt chain is on any Org organization-ledger ref (LC-KV-21,
+StegVerse-org/.github#163 comment 6372658597). The Org ledger carries only digest-only InTr crossing receipts: a
+pointer/digest plus SUPPLIED_HB_EPOCH. The digest is **`KV_RECORDED_RECEIPT_CHAIN_HEAD`**, the name
+StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. Here it is the head attestation's
+`head_receipt_sha256`.
+
 ## Rules
 
 - **Correspondence, not storage.** An Org/KV interaction is two linked receipts, one in each side's own chain. A
@@ -86,7 +94,7 @@ endpoint.
     chain. Otherwise the read is DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
 - **The SKAP chain is reached only through KV's InTr.** A read goes through `SkapLayer2Gate.receipt_ledger` with a
   layer-1 receipt minted by KV. Otherwise it is refused with `SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR`.
-- **Org designations are refused.** Any org, git-ref, or `GATEWAY_ENCRYPTED_BLOB` designation is refused with
+- **Org designations are refused.** Any org ledger ref or git-ref designation is refused with
   `KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER`.
 
 ## Production state: every read is FAIL_CLOSED

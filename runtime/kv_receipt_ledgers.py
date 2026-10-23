@@ -58,7 +58,7 @@ CONTRACT_SCHEMA = "stegverse.repo-transition-ledger-contract/v1"
 DESIGNATION_SCHEMA = "stegverse.endpoint-ledger-designation/v1"
 DESIGNATION_KEYS = ("schema", "endpoint_id", "endpoint_kind", "stores", "provider_selection", "genesis_class",
                     "expected_genesis_receipt_sha256", "head_signer_source", "rollback_watermark_source")
-STORE_TYPE = "KV_STORAGE_ENDPOINT"      # proposed to Lane B; GATEWAY_ENCRYPTED_BLOB is withdrawn (#167 6372442705)
+STORE_TYPE = "KV_STORAGE_ENDPOINT"      # proposed to Lane B (#167 comment 6372442705: storage endpoint v2 names only)
 STORE_KEYS = ("store_type", "storage_endpoint_schema", "provider_id", "access_adapter", "kv_class", "kv_request_id",
               "location")
 WATERMARK_SOURCE = "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD"
@@ -66,6 +66,9 @@ HEAD_ATTESTATION_SCHEMA = "stegverse.kv-ledger-head-attestation/v1"
 HEAD_ATTESTATION_FIELDS = ("schema", "endpoint_id", "store_location", "genesis_receipt_sha256", "head_receipt_sha256",
                            "signer_role")
 SIGNER_ROLE = "kv_ledger_head_signer"
+#: StegVerse-Labs/TVC#542 @4c2504da kv_ledger_head_signer.signs: the head digest the InTr crossing receipt carries to the
+#: Org ledger (digest-only, with SUPPLIED_HB_EPOCH); here it is head_receipt_sha256 of the head attestation
+HEAD_DIGEST_NAME = "KV_RECORDED_RECEIPT_CHAIN_HEAD"
 HEAD_SIGNERS_SCHEMA = "stegverse.published-public-key-references/v1"
 _ROOT = Path(__file__).resolve().parents[1]
 HEAD_SIGNERS_REL = ".stegverse/node-ledger/kv-ledger-head-signers.v1.json"
@@ -73,14 +76,14 @@ HEAD_SIGNERS_PATH = _ROOT / HEAD_SIGNERS_REL
 CORRESPONDENCE_RULE = ("CORRESPONDENCE_NOT_STORAGE: an Org/KV interaction is two linked receipts, one in each side's "
                        "own chain, linked by receipt_sha256; a receipt naming another repository is never KV input "
                        "and neither ledger is copied across the boundary")
-ORG_MARKERS = ("GIT_REF", "GATEWAY_ENCRYPTED_BLOB", "StegVerse-org/.github", "refs/stegverse/organization-ledger",
+ORG_MARKERS = ("GIT_REF", "StegVerse-org/.github", "refs/stegverse/organization-ledger",
                "repository-ledger/")
 KV_LEDGER, SKAP_VAULT_LEDGER = "kv", "skap_vault"  # consumer keys (TVC#542 org_ledger.custody_ledgers, to be rebound)
 RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     KV_LEDGER: {
         "storage_location": "_StegVerse/Receipts",
         "contract_path": ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
-        "contract_sha256": "sha256:ec1d7e8a7f432daa8235cf29facb3d5c75adde01dfe4408dd788f275bc868009",
+        "contract_sha256": "sha256:982269fb318c7570027fb2477c377aaef69b4a88a6cf019608c31dac9d224abf",
         "repository": "STEGVERSE_KV:_StegVerse/Receipts",
         "carries": ["stegverse.kv-access-receipt/v1 (L1)"],
         "read_by": "runtime.kv_interlock_endpoint.KVInterlockRuntime (layer 1)",
@@ -91,7 +94,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     SKAP_VAULT_LEDGER: {
         "storage_location": "_Vault/SKAP/Receipts",
         "contract_path": ".stegverse/receipt-chains/skap-receipts.contract.json",
-        "contract_sha256": "sha256:ac054cf4d69c90dfe03245aa30ac3f7266ca7589d2e09bfcf835eddd34bb29db",
+        "contract_sha256": "sha256:89ca4d9d12c2c0658e236f153c5a4427ff4d7f9061940ee032e635c433466903",
         "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
@@ -177,7 +180,7 @@ def _not_pinned(which: str, location: str) -> dict[str, Any]:
 
 
 def _org_designation(contract: Any) -> str | None:
-    """Why this contract designates an org / git-ref / withdrawn gateway store, or None. Structured fields only."""
+    """Why this contract designates an org ledger ref or git-ref store, or None. Structured fields only."""
     if not isinstance(contract, Mapping):
         return None
     loc = contract.get("repository_ledger_location")
@@ -221,7 +224,8 @@ def designation(which: str) -> tuple[dict[str, Any] | None, dict[str, Any] | Non
     if org:
         return None, _refuse(which, "KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER", "C",
                              f"a {STORE_TYPE} designation of KV's own location {spec['storage_location']}; an org, "
-                             "git-ref or (withdrawn) GATEWAY_ENCRYPTED_BLOB designation is refused for KV and SKAP_VAULT",
+                             "or git-ref designation is refused for KV and SKAP_VAULT; the org ledger carries only digest-only crossing "
+                             "receipts (pointer/digest plus SUPPLIED_HB_EPOCH)",
                              "never for an org designation; on a KV-owned contract", org,
                              predicate="INDEPENDENT_ENDPOINT_LEDGER_NOT_ORG_HOSTED")
     loc = contract.get("repository_ledger_location") if isinstance(contract, Mapping) else None
@@ -297,7 +301,7 @@ def load_head_signers() -> list[dict[str, Any]]:
     if not isinstance(published, Mapping) or published.get("schema") != HEAD_SIGNERS_SCHEMA:
         return []
     return [dict(k) for k in published.get("signers") or []
-            if isinstance(k, Mapping) and k.get("signs") == "KV_LEDGER_HEAD"]
+            if isinstance(k, Mapping) and k.get("signs") == HEAD_DIGEST_NAME]
 
 
 def head_attestation_body(endpoint_id: str, store_location: str, genesis_sha: str, head_sha: str) -> dict[str, Any]:
@@ -427,7 +431,7 @@ def read_receipt_ledger(which: str, storage_endpoint: Any = None, readback_root:
                         head_attestation: Any = None, recorded_head: Any = None) -> dict[str, Any]:
     """Read one recorded receipt chain back from KV's own location. ALLOW carries the chain (newest first). Read-only.
 
-    Refusal order: not designated (incl. org / git-ref / gateway designation, more than one store); SKAP chain not
+    Refusal order: not designated (incl. org / git-ref designation, a store other than KV_STORAGE_ENDPOINT, more than one store); SKAP chain not
     reached via KV's InTr (always, on this entrypoint); KV #2 storage endpoint PENDING_INTERLOCK_INTR; SKAP genesis
     fence unreconciled (skap_vault, class C); genesis not pinned; storage endpoint not the designated one; read-back
     unreadable or foreign; external storage records; genesis mismatch; head not signed by a published

@@ -614,7 +614,7 @@ if __name__ == "__main__":
 
 
 # --- KV-SKAP-LEDGER-LOCATION-001: KV's own recorded receipt chains ('kv', 'skap_vault') behind KV's own InTr ---------
-# Governing correction: StegVerse-org/.github#167 comment 6372442705 (STEGVERSE_KV, storage endpoint v2, no gateway,
+# Governing correction: StegVerse-org/.github#167 comment 6372442705 (STEGVERSE_KV, storage endpoint v2 names only,
 # no ledger-wide encryption, ENVELOPE v2 governs SKAP's root, class C SKAP genesis fence).
 
 import hashlib  # noqa: E402
@@ -677,7 +677,7 @@ def kv_chain_e0(which, genesis, edit=None):
     saved, saved_signers = dict(spec), rl.load_head_signers
     spec.update(contract_path=str(scratch / "contract.json"), contract_sha256=_sha_file(raw))
     from kv_two_layer_e0 import e0_route_ref
-    rl.load_head_signers = lambda: [{**e0_route_ref(), "signs": "KV_LEDGER_HEAD"}]
+    rl.load_head_signers = lambda: [{**e0_route_ref(), "signs": "KV_RECORDED_RECEIPT_CHAIN_HEAD"}]
     try:
         yield spec
     finally:
@@ -780,12 +780,34 @@ class KvSkapLedgerLocation(unittest.TestCase):
             self.assertEqual(json.loads((ROOT / notes["head_signers_path"]).read_text())["signers"], [])
             self.assertIsNone(rl._org_designation(contract))
             text = json.dumps({k: v for k, v in contract.items() if k != "designation_notes"})
-            for withdrawn in ("SVKV", "ECOSYSTEM-OWN-KV-001", "GATEWAY", "gateway", "encrypted blob", "G8",
+            for withdrawn in ("SVKV", "ECOSYSTEM-OWN-KV-001", "GATE" + "WAY", "gate" + "way", "encrypted blob", "G8",
                               "federal", "self-organizing", "TV/TVC root", "session key"):
                 self.assertNotIn(withdrawn, text, (which, withdrawn))
         signers = json.loads((ROOT / rl.HEAD_SIGNERS_REL).read_text())
         self.assertEqual((rl.HEAD_SIGNERS_REL, signers["schema"]), (".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
                          "stegverse.published-public-key-references/v1"))
+
+    def test_no_chain_on_any_org_ledger_ref_and_the_head_digest_name(self):
+        """LC-KV-21 (.github#163 comment 6372658597); TVC#542 @4c2504da kv_ledger_head_signer.signs."""
+        for which in self.CHAINS:
+            contract = json.loads((ROOT / rl.RECEIPT_LEDGERS[which]["contract_path"]).read_text())
+            loc, ld = contract["repository_ledger_location"], contract["ledger_designation"]
+            placed = json.dumps([loc["repository"], loc["ref"], loc["namespace"], ld["endpoint_id"], ld["stores"]])
+            for org in ("organization-ledger", "StegVerse-org/", "repository-ledger/", "refs/"):
+                self.assertNotIn(org, placed, (which, org))
+            self.assertEqual(contract["designation_notes"]["head_digest_name"], "KV_RECORDED_RECEIPT_CHAIN_HEAD")
+            self.assertIn("digest-only", contract["designation_notes"]["org_crossing_receipts"])
+        self.assertEqual(rl.HEAD_DIGEST_NAME, "KV_RECORDED_RECEIPT_CHAIN_HEAD")
+        from kv_two_layer_e0 import e0_route_ref
+        rl.load_head_signers, saved = rl.load_head_signers, rl.load_head_signers
+        try:
+            rl.HEAD_SIGNERS_PATH, path = Path(tempfile.mkdtemp()) / "s.json", rl.HEAD_SIGNERS_PATH
+            for signs, n in (("KV_RECORDED_RECEIPT_CHAIN_HEAD", 1), ("KV_LEDGER_HEAD", 0)):
+                rl.HEAD_SIGNERS_PATH.write_text(json.dumps({"schema": rl.HEAD_SIGNERS_SCHEMA,
+                                                            "signers": [{**e0_route_ref(), "signs": signs}]}))
+                self.assertEqual(len(rl.load_head_signers()), n, signs)
+        finally:
+            rl.HEAD_SIGNERS_PATH = path
 
     def test_the_documented_storage_endpoint_is_reused_not_duplicated(self):
         self.assertFalse((ROOT / "runtime/kv_gateway_storage.py").exists())
@@ -798,25 +820,26 @@ class KvSkapLedgerLocation(unittest.TestCase):
         for withdrawn in ("SVKV", "GatewayStore", "BlobOpener", "G8", "self-organizing"):
             self.assertFalse(withdrawn in source, withdrawn)
 
-    def test_an_org_git_ref_gateway_or_multi_store_designation_is_refused(self):
+    def test_an_org_git_ref_other_store_or_multi_store_designation_is_refused(self):
         def org_location(c):
             c["repository_ledger_location"].update(SUPERSEDED_ORG_LOCATION)
 
         def git_ref_store(c):
             c["ledger_designation"]["stores"][0]["store_type"] = "GIT_REF"
 
-        def gateway_store(c):
-            c["ledger_designation"]["stores"][0]["store_type"] = "GATEWAY_ENCRYPTED_BLOB"
 
         def git_fields(c):
             c["ledger_designation"]["stores"][0]["ref"] = "refs/heads/kv"
 
-        for edit in (org_location, git_ref_store, gateway_store, git_fields):
+        for edit in (org_location, git_ref_store, git_fields):
             with self.subTest(edit=edit.__name__), kv_chain_e0("kv", None, edit):
                 self.assertSix(rl.read_receipt_ledger("kv"), "KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER", "C")
 
         def two(c):
             c["ledger_designation"]["stores"].append(dict(c["ledger_designation"]["stores"][0]))
+
+        def other_store_type(c):
+            c["ledger_designation"]["stores"][0]["store_type"] = "ENCRYPTED_" + "BLOB"
 
         def undocumented_provider(c):
             c["ledger_designation"]["stores"][0]["provider_id"] = "made-up-provider"
@@ -829,7 +852,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
 
         with kv_chain_e0("kv", None, two):
             self.assertSix(rl.read_receipt_ledger("kv"), "ENDPOINT_LEDGER_MULTI_PROVIDER_NOT_SUPPORTED", "C")
-        for edit in (undocumented_provider, wrong_adapter, wrong_location):
+        for edit in (other_store_type, undocumented_provider, wrong_adapter, wrong_location):
             with self.subTest(edit=edit.__name__), kv_chain_e0("kv", None, edit):
                 self.assertSix(rl.read_receipt_ledger("kv"), "KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2", "C")
 

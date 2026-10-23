@@ -55,11 +55,13 @@
     }
   },
   "designation_notes": {
-    "store_type_note": "KV_STORAGE_ENDPOINT (proposed to Lane B in place of GATEWAY_ENCRYPTED_BLOB, withdrawn by #167 comment 6372442705): one documented KV Storage Endpoint v2 descriptor (runtime/kv_storage_provider_adapter.py default_registry(); provider_id, access_adapter as there) plus the KV instance, the KV #2 request lineage and the in-KV location. No new adapter interface, no ledger-wide encryption.",
+    "store_type_note": "KV_STORAGE_ENDPOINT (proposed to Lane B; #167 comment 6372442705: KV Storage Endpoint v2 names only): one documented KV Storage Endpoint v2 descriptor (runtime/kv_storage_provider_adapter.py default_registry(); provider_id, access_adapter as there) plus the KV instance, the KV #2 request lineage and the in-KV location. No new adapter interface, no ledger-wide encryption.",
     "head_signers_path": ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
     "append_route": "KV_INTR_INGRESS",
     "path_ids_note": "Proposed in StegVerse-org/.github#235 @f84b97c1's declared_paths form; not declared in endpoint_paths, and per #167 comment 6372442705 item 7 an intra-org edge is a code change (class C, Lane B). Until declared the watermark is unread (KV_LEDGER_ROLLBACK_WATERMARK_UNREAD).",
-    "refuses": "Any org or git-ref designation (store_type GIT_REF, StegVerse-org/.github, refs/stegverse/organization-ledger, repository-ledger/...) and any GATEWAY_ENCRYPTED_BLOB store: KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER / KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2. More than one store: ENDPOINT_LEDGER_MULTI_PROVIDER_NOT_SUPPORTED."
+    "refuses": "Any org ledger ref or git-ref designation (store_type GIT_REF, StegVerse-org/.github, refs/stegverse/organization-ledger, repository-ledger/...): KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER. Any store_type other than KV_STORAGE_ENDPOINT: KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2. More than one store: ENDPOINT_LEDGER_MULTI_PROVIDER_NOT_SUPPORTED.",
+    "org_crossing_receipts": "No KV or SKAP Vault recorded receipt chain is on any Org organization-ledger ref (LC-KV-21, StegVerse-org/.github#163 comment 6372658597). The Org ledger carries only digest-only InTr crossing receipts: a pointer/digest plus SUPPLIED_HB_EPOCH, where the digest is KV_RECORDED_RECEIPT_CHAIN_HEAD (the head_receipt_sha256 signed by kv_ledger_head_signer, StegVerse-Labs/TVC#542 @4c2504da).",
+    "head_digest_name": "KV_RECORDED_RECEIPT_CHAIN_HEAD"
   },
   "propagation_rule": "PROPAGATE_ONLY_EVIDENCE_NEEDED_BY_NEXT_HIGHER_LEVEL",
   "authority_effect": "NONE_CONTRACT_ONLY"
