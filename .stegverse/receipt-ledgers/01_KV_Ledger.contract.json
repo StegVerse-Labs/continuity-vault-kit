@@ -1,0 +1,33 @@
+{
+  "schema": "stegverse.repo-transition-ledger-contract/v1",
+  "repository": "_StegVerse-org/01_KV_Ledger",
+  "ledger_level": "REPOSITORY",
+  "receipt_schema": "stegverse.repo-transition-receipt/v1",
+  "append_only_receipts": true,
+  "required_fields": [
+    "repository",
+    "transition_id",
+    "transition_class",
+    "predecessor_state_sha256",
+    "successor_state_sha256",
+    "evidence",
+    "authority_effect",
+    "observed_at",
+    "previous_receipt_sha256"
+  ],
+  "replay_rule": "REPOSITORY_REPLAY_MUST_NOT_REQUIRE_ORGANIZATION_OR_ECOSYSTEM_REPLAY",
+  "repository_ledger_location": {
+    "repository": "StegVerse-org/.github",
+    "ref": "refs/stegverse/organization-ledger",
+    "namespace": "repository-ledger/_StegVerse-org/01_KV_Ledger",
+    "locator_form": "git+<checkout>#refs/stegverse/organization-ledger:repository-ledger/_StegVerse-org/01_KV_Ledger",
+    "new_ledger_root": false,
+    "designation_source": "KV-SKAP-LEDGER-LOCATION-001 under KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324), designated by StegVerse-Labs/continuity-vault-kit: the KV ledger ('kv'): KV layer-1 receipts (stegverse.kv-access-receipt/v1, INTR_DEVICE_KV). Same repository_ledger_location shape as StegVerse-org/LLM-adapter#431 on the StegVerse-org/.github org-contract.json organization_ledger_ref. The ledger's repository name _StegVerse-org/01_KV_Ledger is storage location 01_KV_Ledger (the ##_ prefix only keeps data-location names distinct for human review) presented under _StegVerse-org, the Org whose ledger coordinates it; consumers name it 'kv' (StegVerse-Labs/TVC#542 config org_ledger.custody_ledgers.kv). No new ref, no new ledger root, no new mechanism.",
+    "initialization": "Genesis is a REPOSITORY_LEDGER_INITIALIZATION transition for _StegVerse-org/01_KV_Ledger whose first receipt has previous_receipt_sha256 null, at repository-ledger/_StegVerse-org/01_KV_Ledger. Publication of the ref is the organization's own append under ORGANIZATION_LEDGER_LOCK. Not performed by StegVerse-Labs/continuity-vault-kit.",
+    "rule": "This ledger is kept in its own subtree repository-ledger/_StegVerse-org/01_KV_Ledger of the designated organization ledger ref. Replay walks repository-ledger/_StegVerse-org/01_KV_Ledger/HEAD.json back through its own receipts and never reads an organization receipt or repository-ledger/_StegVerse-org/02_SKAP_Vault_Ledger. Existing organization-ledger commits are not rewritten.",
+    "expected_genesis_receipt_sha256": null,
+    "expected_genesis_note": "Null on purpose (Coordination ruling, StegVerse-org/.github#162 comment 6371352606: pin after observe): the REPOSITORY_LEDGER_INITIALIZATION genesis receipt for repository-ledger/_StegVerse-org/01_KV_Ledger cannot be known before it is observed. No digest is invented. The REPOSITORY_LEDGER_GENESIS_PIN transition (StegVerse-org/LLM-adapter#431) writes /repository_ledger_location/expected_genesis_receipt_sha256 from the receipted genesis read back from refs/stegverse/organization-ledger; until then consumers fail closed ORG_LEDGER_GENESIS_NOT_PINNED."
+  },
+  "propagation_rule": "PROPAGATE_ONLY_EVIDENCE_NEEDED_BY_NEXT_HIGHER_LEVEL",
+  "authority_effect": "NONE_CONTRACT_ONLY"
+}

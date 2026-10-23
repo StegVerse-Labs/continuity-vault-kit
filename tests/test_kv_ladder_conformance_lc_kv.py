@@ -611,3 +611,223 @@ def _checkout(git_repo):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- KV-SKAP-LEDGER-LOCATION-001: the KV ('kv') and SKAP Vault ('skap_vault') receipt ledgers -------------------------
+
+from runtime import kv_receipt_ledgers as rl  # noqa: E402
+
+#: StegVerse-Labs/TVC#542 @2b364921 config/org_ledger_head_signer.json org_ledger.custody_ledgers.<key>.carries (read-only)
+TVC542_CARRIES = {
+    "kv": ["stegverse.kv-access-receipt/v1 (L1)"],
+    "skap_vault": ["stegverse.skap-access-receipt/v1 (L2)",
+                   "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
+                   "stegverse.tvc.skap-custody-operation-result/v1"],
+}
+#: #431 contract fixture d97cd4dc (vendored E0_CONTRACT_431): the shape every designation copies exactly
+CONTRACT_431 = json.loads(Path(E0_CONTRACT_431).read_text(encoding="utf-8"))
+
+
+def tvc542_ledger_location(location):
+    """TVC#542 @2b364921 scripts/tvc_org_ledger_head_signer.py ledger_location's acceptance rule, restated (a consumer
+    check, not an import): org ledger repository and ref, namespace repository-ledger/<org>/<repo>, genesis pinned or not."""
+    import re
+    if not (isinstance(location, dict) and location.get("repository") == "StegVerse-org/.github"
+            and location.get("ref") == "refs/stegverse/organization-ledger"
+            and isinstance(location.get("namespace"), str)
+            and re.match(r"^repository-ledger/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", location["namespace"])):
+        return None, "NOT_DESIGNATED"
+    genesis = location.get("expected_genesis_receipt_sha256")
+    pinned = isinstance(genesis, str) and bool(re.match(r"^sha256:[0-9a-f]{64}$", genesis))
+    return {"ledger_repository": location["namespace"].split("/", 1)[1]}, ("OK" if pinned else "NOT_PINNED")
+
+
+@contextlib.contextmanager
+def receipt_ledger_contract(which, genesis):
+    """TEST-ONLY: point one designation at a scratch copy of its committed contract with a pinned genesis."""
+    spec = rl.RECEIPT_LEDGERS[which]
+    contract = json.loads((ROOT / spec["contract_path"]).read_text(encoding="utf-8"))
+    contract["repository_ledger_location"]["expected_genesis_receipt_sha256"] = genesis
+    raw = (json.dumps(contract, indent=2) + "\n").encode()
+    path = Path(tempfile.mkdtemp(prefix="e0-receipt-ledger-contract-")) / Path(spec["contract_path"]).name
+    path.write_bytes(raw)
+    saved = dict(spec)
+    spec.update(contract_path=str(path), contract_sha256="sha256:" + __import__("hashlib").sha256(raw).hexdigest())
+    try:
+        yield spec
+    finally:
+        spec.clear()
+        spec.update(saved)
+
+
+def _receipt(repository, klass, transition_id, evidence, previous):
+    hne = pinned()["healthy_node_evaluator"]
+    body = {"schema": "stegverse.repo-transition-receipt/v1", "repository": repository, "transition_id": transition_id,
+            "transition_class": klass, "predecessor_state_sha256": hne.sha({"previous": previous}),
+            "successor_state_sha256": hne.sha({"transition": transition_id}), "evidence": evidence,
+            "authority_effect": "NONE", "observed_at": "2026-10-23T12:00:00Z", "previous_receipt_sha256": previous}
+    return {**body, "receipt_sha256": hne.sha(body)}
+
+
+def e0_receipt_ledger_store(which, carried=("sha256:" + "ab" * 32,)):
+    """A scratch StegVerse-org/.github object store holding this ledger's namespace at the org-ledger ref (E0 label)."""
+    import subprocess
+    spec = rl.RECEIPT_LEDGERS[which]
+    genesis = _receipt(spec["repository"], rl.GENESIS_CLASS, "REPOSITORY_LEDGER_INITIALIZATION:e0",
+                       {"label": E0_LABEL, "repository": spec["repository"]}, None)
+    chain = [genesis]
+    for i, h in enumerate(carried):
+        chain.append(_receipt(spec["repository"], "RECEIPT_APPENDED", f"e0-{i}", {"receipt_sha256": h, "label": E0_LABEL},
+                              chain[-1]["receipt_sha256"]))
+    repo = tempfile.mkdtemp(prefix="e0-receipt-ledger-store-")
+    ns = Path(repo, *spec["namespace"].split("/"))
+    (ns / "receipts").mkdir(parents=True)
+    for r in chain:
+        (ns / "receipts" / (r["receipt_sha256"][7:] + ".json")).write_text(json.dumps(r), encoding="utf-8")
+    (ns / "HEAD.json").write_text(json.dumps({"receipt_sha256": chain[-1]["receipt_sha256"]}), encoding="utf-8")
+    env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+           "GIT_AUTHOR_DATE": "2026-10-23T12:00:00Z", "GIT_COMMITTER_DATE": "2026-10-23T12:00:00Z"}
+    git = ["git", "-c", "user.name=E0", "-c", "user.email=e0@invalid", "-c", "commit.gpgsign=false",
+           "-c", "init.defaultBranch=e0"]
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", E0_LABEL],
+                 ["update-ref", rl.ORG_LEDGER_REF, "HEAD"]):
+        subprocess.run(git + args, cwd=repo, check=True, capture_output=True, env=env)
+    tree = subprocess.run(["git", "-C", repo, "rev-parse", f"{rl.ORG_LEDGER_REF}:{spec['namespace']}"], check=True,
+                          capture_output=True, env=env).stdout.decode().strip()
+    return os.path.join(repo, ".git"), genesis["receipt_sha256"], chain[-1]["receipt_sha256"], tree
+
+
+def e0_receipt_ledger_attestation(which, genesis, head, tree, **override):
+    from kv_two_layer_e0 import E0_ROUTE_SEED, signer
+    location = rl.designation(which)[0]["location"]
+    body = {**rl.head_attestation_body(location, genesis, head, tree), **override}
+    message = rl.HEAD_ATTESTATION_SCHEMA.encode() + b"\n" + pinned()["healthy_node_evaluator"].canon(body)
+    return {**body, "key_id": E0_ROUTE_KEY_ID, "signature_b64": signer().sign_b64(message, E0_ROUTE_SEED)}
+
+
+class KvSkapLedgerLocation(unittest.TestCase):
+    """KV-SKAP-LEDGER-LOCATION-001: two receipt ledgers on the org ledger in #431's repository_ledger_location shape,
+    genesis pinned only by REPOSITORY_LEDGER_GENESIS_PIN after it is observed (#162 comment 6371352606)."""
+
+    LEDGERS = {"kv": "01_KV_Ledger", "skap_vault": "02_SKAP_Vault_Ledger"}
+
+    def test_designations_are_431_shape_exactly_with_storage_names(self):
+        self.assertEqual(set(rl.RECEIPT_LEDGERS), set(self.LEDGERS))
+        for which, name in self.LEDGERS.items():
+            spec = rl.RECEIPT_LEDGERS[which]
+            raw = (ROOT / spec["contract_path"]).read_bytes()
+            self.assertEqual("sha256:" + __import__("hashlib").sha256(raw).hexdigest(), spec["contract_sha256"])
+            contract = json.loads(raw)
+            self.assertEqual(list(contract), list(CONTRACT_431))
+            loc, ref = contract["repository_ledger_location"], CONTRACT_431["repository_ledger_location"]
+            self.assertEqual(list(loc), list(ref))
+            self.assertEqual(tuple(loc), rl.LOCATION_SHAPE)
+            for key in ("repository", "ref", "new_ledger_root"):
+                self.assertEqual(loc[key], ref[key], key)  # no new ref type, no new ledger root
+            self.assertEqual(contract["repository"], f"_StegVerse-org/{name}")
+            self.assertEqual(loc["namespace"], f"repository-ledger/_StegVerse-org/{name}")
+            self.assertEqual(loc["locator_form"], f"git+<checkout>#refs/stegverse/organization-ledger:{loc['namespace']}")
+            self.assertIsNone(loc["expected_genesis_receipt_sha256"])
+            self.assertIn("6371352606", loc["expected_genesis_note"])
+            self.assertIn("REPOSITORY_LEDGER_GENESIS_PIN", loc["expected_genesis_note"])
+            self.assertEqual(spec["storage_location"], name)
+            self.assertEqual(spec["presented_under"], "_StegVerse-org")
+
+    def test_tvc542_consumer_reads_both_designations(self):
+        config = rl.custody_ledgers_config()
+        self.assertEqual(set(config), {"kv", "skap_vault"})
+        for which, entry in config.items():
+            self.assertEqual(entry["carries"], TVC542_CARRIES[which])
+            loc, state = tvc542_ledger_location(entry["repository_ledger_location"])
+            self.assertEqual(state, "NOT_PINNED")  # designated; refused only for the unpinned genesis
+            self.assertEqual(loc["ledger_repository"], rl.RECEIPT_LEDGERS[which]["repository"])
+        self.assertEqual(tvc542_ledger_location(None)[1], "NOT_DESIGNATED")
+
+    def test_production_refuses_with_six_fields_naming_the_genesis_pin(self):
+        for which in self.LEDGERS:
+            for out in (rl.read_receipt_ledger(which, None), ep.KVInterlockRuntime.receipt_ledger() if which == "kv"
+                        else SkapLayer2Gate.receipt_ledger()):
+                self.assertEqual((out["disposition"], out["failure_code"], out["failure_class"]),
+                                 ("FAIL_CLOSED", "ORG_LEDGER_GENESIS_NOT_PINNED", "B"), out)
+                for field in SIX:
+                    self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
+                self.assertIn("REPOSITORY_LEDGER_GENESIS_PIN", out["next_attempt"])
+                self.assertFalse(out["ledger_written"])
+        from runtime import kv_skap_vault as kv
+        with production_trust_anchors():
+            rows = kv.finish_point()["receipt_ledger_prerequisites"]
+        self.assertEqual([(r["receipt_ledger"], r["disposition"], r["failure_code"]) for r in rows],
+                         [("kv", "FAIL_CLOSED", "ORG_LEDGER_GENESIS_NOT_PINNED"),
+                          ("skap_vault", "FAIL_CLOSED", "ORG_LEDGER_GENESIS_NOT_PINNED")])
+
+    def test_a_changed_contract_is_not_designated(self):
+        spec = rl.RECEIPT_LEDGERS["skap_vault"]
+        saved = spec["contract_sha256"]
+        spec["contract_sha256"] = "sha256:" + "0" * 64
+        try:
+            out = rl.read_receipt_ledger("skap_vault", None)
+            self.assertEqual(rl.custody_ledgers_config()["skap_vault"]["repository_ledger_location"], None)
+        finally:
+            spec["contract_sha256"] = saved
+        self.assertEqual(out["failure_code"], "CUSTODY_RECEIPT_NAMESPACE_NOT_DESIGNATED")
+        self.assertEqual(rl.read_receipt_ledger("other", None)["failure_code"], "RECEIPT_LEDGER_UNKNOWN")
+
+    def test_receipts_carry_their_designated_ledger(self):
+        layers = TwoLayers()
+        vault = layers.vault()
+        bound = layers.bind(vault, custody_key_ref="tvc://skap-custody/e0-ledger", issued_by="TV/TVC",
+                            tvc_issuance_receipt_ref="sha256:" + "cd" * 32)
+        l1, l2 = layers.layer1_receipts[-1], layers.gate.export_receipts()[-1]
+        self.assertEqual(l1["receipt_ledger"], rl.receipt_ledger_binding("kv"))
+        self.assertEqual(l1["receipt_ledger"]["storage_location"], "01_KV_Ledger")
+        self.assertEqual(l2["receipt_ledger"]["storage_location"], "02_SKAP_Vault_Ledger")
+        self.assertEqual(l2["layer1_receipt_ledger"], l1["receipt_ledger"])
+        self.assertEqual(bound["body"]["receipt_ledger"], rl.receipt_ledger_binding("skap_vault"))
+
+    def test_layer2_refuses_a_layer1_receipt_naming_another_ledger(self):
+        layers = TwoLayers()
+        prior = layers.kv_hash()
+        import runtime.kv_skap_layer2 as l2
+        real = l2.receipt_ledger_binding
+        l2.receipt_ledger_binding = lambda which: {**real(which), "location": "elsewhere"} if which == "kv" else real(which)
+        try:
+            out = layers.gate.admit(kv_skap_transition(principal_ref=layers.principal, operation="SKAP_READ",
+                                                       subject_ref="p1", prior_receipt_hash=prior))
+        finally:
+            l2.receipt_ledger_binding = real
+        self.assertEqual(out["disposition"], "FAIL_CLOSED")
+        self.assertIn("LAYER1_RECEIPT_LEDGER_NOT_THE_DESIGNATED_KV_LEDGER", json.dumps(out))
+
+    def test_e0_read_back_only_at_the_pinned_genesis_with_an_authenticated_head(self):
+        for which in self.LEDGERS:
+            carried = "sha256:" + ("12" if which == "kv" else "34") * 32
+            git_dir, genesis, head, tree = e0_receipt_ledger_store(which, (carried,))
+            with receipt_ledger_contract(which, genesis):
+                good = e0_receipt_ledger_attestation(which, genesis, head, tree)
+                out = rl.read_receipt_ledger(which, git_dir, good)
+                self.assertEqual((out["disposition"], out["head_receipt_sha256"], out["namespace_tree_oid"]),
+                                 ("ALLOW", head, tree), out)
+                self.assertEqual(out["chain"][-1]["receipt_sha256"], genesis)
+                self.assertEqual(rl.receipt_on_ledger(which, carried, git_dir, good)["disposition"], "ALLOW")
+                self.assertEqual(rl.receipt_on_ledger(which, "sha256:" + "ee" * 32, git_dir, good)["failure_code"],
+                                 "RECEIPT_NOT_ON_DESIGNATED_LEDGER")
+                other = "kv" if which == "skap_vault" else "skap_vault"
+                bad = e0_receipt_ledger_attestation(other, genesis, head, tree)
+                self.assertEqual(rl.read_receipt_ledger(which, git_dir, bad)["failure_code"],
+                                 "ORG_LEDGER_HEAD_NOT_AUTHENTICATED")
+                self.assertEqual(rl.read_receipt_ledger(which, git_dir, None)["failure_code"],
+                                 "ORG_LEDGER_HEAD_NOT_AUTHENTICATED")
+                with e0_without_append_route():
+                    self.assertEqual(rl.read_receipt_ledger(which, git_dir, good)["failure_code"],
+                                     "MERGE_APPEND_PATH_NOT_ADMITTED")
+                self.assertEqual(rl.read_receipt_ledger(which, tempfile.mkdtemp(), good)["failure_code"],
+                                 "ORG_LEDGER_LOCATION_UNREADABLE")
+            # a store that minted its own genesis is not this ledger
+            with receipt_ledger_contract(which, "sha256:" + "9" * 64):
+                self.assertEqual(rl.read_receipt_ledger(which, git_dir, good)["failure_code"],
+                                 "ORG_LEDGER_GENESIS_MISMATCH")
+
+    def test_no_cryptography_import(self):
+        source = (ROOT / "runtime" / "kv_receipt_ledgers.py").read_text(encoding="utf-8")
+        self.assertNotIn("cryptography", source.replace("no cryptography", ""))
+        self.assertNotIn("import cryptography", source)
