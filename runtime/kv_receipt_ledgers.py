@@ -9,19 +9,12 @@ the Org Ledger. Two ledgers are designated, each a subtree of StegVerse-org/.git
   custody-result receipts (stegverse.tvc.skap-custody-operation-result/v1).
 
 ``kv`` / ``skap_vault`` are the consumer keys of StegVerse-Labs/TVC#542's config/org_ledger_head_signer.json
-``org_ledger.custody_ledgers`` (also read by TVC#540 and TVC#541). ``##_<name>`` names a storage location (the ``##_``
-prefix only keeps data-location names distinct for human review); both are presented under ``_StegVerse-org``, the
-Org whose ledger coordinates them, so each ledger's #431 repository name is ``_StegVerse-org/##_<name>`` and its
-namespace ``repository-ledger/_StegVerse-org/##_<name>`` (the consumer's ``repository-ledger/<org>/<repo>`` form).
-
-Each designation is a contract in StegVerse-org/LLM-adapter#431's ``repository_ledger_location`` shape, exactly
-(same keys, same ref, same subtree rule), committed under ``.stegverse/receipt-ledgers/`` and digest-pinned here.
-There is no new ref type and no new mechanism: the genesis is pinned only by the REPOSITORY_LEDGER_GENESIS_PIN
-transition (#431) after it is observed (Coordination ruling, StegVerse-org/.github#162 comment 6371352606), so
-``expected_genesis_receipt_sha256`` is null and every read is a six-field FAIL_CLOSED ORG_LEDGER_GENESIS_NOT_PINNED
-until then. A read-back reuses #432's pinned code: org_ledger_location's tree unpack, healthy_node_evaluator's
-read_chain, the published ORG_LEDGER_HEAD attesters and the stdlib Ed25519 verify. The caller names only where a
-local object store is; the ref, namespace and genesis come from the committed contract. Nothing here writes a ledger.
+``org_ledger.custody_ledgers`` (also read by TVC#540 and TVC#541). Each ledger's #431 repository name keeps the real
+org segment, ``StegVerse-org/##_<name>``, and its namespace is ``repository-ledger/StegVerse-org/##_<name>`` (the
+consumer's ``repository-ledger/<org>/<repo>`` form, as #431). ``##_<name>`` is the storage-location segment (the
+``##_`` prefix only keeps data-location names distinct for human review). ``_StegVerse-org`` is the Org as the
+coordination and presentation of this data (e.g. MyKV WorkSpace): presentation metadata only, never a path segment.
+Naming per Coordination's provisional ruling (Oct 23 6:20 PM), pending Rigel's confirmation.
 """
 from __future__ import annotations
 
@@ -41,7 +34,7 @@ ALLOW, FAIL_CLOSED = "ALLOW", "FAIL_CLOSED"
 DESIGNATED_BY = "StegVerse-Labs/continuity-vault-kit"
 ORG_LEDGER_REPOSITORY = "StegVerse-org/.github"
 ORG_LEDGER_REF = "refs/stegverse/organization-ledger"
-PRESENTED_UNDER = "_StegVerse-org"
+PRESENTED_UNDER = "_StegVerse-org"  # presentation metadata only (not a path segment)
 TASK = "KV-SKAP-LEDGER-LOCATION-001 under KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324)"
 GENESIS_CLASS = "REPOSITORY_LEDGER_INITIALIZATION"
 GENESIS_PIN_TRANSITION = "REPOSITORY_LEDGER_GENESIS_PIN"
@@ -64,9 +57,9 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
         "storage_location": "01_KV_Ledger",
         "presented_under": PRESENTED_UNDER,
         "contract_path": ".stegverse/receipt-ledgers/01_KV_Ledger.contract.json",
-        "contract_sha256": "sha256:81dbc78b0cb21c8ce06faadbca0b9b0521636800ca99a886c24742a2aa35af57",
-        "repository": "_StegVerse-org/01_KV_Ledger",
-        "namespace": "repository-ledger/_StegVerse-org/01_KV_Ledger",
+        "contract_sha256": "sha256:c32fbde7f4e159f44a294feaf34dd0a9c7a8a5eff9ca6ef97312473ff176a611",
+        "repository": "StegVerse-org/01_KV_Ledger",
+        "namespace": "repository-ledger/StegVerse-org/01_KV_Ledger",
         "carries": ["stegverse.kv-access-receipt/v1 (L1)"],
         "read_by": "runtime.kv_interlock_endpoint.KVInterlockRuntime (layer 1)",
         "not_designated_code": "KV_RECEIPT_NAMESPACE_NOT_DESIGNATED",
@@ -75,9 +68,9 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
         "storage_location": "02_SKAP_Vault_Ledger",
         "presented_under": PRESENTED_UNDER,
         "contract_path": ".stegverse/receipt-ledgers/02_SKAP_Vault_Ledger.contract.json",
-        "contract_sha256": "sha256:153c32e62450b105805abb9e1d366bb32ece768b5caf497ca2dc54e095565c7f",
-        "repository": "_StegVerse-org/02_SKAP_Vault_Ledger",
-        "namespace": "repository-ledger/_StegVerse-org/02_SKAP_Vault_Ledger",
+        "contract_sha256": "sha256:71b665d49e97ba2eb0c965cc392266511c029badd9251bd58c696302ce40bcc5",
+        "repository": "StegVerse-org/02_SKAP_Vault_Ledger",
+        "namespace": "repository-ledger/StegVerse-org/02_SKAP_Vault_Ledger",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
                     "stegverse.tvc.skap-custody-operation-result/v1"],

@@ -724,14 +724,16 @@ class KvSkapLedgerLocation(unittest.TestCase):
             self.assertEqual(tuple(loc), rl.LOCATION_SHAPE)
             for key in ("repository", "ref", "new_ledger_root"):
                 self.assertEqual(loc[key], ref[key], key)  # no new ref type, no new ledger root
-            self.assertEqual(contract["repository"], f"_StegVerse-org/{name}")
-            self.assertEqual(loc["namespace"], f"repository-ledger/_StegVerse-org/{name}")
+            self.assertEqual(contract["repository"], f"StegVerse-org/{name}")
+            self.assertEqual(loc["namespace"], f"repository-ledger/StegVerse-org/{name}")
             self.assertEqual(loc["locator_form"], f"git+<checkout>#refs/stegverse/organization-ledger:{loc['namespace']}")
             self.assertIsNone(loc["expected_genesis_receipt_sha256"])
             self.assertIn("6371352606", loc["expected_genesis_note"])
             self.assertIn("REPOSITORY_LEDGER_GENESIS_PIN", loc["expected_genesis_note"])
             self.assertEqual(spec["storage_location"], name)
-            self.assertEqual(spec["presented_under"], "_StegVerse-org")
+            self.assertEqual(spec["presented_under"], "_StegVerse-org")  # presentation metadata only
+            self.assertNotIn("_StegVerse-org", loc["namespace"])
+            self.assertEqual(loc["namespace"].split("/")[1], ref["namespace"].split("/")[1])  # #431's real org segment
 
     def test_tvc542_consumer_reads_both_designations(self):
         config = rl.custody_ledgers_config()

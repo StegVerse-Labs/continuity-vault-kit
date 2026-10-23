@@ -4,13 +4,13 @@ Task KV-SKAP-LEDGER-LOCATION-001 sits under KV-SKAP-VAULT-FUNCTIONAL-001 (StegVe
 
 | consumer key (TVC#542 `org_ledger.custody_ledgers`) | storage location | #431 repository | namespace on `StegVerse-org/.github` `refs/stegverse/organization-ledger` | carries | contract |
 |---|---|---|---|---|---|
-| `kv` | `01_KV_Ledger` | `_StegVerse-org/01_KV_Ledger` | `repository-ledger/_StegVerse-org/01_KV_Ledger` | stegverse.kv-access-receipt/v1 (L1) | `.stegverse/receipt-ledgers/01_KV_Ledger.contract.json` sha256:81dbc78b0cb21c8ce06faadbca0b9b0521636800ca99a886c24742a2aa35af57 |
-| `skap_vault` | `02_SKAP_Vault_Ledger` | `_StegVerse-org/02_SKAP_Vault_Ledger` | `repository-ledger/_StegVerse-org/02_SKAP_Vault_Ledger` | stegverse.skap-access-receipt/v1 (L2), stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537), stegverse.tvc.skap-custody-operation-result/v1 | `.stegverse/receipt-ledgers/02_SKAP_Vault_Ledger.contract.json` sha256:153c32e62450b105805abb9e1d366bb32ece768b5caf497ca2dc54e095565c7f |
+| `kv` | `01_KV_Ledger` | `StegVerse-org/01_KV_Ledger` | `repository-ledger/StegVerse-org/01_KV_Ledger` | stegverse.kv-access-receipt/v1 (L1) | `.stegverse/receipt-ledgers/01_KV_Ledger.contract.json` sha256:c32fbde7f4e159f44a294feaf34dd0a9c7a8a5eff9ca6ef97312473ff176a611 |
+| `skap_vault` | `02_SKAP_Vault_Ledger` | `StegVerse-org/02_SKAP_Vault_Ledger` | `repository-ledger/StegVerse-org/02_SKAP_Vault_Ledger` | stegverse.skap-access-receipt/v1 (L2), stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537), stegverse.tvc.skap-custody-operation-result/v1 | `.stegverse/receipt-ledgers/02_SKAP_Vault_Ledger.contract.json` sha256:71b665d49e97ba2eb0c965cc392266511c029badd9251bd58c696302ce40bcc5 |
 
-Naming:
-- `##_<name>` is a storage location. The `##_` prefix only keeps data-location names distinct for human review.
-- `_StegVerse-org` is the Org coordination the ledger is presented under.
-- Together they form the `<org>/<repo>` pair of the consumer's `repository-ledger/<org>/<repo>` namespace form.
+Naming (Coordination's provisional ruling, Oct 23 6:20 PM, pending Rigel's confirmation):
+- The namespace keeps the real org segment, `repository-ledger/StegVerse-org/##_<name>`, as #431 does.
+- `##_<name>` is the storage-location segment. The `##_` prefix only keeps data-location names distinct for human review.
+- `_StegVerse-org` is the Org as the coordination and presentation of this data (e.g. MyKV WorkSpace). It appears only as presentation metadata (`presented_under`), never as a path segment.
 
 Genesis:
 - `expected_genesis_receipt_sha256` is null.
