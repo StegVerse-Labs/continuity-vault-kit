@@ -820,6 +820,40 @@ class KvSkapLedgerLocation(unittest.TestCase):
         for withdrawn in ("SVKV", "GatewayStore", "BlobOpener", "G8", "self-organizing"):
             self.assertFalse(withdrawn in source, withdrawn)
 
+    def test_no_endpoint_is_a_github_organization_member(self):
+        """Rigel's rule (Coordination on .github#160): KV reaches the Orgs only through InTr, never as an org member."""
+        for which in ("kv", "skap_vault"):
+            contract = json.loads((ROOT / rl.RECEIPT_LEDGERS[which]["contract_path"]).read_text())
+            self.assertIsNone(rl._org_membership(contract), which)
+            loc = contract["repository_ledger_location"]
+            self.assertEqual((loc["repository"], loc["ref"]), ("STEGVERSE_KV", "KV_INTR_ENDPOINT"))
+            self.assertTrue(all(p.endswith(":intr-destination")
+                                for p in contract["ledger_designation"]["rollback_watermark_source"]["path_ids"]), which)
+            self.assertIn("ENDPOINT_ORG_MEMBERSHIP_REFUSED", contract["designation_notes"]["org_membership"])
+
+        def org_repository(c):
+            c["repository_ledger_location"]["repository"] = "StegVerse-Labs/continuity-vault-kit"
+
+        def org_ref(c):
+            c["repository_ledger_location"]["ref"] = "refs/heads/main"
+
+        def team(c):
+            c["ledger_designation"]["team_slug"] = "kv-endpoints"
+
+        def app_installation(c):
+            c["ledger_designation"]["stores"][0]["installation_id"] = 1
+
+        def membership(c):
+            c["org_membership"] = {"org": "StegVerse-org", "role": "member"}
+
+        for which in ("kv", "skap_vault"):
+            for edit in (org_repository, org_ref, team, app_installation, membership):
+                with self.subTest(which=which, edit=edit.__name__), kv_chain_e0(which, None, edit):
+                    out = rl.read_receipt_ledger(which)
+                    self.assertSix(out, "ENDPOINT_ORG_MEMBERSHIP_REFUSED", "C")
+                    self.assertIn("InTr", out["required_evidence_or_repair"])
+                    self.assertEqual(out["failed_predicate"], "ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER")
+
     def test_an_org_git_ref_other_store_or_multi_store_designation_is_refused(self):
         def org_location(c):
             c["repository_ledger_location"].update(SUPERSEDED_ORG_LOCATION)

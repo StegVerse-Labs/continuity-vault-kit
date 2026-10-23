@@ -59,9 +59,15 @@ duplicated this seam, so it has been dropped.
 The read-back layout is `HEAD.json` plus `receipts/<sha256 hex>.json`. It is walked by the vendored #432
 `read_chain`, which is unchanged.
 
-**SV-011.** KVs, STEGVERSE_KV included, come into existence through SV-011's minimal install package on the storage
-drive. This PR defines no install or bootstrap path. It defines only the read seam on the documented storage
-endpoint.
+**Scope.** This PR defines only the read seam on the documented storage endpoint. KV infrastructure (the SKAP
+Vault, KV, and the StegOS boundaries through a healthy node) is built by Lane D under KV-SKAP-VAULT-FUNCTIONAL-001
+and does not depend on SV-011. SV-011 is the governed-AI-Entity package that the KV AI assistant will consume later.
+
+**No endpoint is an Org member.** No endpoint (KV, SKAP Vault, node or gateway) is ever a GitHub Organization
+member. STEGVERSE_KV is the KV class, not a GitHub repository. The contracts carry no org repository, no
+org-membership, team or app-installation binding, and no org ref. KV reaches the Orgs only through InTr
+(`KV_INTR_ENDPOINT`, intr-destination path_ids). A contract that binds any of these is refused with six-field
+FAIL_CLOSED `ENDPOINT_ORG_MEMBERSHIP_REFUSED` (class C), right after the org-ledger-ref check.
 
 ## What is not claimed
 

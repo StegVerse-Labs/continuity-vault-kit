@@ -35,6 +35,7 @@ import base64
 import binascii
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -83,7 +84,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     KV_LEDGER: {
         "storage_location": "_StegVerse/Receipts",
         "contract_path": ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
-        "contract_sha256": "sha256:982269fb318c7570027fb2477c377aaef69b4a88a6cf019608c31dac9d224abf",
+        "contract_sha256": "sha256:98651155f0b97cf22f2fb7c0f6fc96900e48c920f13e8d31d965ae84800baf86",
         "repository": "STEGVERSE_KV:_StegVerse/Receipts",
         "carries": ["stegverse.kv-access-receipt/v1 (L1)"],
         "read_by": "runtime.kv_interlock_endpoint.KVInterlockRuntime (layer 1)",
@@ -94,7 +95,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     SKAP_VAULT_LEDGER: {
         "storage_location": "_Vault/SKAP/Receipts",
         "contract_path": ".stegverse/receipt-chains/skap-receipts.contract.json",
-        "contract_sha256": "sha256:e73a6a1b5dc8250a346aff5e44e247bbb77b7a126fc8fc355f08691c6c605fcb",
+        "contract_sha256": "sha256:3890351860f5df61c89b298b1a4dbf800e3897bab3841ed890cd49d864b23b21",
         "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
@@ -169,6 +170,62 @@ def _not_pinned(which: str, location: str) -> dict[str, Any]:
                    "accepted", owner=f"{TASK}; dependency owner Lane B (#162 / LLM-adapter#431)")
 
 
+MEMBERSHIP_CODE = "ENDPOINT_ORG_MEMBERSHIP_REFUSED"
+#: Rigel's rule (via Coordination, StegVerse-org/.github#160): no endpoint (KV, SKAP Vault, node or gateway) is ever a
+#: GitHub Organization member. KV reaches the Orgs only through InTr (KV_INTR_ENDPOINT, intr-destination path_ids).
+MEMBERSHIP_KEYS = frozenset({"org_member", "organization_member", "org_membership", "organization_membership",
+                             "membership", "member", "members", "team", "teams", "team_slug", "team_id",
+                             "installation", "installation_id", "app_installation", "github_app", "app_id",
+                             "app_slug", "collaborator", "collaborators", "org_role", "github_org"})
+_GH_REPO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$")
+
+
+def _org_membership(contract: Any) -> str | None:
+    """Why this contract binds the endpoint as a GitHub Organization member, or None. Structural keys only (the
+    prose ``designation_notes`` are not bindings); the location's repository must be the KV class, never owner/repo."""
+    def walk(node: Any, path: str) -> str | None:
+        if isinstance(node, Mapping):
+            for k, v in node.items():
+                if k == "designation_notes":
+                    continue
+                if isinstance(k, str) and k.lower() in MEMBERSHIP_KEYS:
+                    return f"{path}{k} is an org-membership, team or app-installation binding"
+                hit = walk(v, f"{path}{k}.")
+                if hit:
+                    return hit
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                hit = walk(v, f"{path}{i}.")
+                if hit:
+                    return hit
+        return None
+    if not isinstance(contract, Mapping):
+        return None
+    hit = walk(contract, "")
+    if hit:
+        return hit
+    loc = contract.get("repository_ledger_location")
+    loc = loc if isinstance(loc, Mapping) else {}
+    repo = loc.get("repository")
+    if isinstance(repo, str) and (_GH_REPO.match(repo) or repo != KV_REPOSITORY):
+        return f"repository_ledger_location.repository {repo!r} is not the KV class {KV_REPOSITORY} (an org repository)"
+    if loc.get("ref") not in (None, KV_ROUTE):
+        return f"repository_ledger_location.ref {loc.get('ref')!r} is not {KV_ROUTE} (an org ref)"
+    return None
+
+
+def org_membership_refused(which: str, reason: str) -> dict[str, Any]:
+    """Six-field FAIL_CLOSED (class C): an endpoint is never a GitHub Organization member."""
+    return _refuse(which, MEMBERSHIP_CODE, "C",
+                   f"a {STORE_TYPE} designation with no org repository, org-membership, team or app-installation "
+                   f"binding and no org ref; KV reaches the Orgs only through InTr ({KV_ROUTE}, intr-destination "
+                   "path_ids)",
+                   "on an admitted change that removes the binding and re-pins the contract digest",
+                   f"no endpoint (KV, SKAP Vault, node or gateway) is ever a GitHub Organization member: {reason}",
+                   owner="Lane D (StegVerse-Labs/continuity-vault-kit); KV-SKAP-VAULT-FUNCTIONAL-001",
+                   predicate="ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER")
+
+
 def _org_designation(contract: Any) -> str | None:
     """Why this contract designates an org ledger ref or git-ref store, or None. Structured fields only."""
     if not isinstance(contract, Mapping):
@@ -219,6 +276,9 @@ def designation(which: str) -> tuple[dict[str, Any] | None, dict[str, Any] | Non
                              "never for an org designation; on a KV-owned contract", org,
                              predicate="INDEPENDENT_ENDPOINT_LEDGER_NOT_ORG_HOSTED")
     loc = contract.get("repository_ledger_location") if isinstance(contract, Mapping) else None
+    member = _org_membership(contract)
+    if member:
+        return None, org_membership_refused(which, member)
     if not isinstance(loc, Mapping) or tuple(loc) != LOCATION_SHAPE or contract.get("schema") != CONTRACT_SCHEMA \
             or contract.get("repository") != spec["repository"] or loc.get("repository") != KV_REPOSITORY \
             or loc.get("ref") != KV_ROUTE or loc.get("namespace") != spec["storage_location"] \
@@ -494,5 +554,5 @@ def custody_ledgers_config() -> dict[str, Any]:
 
 __all__ = ["CORRESPONDENCE_RULE", "KV_LEDGER", "SKAP_VAULT_LEDGER", "RECEIPT_LEDGERS", "STORE_KEYS", "STORE_TYPE",
            "GENESIS_CROSSING", "custody_ledgers_config", "designation", "head_attestation_body",
-           "kv2_pending", "load_head_signers", "pin_mechanism_org_hosted", "read_receipt_ledger",
+           "MEMBERSHIP_CODE", "kv2_pending", "load_head_signers", "org_membership_refused", "pin_mechanism_org_hosted", "read_receipt_ledger",
            "receipt_ledger_binding", "receipt_ledger_prerequisites", "receipt_on_ledger"]
