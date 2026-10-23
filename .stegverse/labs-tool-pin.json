@@ -1,0 +1,12 @@
+{
+ "authority_effect": "NONE",
+ "commit": "b17e08159242326200b5f3e90c56f39bf4b9f6d8",
+ "files": {
+  "scripts/test_set_selection.py": "4725d07aa855a855ebebfda6da7294d01f1863357b95bbfd341d92da5e1c4d43"
+ },
+ "re_pin": "the commit is the head of StegVerse-Labs/.github#3317 (unmerged), the same commit StegVerse-org/.github pins (.stegverse/test-suite-baseline/labs-tool-pin.json); pin its merge commit once it lands on main",
+ "repository": "StegVerse-Labs/.github",
+ "schema": "stegverse.labs-tool-pin/v1",
+ "url": "https://github.com/StegVerse-Labs/.github",
+ "why": "one implementation of test-set selection (reused, not forked): the finish-point job fetches this commit anonymously and runs only these bytes"
+}
