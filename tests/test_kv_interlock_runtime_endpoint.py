@@ -13,6 +13,7 @@ MODULE_PATH = ROOT / "runtime" / "kv_interlock_endpoint.py"
 sys.path.insert(0, str(ROOT / "tests"))
 
 from kv_two_layer_e0 import e0_empty_ref_checkout, e0_health_ledger, e0_ref_without_namespace, healthy_node_kwargs  # noqa: E402,E501
+from kv_two_layer_e0 import e0_without_node_reader  # noqa: E402
 from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
@@ -413,8 +414,24 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
     def test_the_pin_records_428_429_and_430_provenance(self):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
         self.assertEqual([p["commit"][:8] for p in pin["provenance"]],
-                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e", "a2ee67e6", "73316297", "74509fec"])
+                         ["0b37fe3b", "5f5f7bbe", "4e1499ab", "3c106de4", "c2c57505", "1cbad77e", "a2ee67e6", "73316297", "74509fec", "c4cfc145", "eecf4843"])
         self.assertEqual({p["source_sha256"] for p in pin["provenance"]}, {pin["source_sha256"]})
+
+    def test_permanent_without_a_node_storage_endpoint_reader_fails_closed(self):
+        # #432 @eecf4843: PERMANENT is designated on the node's own storage endpoint; no NODE_STORAGE_ENDPOINT reader is
+        # documented or admitted, so without the E0 TEST-ONLY reader the root is refused (class B, not a code edit)
+        source = e0_health_ledger("SV-NODE-E0TEST0001")[0]
+        with e0_without_node_reader():
+            response = self.handle(self.runtime_for(source))
+        self.assertEqual((response["decision"], response["failure_code"]),
+                         ("FAIL_CLOSED", "NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED"), response)
+        self.assertEqual((response["failure_class"], response["health_evaluation"]["failure_class"],
+                          response["health_evaluation"]["reader_id"]),
+                         ("B", "B", "UNKNOWN_NOT_AUTHENTICALLY_OBSERVED"), response)
+        self.assertIsNone(response["kv_access_receipt"])
+        self.assertEqual(self.receipts, [])
+        # with the TEST-ONLY reader back in force, the same source reaches the anchor
+        self.assertEqual(self.handle(self.runtime_for(source))["decision"], "ALLOW_BOUNDED_CONTEXT")
 
     def test_an_unhealthy_superseded_unadmitted_or_foreign_node_is_refused(self):
         # each ledger is built right before it is used: the node's identity proof is over its current chain head
@@ -437,12 +454,15 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         self.assertEqual((response["refusal_cause"], response["health_evaluation"]["reason"],
                           response["health_evaluation"]["failed_stage"]),
                          ("NODE_NOT_CURRENTLY_ADMITTED_HEALTHY", "NODE_NOT_ADMITTED", "HEALTH_AND_ADMISSION"))
-        # another node's endpoint or a foreign producer's receipts are refused by evaluate_anchored's anchored-root check
-        for root, reason in ((e0_health_ledger("SV-NODE-E0OTHER001")[0], None),
-                             (e0_health_ledger("SV-NODE-E0TEST0001", foreign=True)[0], "FOREIGN_PRODUCER_RECEIPT")):
+        # another node's endpoint or a foreign producer's receipts are refused by evaluate_anchored's anchored-root check;
+        # since #432 @eecf4843 another node's PERMANENT endpoint is refused first by its own designation (it names
+        # another endpoint_id and path), ENDPOINT_LEDGER_DESIGNATION_INVALID, carried as evaluate_anchored's own code
+        for root, reason, code in ((e0_health_ledger("SV-NODE-E0OTHER001")[0], "ENDPOINT_LEDGER_DESIGNATION_INVALID",
+                                    "ENDPOINT_LEDGER_DESIGNATION_INVALID"),
+                                   (e0_health_ledger("SV-NODE-E0TEST0001", foreign=True)[0], "FOREIGN_PRODUCER_RECEIPT",
+                                    self.m.ENDPOINT_ANCHOR_REFUSAL_CODE)):
             response = self.handle(self.runtime_for(root))
-            self.assertEqual((response["decision"], response["failure_code"]),
-                             ("FAIL_CLOSED", self.m.ANCHOR_REFUSAL_CODE), response)
+            self.assertEqual((response["decision"], response["failure_code"]), ("FAIL_CLOSED", code), response)
             self.assertIsNone(response["kv_access_receipt"])
             if reason:
                 self.assertEqual(response["health_evaluation"]["reason"], reason)

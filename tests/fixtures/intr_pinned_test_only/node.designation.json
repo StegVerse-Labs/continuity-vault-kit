@@ -1,0 +1,28 @@
+{
+  "endpoint_id": "SV-NODE-fixture-permanent",
+  "endpoint_kind": "PERMANENT",
+  "expected_genesis_receipt_sha256": null,
+  "genesis_class": "REPOSITORY_LEDGER_INITIALIZATION",
+  "head_signer_source": "NODE_IDENTITY_KEY",
+  "provider_selection": "SINGLE_PROVIDER_V1",
+  "rollback_watermark_source": {
+    "org_crossing_cross_check": {
+      "path_ids": [
+        "SV-NODE-fixture-permanent->StegVerse-org:intr-destination"
+      ],
+      "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK",
+      "source": "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD"
+    },
+    "source": "NODE_RECORDED_RECEIPT_CHAIN_HEAD"
+  },
+  "schema": "stegverse.endpoint-ledger-designation/v1",
+  "stores": [
+    {
+      "access_adapter": "resident-device-local",
+      "location": "Receipts",
+      "provider_id": "device-local",
+      "storage_endpoint_schema": "stegverse.kv.storage-endpoint-descriptor/v2",
+      "store_type": "NODE_STORAGE_ENDPOINT"
+    }
+  ]
+}

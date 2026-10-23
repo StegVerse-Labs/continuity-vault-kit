@@ -2,8 +2,8 @@
 
 Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (INTR_KV_SKAP).
 
-Health is decided by the REAL pinned InTr code, vendored byte-identical from StegVerse-org/LLM-adapter#432 @74509fec
-(code unchanged since a2ee67e6) under runtime/intr_pinned/: layer 1 calls
+Health is decided by the REAL pinned InTr code, vendored byte-identical from StegVerse-org/LLM-adapter#432 @eecf4843
+(re-pinned to cvk#263 @9bc54d05) under runtime/intr_pinned/: layer 1 calls
 llm_adapter.endpoint_ledger_anchor.evaluate_anchored (Lane B's anchored-root check with LC-KV-16 inside: org ledger from the contract designation at the contract-pinned genesis with an append-route
 head attestation, identity proven by an Ed25519 signature under the anchored node_identity_key, health and admission by
 the unchanged healthy_node_evaluator.evaluate (fdaa2005...1f58, require_admission=True), then transport read from the
@@ -31,8 +31,15 @@ stand-ins here are:
   source carries that attester's head attestation for the store the harness published (``e0_attest``). Production
   publishes none (org-ledger-head-signers.v1.json is empty): MERGE_APPEND_PATH_NOT_ADMITTED.
 * the NODE_INGRESS_ADMITTED record says transport INTERLOCK_INTR, transport_state INSTALLED (E0: the boundary is
-  NOT_YET_ENABLED on LLM-adapter main), and its signal is carried by an InTr path pair (INTR_MESH_PATH_TRANSFER retained,
-  INTR_MESH_PATH_INGRESS) appended to the org namespace after the anchor.
+  NOT_YET_ENABLED on LLM-adapter main), and its signal is carried by an InTr path pair: the INTR_MESH_PATH_TRANSFER on
+  the sender's own ledger and the digest-only INTR_MESH_PATH_INGRESS on the org namespace after the anchor (#432
+  @eecf4843: nothing is retained on the org ledger).
+* the PERMANENT node's own storage endpoint (#432 @eecf4843, Q-PERMANENT-REPOSITORY-LEDGER, #167 comment 6374130335):
+  the endpoint carries the node's designation (Lane B's TEST-ONLY node.designation.json for this node and genesis) and
+  its recorded head. While the E0 anchors are in force, endpoint_ledger_designation's NODE_STORAGE_ENDPOINT reader is a
+  TEST-ONLY stub that reads the node's read-back root (#432's tests/test_endpoint_ledger_anchor.node_reader_stub), and
+  ORG_CROSSING_READER reads the E0 org namespace. Production has neither: PERMANENT is FAIL_CLOSED
+  NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED (class B).
 * EPHEMERAL anchors are StegOS-shaped generation records in the signed envelope, signed with an E0 seed whose key is not
   published. The vendored signers file is empty, so EPHEMERAL is FAIL_CLOSED NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED
   (owner TV/TVC), as in production. The signers file is never patched.
@@ -91,7 +98,7 @@ def pinned() -> dict[str, Any]:
 
 TEST_ONLY_DIR = ROOT / "tests" / "fixtures" / "intr_pinned_test_only"
 #: Lane B's TEST-ONLY stdlib signer, #431 fixture contracts, org test genesis and org-ledger harness, vendored
-#: byte-identical from LLM-adapter#432 @74509fec (org_ledger_harness.py is kept for provenance and never executed: it
+#: byte-identical from LLM-adapter#432 @c4cfc145 and @eecf4843 (org_ledger_harness.py is kept for provenance and never executed: it
 #: imports tests.ed25519_test_signer; e0_attest and the E0 route below follow it with the same seed and key_id).
 TEST_ONLY_PINS = {
     "ed25519_test_signer.py": "sha256:3173bfcfca33129cd31942783b9e3e4c9380022f308f2fc31ccdda3dc2f6fe52",
@@ -101,6 +108,8 @@ TEST_ONLY_PINS = {
         "sha256:ea81ca135bfd3b8e86a69251cf63d6f5aaa86fa46777dcec9370971dd0c5208a",
     "org_ledger_test_genesis.json": "sha256:a2c01a2ebaa15aae048c42bb6048bdbf402e682a4c69c11def9d20d97539a6a7",
     "org_ledger_harness.py": "sha256:3bbf7f7da563afd9e7a1da1ee8cdbb04219a655a3dcaff3d3a6b2190ce6db945",
+    # #432 @eecf4843 tests/fixtures/endpoint-ledger-designation/node.designation.json (byte copy)
+    "node.designation.json": "sha256:d004bb72cba3143b2a4a544851eff1ae688094a44ceb72c9b4c1b5a41e091b15",
 }
 E0_CONTRACT_431 = TEST_ONLY_DIR / "contract_with_431_repository_ledger_location.json"  # no genesis pin
 E0_CONTRACT_PINNED = TEST_ONLY_DIR / "contract_with_431_location_and_pinned_genesis.json"
@@ -234,10 +243,98 @@ def _e0_head_signers() -> list[dict[str, Any]]:
     return [e0_route_ref()]
 
 
+#: node_id -> the E0 org namespace its ledger was anchored to (for the TEST-ONLY ORG_CROSSING_READER).
+_E0_ORG_OF: dict[str, Path] = {}
+
+
+@contextlib.contextmanager
+def _e0_node_reader(designation: Any, store: Any, source: Any, head_attestation: Any):
+    """TEST-ONLY stand-in for a NODE_STORAGE_ENDPOINT access adapter (none is documented or admitted; #432 @eecf4843
+    tests/test_endpoint_ledger_anchor.node_reader_stub): it reads the read-back root it is handed and the node's own
+    head record. Production has no reader (NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED)."""
+    m = pinned()
+    hne, eld = m["healthy_node_evaluator"], m["endpoint_ledger_designation"]
+    chain, failure, detail = hne.read_chain(Path(source)) if source else (None, "NO_SOURCE", "")
+    if failure:
+        yield None, None, ("ENDPOINT_LEDGER_UNREADABLE", f"{failure}: {detail}")
+        return
+    yield chain, eld.head_record_entries([chain[0]["receipt_sha256"]] if chain else []), None
+
+
+def _e0_org_crossings(designation: Any) -> Any:
+    """TEST-ONLY Org-side readback (LC-KV-23 (b)): the E0 org namespace the node was anchored to, else None."""
+    org_ns = _E0_ORG_OF.get((designation or {}).get("endpoint_id"))
+    if org_ns is None or not (org_ns / "HEAD.json").exists():
+        return None
+    return pinned()["healthy_node_evaluator"].read_chain(org_ns)[0]
+
+
+_PRODUCTION_NODE_READER: list[Any] = []
+
+
+def _set_node_reader(e0: bool) -> None:
+    eld = pinned()["endpoint_ledger_designation"]
+    if not _PRODUCTION_NODE_READER:
+        _PRODUCTION_NODE_READER.append((eld._READERS.get(eld.NODE_STORAGE_ENDPOINT), eld.ORG_CROSSING_READER))
+    reader, crossings = (_e0_node_reader, _e0_org_crossings) if e0 else _PRODUCTION_NODE_READER[0]
+    if reader is None:
+        eld._READERS.pop(eld.NODE_STORAGE_ENDPOINT, None)
+    else:
+        eld._READERS[eld.NODE_STORAGE_ENDPOINT] = reader
+    eld.ORG_CROSSING_READER = crossings
+
+
+@contextlib.contextmanager
+def e0_without_node_reader():
+    """Inside the E0 anchors: production's NODE_STORAGE_ENDPOINT reader state (none documented or admitted)."""
+    _set_node_reader(False)
+    try:
+        yield
+    finally:
+        _set_node_reader(ep.TRUST_ANCHORS.get("label") == E0_LABEL)
+
+
+@contextlib.contextmanager
+def _e0_node_reader_in_force():
+    """The TEST-ONLY node reader for one harness-side read (building the node's own proof), then the prior state."""
+    eld = pinned()["endpoint_ledger_designation"]
+    saved = (eld._READERS.get(eld.NODE_STORAGE_ENDPOINT), eld.ORG_CROSSING_READER)
+    _set_node_reader(True)
+    try:
+        yield
+    finally:
+        if saved[0] is None:
+            eld._READERS.pop(eld.NODE_STORAGE_ENDPOINT, None)
+        else:
+            eld._READERS[eld.NODE_STORAGE_ENDPOINT] = saved[0]
+        eld.ORG_CROSSING_READER = saved[1]
+
+
+def e0_node_endpoint(kind: str, node_root: Path, node_id: str) -> dict[str, Any]:
+    """The deployment's endpoint binding. PERMANENT (#432 @eecf4843) carries the node's own designation (Lane B's
+    TEST-ONLY node.designation.json for this node, its genesis and its crossing path) and its recorded head."""
+    endpoint = {"endpoint_kind": kind, "ledger_root": str(node_root)}
+    if kind != "PERMANENT":
+        return endpoint
+    m = pinned()
+    a, hne, eld = m["endpoint_ledger_anchor"], m["healthy_node_evaluator"], m["endpoint_ledger_designation"]
+    fixture = json.loads(_test_only_bytes("node.designation.json"))
+    chain = hne.read_chain(node_root)[0] if (node_root / "HEAD.json").exists() else []
+    watermark = fixture["rollback_watermark_source"]
+    designation = {**fixture, "endpoint_id": node_id,
+                   "expected_genesis_receipt_sha256": chain[-1]["receipt_sha256"] if chain else None,
+                   "rollback_watermark_source": {**watermark, "org_crossing_cross_check": {
+                       **watermark["org_crossing_cross_check"], "path_ids": [a.path_id(node_id)]}}}
+    return {**endpoint, "designation": designation,
+            "recorded_head": {"source": eld.NODE_WATERMARK_SOURCE,
+                              "head_receipt_sha256": chain[0]["receipt_sha256"] if chain else None}}
+
+
 def _set_contract(e0: bool, contract: Any = None) -> None:
     """The #431 designation and append-route stand-ins: Lane B's pinned-genesis fixture contract and the TEST-ONLY route
     attester while E0 anchors are in force, else the vendored contract and the vendored (empty) head-signers file."""
     location = pinned()["org_ledger_location"]
+    _set_node_reader(e0)
     if not _PRODUCTION_CONTRACT_PATH:
         _PRODUCTION_CONTRACT_PATH.append((location.CONTRACT_PATH, location.load_head_signers))
     if e0:
@@ -427,20 +524,23 @@ def _write_node_chain(node_root: Path, org_ns: Path | None, node_id: str, *, kin
     if transport_installed:  # E0: the node arrived over the installed InTr transport (NOT_YET_ENABLED on main)
         record.update(transport="INTERLOCK_INTR", transport_state="INSTALLED", signal_sha256=a.sha(signal))
         if carried and org_ns is not None:
-            e0_carry(org_ns, signal, f"e0-node-ingress:{node_id}")
+            e0_carry(org_ns, signal, f"e0-node-ingress:{node_id}", sender=node_root)
     put(cls, record, "e0")
     return first
 
 
-def e0_carry(org_ns: Path, signal: dict[str, Any], communication_id: str) -> str:
-    """The InTr path pair that carried `signal` (#432 test shape): the INTR_MESH_PATH_TRANSFER source half on a scratch
-    source ledger, retained at the org namespace's source-receipts/, then the INTR_MESH_PATH_INGRESS on the org chain."""
+def e0_carry(org_ns: Path, signal: dict[str, Any], communication_id: str, sender: Path | None = None) -> str:
+    """The InTr path pair that carried `signal` (#432 @eecf4843 test shape): the INTR_MESH_PATH_TRANSFER source half on
+    the sender's own ledger (the node's, once it is open; else a scratch source ledger), then the digest-only
+    INTR_MESH_PATH_INGRESS on the org chain. Nothing is retained on the org ledger."""
     m = pinned()
     a, carrier, hne = m["endpoint_ledger_anchor"], m["intr_transport_carrier"], m["healthy_node_evaluator"]
-    scratch = _mkdtemp("e0-intr-source-ledger-") / "ledger"
-    source = a.append_receipt(scratch, carrier.SOURCE_CLASS, f"{carrier.SOURCE_CLASS}:{communication_id}", a.sha(None),
-                              carrier.source_evidence(signal, communication_id), 40)
-    a.retain(org_ns, source)
+    own = sender is not None and (Path(sender) / "HEAD.json").exists()
+    ledger = Path(sender) if own else _mkdtemp("e0-intr-source-ledger-") / "ledger"
+    chain = hne.read_chain(ledger)[0] if own else []
+    source = a.append_receipt(ledger, carrier.SOURCE_CLASS, f"{carrier.SOURCE_CLASS}:{communication_id}",
+                              chain[0]["receipt_sha256"] if chain else a.sha(None),
+                              carrier.source_evidence(signal, communication_id), a.epoch_of(chain) if chain else 40)
     org_chain = hne.read_chain(org_ns)[0]
     return a.append_receipt(org_ns, carrier.DESTINATION_CLASS, f"{carrier.DESTINATION_CLASS}:{communication_id}",
                             org_chain[0]["receipt_sha256"], carrier.destination_evidence(source),
@@ -485,13 +585,14 @@ def e0_health_ledger(node_id: str, *, status: str = "HEALTHY", admitted: bool = 
                                             foreign=foreign, anchored=anchored, transport_installed=transport_installed,
                                             opened_signed=opened_signed, carried=carried)
         _seal_namespace(org_ns)
-        holder["proof"] = e0_identity_proof(node_id, {"endpoint_kind": kind, "ledger_root": str(node_root)}, org_ns,
-                                            proof)
+        _E0_ORG_OF[node_id] = org_ns
+        holder["endpoint"] = e0_node_endpoint(kind, node_root, node_id)
+        holder["proof"] = e0_identity_proof(node_id, holder["endpoint"], org_ns, proof)
     repo = _git_repo(populate=populate)
     if enroll:
         E0_TRANSPORT.enroll(node_id, transport_key or key, holder["proof"])
     source = {"kind": ep.LEDGER_SOURCE_ANCHORED, "org_ledger_git_dir": repo,
-              "endpoint": {"endpoint_kind": kind, "ledger_root": str(node_root)}}
+              "endpoint": holder["endpoint"]}
     if attest is not None:
         source["org_ledger_head_attestation"] = e0_attest(
             repo, **({} if attest == "route" else {"seed": e0_seed("callers-own-head-attester"),
@@ -541,7 +642,9 @@ def e0_identity_proof(node_id: str, endpoint: dict[str, Any], org_ns: Path, mode
     a = pinned()["endpoint_ledger_anchor"]
     head = json.loads((org_ns / "HEAD.json").read_text(encoding="utf-8"))["receipt_sha256"] \
         if (org_ns / "HEAD.json").exists() else None
-    anchored = a.verify_anchor(node_id, endpoint=endpoint, org_ledger_root=org_ns, org_ledger_head_receipt_sha256=head)
+    with _e0_node_reader_in_force():  # the node reads its own storage endpoint to sign (TEST-ONLY reader)
+        anchored = a.verify_anchor(node_id, endpoint=endpoint, org_ledger_root=org_ns,
+                                   org_ledger_head_receipt_sha256=head)
     key = e0_node_identity_key(node_id)
     if anchored.get("disposition") != "ALLOW":
         return {"schema": a.IDENTITY_PROOF_SCHEMA, "node_id": node_id, "key_id": key["key_id"],
