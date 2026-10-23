@@ -3,6 +3,14 @@
 
 This is a TEST_ONLY local integration probe. It does not claim production endpoint
 activation, live DEVICE_KV_INTR, or a production Master Records organization record.
+
+Since StegVerse-Labs/.github#3330 rev 1 (LC-KV-03/07), KVInterlockRuntime.handle (layer 1) refuses a requester that
+the pinned InTr healthy-node evaluator (LC-KV-13/14) has not admitted as currently healthy. This probe never asserts
+health itself.
+* By default it resolves only the pinned evaluator. With that evaluator absent, the probe reports the six-field
+  layer-1 FAIL_CLOSED and fails.
+* ``--e0-standin-healthy-node`` uses the tests-only E0 stand-in (tests/kv_two_layer_e0.py). The run is then labelled
+  E0_STANDIN_HEALTHY_NODE_NOT_EVIDENCE.
 """
 from __future__ import annotations
 
@@ -182,7 +190,7 @@ def build_envelope(request: Mapping[str, Any], *, now: datetime) -> dict[str, An
         },
         "boundary_proof": {
             "required": True,
-            "source_identity_ref": "device:test:endpoint-fanout-probe",
+            "source_identity_ref": PROBE_SOURCE_IDENTITY,
             "next_boundary_identity_ref": "kv:test:endpoint-fanout-probe",
             "verification_state": "VERIFIED",
         },
@@ -200,7 +208,20 @@ def build_envelope(request: Mapping[str, Any], *, now: datetime) -> dict[str, An
     }
 
 
-def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str, Any]:
+PROBE_SOURCE_IDENTITY = "device:test:endpoint-fanout-probe"
+E0_STANDIN_LABEL = "E0_STANDIN_HEALTHY_NODE_NOT_EVIDENCE"
+
+
+def e0_standin_healthy_node() -> tuple[Any, Any]:
+    """The tests-only stand-in for the pinned InTr healthy-node evaluator, and its evidence for this probe's node."""
+    if str(ROOT / "tests") not in sys.path:
+        sys.path.insert(0, str(ROOT / "tests"))
+    from kv_two_layer_e0 import e0_standin_healthy_node_evaluator, healthy_evidence
+    return e0_standin_healthy_node_evaluator, healthy_evidence(PROBE_SOURCE_IDENTITY)
+
+
+def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001", healthy_node_evaluator: Any = None,
+              healthy_node_evidence: Any = None, healthy_node_locus: str | None = None) -> dict[str, Any]:
     now = datetime(2026, 8, 31, 3, 0, 0, tzinfo=timezone.utc)
     probe = build_probe(value, probe_id=probe_id)
     probe_sha256 = sha256_json(probe)
@@ -244,6 +265,7 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
         ),
         candidate_store=store_candidate,
         clock=lambda: now,
+        healthy_node_evaluator=healthy_node_evaluator,
     )
 
     envelope = build_envelope(request, now=now)
@@ -263,7 +285,19 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
         request,
         intr_envelope=envelope,
         intr_receipt_ref=intr_receipt_ref,
+        healthy_node_evidence=healthy_node_evidence,
     )
+    if "receipt" not in response:  # layer 1 refused: no healthy-node receipt from the pinned InTr evaluator
+        return {
+            "schema": "stegverse.endpoint-fanout-probe-result.v1",
+            "test_mode": "LOCAL_ISOLATED_CONTRACT_INTEGRATION",
+            "production_endpoint_claimed": False,
+            "probe": probe,
+            "layer1_refusal": response,
+            "healthy_node_locus": healthy_node_locus or "PINNED_INTR_EVALUATOR",
+            "pass": False,
+            "authority_effect": "NONE_TEST_ONLY",
+        }
 
     kv_status_report = {
         "schema": KV_REPORT_SCHEMA,
@@ -355,6 +389,7 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
         status_return_request,
         intr_envelope=status_return_envelope,
         intr_receipt_ref=status_return_intr_receipt_ref,
+        healthy_node_evidence=healthy_node_evidence,
     )
     status_candidate = stored_candidates[-1] if stored_candidates else None
     kv_status_report["status_observation_sha256"] = status_observation_sha256
@@ -508,6 +543,7 @@ def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001") -> dict[str,
         "schema": "stegverse.endpoint-fanout-probe-result.v1",
         "test_mode": "LOCAL_ISOLATED_CONTRACT_INTEGRATION",
         "production_endpoint_claimed": False,
+        "healthy_node_locus": healthy_node_locus or "PINNED_INTR_EVALUATOR",
         "probe": probe,
         "reports": {
             "kv_interlock_endpoint_status": kv_status_report,
@@ -533,8 +569,15 @@ def main() -> int:
     parser.add_argument("--value", default="stegverse-endpoint-fanout-probe")
     parser.add_argument("--probe-id", default="endpoint-fanout-001")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--e0-standin-healthy-node", action="store_true",
+                        help="use the tests-only E0 stand-in for the pinned InTr healthy-node evaluator (not evidence)")
     args = parser.parse_args()
-    result = run_probe(args.value, probe_id=args.probe_id)
+    if args.e0_standin_healthy_node:
+        evaluator, evidence = e0_standin_healthy_node()
+        result = run_probe(args.value, probe_id=args.probe_id, healthy_node_evaluator=evaluator,
+                           healthy_node_evidence=evidence, healthy_node_locus=E0_STANDIN_LABEL)
+    else:
+        result = run_probe(args.value, probe_id=args.probe_id)
     raw = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

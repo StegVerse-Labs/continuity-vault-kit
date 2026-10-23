@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import importlib
 import json
 from datetime import datetime, timezone
 from typing import Any, Callable
@@ -36,6 +37,85 @@ FORBIDDEN_FIELD_TOKENS = {
 
 class KVInterlockRuntimeError(ValueError):
     pass
+
+
+# --- Layer 1 of the two credential layers (StegVerse-Labs/.github#3330 rev 1, LC-KV-07/08/10/11) -------------------
+# KV is reachable only through InTr from a currently admitted healthy node. handle() is the DEVICE->KV InTr entry
+# (INTR_DEVICE_KV). It first requires REQUESTER_IS_CURRENTLY_ADMITTED_HEALTHY_NODE, decided by the healthy-node
+# evaluator that InTr owns (LC-KV-13/14, Lane B, StegVerse-org/LLM-adapter llm_adapter/node_ingress_boundary.py).
+# This runtime never decides health itself: it consumes the evaluator through the pinned interface below and then
+# verifies the receipt the evaluator returns. With no evaluator, or anything but a verified ALLOW, handle() returns
+# the six-field FAIL_CLOSED KV_ACCESS_LAYER1_REFUSED. An admitted request mints one KV-access receipt into this
+# runtime's own layer-1 receipt store, and the separate layer-2 gate (runtime/kv_skap_layer2.py) verifies against it.
+GOAL_REF = "KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324)"
+LAYER1_REFUSAL_CODE = "KV_ACCESS_LAYER1_REFUSED"
+LAYER1_BOUNDARY = "INTR_DEVICE_KV"
+LAYER1_PREDICATE = "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE"
+LAYER1_RETRY = "runtime.kv_interlock_endpoint.KVInterlockRuntime.handle (StegVerse-Labs/continuity-vault-kit)"
+KV_ACCESS_RECEIPT_SCHEMA = "stegverse.kv-access-receipt/v1"
+HEALTHY_NODE_PREDICATE = "REQUESTER_IS_CURRENTLY_ADMITTED_HEALTHY_NODE"
+HEALTHY_NODE_REFUSAL_CODE = "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"
+HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-receipt/v1"
+HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
+#: The pinned interface for the InTr-owned evaluator (LC-KV-13/14). The callable takes the requester's healthy-node
+#: evidence and its node reference, and returns either ALLOW with a healthy-node receipt (HEALTHY_NODE_RECEIPT_SCHEMA,
+#: the fields in _HEALTHY_RECEIPT_EXACT, node_ref, ingress_receipt_sha256 and receipt_sha256 over the rest) or a
+#: six-field DENY/FAIL_CLOSED with failure_code NODE_NOT_CURRENTLY_ADMITTED_HEALTHY.
+PINNED_HEALTHY_NODE_EVALUATOR = {
+    "repository": "StegVerse-org/LLM-adapter",
+    "module": "llm_adapter.node_ingress_boundary",
+    "callable": "evaluate_requester_is_currently_admitted_healthy_node",
+    "owning_task": "LC-KV-13/LC-KV-14 (InTr and Mesh Destinations lane, StegVerse-org/.github#162)",
+}
+PINNED_HEALTHY_NODE_EVALUATOR_ID = (PINNED_HEALTHY_NODE_EVALUATOR["module"] + "."
+                                    + PINNED_HEALTHY_NODE_EVALUATOR["callable"])
+_HEALTHY_RECEIPT_EXACT = {
+    "schema": HEALTHY_NODE_RECEIPT_SCHEMA,
+    "predicate": HEALTHY_NODE_PREDICATE,
+    "gate": HEALTHY_NODE_GATE,
+    "healthy_node_established": True,
+    "transport_state": "INSTALLED",
+    "authority_effect": "NONE",
+}
+
+
+def resolve_pinned_healthy_node_evaluator() -> Callable[..., Any] | None:
+    """The InTr-owned evaluator at its pinned import path, or None when it is not installed here."""
+    try:
+        module = importlib.import_module(PINNED_HEALTHY_NODE_EVALUATOR["module"])
+    except Exception:
+        return None
+    candidate = getattr(module, PINNED_HEALTHY_NODE_EVALUATOR["callable"], None)
+    return candidate if callable(candidate) else None
+
+
+def evaluator_identity(evaluator: Any) -> str:
+    return f"{getattr(evaluator, '__module__', '?')}.{getattr(evaluator, '__qualname__', type(evaluator).__name__)}"
+
+
+def layer1_refusal(request: Any, cause: str, detail: str, *, predicate: str = LAYER1_PREDICATE,
+                   failure_class: str = "B", next_attempt: str | None = None) -> dict[str, Any]:
+    """Six-field FAIL_CLOSED for layer 1, returned (never raised) by handle()."""
+    request_id = request.get("request_id") if isinstance(request, dict) else None
+    return {
+        "schema_version": RESPONSE_SCHEMA,
+        "request_id": request_id,
+        "decision": "FAIL_CLOSED",
+        "disposition": "FAIL_CLOSED",
+        "layer": LAYER1_BOUNDARY,
+        "failure_code": LAYER1_REFUSAL_CODE,
+        "failed_predicate": predicate,
+        "required_evidence_or_repair": f"{cause}: {detail}",
+        "retry_entrypoint": LAYER1_RETRY,
+        "owning_existing_goal": GOAL_REF,
+        "next_attempt": next_attempt or "on the next DEVICE->KV InTr transition that carries the repair",
+        "failure_class": failure_class,
+        "refusal_cause": cause,
+        "granted_scope": [],
+        "context": {},
+        "kv_access_receipt": None,
+        "authority_effect": "NONE",
+    }
 
 
 def canonical_json(value: Any) -> str:
@@ -120,12 +200,99 @@ class KVInterlockRuntime:
         receipt_store: Callable[[dict[str, Any]], str],
         candidate_store: Callable[[dict[str, Any]], str] | None = None,
         clock: Callable[[], datetime] | None = None,
+        healthy_node_evaluator: Callable[..., Any] | None = None,
     ) -> None:
         self.authority_validator = authority_validator
         self.policy_evaluator = policy_evaluator
         self.receipt_store = receipt_store
         self.candidate_store = candidate_store
         self.clock = clock or (lambda: datetime.now(timezone.utc))
+        # Layer 1 consumes the InTr-owned evaluator; it never supplies one of its own.
+        self.healthy_node_evaluator = healthy_node_evaluator or resolve_pinned_healthy_node_evaluator()
+        self._kv_access_receipts: dict[str, dict[str, Any]] = {}
+
+    def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:
+        """The layer-1 receipt this runtime minted under receipt_hash, re-derived, or None. Layer 2 calls this."""
+        receipt = self._kv_access_receipts.get(receipt_hash) if isinstance(receipt_hash, str) else None
+        if receipt is None:
+            return None
+        if sha256_uri({k: v for k, v in receipt.items() if k != "receipt_hash"}) != receipt_hash:
+            return None
+        return copy.deepcopy(receipt)
+
+    def _healthy_node(self, request: dict[str, Any], envelope: dict[str, Any],
+                      evidence: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """(verified healthy-node receipt, None) or (None, six-field refusal)."""
+        node_ref = envelope["boundary_proof"]["source_identity_ref"]
+        unavailable_next = ("on the next push to StegVerse-org/LLM-adapter main touching "
+                            "llm_adapter/node_ingress_boundary.py (LC-KV-13/14)")
+        if self.healthy_node_evaluator is None:
+            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
+                f"no {HEALTHY_NODE_PREDICATE} evaluator is available: the pinned InTr evaluator "
+                f"{PINNED_HEALTHY_NODE_EVALUATOR['repository']}:{PINNED_HEALTHY_NODE_EVALUATOR_ID} is not installed, "
+                "and KV never asserts a node's health itself"), predicate=HEALTHY_NODE_PREDICATE,
+                next_attempt=unavailable_next)
+        if evidence is None:
+            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
+                f"the requester {node_ref!r} supplied no healthy-node evidence; present the node's current "
+                "admitted-healthy ingress evidence with the DEVICE->KV InTr transition"),
+                predicate=HEALTHY_NODE_PREDICATE)
+        try:
+            out = self.healthy_node_evaluator(copy.deepcopy(evidence), requester_node_ref=node_ref)
+        except Exception as exc:  # an evaluator fault is a refusal, never an admission
+            out = {"disposition": "FAIL_CLOSED", "failure_code": HEALTHY_NODE_REFUSAL_CODE,
+                   "required_evidence_or_repair": f"the evaluator raised {type(exc).__name__}"}
+        if not isinstance(out, dict) or out.get("disposition") != "ALLOW":
+            detail = out.get("required_evidence_or_repair") if isinstance(out, dict) else None
+            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, (
+                f"the healthy-node evaluator did not ALLOW {node_ref!r}"
+                + (f" ({out.get('failure_code')}: {detail})" if detail else "")),
+                predicate=HEALTHY_NODE_PREDICATE, failure_class="C",
+                next_attempt="on the node's next admitted-healthy ingress")
+        receipt = out.get("healthy_node_receipt")
+        problem = None
+        if not isinstance(receipt, dict):
+            problem = "the evaluator returned no healthy-node receipt"
+        elif any(receipt.get(k) != v for k, v in _HEALTHY_RECEIPT_EXACT.items()):
+            problem = "the healthy-node receipt does not carry the pinned interface fields"
+        elif receipt.get("node_ref") != node_ref:
+            problem = "the healthy-node receipt names another node than the InTr source identity"
+        elif not _is_sha256_uri(receipt.get("ingress_receipt_sha256")):
+            problem = "the healthy-node receipt binds no ingress receipt"
+        elif receipt.get("receipt_sha256") != sha256_uri({k: v for k, v in receipt.items() if k != "receipt_sha256"}):
+            problem = "the healthy-node receipt hash does not re-derive"
+        if problem:
+            return None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, problem,
+                                        predicate=HEALTHY_NODE_PREDICATE, failure_class="C")
+        return copy.deepcopy(receipt), None
+
+    def _mint_kv_access_receipt(self, request: dict[str, Any], envelope: dict[str, Any], intr_receipt_ref: str,
+                                healthy: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
+        body = {
+            "schema": KV_ACCESS_RECEIPT_SCHEMA,
+            "boundary": LAYER1_BOUNDARY,
+            "layer": 1,
+            "hop_index": 0,
+            "from_role": "DEVICE",
+            "to_role": "KV",
+            "minted_by": "KVInterlockRuntime.handle",
+            "request_id": request["request_id"],
+            "operation": request["operation"],
+            "packet_id": envelope["packet_id"],
+            "intr_receipt_ref": intr_receipt_ref,
+            "requester_node_ref": envelope["boundary_proof"]["source_identity_ref"],
+            "kv_boundary_ref": envelope["boundary_proof"]["next_boundary_identity_ref"],
+            "healthy_node_predicate": HEALTHY_NODE_PREDICATE,
+            "healthy_node_receipt": healthy,
+            "healthy_node_evaluator": evaluator_identity(self.healthy_node_evaluator),
+            "granted_scope": list(response["granted_scope"]),
+            "response_hash": response["receipt"]["response_hash"],
+            "prior_receipt_hash": None,
+            "authority_effect": "NONE",
+        }
+        receipt = {**body, "receipt_hash": sha256_uri(body)}
+        self._kv_access_receipts[receipt["receipt_hash"]] = copy.deepcopy(receipt)
+        return receipt
 
     def handle(
         self,
@@ -133,10 +300,31 @@ class KVInterlockRuntime:
         *,
         intr_envelope: dict[str, Any],
         intr_receipt_ref: str,
+        healthy_node_evidence: Any = None,
     ) -> dict[str, Any]:
-        self._validate_request(request)
-        self._validate_intr_admission(request, intr_envelope, intr_receipt_ref)
+        """Layer 1 (INTR_DEVICE_KV). Every refusal is returned as a six-field FAIL_CLOSED, never raised."""
+        try:
+            self._validate_request(request)
+            self._validate_intr_admission(request, intr_envelope, intr_receipt_ref)
+        except KVInterlockRuntimeError as exc:
+            return layer1_refusal(request, "INTR_DEVICE_KV_TRANSITION_NOT_ADMITTED", str(exc), failure_class="C")
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            return layer1_refusal(request, "INTR_DEVICE_KV_TRANSITION_MALFORMED", f"{type(exc).__name__}: {exc}",
+                                  failure_class="C")
+        healthy, refusal = self._healthy_node(request, intr_envelope, healthy_node_evidence)
+        if refusal is not None:
+            return refusal
+        try:
+            response = self._decide(request, intr_envelope, intr_receipt_ref)
+        except KVInterlockRuntimeError as exc:
+            return layer1_refusal(request, "KV_INTERLOCK_RECEIPT_NOT_PERSISTED", str(exc), failure_class="A")
+        if response["decision"] == "ALLOW_BOUNDED_CONTEXT":
+            response["kv_access_receipt"] = self._mint_kv_access_receipt(
+                request, intr_envelope, intr_receipt_ref, healthy, response)
+        return response
 
+    def _decide(self, request: dict[str, Any], intr_envelope: dict[str, Any],
+                intr_receipt_ref: str) -> dict[str, Any]:
         try:
             authority_ok = self.authority_validator(
                 request["authority_ref"], request, intr_envelope

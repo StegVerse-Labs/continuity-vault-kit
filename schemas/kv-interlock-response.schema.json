@@ -32,6 +32,17 @@
       "items": {"type": "string", "minLength": 1},
       "uniqueItems": true
     },
+    "kv_access_receipt": {
+      "type": "object",
+      "description": "Layer 1 (StegVerse-Labs/.github#3330 rev 1, LC-KV-03/10): the KV-access receipt that KVInterlockRuntime.handle (INTR_DEVICE_KV) mints for a requester that the pinned InTr healthy-node evaluator admits as currently healthy. Only on ALLOW_BOUNDED_CONTEXT. The layer-2 SKAP gate (INTR_KV_SKAP) accepts only its receipt_hash as prior_receipt_hash. A layer-1 refusal is a six-field FAIL_CLOSED disposition (failure_code KV_ACCESS_LAYER1_REFUSED) and carries no receipt.",
+      "required": ["schema", "boundary", "layer", "receipt_hash", "requester_node_ref", "healthy_node_receipt"],
+      "properties": {
+        "schema": {"const": "stegverse.kv-access-receipt/v1"},
+        "boundary": {"const": "INTR_DEVICE_KV"},
+        "layer": {"const": 1},
+        "receipt_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
     "receipt": {
       "type": "object",
       "additionalProperties": false,

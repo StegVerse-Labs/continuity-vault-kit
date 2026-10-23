@@ -1,20 +1,21 @@
-"""LC-KV-04 (StegVerse-Labs/.github#3330): the E0 witnesses of KV-SKAP-VAULT-FUNCTIONAL-001, exercised end to end.
+"""LC-KV-04 (StegVerse-Labs/.github#3330), revised by rev 1: the E0 witnesses of KV-SKAP-VAULT-FUNCTIONAL-001.
 
-This is one ecosystem-only run. It uses no model, network, clock or credential, and writes only scratch git
-directories in a temporary directory. The steps:
-  1. a KV/SKAP Vault lineage binds a TV/TVC-shaped custody-key issuance receipt and records a write, an exact
-     read and a revoke under InTr-shaped transition refs;
-  2. the lineage is appended to ecosystem-only durable custody (refs/stegverse/kv-custody/<principal>,
-     continuity-vault-kit#259) and read back by exact hash;
-  3. validate_vault_lineage_custody_result returns its ALLOW disposition;
-  4. that receipt, the InTr receipts and the TVC receipt form the finish-point evidence bundle;
-  5. finish-point reaches ALLOW without a code edit and appends its receipt to a scratch organization ledger.
+One ecosystem-only run, end to end. It uses no model, network, clock or credential. The steps:
+  1. Every vault operation enters through both credential layers:
+     * layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV), for a node that the E0 stand-in of the pinned
+       InTr healthy-node evaluator (LC-KV-13/14) admits;
+     * layer 2 is SkapLayer2Gate (INTR_KV_SKAP), fed by that layer-1 receipt.
+     The lineage binds a TV/TVC-shaped issuance receipt, then records a write, an exact read and a revoke.
+  2. The sealed lineage goes to durable custody below the gates. That is a #259 vault-lineage custody binding on a
+     non-device provider. The git-ref adapter is withdrawn, and no provider is an access path.
+     validate_vault_lineage_custody_result returns ALLOW only with the layer-1 and layer-2 receipts verified by
+     the gate's verify_access_chain.
+  3. That receipt, the InTr, TVC and access receipts form the evidence bundle. The finish point reaches ALLOW
+     without a code edit and appends its receipt to a scratch organization ledger.
 
-The InTr and TVC receipts are structural stand-ins with the producers' exact shapes
-(stegverse.canonical-state-transition-receipt/v1; stegverse.tvc.skap-custody-reference-issuance/v1, see the
-StegVerse-Labs/TVC draft TVC_SKAP_CUSTODY_REFERENCE_ISSUE). Real producer receipts on admitted heads are
-UNKNOWN_NOT_AUTHENTICALLY_OBSERVED. Exercising SV_CHANGE_ADMIT on exact heads stays a class B FAIL_CLOSED
-until StegVerse-Labs/.github#3313 is admitted. No test is skipped.
+Every producer receipt is a structural stand-in with the producer's exact shape: InTr, TVC, the provider write, and
+the healthy-node receipt. Real producer receipts on admitted heads are UNKNOWN_NOT_AUTHENTICALLY_OBSERVED. No test
+is skipped.
 """
 from __future__ import annotations
 
@@ -29,68 +30,64 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
-from runtime import kv_ecosystem_git_ref_custody as custody  # noqa: E402
 from runtime import kv_skap_vault as kv  # noqa: E402
 from runtime.task_registry_event_sovereign_kv_binding import (  # noqa: E402
     build_vault_lineage_custody_binding,
     build_vault_lineage_record,
     validate_vault_lineage_custody_result,
 )
-from test_kv_skap_vault_finish_point import intr_receipt, scratch_ledger, tvc_issuance  # noqa: E402
+from kv_two_layer_e0 import TwoLayers  # noqa: E402
+from test_kv_skap_vault_finish_point import scratch_ledger, tvc_issuance  # noqa: E402
+from test_task_registry_event_sovereign_kv_binding import provider_receipt  # noqa: E402
 
 PRINCIPAL = "principal:test"
 
 
-def witness_lineage():
+def witness_lineage(layers):
     issuance = tvc_issuance(PRINCIPAL)
-    vault = kv.KVSkapVault(PRINCIPAL)
-    vault.bind_custody_key_reference(custody_key_ref=issuance["custody_key_ref"], issued_by="TV/TVC",
-                                     tvc_issuance_receipt_ref=issuance["receipt_sha256"])
-    consent = vault.grant_consent(purposes=["WRITE", "READ"], projection_ids=["notes/profile"],
-                                  observed_at="witness-t0")["receipt_hash"]
-    vault.write_projection(projection_id="notes/profile", content={"title": "profile", "languages": ["en"]},
-                           consent_receipt_hash=consent, custody_key_ref=issuance["custody_key_ref"],
-                           intr_transition_ref="intr:witness-write")
-    vault.read_projection(projection_id="notes/profile", consent_receipt_hash=consent)
-    vault.revoke_consent(consent_receipt_hash=consent, intr_transition_ref="intr:witness-revoke",
-                         observed_at="witness-t1")
+    vault = layers.vault()
+    layers.bind(vault, custody_key_ref=issuance["custody_key_ref"], issued_by="TV/TVC",
+                tvc_issuance_receipt_ref=issuance["receipt_sha256"])
+    consent = layers.grant(vault, purposes=["WRITE", "READ"], projection_ids=["notes/profile"],
+                           observed_at="witness-t0")["receipt_hash"]
+    layers.write(vault, projection_id="notes/profile", content={"title": "profile", "languages": ["en"]},
+                 consent_receipt_hash=consent, custody_key_ref=issuance["custody_key_ref"])
+    layers.read(vault, projection_id="notes/profile", consent_receipt_hash=consent)
+    layers.revoke(vault, consent_receipt_hash=consent, observed_at="witness-t1")
     return vault.export_lineage(), issuance
 
 
 class KvSkapVaultE0Witnesses(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
-        self.custody_git = str(Path(self._tmp.name) / "custody.git")
-        subprocess.run(["git", "init", "-q", "--bare", self.custody_git], check=True)
         self.ledger_git = scratch_ledger(self._tmp.name)
+        self.layers = TwoLayers(principal=PRINCIPAL)
 
     def tearDown(self) -> None:
         self._tmp.cleanup()
 
+    def binding(self, exported):
+        return build_vault_lineage_custody_binding(
+            lineage_record=build_vault_lineage_record(exported_lineage=exported), provider_id="nas",
+            instance_id="kvi_vault_witness", kv_set_id="kv-skap-vault", storage_locator="private://kv/vault-lineage")
+
     def custody_receipt(self, exported):
-        binding = build_vault_lineage_custody_binding(
-            lineage_record=build_vault_lineage_record(exported_lineage=exported), provider_id="ecosystem-git-ref",
-            instance_id="kvi_vault_witness", kv_set_id="kv-skap-vault",
-            storage_locator=custody.custody_ref(PRINCIPAL))
-        written = custody.write_lineage(self.custody_git, custody.build_write_manifest(
-            binding=binding, exact_lineage=exported, expected_predecessor_commit=None))
-        self.assertEqual(written["disposition"], "ALLOW", written)
-        back = custody.read_back(self.custody_git, principal_ref=PRINCIPAL, lineage_sha256=binding["lineage_sha256"])
-        self.assertEqual(back["disposition"], "ALLOW", back)
-        provider = custody.build_provider_receipt(binding=binding, write_result=written,
-                                                  interlock_receipt_ref="interlock:witness",
-                                                  intr_receipt_ref="intr:witness-write",
-                                                  skap_credential_ref=exported["receipts"][0]["body"]["custody_key_ref"])
+        binding = self.binding(exported)
+        access = exported["receipts"][2]["body"]["access"]  # the write's two layer receipts
+        provider = {**provider_receipt(binding["provider_write_request"]),
+                    "kv_access_receipt_hash": access["kv_access_receipt_hash"],
+                    "skap_access_receipt_hash": access["skap_access_receipt_hash"]}
         return validate_vault_lineage_custody_result(binding=binding, provider_receipt=provider,
-                                                     read_back_lineage=back["exact_lineage"])
+                                                     read_back_lineage=json.loads(json.dumps(exported)),
+                                                     access_receipt_verifier=self.layers.gate.verify_access_chain)
 
     def evidence(self):
-        exported, issuance = witness_lineage()
+        exported, issuance = witness_lineage(self.layers)
+        custody = self.custody_receipt(exported)
         return {"schema": kv.EVIDENCE_SCHEMA, "lineage": exported,
-                "intr_transition_receipts": [intr_receipt("witness-write", PRINCIPAL),
-                                             intr_receipt("witness-revoke", PRINCIPAL, outcome="APPLIED")],
-                "durable_custody_readback_receipt": self.custody_receipt(exported),
-                "tvc_issuance_receipts": [issuance]}
+                "intr_transition_receipts": list(self.layers.intr_receipts),
+                "durable_custody_readback_receipt": custody, "tvc_issuance_receipts": [issuance],
+                **self.layers.access_evidence()}
 
     def test_e0_witness_run_reaches_allow_and_a_scratch_ledger_receipt(self) -> None:
         evidence = self.evidence()
@@ -113,16 +110,32 @@ class KvSkapVaultE0Witnesses(unittest.TestCase):
 
     def test_unbound_custody_receipt_is_a_disposition_and_keeps_the_verdict_closed(self) -> None:
         evidence = self.evidence()
-        exported = evidence["lineage"]
-        binding = build_vault_lineage_custody_binding(
-            lineage_record=build_vault_lineage_record(exported_lineage=exported), provider_id="ecosystem-git-ref",
-            instance_id="kvi_vault_witness", kv_set_id="kv-skap-vault", storage_locator=custody.custody_ref(PRINCIPAL))
+        binding = self.binding(evidence["lineage"])
         refused = validate_vault_lineage_custody_result(binding=binding, provider_receipt={}, read_back_lineage={})
         self.assertEqual(refused["disposition"], "FAIL_CLOSED")
         evidence["durable_custody_readback_receipt"] = refused
         verdict = kv.finish_point(evidence, self.ledger_git)
         self.assertEqual(verdict["unmet_predicates"], ["ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED"])
         self.assertEqual(verdict["ledger_append"]["failure_code"], "FINISH_POINT_VERDICT_NOT_ALLOW")
+
+    def test_custody_without_verified_access_layers_is_refused(self) -> None:
+        exported, _ = witness_lineage(self.layers)
+        binding = self.binding(exported)
+        access = exported["receipts"][2]["body"]["access"]
+        base = provider_receipt(binding["provider_write_request"])
+        other = TwoLayers(principal=PRINCIPAL)
+        for receipt, verifier, code in (
+                (base, self.layers.gate.verify_access_chain, "KV_ACCESS_LAYER1_REFUSED"),
+                ({**base, "kv_access_receipt_hash": access["kv_access_receipt_hash"]},
+                 self.layers.gate.verify_access_chain, "SKAP_ACCESS_LAYER2_REFUSED"),
+                ({**base, **{k: access[k] for k in ("kv_access_receipt_hash", "skap_access_receipt_hash")}},
+                 other.gate.verify_access_chain, "KV_ACCESS_LAYER1_REFUSED"),
+                ({**base, "kv_access_receipt_hash": access["kv_access_receipt_hash"],
+                  "skap_access_receipt_hash": exported["receipts"][3]["body"]["access"]["skap_access_receipt_hash"]},
+                 self.layers.gate.verify_access_chain, "SKAP_ACCESS_LAYER2_REFUSED")):
+            out = validate_vault_lineage_custody_result(binding=binding, provider_receipt=receipt,
+                                                        read_back_lineage=exported, access_receipt_verifier=verifier)
+            self.assertEqual((out["disposition"], out["failure_code"]), ("FAIL_CLOSED", code))
 
 
 if __name__ == "__main__":
