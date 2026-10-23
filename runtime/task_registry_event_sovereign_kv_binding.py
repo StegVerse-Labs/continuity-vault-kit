@@ -278,6 +278,19 @@ def _is_sha256_uri(value: Any) -> bool:
         and all(c in "0123456789abcdef" for c in value[7:])
 
 
+def pinned_layer2_gate(verifier: Any) -> Any:
+    """LC-KV-03: the exact SkapLayer2Gate behind verifier (the gate itself or its bound verify_access_chain), else
+    None. Subclasses, wrappers, lambdas and other callables are refused."""
+    try:
+        from runtime.kv_skap_layer2 import SkapLayer2Gate
+    except Exception:
+        return None
+    candidate = verifier
+    if getattr(verifier, "__func__", None) is SkapLayer2Gate.verify_access_chain:
+        candidate = getattr(verifier, "__self__", None)
+    return candidate if type(candidate) is SkapLayer2Gate else None  # noqa: E721
+
+
 def _require_access_layers(provider_receipt: Dict[str, Any], verifier: Any) -> tuple[str, str]:
     kv_hash = provider_receipt.get("kv_access_receipt_hash")
     skap_hash = provider_receipt.get("skap_access_receipt_hash")
@@ -293,8 +306,13 @@ def _require_access_layers(provider_receipt: Dict[str, Any], verifier: Any) -> t
         raise VaultLineageAccessLayerRefused(KV_ACCESS_LAYER1_REFUSED, (
             "no access_receipt_verifier was supplied, so the layer receipts cannot be checked against the gates' "
             "receipt stores; supply the layer-2 gate's verify_access_chain"))
+    gate = pinned_layer2_gate(verifier)
+    if gate is None:
+        raise VaultLineageAccessLayerRefused(SKAP_ACCESS_LAYER2_REFUSED, (
+            "access_receipt_verifier must be the layer-2 gate (runtime.kv_skap_layer2.SkapLayer2Gate) or its bound "
+            "verify_access_chain; an arbitrary callable cannot attest the access layers (LC-KV-03)"))
     try:
-        out = verifier(kv_hash, skap_hash)
+        out = gate.verify_access_chain(kv_hash, skap_hash)
     except Exception as exc:  # a verifier fault is a refusal, never an admission
         out = {"failure_code": KV_ACCESS_LAYER1_REFUSED,
                "required_evidence_or_repair": f"the access-layer verifier raised {type(exc).__name__}"}

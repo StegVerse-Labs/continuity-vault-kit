@@ -208,7 +208,7 @@ def build_envelope(request: Mapping[str, Any], *, now: datetime) -> dict[str, An
     }
 
 
-PROBE_SOURCE_IDENTITY = "device:test:endpoint-fanout-probe"
+PROBE_SOURCE_IDENTITY = "SV-NODE-E0FANOUT01"
 E0_STANDIN_LABEL = "E0_STANDIN_HEALTHY_NODE_NOT_EVIDENCE"
 
 
@@ -226,6 +226,22 @@ def e0_standin_healthy_node() -> str:
 def run_probe(value: str, *, probe_id: str = "endpoint-fanout-001", healthy_node_evaluator: Any = None,
               healthy_node_evidence: Any = None, healthy_node_locus: str | None = None,
               healthy_node_ledger_checkout: Any = None) -> dict[str, Any]:
+    """With healthy_node_locus == E0_STANDIN_LABEL, the tests' labelled E0 trust anchors (ledger genesis, transport)
+    are in force for this probe only (LC-KV-15); otherwise the production anchors apply and layer 1 FAILS_CLOSED."""
+    kwargs = dict(probe_id=probe_id, healthy_node_evaluator=healthy_node_evaluator,
+                  healthy_node_evidence=healthy_node_evidence, healthy_node_locus=healthy_node_locus,
+                  healthy_node_ledger_checkout=healthy_node_ledger_checkout)
+    if healthy_node_locus != E0_STANDIN_LABEL:
+        return _run_probe(value, **kwargs)
+    if str(ROOT / "tests") not in sys.path:
+        sys.path.insert(0, str(ROOT / "tests"))
+    from kv_two_layer_e0 import e0_trust_anchors
+    with e0_trust_anchors():
+        return _run_probe(value, **kwargs)
+
+
+def _run_probe(value: str, *, probe_id: str, healthy_node_evaluator: Any, healthy_node_evidence: Any,
+               healthy_node_locus: str | None, healthy_node_ledger_checkout: Any) -> dict[str, Any]:
     now = datetime(2026, 8, 31, 3, 0, 0, tzinfo=timezone.utc)
     probe = build_probe(value, probe_id=probe_id)
     probe_sha256 = sha256_json(probe)

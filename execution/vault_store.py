@@ -152,6 +152,25 @@ class SkapAccessRefused(VaultStoreError):
         super().__init__(f"{failure_code}: {detail}")
 
 
+def _is_skap_record(record: Any) -> bool:
+    """A SKAP Vault record: the sealed-credential record or its owner-ingress receipt, or anything carrying sealed
+    material. These are written and read only through the layer-2 gate (LC-KV-07)."""
+    return isinstance(record, dict) and (
+        record.get("schema") in (SKAP_KV_RECORD_SCHEMA, SKAP_INGRESS_RECEIPT_SCHEMA) or "sealed_material" in record)
+
+
+def _skap_payload_sha256(record: dict[str, Any]) -> str:
+    return "sha256:" + canonical_sha256({k: v for k, v in record.items() if k != "access"})
+
+
+def _exact_gate(gate: Any) -> bool:
+    try:
+        from runtime.kv_skap_layer2 import SkapLayer2Gate
+    except Exception:  # without the gate module nothing reaches SKAP state
+        return False
+    return type(gate) is SkapLayer2Gate  # noqa: E721 - a subclass could re-implement consume or payload binding
+
+
 def _consume_skap_access(gate: Any, receipt_hash: Any, *, principal_ref: Any, operation: str,
                          subject_ref: str) -> dict[str, Any]:
     if gate is None or not callable(getattr(gate, "consume", None)):
@@ -159,6 +178,10 @@ def _consume_skap_access(gate: Any, receipt_hash: Any, *, principal_ref: Any, op
             "SKAP sealed credentials are reachable only through InTr from inside KV: pass skap_gate "
             "(runtime.kv_skap_layer2.SkapLayer2Gate over KVInterlockRuntime) and a SKAP-access receipt",
             failure_class="B")
+    if not _exact_gate(gate):
+        raise SkapAccessRefused(
+            "skap_gate must be runtime.kv_skap_layer2.SkapLayer2Gate itself; a stand-in, subclass or local-exercise "
+            "gate does not reach persisted SKAP state")
     if not (isinstance(principal_ref, str) and principal_ref.strip()):
         raise SkapAccessRefused("principal_ref is required to scope the SKAP-access receipt")
     if not (isinstance(receipt_hash, str) and receipt_hash.startswith("sha256:") and len(receipt_hash) == 71):
@@ -185,6 +208,15 @@ class KnowledgeVaultExecutionStore:
         return self.execution_root
 
     def _append(self, category: str, stream_id: str, record: dict[str, Any]) -> Path:
+        """Every public append. A SKAP Vault record never enters here: it is written only by the gated
+        append_skap_sealed_credential (LC-KV-07, class A bypass closed)."""
+        if _is_skap_record(record):
+            raise SkapAccessRefused(
+                f"{category}/{stream_id}: a SKAP sealed-credential record or owner-ingress receipt is written only "
+                "through append_skap_sealed_credential with a SKAP-access receipt from the layer-2 gate")
+        return self._write(category, stream_id, record)
+
+    def _write(self, category: str, stream_id: str, record: dict[str, Any]) -> Path:
         if category not in EXECUTION_SUBDIRS:
             raise VaultStoreError("unsupported KnowledgeVault execution category")
         if not stream_id or any(part in stream_id for part in ("/", "\\", "..")):
@@ -247,10 +279,14 @@ class KnowledgeVaultExecutionStore:
             "plaintext_present": False,
             "key_material_present": False,
             "authority_transfer": False,
+            "ingress_receipt_sha256": canonical_sha256(ingress_receipt),
             "access": access,
         }
-        extension_path = self._append("Extensions", stream_id, extension_record)
-        receipt_path = self._append("Receipts", stream_id, ingress_receipt)
+        # Provenance lives at the gate, not in the store: the gate binds this receipt to exactly this payload once.
+        if not skap_gate.bind_payload(access["skap_access_receipt_hash"], _skap_payload_sha256(extension_record)):
+            raise SkapAccessRefused("the layer-2 gate did not bind the payload to the consumed SKAP-access receipt")
+        extension_path = self._write("Extensions", stream_id, extension_record)
+        receipt_path = self._write("Receipts", stream_id, ingress_receipt)
         return extension_path, receipt_path
 
     def read_skap_sealed_credential(self, stream_id: str, *, skap_gate: Any = None,
@@ -258,10 +294,26 @@ class KnowledgeVaultExecutionStore:
                                     principal_ref: Any = None) -> dict[str, Any] | None:
         _consume_skap_access(skap_gate, skap_access_receipt_hash, principal_ref=principal_ref,
                              operation="SKAP_SEALED_CREDENTIAL_READ", subject_ref=str(stream_id))
-        extensions = self.read_stream("Extensions", stream_id)
-        candidates = [record for record in extensions if record.get("schema") == SKAP_KV_RECORD_SCHEMA]
+        extensions = self._read_records("Extensions", stream_id)
+        candidates = [record for record in extensions if _is_skap_record(record)]
         if not candidates:
             return None
+        # LC-KV-07: every SKAP record in the stream must verify at the gate (a consumed append receipt for this
+        # principal and stream, bound to exactly this payload). One forged or replayed record fails the read closed.
+        seen: set[str] = set()
+        for candidate in candidates:
+            access = candidate.get("access") if isinstance(candidate.get("access"), dict) else {}
+            receipt_hash = access.get("skap_access_receipt_hash")
+            receipt = skap_gate.verify_skap_access_receipt(receipt_hash) if isinstance(receipt_hash, str) else None
+            if candidate.get("schema") != SKAP_KV_RECORD_SCHEMA or receipt is None or receipt_hash in seen \
+                    or access.get("kv_access_receipt_hash") != receipt.get("prior_receipt_hash") \
+                    or not skap_gate.verify_payload(receipt_hash, principal_ref=principal_ref,
+                                                    subject_ref=str(stream_id),
+                                                    payload_sha256=_skap_payload_sha256(candidate)):
+                raise SkapAccessRefused(
+                    f"Extensions/{stream_id} holds a SKAP record whose provenance does not verify at the layer-2 gate "
+                    "(SKAP_RECORD_PROVENANCE_NOT_VERIFIED); a forged, replayed or out-of-gate record is refused")
+            seen.add(receipt_hash)
         record = candidates[-1]
         sealed = record.get("sealed_material")
         if not isinstance(sealed, dict):
@@ -277,6 +329,20 @@ class KnowledgeVaultExecutionStore:
         return sealed
 
     def read_stream(self, category: str, stream_id: str) -> list[dict[str, Any]]:
+        """Every public read. A stream holding SKAP Vault records is read only through the gated
+        read_skap_sealed_credential (LC-KV-07)."""
+        records = self._read_records(category, stream_id)
+        if any(_is_skap_record(record) for record in records):
+            raise SkapAccessRefused(
+                f"{category}/{stream_id} holds SKAP sealed-credential state; read it through read_skap_sealed_credential "
+                "with a SKAP-access receipt from the layer-2 gate")
+        return records
+
+    def _read_records(self, category: str, stream_id: str) -> list[dict[str, Any]]:
+        if category not in EXECUTION_SUBDIRS:
+            raise VaultStoreError("unsupported KnowledgeVault execution category")
+        if not stream_id or any(part in stream_id for part in ("/", "\\", "..")):
+            raise VaultStoreError("stream_id must be a safe single path component")
         path = self.execution_root / category / f"{stream_id}.jsonl"
         if not path.exists():
             return []
