@@ -1012,8 +1012,9 @@ class KVInterlockRuntime:
         """Layer 1's recorded receipt chain, read back from KV's own location (STEGVERSE_KV _StegVerse/Receipts,
         through the documented storage endpoint v2 of the KV #2 lineage; KV-SKAP-LEDGER-LOCATION-001). Six-field
         FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR while KV #2 is PENDING_INTERLOCK_INTR, then
-        KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED until the genesis pin. ``recorded_head`` (the rollback watermark) is
-        required: absent -> FAIL_CLOSED KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING."""
+        KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED until the genesis pin. ``recorded_head`` (the rollback watermark, KV's own
+        recorded receipt chain head KV_RECORDED_RECEIPT_CHAIN_HEAD) is required: absent -> FAIL_CLOSED
+        KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING; Org-sourced -> FAIL_CLOSED KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED."""
         return read_receipt_ledger(KV_LEDGER, storage_endpoint, readback_root, head_attestation, recorded_head)
 
     def verify_kv_access_receipt(self, receipt_hash: Any) -> dict[str, Any] | None:

@@ -136,8 +136,10 @@ class SkapLayer2Gate:
         custody-result receipts. It needs a layer-1 KV-access receipt the layer-1 runtime minted; without one it is
         FAIL_CLOSED SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR. Then FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR
         and KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED. Genesis: two-event crossing model (ENVELOPE v2 line 55).
-        ``recorded_head`` (the rollback watermark) is required: absent -> FAIL_CLOSED
-        KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING; not on the chain -> DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
+        ``recorded_head`` (the rollback watermark, KV's own recorded receipt chain head:
+        {"source": "KV_RECORDED_RECEIPT_CHAIN_HEAD", "head_receipt_sha256": ...}) is required: absent -> FAIL_CLOSED
+        KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING; Org-sourced -> FAIL_CLOSED KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED;
+        not on the chain -> DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
         from runtime.kv_receipt_ledgers import _read
         layer1 = self.verify_kv_access_receipt(kv_access_receipt_hash)
         return _read(SKAP_VAULT_LEDGER, storage_endpoint, readback_root, head_attestation, layer1, recorded_head)
