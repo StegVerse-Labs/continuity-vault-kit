@@ -52,7 +52,12 @@ anchor uses `skap://kv-skap/bootstrap-anchor`, purpose `kv-skap-bootstrap-anchor
   - GENESIS checks existing KV state (deny on an initialized KV, fail closed when ambiguous), then verifies the owner's stage-2 inputs before generating any secret. It produces `wrapped-root-envelope.json`, `bootstrap-anchor.sealed.json` and a non-secret genesis receipt.
   - ENROLL seals a provider API key as `provider-credential`.
   - USE checks that the manifest and Organization receipt are present, evaluates POLICY_ADMISSION exactly as TVC does, and on ALLOW makes one bounded provider request. It then emits a non-secret attempt receipt for InTr delivery.
-- The Organization ledger append and readback of the genesis receipt is the authoritative exactly-once fence. The loader's local check is advisory.
+- Exactly-once genesis fence (C-1 reconciliation, StegVerse-org/.github#167 issuecomment-6372524861; accepted provisionally, C-review PENDING):
+  - The genesis receipt is recorded first in KV's own recorded receipt chain.
+  - The InTr crossing receipt for that genesis carries digests only: the KV genesis receipt digest and the KV chain head digest. It is a pointer, not a description. Its timing field is `SUPPLIED_HB_EPOCH`, as defined by the supplied-epoch rule `SUBMISSION_CARRIES_THE_SUPPLIED_HB_EPOCH` in StegVerse-Labs/.github#3263 (`resident-runtime/intr_hop.py`, `resident-runtime/aggregate_repo_transition.py`) and #3290 (`org-boundary/runtime/capability_ingress.py`, `org-kernel/kernel.py`).
+  - That crossing receipt is appended to the Organization ledger. The Organization ledger append and readback of the crossing receipt is the authoritative exactly-once fence. The loader's local check is advisory.
+  - A second genesis is refused if a crossing receipt for that KV endpoint already exists.
+  - The Organization ledger never stores KV's recorded receipt chain.
 - `fixtures/tvc/` is a copy of TVC's POLICY_ADMISSION policy and vectors, pinned by digest (see `fixtures/tvc/PINNED.json`).
 - Tests: `tests/loader/kv_skap_loader.test.mjs` (node, run by `tests/test_skap_loader_js.py`, which skips with an explicit reason when node is absent).
 - Per approved design S11/D14, the owner reviews and merges the loader. That merge is the approval of these exact bytes. Any edit to the inline script or style changes its CSP hash, and the node test fails until the CSP and `kv-skap-loader.sha256` are recomputed.
@@ -61,8 +66,11 @@ anchor uses `skap://kv-skap/bootstrap-anchor`, purpose `kv-skap-bootstrap-anchor
 ## Runtime truth
 
 No KV/SKAP trust genesis is claimed. Genesis requires the owner-reviewed loader, an
-Organization admission receipt, and an Organization ledger append and readback of
-the genesis receipt (the authoritative exactly-once fence).
+Organization admission receipt, the genesis receipt recorded first in KV's own
+recorded receipt chain, and an Organization ledger append and readback of the
+digest-only InTr crossing receipt for it (the authoritative exactly-once fence; a
+second genesis is refused once a crossing receipt for that KV endpoint exists, and the
+Organization ledger never stores KV's chain).
 
 ## Manual work
 
