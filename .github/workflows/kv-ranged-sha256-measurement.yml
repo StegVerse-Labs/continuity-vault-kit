@@ -1,0 +1,60 @@
+name: KV Ranged SHA-256 Measurement
+
+# LD-OSR-MP4-01 (Lane D, class B): stdlib-only streaming / HTTP Range sha256.
+# Measurement records only: no network beyond 127.0.0.1, no secrets, no writes.
+
+on:
+  pull_request:
+    paths:
+      - "runtime/ranged_sha256_measurement.py"
+      - "tests/test_ranged_sha256_measurement.py"
+      - "docs/LD_OSR_MP4_01_RANGED_SHA256.md"
+      - ".github/workflows/kv-ranged-sha256-measurement.yml"
+  push:
+    paths:
+      - "runtime/ranged_sha256_measurement.py"
+      - "tests/test_ranged_sha256_measurement.py"
+      - "docs/LD_OSR_MP4_01_RANGED_SHA256.md"
+      - ".github/workflows/kv-ranged-sha256-measurement.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile measurement module
+        run: python -m py_compile runtime/ranged_sha256_measurement.py
+      - name: Stdlib only (no third-party import)
+        run: |
+          python - <<'PY'
+          import ast, sys
+          tree = ast.parse(open("runtime/ranged_sha256_measurement.py").read())
+          names = set()
+          for n in ast.walk(tree):
+              if isinstance(n, ast.Import):
+                  names |= {a.name.split(".")[0] for a in n.names}
+              elif isinstance(n, ast.ImportFrom) and n.level == 0:
+                  names.add(n.module.split(".")[0])
+          bad = sorted(x for x in names if x != "__future__" and x not in sys.stdlib_module_names)
+          assert not bad, bad
+          print("STDLIB_ONLY=PASS", sorted(names))
+          PY
+      - name: Run ranged sha256 tests (0 skipped required)
+        run: |
+          python -m unittest -v tests.test_ranged_sha256_measurement 2>&1 | tee unittest.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -qiE "skipped|expected failure" unittest.log; then echo "SKIPPED_TESTS_PRESENT"; exit 1; fi
+          grep -E "^Ran [0-9]+ tests" unittest.log
+      - name: Workflow authority invariant
+        run: python -m unittest -v tests.test_global_hosted_workflow_authority
