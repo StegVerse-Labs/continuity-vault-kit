@@ -12,10 +12,10 @@ comment 6372442705, which defers to the documented model in this repository (@bc
 * README "Safety": the KV baseline file structure is not encryption; ciphertext lives only behind SKAP
   (``_Vault/SKAP``). The receipt chains are recorded receipts, not encrypted objects.
 * SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md: the root key is wrapped at
-  ``_Vault/SKAP/Root/wrapped-root-envelope.json`` and unwrapped only by the owner-only recovery secret. ENVELOPE v2
-  puts the SKAP genesis exactly-once fence on the Organization ledger, which conflicts with KV/SKAP keeping their own
-  receipt chains: an open class C reconciliation (Lane D + Lane C), so the SKAP chain stays
-  FAIL_CLOSED SKAP_GENESIS_FENCE_UNRECONCILED.
+  ``_Vault/SKAP/Root/wrapped-root-envelope.json`` and unwrapped only by the owner-only recovery secret. Its line 55
+  (@d749bb2) matches CAPTURE's two-event crossing model: the SKAP chain genesis is recorded in KV storage and a
+  digest-only InTr crossing receipt (pointer/digest plus SUPPLIED_HB_EPOCH) on the Org ledger is the exactly-once
+  fence for that crossing only (``GENESIS_CROSSING``). SKAP genesis is never held on the Org ledger.
 
 Two chains, each designated in StegVerse-org/LLM-adapter#431's repository_ledger_location key shape (values KV-owned)
 plus a per-endpoint ``ledger_designation`` in #431 @a2237bc3 endpoint_ledger_designation's field names, with one
@@ -94,7 +94,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     SKAP_VAULT_LEDGER: {
         "storage_location": "_Vault/SKAP/Receipts",
         "contract_path": ".stegverse/receipt-chains/skap-receipts.contract.json",
-        "contract_sha256": "sha256:89ca4d9d12c2c0658e236f153c5a4427ff4d7f9061940ee032e635c433466903",
+        "contract_sha256": "sha256:e73a6a1b5dc8250a346aff5e44e247bbb77b7a126fc8fc355f08691c6c605fcb",
         "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
@@ -110,7 +110,11 @@ RETRY = ("runtime.kv_receipt_ledgers.read_receipt_ledger('kv', <storage endpoint
          "<head attestation>, <org-recorded head>); skap_vault only via "
          "runtime.kv_skap_layer2.SkapLayer2Gate.receipt_ledger")
 PIN_MECHANISM_CODE = "KV_RECEIPT_CHAIN_GENESIS_PIN_MECHANISM_ORG_HOSTED"
-FENCE_CODE = "SKAP_GENESIS_FENCE_UNRECONCILED"
+GENESIS_CROSSING = ('Genesis follows the existing two-event crossing model (SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md '
+                    "line 55 @d749bb2, CAPTURE): event 1, the SKAP chain's REPOSITORY_LEDGER_INITIALIZATION genesis "
+                    'receipt recorded in KV storage at _Vault/SKAP/Receipts; event 2, a digest-only InTr crossing receipt'
+                    ' (pointer/digest plus SUPPLIED_HB_EPOCH) appended to and read back from the Org ledger, which is the'
+                    ' exactly-once fence for that crossing only. The SKAP genesis itself is never held on the Org ledger.')
 
 
 def _sha_bytes(data: bytes) -> str:
@@ -138,20 +142,6 @@ def kv2_pending(which: str) -> dict[str, Any]:
                    owner=KV2_GOAL, predicate="KV_STORAGE_ENDPOINT_PROVIDER_EXECUTION_ADMITTED",
                    retry="runtime.kv_storage_provider_adapter.build_operation_request(operation='READ', ...) under "
                          "the admitted KV #2 lineage")
-
-
-def genesis_fence_unreconciled(which: str = SKAP_VAULT_LEDGER) -> dict[str, Any]:
-    """Six-field FAIL_CLOSED (class C): ENVELOPE v2's Org-ledger genesis fence vs KV/SKAP's own receipt chains."""
-    return _refuse(which, FENCE_CODE, "C",
-                   "a reconciliation of SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md (the Organization ledger append "
-                   "and readback of the SKAP genesis receipt is the authoritative exactly-once fence) with KV/SKAP "
-                   "keeping their own recorded receipt chains (StegVerse-org/.github#167 comment 6372442705 item 2)",
-                   "before any SKAP genesis step, on the reconciliation ruling (event-driven)",
-                   "the SKAP genesis fence location is unreconciled; no SKAP chain read or genesis is accepted",
-                   owner="Lane D (StegVerse-Labs/continuity-vault-kit) + Lane C (StegVerse-Labs/TVC); "
-                         "KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324)",
-                   predicate="SKAP_GENESIS_FENCE_LOCATION_RECONCILED",
-                   retry="skap/portable_envelope.py GENESIS (ENVELOPE v2 loader), after the ruling on #167")
 
 
 def pin_mechanism_org_hosted(which: str) -> dict[str, Any]:
@@ -374,8 +364,6 @@ def _read(which: str, storage_endpoint: Any, readback_root: Any, head_attestatio
     store = d["store"]
     if store["kv_request_id"] == KV2_REQUEST_ID and KV2_GOVERNANCE_STATE == "PENDING_INTERLOCK_INTR":
         return kv2_pending(which)
-    if d["via_kv_intr_only"]:
-        return genesis_fence_unreconciled(which)
     if d["expected_genesis_receipt_sha256"] is None:
         return _not_pinned(which, d["location"])
     if getattr(storage_endpoint, "provider_id", None) != store["provider_id"] \
@@ -432,8 +420,8 @@ def read_receipt_ledger(which: str, storage_endpoint: Any = None, readback_root:
     """Read one recorded receipt chain back from KV's own location. ALLOW carries the chain (newest first). Read-only.
 
     Refusal order: not designated (incl. org / git-ref designation, a store other than KV_STORAGE_ENDPOINT, more than one store); SKAP chain not
-    reached via KV's InTr (always, on this entrypoint); KV #2 storage endpoint PENDING_INTERLOCK_INTR; SKAP genesis
-    fence unreconciled (skap_vault, class C); genesis not pinned; storage endpoint not the designated one; read-back
+    reached via KV's InTr (always, on this entrypoint); KV #2 storage endpoint PENDING_INTERLOCK_INTR;
+    genesis not pinned; storage endpoint not the designated one; read-back
     unreadable or foreign; external storage records; genesis mismatch; head not signed by a published
     kv_ledger_head_signer; rollback watermark (``recorded_head``: the newest endpoint_head_sha256 the Org recorded on
     its linked receipts) not on the chain -> DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED."""
@@ -471,8 +459,6 @@ def receipt_ledger_prerequisites() -> list[dict[str, Any]]:
             blocking.append(refusal)
         if d and d["store"]["kv_request_id"] == KV2_REQUEST_ID and KV2_GOVERNANCE_STATE == "PENDING_INTERLOCK_INTR":
             blocking.append(kv2_pending(which))
-        if RECEIPT_LEDGERS[which]["via_kv_intr_only"]:
-            blocking.append(genesis_fence_unreconciled(which))
         if d and d["expected_genesis_receipt_sha256"] is None:
             blocking += [_not_pinned(which, d["location"]), pin_mechanism_org_hosted(which)]
         if not load_head_signers():
@@ -507,6 +493,6 @@ def custody_ledgers_config() -> dict[str, Any]:
 
 
 __all__ = ["CORRESPONDENCE_RULE", "KV_LEDGER", "SKAP_VAULT_LEDGER", "RECEIPT_LEDGERS", "STORE_KEYS", "STORE_TYPE",
-           "custody_ledgers_config", "designation", "genesis_fence_unreconciled", "head_attestation_body",
+           "GENESIS_CROSSING", "custody_ledgers_config", "designation", "head_attestation_body",
            "kv2_pending", "load_head_signers", "pin_mechanism_org_hosted", "read_receipt_ledger",
            "receipt_ledger_binding", "receipt_ledger_prerequisites", "receipt_on_ledger"]

@@ -615,7 +615,7 @@ if __name__ == "__main__":
 
 # --- KV-SKAP-LEDGER-LOCATION-001: KV's own recorded receipt chains ('kv', 'skap_vault') behind KV's own InTr ---------
 # Governing correction: StegVerse-org/.github#167 comment 6372442705 (STEGVERSE_KV, storage endpoint v2 names only,
-# no ledger-wide encryption, ENVELOPE v2 governs SKAP's root, class C SKAP genesis fence).
+# no ledger-wide encryption, ENVELOPE v2 governs SKAP's root; genesis is the two-event crossing model, ENVELOPE v2 line 55).
 
 import hashlib  # noqa: E402
 
@@ -726,7 +726,7 @@ def e0_kv_attestation(which, chain, **override):
 class KvSkapLedgerLocation(unittest.TestCase):
     """KV-SKAP-LEDGER-LOCATION-001: STEGVERSE_KV's two recorded receipt chains (_StegVerse/Receipts,
     _Vault/SKAP/Receipts) on the documented storage endpoint v2 of the KV #2 lineage, never on an Org ledger ref; the
-    SKAP chain only via KV's InTr and fail-closed on the class C genesis fence; genesis null until pinned."""
+    SKAP chain only via KV's InTr; genesis null until pinned (two-event crossing model)."""
 
     CHAINS = {"kv": ("_StegVerse/Receipts", "KV"), "skap_vault": ("_Vault/SKAP/Receipts", "SKAP_VAULT")}
 
@@ -868,7 +868,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
                          ["KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR", "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED",
                           rl.PIN_MECHANISM_CODE, "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED"])
         self.assertEqual([b["failure_code"] for b in rows["skap_vault"]["fail_closed"]],
-                         ["KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR", "SKAP_GENESIS_FENCE_UNRECONCILED",
+                         ["KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR",
                           "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED", rl.PIN_MECHANISM_CODE,
                           "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED"])
         for row in rows.values():
@@ -880,21 +880,27 @@ class KvSkapLedgerLocation(unittest.TestCase):
             root, _ = e0_kv_root("kv")
             self.assertSix(rl.read_receipt_ledger("kv", device_local(), root), "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED", "B")
 
-    def test_the_skap_genesis_step_stays_fail_closed_on_the_class_c_fence(self):
-        fence = rl.genesis_fence_unreconciled()
-        self.assertSix(fence, "SKAP_GENESIS_FENCE_UNRECONCILED", "C")
-        self.assertIn("Lane D", fence["owning_existing_goal"])
-        self.assertIn("Lane C", fence["owning_existing_goal"])
-        self.assertIn("exactly-once fence", fence["required_evidence_or_repair"])
-        self.assertIn("portable_envelope.py", fence["retry_entrypoint"])
-        envelope = (ROOT / "SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md").read_text(encoding="utf-8")
-        self.assertIn("exactly-once fence", envelope)
+    def test_skap_genesis_is_the_two_event_crossing_model_and_reads_back_via_kv_intr(self):
+        """C-1 withdrawn: ENVELOPE v2 line 55 (d749bb2) is CAPTURE's two-event crossing model; no fence FAIL_CLOSED."""
+        self.assertFalse(hasattr(rl, "genesis_fence_unreconciled"))
+        self.assertNotIn("SKAP_GENESIS_FENCE_UNRECONCILED", (ROOT / "runtime/kv_receipt_ledgers.py").read_text())
+        envelope = (ROOT / "SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md").read_text(encoding="utf-8").splitlines()
+        self.assertIn("exactly-once fence", envelope[54])  # line 55
+        for text in (rl.GENESIS_CROSSING, json.loads((ROOT / rl.RECEIPT_LEDGERS["skap_vault"]["contract_path"])
+                                                      .read_text())["designation_notes"]["genesis_crossing"]):
+            self.assertIn("line 55", text)
+            self.assertIn("digest-only", text)
+            self.assertIn("SUPPLIED_HB_EPOCH", text)
+            self.assertIn("never held on the Org ledger", text)
         layers = TwoLayers()
         prior = layers.kv_hash()
-        root, chain = e0_kv_root("skap_vault")
+        carried = "sha256:" + "ab" * 32
+        root, chain = e0_kv_root("skap_vault", (carried,))
         with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]):
             out = layers.gate.receipt_ledger(prior, device_local(), root, e0_kv_attestation("skap_vault", chain))
-        self.assertSix(out, "SKAP_GENESIS_FENCE_UNRECONCILED", "C")
+            self.assertEqual(out["disposition"], "ALLOW", out)
+            self.assertEqual(out["store_location"], "storage-endpoint:device-local/_Vault/SKAP/Receipts")
+            self.assertEqual(rl.receipt_on_ledger("skap_vault", carried, _read_result=out)["disposition"], "ALLOW")
 
     def test_the_skap_chain_is_reached_only_via_kv_intr(self):
         root, chain = e0_kv_root("skap_vault")

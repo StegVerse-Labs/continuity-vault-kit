@@ -105,7 +105,6 @@ retry_entrypoint, owning_existing_goal and next_attempt.
 | failure_code | class | owner | next attempt |
 |---|---|---|---|
 | KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR | B | KV-CONNECTION-REVALIDATION-WORKER-001 (KV #2 SITE-CLOUD-KV-4347…) | on KV #2 governance and provider execution |
-| SKAP_GENESIS_FENCE_UNRECONCILED (skap_vault) | C | Lane D (cvk) and Lane C (TVC) | before any SKAP genesis, on the reconciliation ruling |
 | KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED | B | this task; Lane B dependency | after the pin mechanism clears |
 | KV_RECEIPT_CHAIN_GENESIS_PIN_MECHANISM_ORG_HOSTED | B | #162 / LLM-adapter#431 (Lane B) | on the per-endpoint pin aligned with SUPPLIED_HB_EPOCH |
 | KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED | B | this task; TVC#542 head-signer pattern (Lane C) | on signer publication |
@@ -115,11 +114,18 @@ retry_entrypoint, owning_existing_goal and next_attempt.
 The genesis stays `null`. Once #431's genesis aligns with SUPPLIED_HB_EPOCH (StegVerse-Labs/.github#3263/#3290),
 the pin is computed in advance. Pin-after-observe then remains only as the read-back check.
 
-### The class C SKAP genesis fence
+### Genesis crossing: the two-event model
 
-ENVELOPE v2 makes the Organization ledger's append and readback of the SKAP genesis receipt the authoritative
-exactly-once fence. That conflicts with KV/SKAP keeping their own receipt chains. Until the two are reconciled, the
-SKAP genesis step and the SKAP chain read stay FAIL_CLOSED.
+SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md line 55 (@d749bb2) already matches CAPTURE's two-event crossing model,
+and ENVELOPE v2 is not amended. The two events are:
+
+1. The chain's REPOSITORY_LEDGER_INITIALIZATION genesis receipt is recorded in KV storage, at `_Vault/SKAP/Receipts`
+   for SKAP and `_StegVerse/Receipts` for KV.
+2. A digest-only InTr crossing receipt (pointer/digest plus SUPPLIED_HB_EPOCH) is appended to the Org ledger and read
+   back.
+
+The Org ledger's append and readback is the exactly-once fence for that crossing receipt only. The SKAP genesis itself
+is never held on the Org ledger. The constant is `runtime.kv_receipt_ledgers.GENESIS_CROSSING`.
 
 ## E0 testing
 
