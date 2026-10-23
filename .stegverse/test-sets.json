@@ -796,6 +796,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_kv_ladder_conformance_lc_kv.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_ladder_conformance_lc_kv.py"
+   ],
+   "tests": [
+    "tests.test_kv_ladder_conformance_lc_kv"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_kv_my_kv_projection.py",
    "inputs": [],
    "surfaces": [
@@ -1772,6 +1784,9 @@
   "delegation/lifecycle.py": [
    "delegation/decision.py"
   ],
+  "execution/vault_store.py": [
+   "runtime/kv_skap_layer2.py"
+  ],
   "multimodal_storage/budget_planner.py": [
    "tools/validate_storage_budget_policy.py"
   ],
@@ -1818,6 +1833,7 @@
   ],
   "runtime/kv_interlock_endpoint.py": [
    "runtime/intr_pinned/**",
+   "runtime/intr_pinned/llm_adapter/healthy_node_evaluator.py",
    "runtime/secret_field_policy.py"
   ],
   "runtime/kv_my_kv_projection.py": [
@@ -1832,6 +1848,9 @@
   ],
   "runtime/kv_skap_account_transfer.py": [
    "runtime/secret_field_policy.py"
+  ],
+  "runtime/kv_skap_layer2.py": [
+   "runtime/kv_interlock_endpoint.py"
   ],
   "runtime/kv_skap_vault.py": [
    "runtime/kv_interlock_endpoint.py",
@@ -1855,6 +1874,7 @@
    "runtime/connection_assembly.py"
   ],
   "runtime/task_registry_event_sovereign_kv_binding.py": [
+   "runtime/kv_skap_layer2.py",
    "runtime/kv_storage_provider_adapter.py"
   ],
   "runtime/workspace_assistant_binding.py": [
@@ -1934,7 +1954,10 @@
   "tests/kv_two_layer_e0.py": [
    "runtime/kv_interlock_endpoint.py",
    "runtime/kv_skap_layer2.py",
-   "runtime/kv_skap_vault.py"
+   "runtime/kv_skap_vault.py",
+   "tests/fixtures/**",
+   "tests/fixtures/intr_pinned_test_only/**",
+   "tests/fixtures/intr_pinned_test_only/ed25519_test_signer.py"
   ],
   "tests/test_action_execution.py": [
    "execution/adapter.py",
@@ -2172,9 +2195,22 @@
   ],
   "tests/test_kv_interlock_runtime_endpoint.py": [
    "runtime/intr_pinned/**",
-   "runtime/intr_pinned/healthy_node_evaluator.py",
+   "runtime/intr_pinned/llm_adapter/**",
    "runtime/kv_interlock_endpoint.py",
    "tests/kv_two_layer_e0.py"
+  ],
+  "tests/test_kv_ladder_conformance_lc_kv.py": [
+   "execution/adapter.py",
+   "execution/vault_store.py",
+   "runtime/intr_pinned/**",
+   "runtime/intr_pinned/llm_adapter/**",
+   "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_skap_vault.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py",
+   "tests/kv_two_layer_e0.py",
+   "tests/test_skap_kv_persistence.py"
   ],
   "tests/test_kv_my_kv_projection.py": [
    "runtime/kv_instance_relationships.py",
@@ -2199,6 +2235,8 @@
    "runtime/kv_skap_account_transfer.py"
   ],
   "tests/test_kv_skap_vault_e0_witnesses.py": [
+   "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
+   "runtime/kv_interlock_endpoint.py",
    "runtime/kv_skap_vault.py",
    "runtime/task_registry_event_sovereign_kv_binding.py",
    "tests/kv_two_layer_e0.py",
@@ -2413,7 +2451,6 @@
   "tests/test_skap_kv_persistence.py": [
    "execution/adapter.py",
    "execution/vault_store.py",
-   "skap/crypto_boundary.py",
    "tests/kv_two_layer_e0.py"
   ],
   "tests/test_skap_loader_js.py": [
@@ -2442,8 +2479,10 @@
    "runtime/source_change_monitor.py"
   ],
   "tests/test_sovereign_kv_vault_lineage_record.py": [
+   "runtime/kv_skap_layer2.py",
    "runtime/kv_storage_provider_adapter.py",
    "runtime/task_registry_event_sovereign_kv_binding.py",
+   "tests/kv_two_layer_e0.py",
    "tests/test_task_registry_event_sovereign_kv_binding.py"
   ],
   "tests/test_stage_kv_ai_memory_resident_inputs.py": [
