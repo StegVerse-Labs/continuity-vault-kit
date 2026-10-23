@@ -190,14 +190,71 @@ class VaultLineageRecord(unittest.TestCase):
 
     def test_readback_and_receipt_must_match(self) -> None:
         bound = self.bind()
-        with self.assertRaises(TaskRegistryEventCustodyBindingError):
-            validate_vault_lineage_custody_result(binding=bound, provider_receipt=self.receipt(bound),
-                                                  read_back_lineage=lineage(2))
+        cases = [dict(provider_receipt=self.receipt(bound), read_back_lineage=lineage(2))]
         for over in ({"governance_state": "PENDING_INTERLOCK_INTR"}, {"operation": "READ"},
                      {"intr_receipt_ref": ""}, {"credential_material_present": True}, {"request_id": "kvprov_x"}):
-            with self.assertRaises(TaskRegistryEventCustodyBindingError):
-                validate_vault_lineage_custody_result(binding=bound, provider_receipt=self.receipt(bound, **over),
-                                                      read_back_lineage=lineage())
+            cases.append(dict(provider_receipt=self.receipt(bound, **over), read_back_lineage=lineage()))
+        for case in cases:
+            out = validate_vault_lineage_custody_result(binding=bound, **case)
+            assert_six_field_fail_closed(self, out, "VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED")
+
+
+SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
+       "owning_existing_goal", "next_attempt")
+
+
+def assert_six_field_fail_closed(case: unittest.TestCase, out, code: str) -> None:
+    case.assertEqual(out["disposition"], "FAIL_CLOSED", out)
+    case.assertEqual(out["failure_code"], code, out)
+    for field in SIX:
+        case.assertTrue(isinstance(out.get(field), str) and out[field].strip(), field)
+    case.assertEqual(out["owning_existing_goal"], "TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001")
+    case.assertIn(out["failure_class"], ("A", "B", "C"))
+    case.assertFalse(out["exact_hash_readback_verified"])
+    case.assertEqual(out["authority_effect"], "NONE")
+
+
+class CustodyValidationIsADispositionNeverARaise(unittest.TestCase):
+    """LC-KV-02 (StegVerse-Labs/.github#3330): the E0 terminal returns a six-field disposition."""
+
+    def test_unbound_receipt_observed_by_the_ladder_check_fails_closed(self) -> None:
+        # the exact call P1's observe run kv-lineage-validate-unbound-receipt makes
+        out = validate_vault_lineage_custody_result(
+            binding={"schema": binding_module.VAULT_LINEAGE_BINDING_SCHEMA, "provider_write_request": {}},
+            provider_receipt={}, read_back_lineage={})
+        assert_six_field_fail_closed(self, out, "VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED")
+        self.assertEqual(out["failed_predicate"],
+                         "AUTHENTIC_ADMITTED_PROVIDER_WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV")
+
+    def test_malformed_inputs_fail_closed(self) -> None:
+        bound = VaultLineageRecord().bind()
+        for kwargs in (dict(binding=None, provider_receipt={}, read_back_lineage={}),
+                       dict(binding=bound, provider_receipt=None, read_back_lineage=lineage()),
+                       dict(binding=bound, provider_receipt=provider_receipt(bound["provider_write_request"]),
+                            read_back_lineage=None),
+                       dict(binding={**bound, "provider_readback_request": None},
+                            provider_receipt=provider_receipt(bound["provider_write_request"]),
+                            read_back_lineage=lineage())):
+            out = validate_vault_lineage_custody_result(**kwargs)
+            self.assertEqual(out["disposition"], "FAIL_CLOSED", kwargs)
+            self.assertIn(out["failure_code"], ("VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED",
+                                                "VAULT_LINEAGE_CUSTODY_INPUT_MALFORMED"))
+            for field in SIX:
+                self.assertTrue(out[field])
+
+    def test_allow_carries_a_disposition(self) -> None:
+        bound = VaultLineageRecord().bind()
+        out = validate_vault_lineage_custody_result(
+            binding=bound, provider_receipt=provider_receipt(bound["provider_write_request"]),
+            read_back_lineage=lineage())
+        self.assertEqual(out["disposition"], "ALLOW")
+        self.assertTrue(out["exact_hash_readback_verified"])
+
+    def test_strict_core_still_raises_internally(self) -> None:
+        with self.assertRaises(TaskRegistryEventCustodyBindingError):
+            binding_module._validate_vault_lineage_custody_result_strict(
+                binding={"schema": binding_module.VAULT_LINEAGE_BINDING_SCHEMA, "provider_write_request": {}},
+                provider_receipt={}, read_back_lineage={})
 
 
 if __name__ == "__main__":

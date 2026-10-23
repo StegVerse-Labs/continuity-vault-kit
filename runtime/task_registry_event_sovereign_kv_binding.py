@@ -131,7 +131,7 @@ def validate_task_registry_event_custody_result(
 import hashlib as _hashlib
 import json as _json
 
-from runtime.kv_storage_provider_adapter import build_vault_lineage_readback_request
+from runtime.kv_storage_provider_adapter import build_vault_lineage_readback_request, vault_lineage_registry
 
 VAULT_LINEAGE_SOURCE_SCHEMA = "stegverse.kv-skap-vault-lineage/v1"
 VAULT_LINEAGE_RECORD_SCHEMA = "stegverse.task-registry-sovereign-kv-vault-lineage-record/v1"
@@ -210,7 +210,7 @@ def build_vault_lineage_custody_binding(
                                          session_id=lineage_record.get("session_id"))
     _require(rebuilt == lineage_record, "lineage record does not re-derive from its exact lineage")
 
-    adapter = default_registry().get(provider_id)
+    adapter = vault_lineage_registry().get(provider_id)
     lineage_sha256 = lineage_record["lineage_sha256"]
     write_request = build_operation_request(
         adapter=adapter,
@@ -247,7 +247,54 @@ def build_vault_lineage_custody_binding(
     }
 
 
+VAULT_LINEAGE_CUSTODY_GOAL = "TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001"
+VAULT_LINEAGE_CUSTODY_PREDICATE = "AUTHENTIC_ADMITTED_PROVIDER_WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV"
+VAULT_LINEAGE_CUSTODY_RETRY = ("runtime.task_registry_event_sovereign_kv_binding.validate_vault_lineage_custody_result "
+                               "(StegVerse-Labs/continuity-vault-kit); python -m unittest "
+                               "tests.test_sovereign_kv_vault_lineage_record")
+
+
+def vault_lineage_custody_fail_closed(code: str, detail: str, *, failure_class: str = "B") -> Dict[str, Any]:
+    """Six-field FAIL_CLOSED disposition for the vault-lineage custody handoff (never an exception)."""
+    return {
+        "schema": VAULT_LINEAGE_RECEIPT_SCHEMA,
+        "record_type": "KV_SKAP_VAULT_LINEAGE",
+        "disposition": "FAIL_CLOSED",
+        "failure_code": code,
+        "failed_predicate": VAULT_LINEAGE_CUSTODY_PREDICATE,
+        "required_evidence_or_repair": detail,
+        "retry_entrypoint": VAULT_LINEAGE_CUSTODY_RETRY,
+        "owning_existing_goal": VAULT_LINEAGE_CUSTODY_GOAL,
+        "next_attempt": "on the next admitted provider WRITE receipt and custody read-back for this lineage",
+        "failure_class": failure_class,
+        "exact_hash_readback_verified": False,
+        "authority_effect": "NONE",
+    }
+
+
 def validate_vault_lineage_custody_result(
+    *,
+    binding: Dict[str, Any],
+    provider_receipt: Dict[str, Any],
+    read_back_lineage: Dict[str, Any],
+) -> Dict[str, Any]:
+    """E0 terminal of the durable-custody validation handoff. Returns a disposition, never raises: ALLOW with the
+    custody receipt, or a six-field FAIL_CLOSED naming what the provider receipt or read-back lacks."""
+    try:
+        return _validate_vault_lineage_custody_result_strict(
+            binding=binding, provider_receipt=provider_receipt, read_back_lineage=read_back_lineage)
+    except TaskRegistryEventCustodyBindingError as exc:
+        return vault_lineage_custody_fail_closed(
+            "VAULT_LINEAGE_CUSTODY_RESULT_NOT_VERIFIED",
+            f"{exc}; supply an admitted provider WRITE receipt for the bound request and the exact read-back lineage")
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        return vault_lineage_custody_fail_closed(
+            "VAULT_LINEAGE_CUSTODY_INPUT_MALFORMED",
+            f"malformed binding, provider receipt or read-back ({type(exc).__name__}: {exc}); "
+            "rebuild them with build_vault_lineage_custody_binding and the provider adapter")
+
+
+def _validate_vault_lineage_custody_result_strict(
     *,
     binding: Dict[str, Any],
     provider_receipt: Dict[str, Any],
@@ -255,6 +302,7 @@ def validate_vault_lineage_custody_result(
 ) -> Dict[str, Any]:
     """The admitted provider WRITE receipt plus the lineage read back from custody: the read-back bytes must
     re-derive to the bound lineage hash and head, so reconstruction on any device starts from exactly them."""
+    _require(isinstance(binding, dict) and isinstance(provider_receipt, dict), "binding and provider receipt required")
     _require(binding.get("schema") == VAULT_LINEAGE_BINDING_SCHEMA, "unexpected vault lineage binding schema")
     request = binding.get("provider_write_request")
     _require(isinstance(request, dict), "provider write request required")
@@ -277,6 +325,7 @@ def validate_vault_lineage_custody_result(
     return {
         "schema": VAULT_LINEAGE_RECEIPT_SCHEMA,
         "record_type": "KV_SKAP_VAULT_LINEAGE",
+        "disposition": "ALLOW",
         "task_id": binding.get("task_id"),
         "principal_ref": binding.get("principal_ref"),
         "lineage_sha256": binding["lineage_sha256"],

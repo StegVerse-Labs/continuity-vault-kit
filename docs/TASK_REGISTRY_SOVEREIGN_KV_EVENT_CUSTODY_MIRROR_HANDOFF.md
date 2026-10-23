@@ -45,3 +45,20 @@ from on any device. This binding now carries a second record type, `KV_SKAP_VAUL
 The projection-request schema, the event binding, its receipt and the adapter's v1 request builder are
 byte-unchanged; `tests/test_sovereign_kv_vault_lineage_record.py` pins their digests as observed at main
 `bcc2d75`. No provider I/O, credential, or authority is added (`authority_effect: NONE`).
+
+## Ladder conformance (StegVerse-Labs/.github#3330, LC-KV-02 and LC-KV-03(a))
+
+- **LC-KV-02.** `validate_vault_lineage_custody_result` is the E0 terminal of the durable-custody validation
+  handoff and now returns a disposition instead of raising. On success it returns the custody receipt with
+  `disposition: ALLOW`. Otherwise it returns a six-field FAIL_CLOSED: `failure_code`, `failed_predicate`
+  (`AUTHENTIC_ADMITTED_PROVIDER_WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV`),
+  `required_evidence_or_repair`, `retry_entrypoint`, `owning_existing_goal` (this Goal) and `next_attempt`.
+  The raise stays internal in `_validate_vault_lineage_custody_result_strict`.
+- **LC-KV-03(a).** `runtime/kv_ecosystem_git_ref_custody.py` is an ecosystem-only custody adapter, the
+  `ecosystem-git-ref` provider in `vault_lineage_registry()`. `default_registry()` keeps its pinned bytes.
+  - The lineage is stored as `lineage.json` in a commit on `refs/stegverse/kv-custody/<principal>`.
+  - Writes are manifest-directed appends that move the ref by compare-and-swap from the declared predecessor.
+  - Reads go back by exact lineage hash.
+  - It uses the stdlib and the local `git` only: no push, remote, network, clock or credential.
+  - Interlock/InTr and SKAP references are consumed in the provider receipt, never verified or minted here.
+  - device-local, cloud stores, NAS and removable media stay optional upper layers.

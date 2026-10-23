@@ -184,3 +184,17 @@ def build_vault_lineage_readback_request(
         requested_by=requested_by,
         object_ref=lineage_sha256,
     )
+
+
+# --- additive: ecosystem-only durable custody provider (LC-KV-03(a), StegVerse-Labs/.github#3330) ---
+# The E0 rung of durable vault-lineage custody: an ecosystem git ref refs/stegverse/kv-custody/<principal>, written
+# by manifest-directed append and read back by exact lineage hash (runtime/kv_ecosystem_git_ref_custody.py).
+# device-local, cloud stores, NAS and removable media stay optional upper layers. default_registry() is unchanged
+# (its bytes are pinned); the vault-lineage path uses vault_lineage_registry(), which adds this adapter.
+ECOSYSTEM_GIT_REF_PROVIDER_ID = "ecosystem-git-ref"
+ECOSYSTEM_GIT_REF_ADAPTER = DeclarativeStorageProviderAdapter("ecosystem-git-ref", "Ecosystem Git Ref Custody", "ecosystem-git-ref", operations=("READ", "WRITE", "VERIFY"), storage_class="ECOSYSTEM", locator_kind="GIT_REF", session_requirement="NONE", credential_requirement="SKAP_REFERENCE", access_adapter="kv-ecosystem-git-ref-custody")
+
+
+def vault_lineage_registry() -> StorageProviderRegistry:
+    """default_registry() plus the ecosystem-only git-ref custody adapter (the E0 terminal)."""
+    return StorageProviderRegistry([*default_registry().adapters, ECOSYSTEM_GIT_REF_ADAPTER])
