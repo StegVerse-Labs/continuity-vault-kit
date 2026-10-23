@@ -76,7 +76,7 @@ FAIL_CLOSED `ENDPOINT_ORG_MEMBERSHIP_REFUSED` (class C), right after the org-led
 - `repository_ledger_location`;
 - `ledger_designation`;
 - each store;
-- `rollback_watermark_source` (keys `source`, `org_crossing_cross_check`) and its optional
+- `rollback_watermark_source` (keys `source`, `org_crossing_cross_check`) and its required
   `org_crossing_cross_check` (keys `source`, `path_ids`, `role`);
 - `designation_notes`.
 
@@ -91,9 +91,11 @@ Any other key is refused, whatever it is called:
 The token test only chooses which refusal code applies. It never admits a key.
 
 Some leaves also have closed values. `rollback_watermark_source.source` allows only `KV_RECORDED_RECEIPT_CHAIN_HEAD`
-(an Org-ledger source is refused with `KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED`, class A). In the optional cross-check,
-`source` allows only `ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD` and `role` only
-`DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK`.
+(an Org-ledger source is refused with `KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED`, class A). In the required cross-check,
+`source` allows only `ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD`, `role` only
+`DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK`, and `path_ids` must be a non-empty list whose every entry ends in
+`:intr-destination` (Lane B's rule at LLM-adapter#432 @c4cfc145, adopted; otherwise
+`KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2`, class C).
 
 ## What is not claimed
 
@@ -122,24 +124,47 @@ StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. He
   - The genesis is pinned.
   - The head is signed by a published `kv_ledger_head_signer`, listed in
     `.stegverse/node-ledger/kv-ledger-head-signers.v1.json`.
-  - The watermark comes from KV's own recorded receipt chain head, `KV_RECORDED_RECEIPT_CHAIN_HEAD` (the head
+  - The watermark is KV's own recorded receipt chain head, `KV_RECORDED_RECEIPT_CHAIN_HEAD` (the head
     `kv_ledger_head_signer` signs, TVC#542 @4c2504da). KV is independent of the Orgs, so the watermark never comes
-    from the Org ledger (Coordination's provisional class A repair on .github#167; C-review pending).
-  - The newest head that KV recorded on its own chain must still be on the read-back chain. Otherwise the read is
-    DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
-  - That watermark is required (LC-KV-23). It is passed as `recorded_head = {"source":
-    "KV_RECORDED_RECEIPT_CHAIN_HEAD", "head_receipt_sha256": "sha256:<64 hex>"}`. If it is absent, does not declare
-    its source, or is malformed, the read is six-field FAIL_CLOSED `KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING`
-    (class A, predicate `ROLLBACK_WATERMARK_SUPPLIED`). A properly signed older head is therefore never accepted on
-    its signature alone.
+    from the Org ledger. LC-KV-23 is class A per Coordination's ruling on StegVerse-org/.github#167, comment
+    6374130335.
+  - **The reader reads the watermark itself.** It comes from KV's own append-only head record behind the storage
+    endpoint, `.stegverse/node-ledger/head-record.v1.jsonl` beside each chain's `HEAD.json`. Each line has schema
+    `stegverse.kv-recorded-head/v1` and is hash-linked to the line before it (`previous_record_sha256`,
+    `record_sha256`). Every recorded head must be on the read-back chain, in order. The newest recorded head must be
+    the chain head. If it is not, or the chain head has regressed behind it, the read is DENY
+    `KV_LEDGER_HEAD_ROLLBACK_DETECTED`. If the record is absent, empty or malformed, the read is six-field
+    FAIL_CLOSED `KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING` (class A, Coordination accepted the B→A reclass). A
+    properly signed older head is therefore never accepted on its signature alone.
+  - **A caller's `recorded_head` is only a claim.** It is optional. When present it must be
+    `{"source": "KV_RECORDED_RECEIPT_CHAIN_HEAD", "head_receipt_sha256": "sha256:<64 hex>"}` and must equal the
+    head the reader read; otherwise DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED` (a caller presenting the regressed head
+    is refused). It is never echoed as evidence.
   - A watermark or designation sourced from the Org ledger (for example `ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD`)
     is refused with six-field FAIL_CLOSED `KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED` (class A, predicate
     `ROLLBACK_WATERMARK_SOURCED_FROM_KV_OWN_RECEIPT_CHAIN`, owned by KV-SKAP-VAULT-FUNCTIONAL-001).
-  - An Org-linked head may appear only as the optional digest-only cross-check of the Org's side of a crossing:
+  - **The Org crossing record is compared only to refuse.** The designation must declare
     `rollback_watermark_source.org_crossing_cross_check` (source `ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD`, the
-    intr-destination path_ids, role `DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK`) and, at read, an optional
-    `recorded_head.org_crossing_cross_check` digest. It is echoed with authority NONE and is never compared as the
-    watermark.
+    intr-destination path_ids, role `DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK`). The reader obtains the Org's
+    digest-only crossing records itself through `ORG_CROSSING_READER` (an injected reader at E0; in production,
+    whatever the existing InTr readback exposes, currently UNKNOWN_NOT_AUTHENTICALLY_OBSERVED, so it is `None`).
+    Caller input is never relied on. Each record carries `path_id`, `receipt_sha256`, `endpoint_head_sha256` and
+    `supplied_hb_epoch`.
+    - If a record names a head newer than KV's, or a head that is not an ancestor of KV's head, the read is DENY
+      `KV_LEDGER_HEAD_ROLLBACK_DETECTED`. This refuses a whole-chain rollback that rewrote both `HEAD.json` and the
+      head record.
+    - If no crossing record is observable (no reader, reader error, malformed or empty result): when KV's chain
+      shows it has never crossed (no `INTR_MESH_PATH_TRANSFER` or `INTR_MESH_PATH_INGRESS` record), the comparison
+      is skipped and the read is ALLOW at E0. Otherwise it is six-field FAIL_CLOSED
+      `KV_CROSSING_RECORD_NOT_OBSERVED` (class B, predicate `ORG_SIDE_OF_EACH_CROSSING_OBSERVED_BY_THE_READER`,
+      owner .github#162), never ALLOW.
+    - Both sides record each crossing (Lane B's rule at LLM-adapter#432 @c4cfc145, adopted, under the two-event
+      model of ENVELOPE v2 line 55 @d749bb2). When the Org side is observed but an ingress crossing on KV's chain has
+      no matching Org record, the read is FAIL_CLOSED `INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES` (class B).
+    - The Org never grants: the comparison result is echoed with authority NONE and can only refuse.
+    - Residual limit, stated rather than hidden: a whole-storage rollback to a point before the first crossing,
+      with no Org record observable, still reaches ALLOW at E0. That is what the ruling's never-crossed rule
+      permits.
 - **The SKAP chain is reached only through KV's InTr.** A read goes through `SkapLayer2Gate.receipt_ledger` with a
   layer-1 receipt minted by KV. Otherwise it is refused with `SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR`.
 - **Org designations are refused.** Any org ledger ref or git-ref designation is refused with
