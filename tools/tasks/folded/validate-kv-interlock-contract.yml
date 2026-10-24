@@ -12,10 +12,6 @@ on:
       - "tools/validate_kv_interlock_contract.py"
       - "tools/validate_kv_interlock_intr_envelope.py"
       - "runtime/kv_interlock_endpoint.py"
-      - "runtime/kv_skap_layer2.py"
-      - "runtime/intr_pinned/**"
-      - "runtime/kv_skap_vault.py"
-      - "tests/kv_two_layer_e0.py"
       - "tests/test_kv_interlock_runtime_endpoint.py"
       - "tools/run_endpoint_fanout_probe.py"
       - "tests/test_endpoint_fanout_probe.py"
@@ -34,10 +30,6 @@ on:
       - "tools/validate_kv_interlock_contract.py"
       - "tools/validate_kv_interlock_intr_envelope.py"
       - "runtime/kv_interlock_endpoint.py"
-      - "runtime/kv_skap_layer2.py"
-      - "runtime/intr_pinned/**"
-      - "runtime/kv_skap_vault.py"
-      - "tests/kv_two_layer_e0.py"
       - "tests/test_kv_interlock_runtime_endpoint.py"
       - "KV_INTERLOCK_RUNTIME_ENDPOINT_MIRROR_HANDOFF.md"
       - "tests/test_kv_interlock_contract.py"
@@ -85,7 +77,6 @@ jobs:
           python tools/run_endpoint_fanout_probe.py \
             --value "stegverse-endpoint-fanout-probe" \
             --probe-id "ci-endpoint-fanout-001" \
-            --e0-standin-healthy-node \
             --output probe-evidence/endpoint-fanout-probe.result.json
       - uses: actions/upload-artifact@v4
         with:
