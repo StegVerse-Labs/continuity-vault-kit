@@ -1646,6 +1646,71 @@
         "persist_credentials": "true",
         "timeout_minutes": 360,
         "python_version": "3.12"
+      },
+      "select_when": {
+        "paths_absent": [
+          "runtime/kv_receipt_ledgers.py"
+        ],
+        "reason": "superseded by kv-storage-endpoint-v2.validate.pr263 once #263 lands"
+      }
+    },
+    {
+      "id": "kv-storage-endpoint-v2.validate.pr263",
+      "source": {
+        "workflow": ".github/workflows/kv-storage-endpoint-v2.yml",
+        "workflow_name": "KV Storage Endpoint v2",
+        "job": "validate",
+        "job_name": null,
+        "commit": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#263"
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile storage adapter",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/01-compile-storage-adapter.sh",
+          "run_sha256": "a1d2d92d7a4749b7fe48933f7e5b55615d8eb2da68e29477b20946e2289787eb"
+        },
+        {
+          "name": "Run storage endpoint v2 tests",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/02-run-storage-endpoint-v2-tests.sh",
+          "run_sha256": "4d74b45d2f25c2abfe4c84ddc4d99b504a20fb18ada555ad1bdcf91e00352373"
+        },
+        {
+          "name": "Sovereign-KV binding and vault-lineage record type; existing contract bytes pinned (0 skipped)",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/03-sovereign-kv-binding-and-vault-lineage-record-ty.sh",
+          "run_sha256": "2ddee610ca23b655273b3ea45483651e48f18ff33551d3d694f1af574e68aa2d"
+        },
+        {
+          "name": "Prove legacy request contract and authority boundaries",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/04-prove-legacy-request-contract-and-authority-boun.sh",
+          "run_sha256": "0842aefd85a46292f6455fd560916014afe8ce93acc39e90a7fb3161d4f74f96"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      },
+      "select_when": {
+        "paths_present": [
+          "runtime/kv_receipt_ledgers.py"
+        ],
+        "reason": "#263-only file; until #263 lands the group receipts NOT_SELECTED and the base group keeps running"
       }
     },
     {
@@ -3110,6 +3175,100 @@
         "python_version": "3.12",
         "artifact_name": "endpoint-fanout-probe-evidence",
         "artifact_if_no_files_found": "error"
+      },
+      "select_when": {
+        "paths_absent": [
+          "runtime/kv_receipt_ledgers.py"
+        ],
+        "reason": "superseded by validate-kv-interlock-contract.validate.pr263 once #263 lands"
+      }
+    },
+    {
+      "id": "validate-kv-interlock-contract.validate.pr263",
+      "source": {
+        "workflow": ".github/workflows/validate-kv-interlock-contract.yml",
+        "workflow_name": "Validate KV Interlock Contract",
+        "job": "validate",
+        "job_name": null,
+        "commit": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#263"
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile canonical contract tooling",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/01-compile-canonical-contract-tooling.sh",
+          "run_sha256": "2e97241349b9f3574dbc9fa873a2f63ba5689dc261328520622b58f0f044577d"
+        },
+        {
+          "name": "Validate canonical contract",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/02-validate-canonical-contract.sh",
+          "run_sha256": "f24fc64617932379cf5f06766e5d45054511b671bca2cc04f8e15bcb72821420"
+        },
+        {
+          "name": "Run canonical contract tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/03-run-canonical-contract-tests.sh",
+          "run_sha256": "7fcb03bb9b3ba3c486a801760685175943ce91f1ea51170c6318383eaabf106f"
+        },
+        {
+          "name": "Validate generic KV Interlock InTr envelope",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/04-validate-generic-kv-interlock-intr-envelope.sh",
+          "run_sha256": "87147f3152eb1e3dc7dc278e090c5443122fe2c3fa76c4b2a9e0342d02fb3a05"
+        },
+        {
+          "name": "Run generic KV Interlock InTr envelope tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/05-run-generic-kv-interlock-intr-envelope-tests.sh",
+          "run_sha256": "dc0fde3d02fc8c89551920b05d7e0435f7ea71c697494c1c8e47cf460c305af1"
+        },
+        {
+          "name": "Run KV Interlock runtime endpoint tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/06-run-kv-interlock-runtime-endpoint-tests.sh",
+          "run_sha256": "3564eba731be7e501bf9f1edf0168a7548972853e6052c66d08197ea294d9aed"
+        },
+        {
+          "name": "Run endpoint fanout probe tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/07-run-endpoint-fanout-probe-tests.sh",
+          "run_sha256": "94f8513f109af5123858735a626a43d2858516b1d57548737b5b24b0bd3fd346"
+        },
+        {
+          "name": "Emit endpoint fanout probe evidence",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/08-emit-endpoint-fanout-probe-evidence.sh",
+          "run_sha256": "f12a3f3e6083214a5f66f8fa7ab2e6a87a7188994d5faa5bcaf29f0d00c18424"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "endpoint-fanout-probe-evidence",
+          "path": "probe-evidence/endpoint-fanout-probe.result.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12",
+        "artifact_name": "endpoint-fanout-probe-evidence",
+        "artifact_if_no_files_found": "error"
+      },
+      "select_when": {
+        "paths_present": [
+          "runtime/kv_receipt_ledgers.py"
+        ],
+        "reason": "#263-only file; until #263 lands the group receipts NOT_SELECTED and the base group keeps running"
       }
     },
     {
@@ -3176,7 +3335,7 @@
         {
           "name": "Registry, folded records and authority markers hold",
           "run_file": "tools/tasks/steps/workflow-surface-registry.validate/01-registry-records-and-authority-hold.sh",
-          "run_sha256": "dc782e9a4bde4966b6575f9aeacc7dce0a368263f279d8c1bab680898b37fd67"
+          "run_sha256": "cd1e7237f185bc7d4568091d1347da38c563eff2862c984e5b26549fc9246643"
         }
       ]
     }

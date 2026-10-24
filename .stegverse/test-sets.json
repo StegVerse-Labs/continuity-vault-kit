@@ -1485,6 +1485,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_run_catalog_deny_without_source.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_run_catalog_deny_without_source.py"
+   ],
+   "tests": [
+    "tests.test_run_catalog_deny_without_source"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_secret_field_policy.py",
    "inputs": [],
    "surfaces": [
@@ -2624,6 +2636,10 @@
    "tools/tasks/folded/downstream-propagation.yml",
    "tools/tasks/folded/reconcile-published-release.yml",
    "tools/tasks/folded/reconcile-release-activation.yml"
+  ],
+  "tests/test_run_catalog_deny_without_source.py": [
+   "tools/tasks/run_catalog.py",
+   "tools/tasks/task_catalog.json"
   ],
   "tests/test_secret_field_policy.py": [
    "runtime/secret_field_policy.py"

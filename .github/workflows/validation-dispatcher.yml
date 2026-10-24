@@ -103,9 +103,10 @@ jobs:
         with:
           node-version: "${{ matrix.node_version }}"
       - name: Run the catalog group
+        id: catalog
         run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "${{ matrix.group }}"
       - name: Retain the artifact the folded job uploaded
-        if: always() && matrix.artifact_name
+        if: always() && matrix.artifact_name && steps.catalog.outputs.disposition != 'NOT_SELECTED'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}-${{ github.run_id }}

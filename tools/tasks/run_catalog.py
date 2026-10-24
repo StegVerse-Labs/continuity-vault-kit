@@ -346,6 +346,10 @@ def run_group(gid):
     if not selected:
         # Selected by manifest state, not skipped: the receipt names why and what selects it.
         receipt.update(disposition="NOT_SELECTED", reason=why, select_when=group.get("select_when"))
+        if os.environ.get("GITHUB_OUTPUT"):
+            # lets the dispatcher skip retaining an artifact a not-selected group never produced
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+                out.write("disposition=NOT_SELECTED\n")
         (receipts / f"{gid}.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(receipt, indent=2))
         return 0
@@ -414,9 +418,13 @@ def run_group(gid):
     else:
         failed = [s for s in receipt["steps"] if s.get("exit_code") not in (None, 0) and not s.get("continue_on_error")]
         receipt["disposition"] = "DENY"
+        # catalog_additions groups carry no source workflow/job; a missing key must not turn a DENY into a crash
+        source = group.get("source") or {}
+        origin = (f"folded from {source.get('workflow')} job {source.get('job')}" if source.get("workflow")
+                  else "catalog addition, no folded source workflow")
         receipt["refusal"] = six(
             "CATALOG_CHECK_FAILED",
-            f"every step of group {gid} (folded from {group['source']['workflow']} job {group['source']['job']}) exits 0; failed: "
+            f"every step of group {gid} ({origin}) exits 0; failed: "
             + "; ".join(f"{s['n']}. {s['name']} -> {s['exit_code']}" for s in failed),
             "fix the code or data the failed step checks; the step body itself is pinned",
             nxt="push the repair; the dispatcher reruns this group on the next pull_request or push",
