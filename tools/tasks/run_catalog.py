@@ -346,6 +346,10 @@ def run_group(gid):
     if not selected:
         # Selected by manifest state, not skipped: the receipt names why and what selects it.
         receipt.update(disposition="NOT_SELECTED", reason=why, select_when=group.get("select_when"))
+        if os.environ.get("GITHUB_OUTPUT"):
+            # lets the dispatcher skip retaining an artifact a not-selected group never produced
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+                out.write("disposition=NOT_SELECTED\n")
         (receipts / f"{gid}.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(receipt, indent=2))
         return 0
