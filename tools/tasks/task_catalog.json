@@ -1649,9 +1649,9 @@
       },
       "select_when": {
         "paths_absent": [
-          "runtime/kv_receipt_ledgers.py"
+          "tests/test_kv_skap_vault_finish_point.py"
         ],
-        "reason": "superseded by kv-storage-endpoint-v2.validate.pr263 once #263 lands"
+        "reason": "superseded by kv-storage-endpoint-v2.validate.pr263 once #258/#263 lands"
       }
     },
     {
@@ -1708,9 +1708,9 @@
       },
       "select_when": {
         "paths_present": [
-          "runtime/kv_receipt_ledgers.py"
+          "tests/test_kv_skap_vault_finish_point.py"
         ],
-        "reason": "#263-only file; until #263 lands the group receipts NOT_SELECTED and the base group keeps running"
+        "reason": "present on #258 and #263, absent on main; until then the group receipts NOT_SELECTED and the base group keeps running"
       }
     },
     {
@@ -2495,9 +2495,10 @@
       },
       "select_when": {
         "paths_absent": [
-          ".stegverse/finish_point_verdict.py"
+          ".stegverse/finish_point_verdict.py",
+          "tests/test_kv_skap_vault_finish_point.py"
         ],
-        "reason": "superseded by the #260/#261 guard variants once .stegverse/finish_point_verdict.py lands"
+        "reason": "superseded by .guard.pr263 once tests/test_kv_skap_vault_finish_point.py lands, and by the #260/#261 guard variants once .stegverse/finish_point_verdict.py lands"
       }
     },
     {
@@ -2701,6 +2702,82 @@
           ".stegverse/workspace-parity-pin.json"
         ],
         "reason": "#261 support files present"
+      }
+    },
+    {
+      "id": "runtime-import-and-secret-policy.guard.pr263",
+      "source": {
+        "workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
+        "workflow_name": "Runtime Import + Secret Field Policy",
+        "job": "guard",
+        "job_name": null,
+        "commit": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#263"
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/01-step.sh",
+          "run_sha256": "16f1d2311f945b766836a442e2575b712c362472e5f14900468c38108bc1f36c"
+        },
+        {
+          "name": "Compile every runtime and skap module",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/02-compile-every-runtime-and-skap-module.sh",
+          "run_sha256": "ad6d0082e17a942fbbd1ed235eead59731a38db06bccd67ef3ae8341d1a32266"
+        },
+        {
+          "name": "Secret field policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/03-secret-field-policy.sh",
+          "run_sha256": "4a06880305443d780d7fd93d09400eefecffeed727ec7b835a880ebf380097d6"
+        },
+        {
+          "name": "Boundary modules that consume the policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/04-boundary-modules-that-consume-the-policy.sh",
+          "run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade"
+        },
+        {
+          "name": "Workspace projection contract",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/05-workspace-projection-contract.sh",
+          "run_sha256": "d6d2211e9f2fef14391412d36b7dd68f211291fad8d3c40b2697dfc1fb137697"
+        },
+        {
+          "name": "KV/SKAP Vault finish point (E0)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/06-kv-skap-vault-finish-point-e0.sh",
+          "run_sha256": "211a62024ccd047c44211444c6424fa0d2fb0426d8dd0b974c1b2d9f2650380f"
+        },
+        {
+          "name": "KV/SKAP Vault E0 witnesses",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/07-kv-skap-vault-e0-witnesses.sh",
+          "run_sha256": "ff23ade1822d0cb67dd2cb6f5415abb98563e9439f4fb24b4df3a4d0c86d6c2e"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      },
+      "select_when": {
+        "paths_present": [
+          "tests/test_kv_skap_vault_finish_point.py"
+        ],
+        "paths_absent": [
+          ".stegverse/finish_point_verdict.py"
+        ],
+        "reason": "#258/#263 tree (finish-point test present) without the #260/#261 verdict support"
       }
     },
     {
@@ -3178,9 +3255,9 @@
       },
       "select_when": {
         "paths_absent": [
-          "runtime/kv_receipt_ledgers.py"
+          "tests/test_kv_skap_vault_finish_point.py"
         ],
-        "reason": "superseded by validate-kv-interlock-contract.validate.pr263 once #263 lands"
+        "reason": "superseded by validate-kv-interlock-contract.validate.pr263 once #258/#263 lands"
       }
     },
     {
@@ -3266,9 +3343,9 @@
       },
       "select_when": {
         "paths_present": [
-          "runtime/kv_receipt_ledgers.py"
+          "tests/test_kv_skap_vault_finish_point.py"
         ],
-        "reason": "#263-only file; until #263 lands the group receipts NOT_SELECTED and the base group keeps running"
+        "reason": "present on #258 and #263, absent on main; until then the group receipts NOT_SELECTED and the base group keeps running"
       }
     },
     {
