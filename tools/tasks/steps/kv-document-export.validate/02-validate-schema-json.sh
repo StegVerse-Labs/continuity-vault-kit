@@ -1,0 +1,1 @@
+python -m json.tool schemas/kv-document-export-request.schema.json >/dev/null

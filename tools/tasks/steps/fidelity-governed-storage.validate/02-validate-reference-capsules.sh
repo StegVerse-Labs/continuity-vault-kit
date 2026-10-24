@@ -1,0 +1,1 @@
+python3 tools/validate_experience_capsule.py

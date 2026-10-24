@@ -1,0 +1,1 @@
+python -m py_compile runtime/document_export.py tools/prepare_document_export.py tests/test_document_export.py

@@ -1,0 +1,1 @@
+python3 scripts/run_intr_external_endpoint_probe.py

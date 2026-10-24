@@ -1,0 +1,314 @@
+name: Stable validator dispatcher
+
+# G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168), enforced
+# retroactively under Rigel's 2026-10-24 direction. This is the one stable
+# validation entry surface. It runs the manifest tools/tasks/task_catalog.json:
+# one matrix job per catalog group, each group being one job of a workflow that
+# was folded here, its steps the original run blocks byte for byte (pinned by
+# sha256 and refused by `run_catalog.py verify` on any drift).
+#
+# Model: StegVerse-Labs/.github .github/workflows/test-suite-ratchet.yml -
+# every pull request and every push to main, no path filter. A new check is a
+# catalog entry, never a new workflow file; control/workflow-surface-registry.json
+# fails closed on an unregistered workflow.
+#
+# The release readiness chain (Release integrity -> Automated release readiness ->
+# Release cycle outcome -> Release cycle recovery) used to be four workflows joined
+# by workflow_run on each other's display names. It is four jobs of this run now,
+# each keyed on its upstream job's result (CATALOG_UPSTREAM_CONCLUSION).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: The catalog matches its pinned step bodies
+        run: python3 tools/tasks/run_catalog.py verify
+      - name: Select the catalog groups this event runs
+        id: select
+        run: echo "matrix=$(python3 tools/tasks/run_catalog.py matrix --event "$GITHUB_EVENT_NAME")" >> "$GITHUB_OUTPUT"
+
+  check:
+    needs: plan
+    name: ${{ matrix.group }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      CATALOG_EVENT_BEFORE: ${{ github.event.before }}
+      CATALOG_EVENT_AFTER: ${{ github.event.after }}
+      CATALOG_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CATALOG_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      CATALOG_PR_NUMBER: ${{ github.event.pull_request.number }}
+      CATALOG_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      CATALOG_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CATALOG_PR_TITLE: ${{ github.event.pull_request.title }}
+      CATALOG_PR_BODY: ${{ github.event.pull_request.body }}
+      CATALOG_PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+      CATALOG_PR_MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      CATALOG_RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          fetch-depth: ${{ matrix.fetch_depth }}
+          persist-credentials: ${{ matrix.persist_credentials }}
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        if: matrix.ref != ''
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        if: matrix.ref != ''
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - name: Second checkout the folded job made
+        if: matrix.x_repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.x_repository }}
+          ref: ${{ matrix.x_ref }}
+          path: ${{ matrix.x_path }}
+          fetch-depth: ${{ matrix.x_fetch_depth }}
+          persist-credentials: ${{ matrix.x_persist_credentials }}
+      - name: Python the folded job set up
+        if: matrix.python_version
+        uses: actions/setup-python@v5
+        with:
+          python-version: "${{ matrix.python_version }}"
+      - name: Node the folded job set up
+        if: matrix.node_version
+        uses: actions/setup-node@v4
+        with:
+          node-version: "${{ matrix.node_version }}"
+      - name: Run the catalog group
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "${{ matrix.group }}"
+      - name: Retain the artifact the folded job uploaded
+        if: always() && matrix.artifact_name
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/catalog-artifacts
+          if-no-files-found: ${{ matrix.artifact_if_no_files_found }}
+
+  release-integrity:
+    name: release-integrity.verify-release-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      CATALOG_EVENT_BEFORE: ${{ github.event.before }}
+      CATALOG_EVENT_AFTER: ${{ github.event.after }}
+      CATALOG_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CATALOG_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      CATALOG_PR_NUMBER: ${{ github.event.pull_request.number }}
+      CATALOG_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      CATALOG_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CATALOG_PR_TITLE: ${{ github.event.pull_request.title }}
+      CATALOG_PR_BODY: ${{ github.event.pull_request.body }}
+      CATALOG_PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+      CATALOG_PR_MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      CATALOG_RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ''
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Python the folded job set up
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the catalog group
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "release-integrity.verify-release-integrity"
+      - name: Retain the artifact the folded job uploaded
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: continuity-vault-release-integrity-${{ github.run_id }}
+          path: ${{ runner.temp }}/catalog-artifacts
+          if-no-files-found: error
+
+  automated-release:
+    name: automated-release.validate_release_readiness
+    needs: release-integrity
+    # Was: on workflow_run (types: completed) of the upstream workflow. The upstream is a
+    # job of this run now, keyed by its result, not by a workflow's display name.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      CATALOG_EVENT_BEFORE: ${{ github.event.before }}
+      CATALOG_EVENT_AFTER: ${{ github.event.after }}
+      CATALOG_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CATALOG_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      CATALOG_PR_NUMBER: ${{ github.event.pull_request.number }}
+      CATALOG_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      CATALOG_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CATALOG_PR_TITLE: ${{ github.event.pull_request.title }}
+      CATALOG_PR_BODY: ${{ github.event.pull_request.body }}
+      CATALOG_PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+      CATALOG_PR_MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      CATALOG_RELEASE_TAG: ${{ github.event.release.tag_name }}
+      CATALOG_UPSTREAM_CONCLUSION: ${{ needs.release-integrity.result }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - name: Python the folded job set up
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the catalog group
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "automated-release.validate_release_readiness"
+      - name: Retain the artifact the folded job uploaded
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: continuity-vault-release-readiness-${{ github.run_id }}
+          path: ${{ runner.temp }}/catalog-artifacts
+          if-no-files-found: warn
+
+  release-cycle-outcome:
+    name: release-cycle-outcome.observe-outcome
+    needs: automated-release
+    # Was: on workflow_run (types: completed) of the upstream workflow. The upstream is a
+    # job of this run now, keyed by its result, not by a workflow's display name.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CATALOG_EVENT_BEFORE: ${{ github.event.before }}
+      CATALOG_EVENT_AFTER: ${{ github.event.after }}
+      CATALOG_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CATALOG_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      CATALOG_PR_NUMBER: ${{ github.event.pull_request.number }}
+      CATALOG_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      CATALOG_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CATALOG_PR_TITLE: ${{ github.event.pull_request.title }}
+      CATALOG_PR_BODY: ${{ github.event.pull_request.body }}
+      CATALOG_PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+      CATALOG_PR_MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      CATALOG_RELEASE_TAG: ${{ github.event.release.tag_name }}
+      CATALOG_UPSTREAM_CONCLUSION: ${{ needs.automated-release.result }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - name: Run the catalog group
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "release-cycle-outcome.observe-outcome"
+      - name: Retain the artifact the folded job uploaded
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-cycle-observation-${{ github.run_id }}
+          path: ${{ runner.temp }}/catalog-artifacts
+          if-no-files-found: error
+
+  release-cycle-recovery:
+    name: release-cycle-recovery.observe-recovery
+    needs: release-cycle-outcome
+    # Was: on workflow_run (types: completed) of the upstream workflow. The upstream is a
+    # job of this run now, keyed by its result, not by a workflow's display name.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CATALOG_EVENT_BEFORE: ${{ github.event.before }}
+      CATALOG_EVENT_AFTER: ${{ github.event.after }}
+      CATALOG_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CATALOG_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      CATALOG_PR_NUMBER: ${{ github.event.pull_request.number }}
+      CATALOG_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      CATALOG_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CATALOG_PR_TITLE: ${{ github.event.pull_request.title }}
+      CATALOG_PR_BODY: ${{ github.event.pull_request.body }}
+      CATALOG_PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+      CATALOG_PR_MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      CATALOG_RELEASE_TAG: ${{ github.event.release.tag_name }}
+      CATALOG_UPSTREAM_CONCLUSION: ${{ needs.release-cycle-outcome.result }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - name: Run the catalog group
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "release-cycle-recovery.observe-recovery"
+      - name: Retain the artifact the folded job uploaded
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-cycle-recovery-observation-${{ github.run_id }}
+          path: ${{ runner.temp }}/catalog-artifacts
+          if-no-files-found: error

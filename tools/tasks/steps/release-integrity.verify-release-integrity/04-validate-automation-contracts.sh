@@ -1,0 +1,1 @@
+python3 tools/test_automation_contracts.py

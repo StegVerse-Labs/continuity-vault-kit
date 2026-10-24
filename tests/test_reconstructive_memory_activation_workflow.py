@@ -3,7 +3,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github" / "workflows" / "production-provider-activation.yml"
+WORKFLOW = ROOT / "tools" / "tasks" / "folded" / "production-provider-activation.yml"
 
 
 class ProductionProviderActivationWorkflowTests(unittest.TestCase):

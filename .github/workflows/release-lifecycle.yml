@@ -1,0 +1,102 @@
+name: Release lifecycle
+
+# G17-WORKFLOW-SURFACE-MINIMIZATION: the release lifecycle surface. A release
+# becoming published is the state transition; this runs the catalog groups that
+# declare the release event (folded from build-and-attach-release.yml and
+# downstream-propagation.yml), read-only, with the same runner as the validator
+# dispatcher. Registered in control/workflow-surface-registry.json; its release
+# trigger is recorded there as pending owner approval.
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: The catalog matches its pinned step bodies
+        run: python3 tools/tasks/run_catalog.py verify
+      - name: Select the catalog groups this event runs
+        id: select
+        run: echo "matrix=$(python3 tools/tasks/run_catalog.py matrix --event release)" >> "$GITHUB_OUTPUT"
+
+  check:
+    needs: plan
+    name: ${{ matrix.group }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      CATALOG_EVENT_BEFORE: ${{ github.event.before }}
+      CATALOG_EVENT_AFTER: ${{ github.event.after }}
+      CATALOG_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CATALOG_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      CATALOG_PR_NUMBER: ${{ github.event.pull_request.number }}
+      CATALOG_PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+      CATALOG_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CATALOG_PR_TITLE: ${{ github.event.pull_request.title }}
+      CATALOG_PR_BODY: ${{ github.event.pull_request.body }}
+      CATALOG_PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+      CATALOG_PR_MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      CATALOG_RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          fetch-depth: ${{ matrix.fetch_depth }}
+          persist-credentials: ${{ matrix.persist_credentials }}
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        if: matrix.ref != ''
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        if: matrix.ref != ''
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - name: Second checkout the folded job made
+        if: matrix.x_repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.x_repository }}
+          ref: ${{ matrix.x_ref }}
+          path: ${{ matrix.x_path }}
+          fetch-depth: ${{ matrix.x_fetch_depth }}
+          persist-credentials: ${{ matrix.x_persist_credentials }}
+      - name: Python the folded job set up
+        if: matrix.python_version
+        uses: actions/setup-python@v5
+        with:
+          python-version: "${{ matrix.python_version }}"
+      - name: Node the folded job set up
+        if: matrix.node_version
+        uses: actions/setup-node@v4
+        with:
+          node-version: "${{ matrix.node_version }}"
+      - name: Run the catalog group
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "${{ matrix.group }}"
+      - name: Retain the artifact the folded job uploaded
+        if: always() && matrix.artifact_name
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/catalog-artifacts
+          if-no-files-found: ${{ matrix.artifact_if_no_files_found }}

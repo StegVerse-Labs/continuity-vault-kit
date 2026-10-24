@@ -1,0 +1,1 @@
+python -m unittest tests.test_delegation_decision tests.test_delegation_cases tests.test_delegation_onboarding tests.test_delegation_lifecycle tests.test_relationship_declaration -v

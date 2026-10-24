@@ -1,0 +1,1 @@
+python3 -m py_compile scripts/validate_skap_vault_double_interlock.py

@@ -1,0 +1,1 @@
+python tools/check_kv_personal_finance.py

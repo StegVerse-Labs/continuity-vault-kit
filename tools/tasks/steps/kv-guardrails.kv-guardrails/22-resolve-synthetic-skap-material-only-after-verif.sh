@@ -1,0 +1,1 @@
+PYTHONPATH=. python3 scripts/run_skap_coinbase_synthetic_sealed_session.py
