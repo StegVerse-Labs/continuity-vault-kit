@@ -4,13 +4,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = [
-    ".github/workflows/one_button_release.yml",
-    ".github/workflows/release-assets.yml",
-    ".github/workflows/build-and-attach-release.yml",
-    ".github/workflows/release-integrity.yml",
-    ".github/workflows/automated-release.yml",
-    ".github/workflows/release-cycle-outcome.yml",
-    ".github/workflows/release-cycle-recovery.yml",
+    "tools/tasks/folded/one_button_release.yml",
+    "tools/tasks/folded/release-assets.yml",
+    "tools/tasks/folded/build-and-attach-release.yml",
+    "tools/tasks/folded/release-integrity.yml",
+    "tools/tasks/folded/automated-release.yml",
+    "tools/tasks/folded/release-cycle-outcome.yml",
+    "tools/tasks/folded/release-cycle-recovery.yml",
 ]
 
 

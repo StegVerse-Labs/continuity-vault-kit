@@ -1,0 +1,1 @@
+python3 tools/adopt_existing_kv_instance.py --help >/dev/null

@@ -19,11 +19,15 @@ def main() -> int:
     missing = [p for p in cfg.get("required_files", []) if not (ROOT / p).is_file()]
     if missing:
         fail("missing required files: " + ", ".join(missing))
-    workflow = (ROOT / ".github/workflows/security-baseline.yml").read_text(encoding="utf-8")
+    workflow = (ROOT / "tools/tasks/folded/security-baseline.yml").read_text(encoding="utf-8")
     if "contents: read" not in workflow or "permissions:" not in workflow:
         fail("security workflow must declare least-privilege contents: read")
     for pattern in cfg.get("forbidden_patterns", []):
-        for path in (ROOT / ".github/workflows").glob("*.yml"):
+        # G17: the live surface (.github/workflows), the verbatim records of the folded
+        # workflows (tools/tasks/folded) and the catalog step bodies the dispatcher runs.
+        for path in [*sorted((ROOT / ".github/workflows").glob("*.yml")),
+                     *sorted((ROOT / "tools/tasks/folded").glob("*.yml")),
+                     *sorted((ROOT / "tools/tasks/steps").rglob("*.sh"))]:
             if pattern in path.read_text(encoding="utf-8", errors="replace"):
                 fail(f"forbidden permission pattern in {path.relative_to(ROOT)}")
     security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")

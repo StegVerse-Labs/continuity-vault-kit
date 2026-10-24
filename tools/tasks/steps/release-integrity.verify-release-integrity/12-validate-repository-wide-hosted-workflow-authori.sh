@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_global_hosted_workflow_authority -v

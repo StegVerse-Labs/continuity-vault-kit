@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github" / "workflows" / "automation-candidate-implementation.yml"
+WORKFLOW = ROOT / "tools" / "tasks" / "folded" / "automation-candidate-implementation.yml"
 
 
 class HostedCandidateAuthorityRetirementTests(unittest.TestCase):

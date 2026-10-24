@@ -1,0 +1,1 @@
+python3 scripts/validate_skap_vault_double_interlock.py --self-test

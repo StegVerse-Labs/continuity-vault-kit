@@ -4,10 +4,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = (
-    ".github/workflows/onboarding-friction.yml",
-    ".github/workflows/onboarding-friction-maintenance.yml",
-    ".github/workflows/onboarding-friction-bootstrap.yml",
-    ".github/workflows/automation-candidate-lifecycle.yml",
+    "tools/tasks/folded/onboarding-friction.yml",
+    "tools/tasks/folded/onboarding-friction-maintenance.yml",
+    "tools/tasks/folded/onboarding-friction-bootstrap.yml",
+    "tools/tasks/folded/automation-candidate-lifecycle.yml",
 )
 
 

@@ -1,0 +1,2 @@
+set -euo pipefail
+python3 -m unittest -v tests.test_workflow_surface_registry tests.test_folded_workflow_records tests.test_run_catalog_deny_without_source tests.test_global_hosted_workflow_authority

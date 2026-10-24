@@ -1,0 +1,1 @@
+python3 tools/incident_index.py validate tests/fixtures/actionable_incidents.synthetic.jsonl

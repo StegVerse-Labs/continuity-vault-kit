@@ -1,0 +1,1 @@
+python3 tools/kv_layer_check.py --mode validate

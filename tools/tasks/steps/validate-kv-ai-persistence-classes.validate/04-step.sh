@@ -1,0 +1,1 @@
+python scripts/validate_kv_ai_persistence_layouts.py

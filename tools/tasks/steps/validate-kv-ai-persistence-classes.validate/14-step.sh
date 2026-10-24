@@ -1,0 +1,1 @@
+python -m pytest -q tests/test_kv_ai_memory_writeback_store.py

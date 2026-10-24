@@ -1,0 +1,1 @@
+python3 tools/check_provider_surface_capability_registry.py

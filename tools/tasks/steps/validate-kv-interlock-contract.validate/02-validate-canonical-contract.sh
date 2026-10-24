@@ -1,0 +1,1 @@
+python tools/validate_kv_interlock_contract.py

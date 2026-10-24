@@ -1,0 +1,1 @@
+python3 tools/test_adopt_existing_kv_instance.py
