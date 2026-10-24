@@ -1,0 +1,2772 @@
+{
+ "authority_effect": "NONE",
+ "generated_from": {
+  "generator": "scripts/test_set_selection.py (StegVerse-Labs/.github)",
+  "spec": ".stegverse/test-set-spec.json",
+  "spec_sha256": "1774b13e507fc321cac635833de0d90c2b0b7b0bcb9716e264ce8aeb35b16495"
+ },
+ "inputs": {},
+ "repository": "StegVerse-Labs/continuity-vault-kit",
+ "runner": "unittest",
+ "schema": "stegverse.test-sets/v1",
+ "selects_all": [
+  ".stegverse/labs-tool-pin.json",
+  ".stegverse/test-set-spec.json",
+  ".stegverse/test-sets.json"
+ ],
+ "sets": [
+  {
+   "always": true,
+   "exclude": [],
+   "id": "core",
+   "inputs": [],
+   "surfaces": [],
+   "tests": []
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_action_execution.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_action_execution.py"
+   ],
+   "tests": [
+    "tests.test_action_execution"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_admit_transport_capability_evidence.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_admit_transport_capability_evidence.py"
+   ],
+   "tests": [
+    "tests.test_admit_transport_capability_evidence"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_admit_tvc_readiness_evidence.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_admit_tvc_readiness_evidence.py"
+   ],
+   "tests": [
+    "tests.test_admit_tvc_readiness_evidence"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_automated_legacy_kv_upgrade.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_automated_legacy_kv_upgrade.py"
+   ],
+   "tests": [
+    "tests.test_automated_legacy_kv_upgrade"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_budget_planner.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_budget_planner.py"
+   ],
+   "tests": [
+    "tests.test_budget_planner"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_cloud_peer_adoption_provider_binding.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_cloud_peer_adoption_provider_binding.py"
+   ],
+   "tests": [
+    "tests.test_cloud_peer_adoption_provider_binding"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_cloud_peer_set_membership_materialization.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_cloud_peer_set_membership_materialization.py"
+   ],
+   "tests": [
+    "tests.test_cloud_peer_set_membership_materialization"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_coinbase_finance_ingress.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_coinbase_finance_ingress.py"
+   ],
+   "tests": [
+    "tests.test_coinbase_finance_ingress"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_communication_runtime.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_communication_runtime.py"
+   ],
+   "tests": [
+    "tests.test_communication_runtime"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_connection_assembly.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_connection_assembly.py"
+   ],
+   "tests": [
+    "tests.test_connection_assembly"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_connection_monitor_targets.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_connection_monitor_targets.py"
+   ],
+   "tests": [
+    "tests.test_connection_monitor_targets"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_connection_registry_store.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_connection_registry_store.py"
+   ],
+   "tests": [
+    "tests.test_connection_registry_store"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_connection_revalidation.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_connection_revalidation.py"
+   ],
+   "tests": [
+    "tests.test_connection_revalidation"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_conversation_event_store.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_conversation_event_store.py"
+   ],
+   "tests": [
+    "tests.test_conversation_event_store"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_conversation_recall.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_conversation_recall.py"
+   ],
+   "tests": [
+    "tests.test_conversation_recall"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_cross_edge_selection_receipt.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_cross_edge_selection_receipt.py"
+   ],
+   "tests": [
+    "tests.test_cross_edge_selection_receipt"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_cross_platform_recovery.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_cross_platform_recovery.py"
+   ],
+   "tests": [
+    "tests.test_cross_platform_recovery"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_delegation_cases.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_delegation_cases.py"
+   ],
+   "tests": [
+    "tests.test_delegation_cases"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_delegation_decision.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_delegation_decision.py"
+   ],
+   "tests": [
+    "tests.test_delegation_decision"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_delegation_lifecycle.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_delegation_lifecycle.py"
+   ],
+   "tests": [
+    "tests.test_delegation_lifecycle"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_delegation_onboarding.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_delegation_onboarding.py"
+   ],
+   "tests": [
+    "tests.test_delegation_onboarding"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_direct_source_ingress.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_direct_source_ingress.py"
+   ],
+   "tests": [
+    "tests.test_direct_source_ingress"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_document_export.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_document_export.py"
+   ],
+   "tests": [
+    "tests.test_document_export"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_document_intr_transfer.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_document_intr_transfer.py"
+   ],
+   "tests": [
+    "tests.test_document_intr_transfer"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_documented_email_providers.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_documented_email_providers.py"
+   ],
+   "tests": [
+    "tests.test_documented_email_providers"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_email_continuity_runtime.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_email_continuity_runtime.py"
+   ],
+   "tests": [
+    "tests.test_email_continuity_runtime"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_email_ingress_pipeline.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_email_ingress_pipeline.py"
+   ],
+   "tests": [
+    "tests.test_email_ingress_pipeline"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_email_interlock.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_email_interlock.py"
+   ],
+   "tests": [
+    "tests.test_email_interlock"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_email_provider_adapter.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_email_provider_adapter.py"
+   ],
+   "tests": [
+    "tests.test_email_provider_adapter"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_endpoint_fanout_probe.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_endpoint_fanout_probe.py"
+   ],
+   "tests": [
+    "tests.test_endpoint_fanout_probe"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_execution_recovery.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_execution_recovery.py"
+   ],
+   "tests": [
+    "tests.test_execution_recovery"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_experience_capsule.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_experience_capsule.py"
+   ],
+   "tests": [
+    "tests.test_experience_capsule"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_finish_point_verdict.py",
+   "inputs": [],
+   "surfaces": [
+    ".stegverse/finish_point_verdict.py",
+    "tests/test_finish_point_verdict.py",
+    "tools/tasks/task_catalog.json"
+   ],
+   "tests": [
+    "tests.test_finish_point_verdict"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_folded_workflow_records.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_folded_workflow_records.py"
+   ],
+   "tests": [
+    "tests.test_folded_workflow_records"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_global_hosted_workflow_authority.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_global_hosted_workflow_authority.py"
+   ],
+   "tests": [
+    "tests.test_global_hosted_workflow_authority"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_healthcare_applicability.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_healthcare_applicability.py"
+   ],
+   "tests": [
+    "tests.test_healthcare_applicability"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_healthcare_assertion_validation.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_healthcare_assertion_validation.py"
+   ],
+   "tests": [
+    "tests.test_healthcare_assertion_validation"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_healthcare_authoritative_adapter.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_healthcare_authoritative_adapter.py"
+   ],
+   "tests": [
+    "tests.test_healthcare_authoritative_adapter"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_healthcare_governed_escalation.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_healthcare_governed_escalation.py"
+   ],
+   "tests": [
+    "tests.test_healthcare_governed_escalation"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_healthcare_service_economics.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_healthcare_service_economics.py"
+   ],
+   "tests": [
+    "tests.test_healthcare_service_economics"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_healthcare_transaction_evidence.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_healthcare_transaction_evidence.py"
+   ],
+   "tests": [
+    "tests.test_healthcare_transaction_evidence"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_healthcare_transaction_state.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_healthcare_transaction_state.py"
+   ],
+   "tests": [
+    "tests.test_healthcare_transaction_state"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_historical_corpus_import.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_historical_corpus_import.py"
+   ],
+   "tests": [
+    "tests.test_historical_corpus_import"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_historical_provenance.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_historical_provenance.py"
+   ],
+   "tests": [
+    "tests.test_historical_provenance"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_hosted_candidate_authority_retirement.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_hosted_candidate_authority_retirement.py"
+   ],
+   "tests": [
+    "tests.test_hosted_candidate_authority_retirement"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_hosted_onboarding_control_plane_retirement.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_hosted_onboarding_control_plane_retirement.py"
+   ],
+   "tests": [
+    "tests.test_hosted_onboarding_control_plane_retirement"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_hosted_release_authority_retirement.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_hosted_release_authority_retirement.py"
+   ],
+   "tests": [
+    "tests.test_hosted_release_authority_retirement"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_interlock_adoption_readiness_admission.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_interlock_adoption_readiness_admission.py"
+   ],
+   "tests": [
+    "tests.test_interlock_adoption_readiness_admission"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_intr_epistemic_packet_binding.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_intr_epistemic_packet_binding.py"
+   ],
+   "tests": [
+    "tests.test_intr_epistemic_packet_binding"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_intr_epistemic_roundtrip.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_intr_epistemic_roundtrip.py"
+   ],
+   "tests": [
+    "tests.test_intr_epistemic_roundtrip"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_intr_epistemic_state.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_intr_epistemic_state.py"
+   ],
+   "tests": [
+    "tests.test_intr_epistemic_state"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_intr_lifecycle_closure.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_intr_lifecycle_closure.py"
+   ],
+   "tests": [
+    "tests.test_intr_lifecycle_closure"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_activation_readiness.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_activation_readiness.py"
+   ],
+   "tests": [
+    "tests.test_kv_activation_readiness"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_ai_memory_substrate.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_ai_memory_substrate.py"
+   ],
+   "tests": [
+    "tests.test_kv_ai_memory_substrate"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_ai_memory_writeback_store.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_ai_memory_writeback_store.py"
+   ],
+   "tests": [
+    "tests.test_kv_ai_memory_writeback_store"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_ai_persistence_classes.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_ai_persistence_classes.py"
+   ],
+   "tests": [
+    "tests.test_kv_ai_persistence_classes"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_ai_persistence_layouts.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_ai_persistence_layouts.py"
+   ],
+   "tests": [
+    "tests.test_kv_ai_persistence_layouts"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_auri_peripheral_profiles.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_auri_peripheral_profiles.py"
+   ],
+   "tests": [
+    "tests.test_kv_auri_peripheral_profiles"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_cross_class_intr_fixtures.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_cross_class_intr_fixtures.py"
+   ],
+   "tests": [
+    "tests.test_kv_cross_class_intr_fixtures"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_email_ingress_policy.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_email_ingress_policy.py"
+   ],
+   "tests": [
+    "tests.test_kv_email_ingress_policy"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_format_hosted_mutation_retirement.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_format_hosted_mutation_retirement.py"
+   ],
+   "tests": [
+    "tests.test_kv_format_hosted_mutation_retirement"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_heartbeat_receipt_observer.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_heartbeat_receipt_observer.py"
+   ],
+   "tests": [
+    "tests.test_kv_heartbeat_receipt_observer"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_interlock_contract.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_interlock_contract.py"
+   ],
+   "tests": [
+    "tests.test_kv_interlock_contract"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_interlock_intr_envelope.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_interlock_intr_envelope.py"
+   ],
+   "tests": [
+    "tests.test_kv_interlock_intr_envelope"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_interlock_runtime_endpoint.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_interlock_runtime_endpoint.py"
+   ],
+   "tests": [
+    "tests.test_kv_interlock_runtime_endpoint"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_ladder_conformance_lc_kv.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_ladder_conformance_lc_kv.py"
+   ],
+   "tests": [
+    "tests.test_kv_ladder_conformance_lc_kv"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_my_kv_projection.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_my_kv_projection.py"
+   ],
+   "tests": [
+    "tests.test_kv_my_kv_projection"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_personal_services_registry.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_personal_services_registry.py"
+   ],
+   "tests": [
+    "tests.test_kv_personal_services_registry"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_provider_operation_store.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_provider_operation_store.py"
+   ],
+   "tests": [
+    "tests.test_kv_provider_operation_store"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_relationship_state_store.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_relationship_state_store.py"
+   ],
+   "tests": [
+    "tests.test_kv_relationship_state_store"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_skap_account_transfer.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_skap_account_transfer.py"
+   ],
+   "tests": [
+    "tests.test_kv_skap_account_transfer"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_skap_vault_e0_witnesses.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_skap_vault_e0_witnesses.py"
+   ],
+   "tests": [
+    "tests.test_kv_skap_vault_e0_witnesses"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_skap_vault_finish_point.py",
+   "inputs": [],
+   "surfaces": [
+    ".stegverse/finish_point_verdict.py",
+    "tests/test_kv_skap_vault_finish_point.py",
+    "tools/tasks/task_catalog.json"
+   ],
+   "tests": [
+    "tests.test_kv_skap_vault_finish_point"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_storage_provider_adapter.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_storage_provider_adapter.py"
+   ],
+   "tests": [
+    "tests.test_kv_storage_provider_adapter"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_transport_capability_registry.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_transport_capability_registry.py"
+   ],
+   "tests": [
+    "tests.test_kv_transport_capability_registry"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_legacy_capsule.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_legacy_capsule.py"
+   ],
+   "tests": [
+    "tests.test_legacy_capsule"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_legacy_kv_source_contract.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_legacy_kv_source_contract.py"
+   ],
+   "tests": [
+    "tests.test_legacy_kv_source_contract"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_legacy_kv_upgrade_plan.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_legacy_kv_upgrade_plan.py"
+   ],
+   "tests": [
+    "tests.test_legacy_kv_upgrade_plan"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_machine_kv_reconstruction.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_machine_kv_reconstruction.py"
+   ],
+   "tests": [
+    "tests.test_machine_kv_reconstruction"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_materialize_ephemeral_browser_projection_context.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_materialize_ephemeral_browser_projection_context.py"
+   ],
+   "tests": [
+    "tests.test_materialize_ephemeral_browser_projection_context"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_multi_instance_vaults.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_multi_instance_vaults.py"
+   ],
+   "tests": [
+    "tests.test_multi_instance_vaults"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_multimodal_storage_adapter.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_multimodal_storage_adapter.py"
+   ],
+   "tests": [
+    "tests.test_multimodal_storage_adapter"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_organization_security_posture.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_organization_security_posture.py"
+   ],
+   "tests": [
+    "tests.test_organization_security_posture"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_persistent_session_interlock.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_persistent_session_interlock.py"
+   ],
+   "tests": [
+    "tests.test_persistent_session_interlock"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_persistent_session_reconstruction.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_persistent_session_reconstruction.py"
+   ],
+   "tests": [
+    "tests.test_persistent_session_reconstruction"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_personal_contact_profile.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_personal_contact_profile.py"
+   ],
+   "tests": [
+    "tests.test_personal_contact_profile"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_personal_finance.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_personal_finance.py"
+   ],
+   "tests": [
+    "tests.test_personal_finance"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_personal_form_profile.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_personal_form_profile.py"
+   ],
+   "tests": [
+    "tests.test_personal_form_profile"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_personal_provider_binding.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_personal_provider_binding.py"
+   ],
+   "tests": [
+    "tests.test_personal_provider_binding"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_physical_recovery_evidence.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_physical_recovery_evidence.py"
+   ],
+   "tests": [
+    "tests.test_physical_recovery_evidence"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_portable_direct_source_ingress.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_portable_direct_source_ingress.py"
+   ],
+   "tests": [
+    "tests.test_portable_direct_source_ingress"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_portable_directory_projection.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_portable_directory_projection.py"
+   ],
+   "tests": [
+    "tests.test_portable_directory_projection"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_production_provider_hosted_authority_retirement.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_production_provider_hosted_authority_retirement.py"
+   ],
+   "tests": [
+    "tests.test_production_provider_hosted_authority_retirement"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_provider_relocation.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_provider_relocation.py"
+   ],
+   "tests": [
+    "tests.test_provider_relocation"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_provider_surface_capability_registry.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_provider_surface_capability_registry.py"
+   ],
+   "tests": [
+    "tests.test_provider_surface_capability_registry"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_access.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_access.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_access"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_activation_workflow.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_activation_workflow.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_activation_workflow"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_authority.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_authority.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_authority"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_deployment.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_deployment.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_deployment"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_infrastructure.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_infrastructure.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_infrastructure"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_ingestion.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_ingestion.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_ingestion"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_journal.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_journal.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_journal"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_lifecycle.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_lifecycle.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_lifecycle"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_master_records.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_master_records.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_master_records"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_master_records_state.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_master_records_state.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_master_records_state"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_proofs.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_proofs.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_proofs"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_provider_activation.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_provider_activation.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_provider_activation"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_provider_conformance.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_provider_conformance.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_provider_conformance"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_provider_containment.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_provider_containment.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_provider_containment"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_provider_drift.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_provider_drift.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_provider_drift"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_provider_incident.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_provider_incident.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_provider_incident"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_provider_probes.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_provider_probes.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_provider_probes"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_readiness.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_readiness.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_readiness"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_replay.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_replay.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_replay"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_routing.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_routing.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_routing"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_session.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_session.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_session"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_reconstructive_memory_transport.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_reconstructive_memory_transport.py"
+   ],
+   "tests": [
+    "tests.test_reconstructive_memory_transport"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_relationship_declaration.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_relationship_declaration.py"
+   ],
+   "tests": [
+    "tests.test_relationship_declaration"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_release_reconciliation_hosted_authority_retirement.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_release_reconciliation_hosted_authority_retirement.py"
+   ],
+   "tests": [
+    "tests.test_release_reconciliation_hosted_authority_retirement"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_run_catalog_deny_without_source.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_run_catalog_deny_without_source.py"
+   ],
+   "tests": [
+    "tests.test_run_catalog_deny_without_source"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_secret_field_policy.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_secret_field_policy.py"
+   ],
+   "tests": [
+    "tests.test_secret_field_policy"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_browser_admission.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_browser_admission.py"
+   ],
+   "tests": [
+    "tests.test_skap_browser_admission"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_browser_ingress.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_browser_ingress.py"
+   ],
+   "tests": [
+    "tests.test_skap_browser_ingress"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_crypto_boundary.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_crypto_boundary.py"
+   ],
+   "tests": [
+    "tests.test_skap_crypto_boundary"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_crypto_lifecycle_runtime.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_crypto_lifecycle_runtime.py"
+   ],
+   "tests": [
+    "tests.test_skap_crypto_lifecycle_runtime"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_intr_reconstruction.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_intr_reconstruction.py"
+   ],
+   "tests": [
+    "tests.test_skap_intr_reconstruction"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_kv_persistence.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_kv_persistence.py"
+   ],
+   "tests": [
+    "tests.test_skap_kv_persistence"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_loader_js.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_loader_js.py"
+   ],
+   "tests": [
+    "tests.test_skap_loader_js"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_owner_ingress.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_owner_ingress.py"
+   ],
+   "tests": [
+    "tests.test_skap_owner_ingress"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_portable_envelope.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_portable_envelope.py"
+   ],
+   "tests": [
+    "tests.test_skap_portable_envelope"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_skap_tvc_key_provider.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_skap_tvc_key_provider.py"
+   ],
+   "tests": [
+    "tests.test_skap_tvc_key_provider"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_source_change_monitor.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_source_change_monitor.py"
+   ],
+   "tests": [
+    "tests.test_source_change_monitor"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_sovereign_kv_vault_lineage_record.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_sovereign_kv_vault_lineage_record.py"
+   ],
+   "tests": [
+    "tests.test_sovereign_kv_vault_lineage_record"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_stage_kv_ai_memory_resident_inputs.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_stage_kv_ai_memory_resident_inputs.py"
+   ],
+   "tests": [
+    "tests.test_stage_kv_ai_memory_resident_inputs"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_stegdb_overlay_hosted_writeback_retirement.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_stegdb_overlay_hosted_writeback_retirement.py"
+   ],
+   "tests": [
+    "tests.test_stegdb_overlay_hosted_writeback_retirement"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_storage_budget_policy.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_storage_budget_policy.py"
+   ],
+   "tests": [
+    "tests.test_storage_budget_policy"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_storage_endpoint_v2.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_storage_endpoint_v2.py"
+   ],
+   "tests": [
+    "tests.test_storage_endpoint_v2"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_task_registry_event_sovereign_kv_binding.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_task_registry_event_sovereign_kv_binding.py"
+   ],
+   "tests": [
+    "tests.test_task_registry_event_sovereign_kv_binding"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_vault_store.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_vault_store.py"
+   ],
+   "tests": [
+    "tests.test_vault_store"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workflow_surface_registry.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workflow_surface_registry.py"
+   ],
+   "tests": [
+    "tests.test_workflow_surface_registry"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_assistant_binding.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_assistant_binding.py"
+   ],
+   "tests": [
+    "tests.test_workspace_assistant_binding"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_continuity_checkpoint.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_continuity_checkpoint.py"
+   ],
+   "tests": [
+    "tests.test_workspace_continuity_checkpoint"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_continuity_checkpoint_projection.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_continuity_checkpoint_projection.py"
+   ],
+   "tests": [
+    "tests.test_workspace_continuity_checkpoint_projection"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_decision_reasons.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_decision_reasons.py"
+   ],
+   "tests": [
+    "tests.test_workspace_decision_reasons"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_family_projections.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_family_projections.py"
+   ],
+   "tests": [
+    "tests.test_workspace_family_projections"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_projection.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_projection.py"
+   ],
+   "tests": [
+    "tests.test_workspace_projection"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_session_authentication.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_session_authentication.py"
+   ],
+   "tests": [
+    "tests.test_workspace_session_authentication"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_workspace_tasks_projection.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workspace_tasks_projection.py"
+   ],
+   "tests": [
+    "tests.test_workspace_tasks_projection"
+   ]
+  }
+ ],
+ "surface_graph": {
+  "delegation/lifecycle.py": [
+   "delegation/decision.py"
+  ],
+  "execution/communication_runtime.py": [
+   "execution/adapter.py",
+   "execution/vault_store.py"
+  ],
+  "execution/extensions.py": [
+   "execution/adapter.py"
+  ],
+  "execution/recovery.py": [
+   "execution/adapter.py"
+  ],
+  "execution/vault_store.py": [
+   "execution/adapter.py",
+   "runtime/kv_skap_layer2.py"
+  ],
+  "multimodal_storage/budget_planner.py": [
+   "tools/validate_storage_budget_policy.py"
+  ],
+  "reconstructive_memory/__init__.py": [
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/authority.py",
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/deployment.py",
+   "reconstructive_memory/ingestion.py",
+   "reconstructive_memory/journal.py",
+   "reconstructive_memory/lifecycle.py",
+   "reconstructive_memory/master_records.py",
+   "reconstructive_memory/master_records_state.py",
+   "reconstructive_memory/proofs.py",
+   "reconstructive_memory/provider_activation.py",
+   "reconstructive_memory/provider_conformance.py",
+   "reconstructive_memory/provider_probes.py",
+   "reconstructive_memory/readiness.py",
+   "reconstructive_memory/replay.py",
+   "reconstructive_memory/routing.py",
+   "reconstructive_memory/session.py",
+   "reconstructive_memory/transport.py"
+  ],
+  "reconstructive_memory/access.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/authority.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/journal.py",
+   "reconstructive_memory/lifecycle.py",
+   "reconstructive_memory/session.py"
+  ],
+  "reconstructive_memory/deployment.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/master_records.py",
+   "reconstructive_memory/master_records_state.py"
+  ],
+  "reconstructive_memory/ingestion.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/lifecycle.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/master_records_state.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/master_records.py"
+  ],
+  "reconstructive_memory/proofs.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/provider_conformance.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/provider_activation.py"
+  ],
+  "reconstructive_memory/provider_incident.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/provider_drift.py"
+  ],
+  "reconstructive_memory/provider_probes.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/provider_activation.py",
+   "reconstructive_memory/provider_conformance.py"
+  ],
+  "reconstructive_memory/replay.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/transport.py"
+  ],
+  "reconstructive_memory/routing.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/core.py"
+  ],
+  "reconstructive_memory/session.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/lifecycle.py",
+   "reconstructive_memory/proofs.py",
+   "reconstructive_memory/routing.py"
+  ],
+  "reconstructive_memory/transport.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/ingestion.py"
+  ],
+  "runtime/cloud_peer_adoption_provider_binding.py": [
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "runtime/coinbase_finance_ingress.py": [
+   "runtime/personal_finance.py"
+  ],
+  "runtime/connection_monitor_targets.py": [
+   "runtime/connection_assembly.py"
+  ],
+  "runtime/connection_registry_store.py": [
+   "runtime/connection_assembly.py"
+  ],
+  "runtime/connection_revalidation.py": [
+   "runtime/connection_assembly.py"
+  ],
+  "runtime/conversation_event_store.py": [
+   "continuity/recall.py"
+  ],
+  "runtime/document_intr_transfer.py": [
+   "runtime/document_export.py"
+  ],
+  "runtime/documented_email_providers.py": [
+   "runtime/email_continuity.py",
+   "runtime/email_provider_adapter.py",
+   "specs/kv-email-provider-registry.v1.json"
+  ],
+  "runtime/email_interlock.py": [
+   "runtime/email_continuity.py"
+  ],
+  "runtime/email_provider_adapter.py": [
+   "runtime/email_continuity.py"
+  ],
+  "runtime/historical_corpus_import.py": [
+   "runtime/historical_provenance.py"
+  ],
+  "runtime/intr_epistemic_packet_binding.py": [
+   "runtime/intr_epistemic_state.py"
+  ],
+  "runtime/intr_epistemic_roundtrip.py": [
+   "runtime/intr_epistemic_state.py"
+  ],
+  "runtime/intr_lifecycle_closure.py": [
+   "runtime/secret_field_policy.py"
+  ],
+  "runtime/kv_interlock_endpoint.py": [
+   ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+   "runtime/intr_pinned/**",
+   "runtime/intr_pinned/llm_adapter/healthy_node_evaluator.py",
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/secret_field_policy.py"
+  ],
+  "runtime/kv_my_kv_projection.py": [
+   "runtime/kv_provider_operation_store.py",
+   "runtime/kv_relationship_state_store.py"
+  ],
+  "runtime/kv_provider_operation_store.py": [
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "runtime/kv_receipt_ledgers.py": [
+   ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+   ".stegverse/receipt-chains/skap-receipts.contract.json",
+   ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
+   "KV_STORAGE_ENDPOINT_V2_MIRROR_HANDOFF.md",
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "runtime/kv_relationship_state_store.py": [
+   "runtime/kv_instance_relationships.py"
+  ],
+  "runtime/kv_skap_account_transfer.py": [
+   "runtime/secret_field_policy.py"
+  ],
+  "runtime/kv_skap_layer2.py": [
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_receipt_ledgers.py"
+  ],
+  "runtime/kv_skap_vault.py": [
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/kv_skap_layer2.py",
+   "runtime/secret_field_policy.py"
+  ],
+  "runtime/organization_security_posture.py": [
+   "policy/organization-security-postures.v1.json"
+  ],
+  "runtime/persistent_session_interlock.py": [
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/persistent_session_reconstruction.py"
+  ],
+  "runtime/personal_contact_profile.py": [
+   "runtime/email_continuity.py"
+  ],
+  "runtime/portable_direct_source_ingress.py": [
+   "runtime/secret_field_policy.py"
+  ],
+  "runtime/source_change_monitor.py": [
+   "runtime/connection_assembly.py"
+  ],
+  "runtime/task_registry_event_sovereign_kv_binding.py": [
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "runtime/workspace_assistant_binding.py": [
+   "delegation/relationship.py",
+   "runtime/workspace_continuity_checkpoint.py",
+   "runtime/workspace_decision_reasons.py"
+  ],
+  "runtime/workspace_continuity_checkpoint_projection.py": [
+   "runtime/workspace_continuity_checkpoint.py",
+   "runtime/workspace_projection.py"
+  ],
+  "runtime/workspace_decision_reasons.py": [
+   "runtime/workspace_assistant_binding.py",
+   "runtime/workspace_session_authentication.py"
+  ],
+  "runtime/workspace_family_projections.py": [
+   "runtime/workspace_projection.py"
+  ],
+  "runtime/workspace_session_authentication.py": [
+   "runtime/workspace_decision_reasons.py"
+  ],
+  "runtime/workspace_tasks_projection.py": [
+   "runtime/workspace_projection.py"
+  ],
+  "scripts/admit_transport_capability_evidence.py": [
+   "specs/kv-activation-readiness-facts.v1.json"
+  ],
+  "scripts/bind_healthcare_governed_escalation.py": [
+   "scripts/resolve_healthcare_applicability.py"
+  ],
+  "scripts/evaluate_kv_activation_readiness.py": [
+   "specs/kv-activation-readiness-facts.v1.json",
+   "specs/kv-device-backed-capability-registry.v1.json",
+   "specs/kv-module-activation-policy.v1.json",
+   "specs/kv-personal-services-registry.v1.json"
+  ],
+  "scripts/resolve_healthcare_applicability.py": [
+   "data/healthcare-authority-schema-registry.v1.json"
+  ],
+  "scripts/select_healthcare_authoritative_adapter.py": [
+   "scripts/resolve_healthcare_applicability.py"
+  ],
+  "scripts/stage_kv_ai_memory_resident_inputs.py": [
+   "runtime/kv_ai_memory_substrate.py"
+  ],
+  "scripts/validate_kv_ai_persistence_classes.py": [
+   "specs/kv-ai-persistence-classes.v1.json"
+  ],
+  "scripts/validate_kv_ai_persistence_layouts.py": [
+   "specs/kv-ai-persistence-layouts.v1.json"
+  ],
+  "scripts/validate_kv_auri_peripheral_profiles.py": [
+   "specs/kv-auri-peripheral-capability-profiles.v1.json",
+   "specs/kv-device-backed-capability-registry.v1.json",
+   "specs/kv-transport-capability-registry.v1.json"
+  ],
+  "scripts/validate_kv_cross_class_intr_fixtures.py": [
+   "scripts/validate_kv_cross_class_intr_transition.py",
+   "specs/kv-cross-class-intr-transition-fixtures.v1.json"
+  ],
+  "scripts/validate_kv_cross_class_intr_transition.py": [
+   "specs/kv-cross-class-intr-transition.example.v1.json"
+  ],
+  "scripts/validate_kv_personal_services_registry.py": [
+   "specs/kv-personal-services-registry.v1.json"
+  ],
+  "scripts/validate_kv_transport_capability_registry.py": [
+   "specs/kv-transport-capability-registry.v1.json"
+  ],
+  "skap/browser_admission.py": [
+   "skap/browser_ingress.py",
+   "skap/crypto_boundary.py"
+  ],
+  "skap/ingress.py": [
+   "skap/crypto_boundary.py"
+  ],
+  "skap/portable_envelope.py": [
+   "skap/crypto_boundary.py"
+  ],
+  "tests/kv_two_layer_e0.py": [
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_skap_vault.py",
+   "tests/fixtures/**",
+   "tests/fixtures/intr_pinned_test_only/**",
+   "tests/fixtures/intr_pinned_test_only/ed25519_test_signer.py"
+  ],
+  "tests/test_action_execution.py": [
+   "execution/adapter.py",
+   "fixtures/action-execution/**",
+   "fixtures/action-execution/facebook-good-times.prepared.json",
+   "tests/fixtures/**"
+  ],
+  "tests/test_admit_transport_capability_evidence.py": [
+   "scripts/admit_transport_capability_evidence.py",
+   "specs/kv-activation-readiness-facts.v1.json"
+  ],
+  "tests/test_admit_tvc_readiness_evidence.py": [
+   "scripts/admit_tvc_readiness_evidence.py"
+  ],
+  "tests/test_automated_legacy_kv_upgrade.py": [
+   "tools/apply_legacy_kv_upgrade.py",
+   "tools/verify_legacy_kv_upgrade_package.py"
+  ],
+  "tests/test_budget_planner.py": [
+   "fixtures/storage-budget/**",
+   "fixtures/storage-budget/semantic-recall.json",
+   "multimodal_storage/budget_planner.py",
+   "tests/fixtures/**"
+  ],
+  "tests/test_cloud_peer_adoption_provider_binding.py": [
+   "runtime/cloud_peer_adoption_provider_binding.py"
+  ],
+  "tests/test_cloud_peer_set_membership_materialization.py": [
+   "runtime/cloud_peer_set_membership_materialization.py"
+  ],
+  "tests/test_coinbase_finance_ingress.py": [
+   "runtime/coinbase_finance_ingress.py",
+   "runtime/personal_finance.py"
+  ],
+  "tests/test_communication_runtime.py": [
+   "execution/communication_runtime.py",
+   "execution/vault_store.py"
+  ],
+  "tests/test_connection_assembly.py": [
+   "runtime/connection_assembly.py"
+  ],
+  "tests/test_connection_monitor_targets.py": [
+   "runtime/connection_monitor_targets.py"
+  ],
+  "tests/test_connection_registry_store.py": [
+   "runtime/connection_assembly.py",
+   "runtime/connection_registry_store.py"
+  ],
+  "tests/test_connection_revalidation.py": [
+   "runtime/connection_assembly.py",
+   "runtime/connection_revalidation.py"
+  ],
+  "tests/test_conversation_event_store.py": [
+   "KV_PERSISTENT_SESSION_RECONSTRUCTION_MIRROR_HANDOFF.md",
+   "continuity/recall.py",
+   "runtime/conversation_event_store.py"
+  ],
+  "tests/test_conversation_recall.py": [
+   "continuity/recall.py",
+   "fixtures/conversation-recall/example-vault/events.jsonl"
+  ],
+  "tests/test_cross_edge_selection_receipt.py": [
+   "execution/vault_store.py"
+  ],
+  "tests/test_cross_platform_recovery.py": [
+   "fixtures/kv_cross_platform_recovery_cases.json",
+   "tests/fixtures/**"
+  ],
+  "tests/test_delegation_cases.py": [
+   "delegation/decision.py",
+   "fixtures/delegation-decisions/**",
+   "fixtures/delegation-decisions/act-ask-deny.json",
+   "tests/fixtures/**"
+  ],
+  "tests/test_delegation_decision.py": [
+   "delegation/decision.py",
+   "fixtures/delegation/**",
+   "tests/fixtures/**"
+  ],
+  "tests/test_delegation_lifecycle.py": [
+   "delegation/lifecycle.py",
+   "fixtures/delegation/**",
+   "tests/fixtures/**"
+  ],
+  "tests/test_delegation_onboarding.py": [
+   "delegation/onboarding.py"
+  ],
+  "tests/test_direct_source_ingress.py": [
+   "runtime/direct_source_ingress.py"
+  ],
+  "tests/test_document_export.py": [
+   "fixtures/document-export/**",
+   "fixtures/document-export/admitted.json",
+   "runtime/document_export.py",
+   "tests/fixtures/**"
+  ],
+  "tests/test_document_intr_transfer.py": [
+   "fixtures/document-export/admitted.json",
+   "runtime/document_export.py",
+   "runtime/document_intr_transfer.py"
+  ],
+  "tests/test_documented_email_providers.py": [
+   "runtime/documented_email_providers.py",
+   "runtime/email_continuity.py",
+   "specs/kv-email-provider-registry.v1.json"
+  ],
+  "tests/test_email_continuity_runtime.py": [
+   "runtime/email_continuity.py"
+  ],
+  "tests/test_email_ingress_pipeline.py": [
+   "runtime/email_ingress_pipeline.py"
+  ],
+  "tests/test_email_interlock.py": [
+   "runtime/email_continuity.py",
+   "runtime/email_interlock.py"
+  ],
+  "tests/test_email_provider_adapter.py": [
+   "runtime/email_continuity.py",
+   "runtime/email_provider_adapter.py"
+  ],
+  "tests/test_endpoint_fanout_probe.py": [
+   "tools/run_endpoint_fanout_probe.py"
+  ],
+  "tests/test_execution_recovery.py": [
+   "execution/adapter.py",
+   "execution/extensions.py",
+   "execution/recovery.py"
+  ],
+  "tests/test_experience_capsule.py": [
+   "fixtures/multimodal/**",
+   "tests/fixtures/**",
+   "tools/validate_experience_capsule.py"
+  ],
+  "tests/test_finish_point_verdict.py": [
+   ".stegverse/finish_point_verdict.py",
+   ".stegverse/test-set-spec.json"
+  ],
+  "tests/test_folded_workflow_records.py": [
+   "control/workflow-surface-registry.json",
+   "tests/test_kv_skap_vault_finish_point.py",
+   "tools/tasks/carried/pr263/**",
+   "tools/tasks/folded/**",
+   "tools/tasks/task_catalog.json"
+  ],
+  "tests/test_global_hosted_workflow_authority.py": [
+   ".github/workflows/**",
+   "control/workflow-surface-registry.json",
+   "tools/tasks/folded/**"
+  ],
+  "tests/test_healthcare_applicability.py": [
+   "data/healthcare-authority-schema-registry.v1.json",
+   "scripts/resolve_healthcare_applicability.py"
+  ],
+  "tests/test_healthcare_assertion_validation.py": [
+   "scripts/validate_healthcare_assertion.py"
+  ],
+  "tests/test_healthcare_authoritative_adapter.py": [
+   "scripts/resolve_healthcare_applicability.py",
+   "scripts/select_healthcare_authoritative_adapter.py"
+  ],
+  "tests/test_healthcare_governed_escalation.py": [
+   "scripts/bind_healthcare_governed_escalation.py",
+   "scripts/resolve_healthcare_applicability.py"
+  ],
+  "tests/test_healthcare_service_economics.py": [
+   "scripts/evaluate_healthcare_service_economics.py"
+  ],
+  "tests/test_healthcare_transaction_evidence.py": [
+   "scripts/evaluate_healthcare_transaction_evidence.py"
+  ],
+  "tests/test_healthcare_transaction_state.py": [
+   "scripts/bind_healthcare_transaction_state.py"
+  ],
+  "tests/test_historical_corpus_import.py": [
+   "runtime/historical_corpus_import.py",
+   "runtime/historical_provenance.py"
+  ],
+  "tests/test_historical_provenance.py": [
+   "runtime/historical_provenance.py"
+  ],
+  "tests/test_hosted_candidate_authority_retirement.py": [
+   "CHANGELOG.md",
+   "tools/tasks/**",
+   "tools/tasks/folded/**",
+   "tools/tasks/folded/automation-candidate-implementation.yml"
+  ],
+  "tests/test_hosted_onboarding_control_plane_retirement.py": [
+   "tools/tasks/folded/automation-candidate-lifecycle.yml",
+   "tools/tasks/folded/onboarding-friction-bootstrap.yml",
+   "tools/tasks/folded/onboarding-friction-maintenance.yml",
+   "tools/tasks/folded/onboarding-friction.yml"
+  ],
+  "tests/test_hosted_release_authority_retirement.py": [
+   "tools/tasks/folded/automated-release.yml",
+   "tools/tasks/folded/build-and-attach-release.yml",
+   "tools/tasks/folded/one_button_release.yml",
+   "tools/tasks/folded/release-assets.yml",
+   "tools/tasks/folded/release-cycle-outcome.yml",
+   "tools/tasks/folded/release-cycle-recovery.yml",
+   "tools/tasks/folded/release-integrity.yml"
+  ],
+  "tests/test_interlock_adoption_readiness_admission.py": [
+   "scripts/admit_interlock_adoption_readiness.py",
+   "scripts/evaluate_kv_activation_readiness.py"
+  ],
+  "tests/test_intr_epistemic_packet_binding.py": [
+   "runtime/intr_epistemic_packet_binding.py"
+  ],
+  "tests/test_intr_epistemic_roundtrip.py": [
+   "runtime/intr_epistemic_roundtrip.py",
+   "runtime/intr_epistemic_state.py"
+  ],
+  "tests/test_intr_epistemic_state.py": [
+   "runtime/intr_epistemic_state.py"
+  ],
+  "tests/test_intr_lifecycle_closure.py": [
+   "runtime/intr_lifecycle_closure.py"
+  ],
+  "tests/test_kv_activation_readiness.py": [
+   "scripts/evaluate_kv_activation_readiness.py",
+   "specs/kv-personal-services-registry.v1.json"
+  ],
+  "tests/test_kv_ai_memory_substrate.py": [
+   "runtime/kv_ai_memory_substrate.py"
+  ],
+  "tests/test_kv_ai_memory_writeback_store.py": [
+   "runtime/kv_ai_memory_substrate.py",
+   "runtime/kv_ai_memory_writeback_store.py"
+  ],
+  "tests/test_kv_ai_persistence_classes.py": [
+   "scripts/validate_kv_ai_persistence_classes.py",
+   "specs/kv-ai-persistence-classes.v1.json"
+  ],
+  "tests/test_kv_ai_persistence_layouts.py": [
+   "scripts/validate_kv_ai_persistence_layouts.py",
+   "specs/kv-ai-persistence-layouts.v1.json"
+  ],
+  "tests/test_kv_auri_peripheral_profiles.py": [
+   "scripts/validate_kv_auri_peripheral_profiles.py"
+  ],
+  "tests/test_kv_cross_class_intr_fixtures.py": [
+   "scripts/validate_kv_cross_class_intr_fixtures.py",
+   "specs/kv-cross-class-intr-transition-fixtures.v1.json"
+  ],
+  "tests/test_kv_email_ingress_policy.py": [
+   "tools/check_kv_email_ingress_policy.py"
+  ],
+  "tests/test_kv_format_hosted_mutation_retirement.py": [
+   "tools/tasks/folded/kv-format-branch.yml"
+  ],
+  "tests/test_kv_heartbeat_receipt_observer.py": [
+   "runtime/kv_heartbeat_receipt_observer.py"
+  ],
+  "tests/test_kv_interlock_runtime_endpoint.py": [
+   "runtime/intr_pinned/**",
+   "runtime/intr_pinned/llm_adapter/**",
+   "runtime/kv_interlock_endpoint.py",
+   "tests/kv_two_layer_e0.py"
+  ],
+  "tests/test_kv_ladder_conformance_lc_kv.py": [
+   ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+   ".stegverse/receipt-chains/**",
+   "SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md",
+   "execution/adapter.py",
+   "execution/vault_store.py",
+   "runtime/intr_pinned/**",
+   "runtime/intr_pinned/llm_adapter/**",
+   "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_skap_vault.py",
+   "runtime/kv_storage_provider_adapter.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py",
+   "specs/kv-ai-persistence-layouts.v1.json",
+   "specs/skap-kv-storage-layout.v2.json",
+   "tests/kv_two_layer_e0.py",
+   "tests/test_skap_kv_persistence.py"
+  ],
+  "tests/test_kv_my_kv_projection.py": [
+   "runtime/kv_instance_relationships.py",
+   "runtime/kv_my_kv_projection.py",
+   "runtime/kv_provider_operation_store.py",
+   "runtime/kv_relationship_state_store.py",
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "tests/test_kv_personal_services_registry.py": [
+   "scripts/validate_kv_personal_services_registry.py",
+   "specs/kv-personal-services-registry.v1.json"
+  ],
+  "tests/test_kv_provider_operation_store.py": [
+   "runtime/kv_provider_operation_store.py",
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "tests/test_kv_relationship_state_store.py": [
+   "runtime/kv_instance_relationships.py",
+   "runtime/kv_relationship_state_store.py"
+  ],
+  "tests/test_kv_skap_account_transfer.py": [
+   "runtime/kv_skap_account_transfer.py",
+   "tests/fixtures/**",
+   "tests/fixtures/kv_skap_account_metadata_conformance_v1.json"
+  ],
+  "tests/test_kv_skap_vault_e0_witnesses.py": [
+   "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_skap_vault.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py",
+   "tests/kv_two_layer_e0.py",
+   "tests/test_kv_skap_vault_finish_point.py",
+   "tests/test_task_registry_event_sovereign_kv_binding.py"
+  ],
+  "tests/test_kv_skap_vault_finish_point.py": [
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_skap_vault.py",
+   "tests/kv_two_layer_e0.py"
+  ],
+  "tests/test_kv_storage_provider_adapter.py": [
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "tests/test_kv_transport_capability_registry.py": [
+   "scripts/validate_kv_transport_capability_registry.py",
+   "specs/kv-transport-capability-registry.v1.json"
+  ],
+  "tests/test_legacy_capsule.py": [
+   "runtime/legacy_capsule.py"
+  ],
+  "tests/test_legacy_kv_source_contract.py": [
+   "README.md",
+   "runtime/legacy_capsule.py",
+   "vault_template/KnowledgeVault/**",
+   "vault_template/KnowledgeVault/_Entities/**",
+   "vault_template/KnowledgeVault/_Entities/Self/**",
+   "vault_template/KnowledgeVault/_Entities/Self/Legacy/**"
+  ],
+  "tests/test_legacy_kv_upgrade_plan.py": [
+   "README.md",
+   "tools/plan_legacy_kv_upgrade.py"
+  ],
+  "tests/test_machine_kv_reconstruction.py": [
+   "runtime/machine_kv_reconstruction.py"
+  ],
+  "tests/test_materialize_ephemeral_browser_projection_context.py": [
+   "scripts/materialize_ephemeral_browser_projection_context.py"
+  ],
+  "tests/test_multi_instance_vaults.py": [
+   "runtime/kv_instance_relationships.py",
+   "tools/init_vault.py"
+  ],
+  "tests/test_multimodal_storage_adapter.py": [
+   "fixtures/multimodal/**",
+   "multimodal_storage/adapter.py",
+   "tests/fixtures/**"
+  ],
+  "tests/test_organization_security_posture.py": [
+   "runtime/organization_security_posture.py"
+  ],
+  "tests/test_persistent_session_interlock.py": [
+   "KV_PERSISTENT_SESSION_RECONSTRUCTION_MIRROR_HANDOFF.md",
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/persistent_session_interlock.py",
+   "runtime/persistent_session_reconstruction.py",
+   "tests/kv_two_layer_e0.py"
+  ],
+  "tests/test_persistent_session_reconstruction.py": [
+   "KV_PERSISTENT_SESSION_RECONSTRUCTION_MIRROR_HANDOFF.md",
+   "runtime/persistent_session_reconstruction.py"
+  ],
+  "tests/test_personal_contact_profile.py": [
+   "runtime/email_continuity.py",
+   "runtime/personal_contact_profile.py"
+  ],
+  "tests/test_personal_finance.py": [
+   "runtime/personal_finance.py"
+  ],
+  "tests/test_personal_form_profile.py": [
+   "runtime/personal_form_profile.py"
+  ],
+  "tests/test_personal_provider_binding.py": [
+   "runtime/personal_provider_binding.py"
+  ],
+  "tests/test_portable_direct_source_ingress.py": [
+   "runtime/portable_direct_source_ingress.py"
+  ],
+  "tests/test_portable_directory_projection.py": [
+   "runtime/portable_directory_projection.py"
+  ],
+  "tests/test_production_provider_hosted_authority_retirement.py": [
+   "tools/tasks/folded/production-provider-activation.yml"
+  ],
+  "tests/test_provider_surface_capability_registry.py": [
+   "specs/kv-provider-surface-capability-registry.v1.json",
+   "tools/check_provider_surface_capability_registry.py"
+  ],
+  "tests/test_reconstructive_memory.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py"
+  ],
+  "tests/test_reconstructive_memory_access.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py"
+  ],
+  "tests/test_reconstructive_memory_activation_workflow.py": [
+   "tools/tasks/**",
+   "tools/tasks/folded/**",
+   "tools/tasks/folded/production-provider-activation.yml"
+  ],
+  "tests/test_reconstructive_memory_authority.py": [
+   "reconstructive_memory/__init__.py"
+  ],
+  "tests/test_reconstructive_memory_deployment.py": [
+   "reconstructive_memory/deployment.py",
+   "reconstructive_memory/master_records.py",
+   "reconstructive_memory/master_records_state.py"
+  ],
+  "tests/test_reconstructive_memory_infrastructure.py": [
+   "infra/production-providers/**",
+   "infra/production-providers/main.tf",
+   "infra/production-providers/spire-entry.template.json"
+  ],
+  "tests/test_reconstructive_memory_ingestion.py": [
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/ingestion.py"
+  ],
+  "tests/test_reconstructive_memory_journal.py": [
+   "reconstructive_memory/journal.py"
+  ],
+  "tests/test_reconstructive_memory_lifecycle.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/lifecycle.py"
+  ],
+  "tests/test_reconstructive_memory_master_records.py": [
+   "reconstructive_memory/master_records.py"
+  ],
+  "tests/test_reconstructive_memory_master_records_state.py": [
+   "reconstructive_memory/master_records.py",
+   "reconstructive_memory/master_records_state.py"
+  ],
+  "tests/test_reconstructive_memory_proofs.py": [
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/proofs.py"
+  ],
+  "tests/test_reconstructive_memory_provider_activation.py": [
+   "reconstructive_memory/provider_activation.py"
+  ],
+  "tests/test_reconstructive_memory_provider_conformance.py": [
+   "reconstructive_memory/provider_activation.py",
+   "reconstructive_memory/provider_conformance.py"
+  ],
+  "tests/test_reconstructive_memory_provider_containment.py": [
+   "reconstructive_memory/provider_containment.py"
+  ],
+  "tests/test_reconstructive_memory_provider_drift.py": [
+   "reconstructive_memory/provider_drift.py"
+  ],
+  "tests/test_reconstructive_memory_provider_incident.py": [
+   "reconstructive_memory/provider_drift.py",
+   "reconstructive_memory/provider_incident.py"
+  ],
+  "tests/test_reconstructive_memory_provider_probes.py": [
+   "reconstructive_memory/provider_activation.py",
+   "reconstructive_memory/provider_probes.py"
+  ],
+  "tests/test_reconstructive_memory_readiness.py": [
+   "reconstructive_memory/readiness.py"
+  ],
+  "tests/test_reconstructive_memory_replay.py": [
+   "reconstructive_memory/ingestion.py",
+   "reconstructive_memory/replay.py",
+   "reconstructive_memory/transport.py"
+  ],
+  "tests/test_reconstructive_memory_routing.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/access.py",
+   "reconstructive_memory/routing.py"
+  ],
+  "tests/test_reconstructive_memory_session.py": [
+   "reconstructive_memory/__init__.py",
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/session.py"
+  ],
+  "tests/test_reconstructive_memory_transport.py": [
+   "reconstructive_memory/core.py",
+   "reconstructive_memory/ingestion.py",
+   "reconstructive_memory/transport.py"
+  ],
+  "tests/test_relationship_declaration.py": [
+   "delegation/relationship.py",
+   "fixtures/relationship-declarations/**",
+   "fixtures/relationship-declarations/user-auri-v0.1.json",
+   "tests/fixtures/**"
+  ],
+  "tests/test_release_reconciliation_hosted_authority_retirement.py": [
+   "tools/tasks/folded/downstream-propagation.yml",
+   "tools/tasks/folded/reconcile-published-release.yml",
+   "tools/tasks/folded/reconcile-release-activation.yml"
+  ],
+  "tests/test_run_catalog_deny_without_source.py": [
+   "tools/tasks/run_catalog.py",
+   "tools/tasks/task_catalog.json"
+  ],
+  "tests/test_secret_field_policy.py": [
+   "runtime/secret_field_policy.py"
+  ],
+  "tests/test_skap_browser_admission.py": [
+   "skap/browser_admission.py",
+   "skap/browser_ingress.py",
+   "skap/crypto_boundary.py"
+  ],
+  "tests/test_skap_browser_ingress.py": [
+   "skap/browser_ingress.py"
+  ],
+  "tests/test_skap_crypto_boundary.py": [
+   "skap/crypto_boundary.py"
+  ],
+  "tests/test_skap_crypto_lifecycle_runtime.py": [
+   "skap/crypto_boundary.py"
+  ],
+  "tests/test_skap_intr_reconstruction.py": [
+   "execution/vault_store.py",
+   "scripts/intr_hop_receipt.py",
+   "scripts/validate_skap_endpoint_contracts.py",
+   "specs/intr-packet-review-candidate.v1.json"
+  ],
+  "tests/test_skap_kv_persistence.py": [
+   "execution/adapter.py",
+   "execution/vault_store.py",
+   "tests/fixtures/**",
+   "tests/fixtures/skap_sealed_material.synthetic.json",
+   "tests/kv_two_layer_e0.py"
+  ],
+  "tests/test_skap_loader_js.py": [
+   "skap/loader/kv-skap-loader.html",
+   "skap/loader/kv-skap-loader.sha256",
+   "tests/loader/kv_skap_loader.test.mjs"
+  ],
+  "tests/test_skap_owner_ingress.py": [
+   "skap/ingress.py"
+  ],
+  "tests/test_skap_portable_envelope.py": [
+   "fixtures/skap/portable-envelope-v2.vectors.json",
+   "skap/crypto_boundary.py",
+   "skap/key_provider.py",
+   "skap/loader/kv-skap-loader.html",
+   "skap/portable_envelope.py",
+   "specs/skap-kv-storage-layout.v1.json",
+   "specs/skap-kv-storage-layout.v2.json"
+  ],
+  "tests/test_skap_tvc_key_provider.py": [
+   "skap/crypto_boundary.py",
+   "skap/key_provider.py"
+  ],
+  "tests/test_source_change_monitor.py": [
+   "runtime/connection_assembly.py",
+   "runtime/source_change_monitor.py"
+  ],
+  "tests/test_sovereign_kv_vault_lineage_record.py": [
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_storage_provider_adapter.py",
+   "runtime/task_registry_event_sovereign_kv_binding.py",
+   "tests/kv_two_layer_e0.py",
+   "tests/test_task_registry_event_sovereign_kv_binding.py"
+  ],
+  "tests/test_stage_kv_ai_memory_resident_inputs.py": [
+   "scripts/stage_kv_ai_memory_resident_inputs.py"
+  ],
+  "tests/test_stegdb_overlay_hosted_writeback_retirement.py": [
+   "tools/tasks/folded/sync-knowledgevault-overlay-from-stegdb.yml",
+   "tools/tasks/folded/sync-overlay-from-stegdb.yml"
+  ],
+  "tests/test_storage_budget_policy.py": [
+   "fixtures/storage-budget/**",
+   "fixtures/storage-budget/semantic-recall.json",
+   "tests/fixtures/**",
+   "tools/validate_storage_budget_policy.py"
+  ],
+  "tests/test_storage_endpoint_v2.py": [
+   "runtime/kv_storage_provider_adapter.py"
+  ],
+  "tests/test_task_registry_event_sovereign_kv_binding.py": [
+   "runtime/task_registry_event_sovereign_kv_binding.py"
+  ],
+  "tests/test_vault_store.py": [
+   "execution/vault_store.py"
+  ],
+  "tests/test_workflow_surface_registry.py": [
+   ".github/workflows/**",
+   "control/workflow-surface-registry.json",
+   "docs/WORKFLOW_SURFACE_MIRROR_HANDOFF.md",
+   "tools/tasks/run_catalog.py",
+   "tools/tasks/task_catalog.json"
+  ],
+  "tests/test_workspace_assistant_binding.py": [
+   "fixtures/relationship-declarations/user-auri-v0.1.json",
+   "runtime/workspace_assistant_binding.py",
+   "runtime/workspace_projection.py"
+  ],
+  "tests/test_workspace_continuity_checkpoint.py": [
+   "runtime/workspace_continuity_checkpoint.py"
+  ],
+  "tests/test_workspace_continuity_checkpoint_projection.py": [
+   "runtime/workspace_continuity_checkpoint.py",
+   "runtime/workspace_continuity_checkpoint_projection.py",
+   "runtime/workspace_projection.py"
+  ],
+  "tests/test_workspace_decision_reasons.py": [
+   "runtime/workspace_assistant_binding.py",
+   "runtime/workspace_decision_reasons.py",
+   "runtime/workspace_session_authentication.py"
+  ],
+  "tests/test_workspace_family_projections.py": [
+   "runtime/workspace_family_projections.py",
+   "runtime/workspace_projection.py"
+  ],
+  "tests/test_workspace_projection.py": [
+   "runtime/workspace_projection.py"
+  ],
+  "tests/test_workspace_session_authentication.py": [
+   "runtime/workspace_assistant_binding.py",
+   "runtime/workspace_projection.py",
+   "runtime/workspace_session_authentication.py"
+  ],
+  "tests/test_workspace_tasks_projection.py": [
+   "runtime/workspace_projection.py",
+   "runtime/workspace_tasks_projection.py"
+  ],
+  "tools/apply_legacy_kv_upgrade.py": [
+   "VERSION",
+   "tools/plan_legacy_kv_upgrade.py",
+   "vault_template/KnowledgeVault/**"
+  ],
+  "tools/check_kv_email_ingress_policy.py": [
+   "specs/kv-email-ingress-policy.v1.json"
+  ],
+  "tools/check_provider_surface_capability_registry.py": [
+   "specs/kv-provider-surface-capability-registry.v1.json"
+  ],
+  "tools/init_vault.py": [
+   "VERSION",
+   "vault_template/KnowledgeVault/**"
+  ],
+  "tools/plan_legacy_kv_upgrade.py": [
+   "VERSION",
+   "vault_template/KnowledgeVault/**"
+  ],
+  "tools/run_endpoint_fanout_probe.py": [
+   "runtime/kv_interlock_endpoint.py"
+  ],
+  "tools/tasks/run_catalog.py": [
+   "tools/tasks/task_catalog.json"
+  ],
+  "tools/validate_experience_capsule.py": [
+   "fixtures/multimodal/**"
+  ],
+  "tools/verify_legacy_kv_upgrade_package.py": [
+   "tools/apply_legacy_kv_upgrade.py"
+  ]
+ },
+ "surface_rule": "a set verifies its surfaces and everything they reach in surface_graph (a file's direct repository references: string-literal paths, path chains, local imports)"
+}
