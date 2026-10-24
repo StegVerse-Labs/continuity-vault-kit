@@ -1,0 +1,1 @@
+python -m py_compile runtime/ranged_sha256_measurement.py

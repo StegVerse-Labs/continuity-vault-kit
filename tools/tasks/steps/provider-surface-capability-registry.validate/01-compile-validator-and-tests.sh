@@ -1,0 +1,1 @@
+python3 -m compileall -q tools/check_provider_surface_capability_registry.py tests/test_provider_surface_capability_registry.py

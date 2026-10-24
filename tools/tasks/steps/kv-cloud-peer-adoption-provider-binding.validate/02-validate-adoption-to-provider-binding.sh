@@ -1,0 +1,1 @@
+python -m pytest -q tests/test_cloud_peer_adoption_provider_binding.py tests/test_kv_storage_provider_adapter.py tests/test_kv_provider_operation_store.py

@@ -1,0 +1,1 @@
+python3 -m compileall -q reconstructive_memory tests tools/check_reconstructive_memory.py

@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_hosted_candidate_authority_retirement -v

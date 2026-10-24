@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_experience_capsule tests.test_multimodal_storage_adapter

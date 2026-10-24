@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_provider_surface_capability_registry

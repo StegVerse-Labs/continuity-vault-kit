@@ -1,0 +1,1 @@
+python tools/check_kv_email_provider_registry.py

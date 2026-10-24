@@ -1,0 +1,1 @@
+python -m unittest tests.test_connection_assembly tests.test_source_change_monitor tests.test_personal_provider_binding

@@ -1,0 +1,39 @@
+set -euo pipefail
+CANDIDATE="$RUNNER_TEMP/kv-format-candidate"
+REPORT="$RUNNER_TEMP/kv-format-report"
+rm -rf "$CANDIDATE" "$REPORT"
+mkdir -p "$CANDIDATE" "$REPORT"
+rsync -a --exclude '.git' ./ "$CANDIDATE/"
+(
+  cd "$CANDIDATE"
+  python3 tools/kv_layer_check.py --mode auto-label
+  python3 tools/kv_layer_check.py --mode validate
+)
+diff -ruN --exclude '.git' "$GITHUB_WORKSPACE" "$CANDIDATE" > "$REPORT/kv-format.patch" || true
+CANDIDATE="$CANDIDATE" REPORT="$REPORT" python3 - <<'PY'
+import hashlib, json, os
+from datetime import datetime, timezone
+from pathlib import Path
+candidate=Path(os.environ["CANDIDATE"])
+report=Path(os.environ["REPORT"])
+rows=[]
+for p in sorted(x for x in candidate.rglob("*") if x.is_file()):
+    data=p.read_bytes()
+    rows.append({"path":str(p.relative_to(candidate)),"sha256":hashlib.sha256(data).hexdigest(),"bytes":len(data)})
+patch=(report/"kv-format.patch").read_text(encoding="utf-8",errors="replace")
+payload={
+    "schema":"stegverse.kv.format-candidate-observation/v1",
+    "candidate_file_count":len(rows),
+    "candidate_inventory":rows,
+    "change_required":bool(patch.strip()),
+    "repository_mutation_performed":False,
+    "git_commit_performed":False,
+    "git_push_performed":False,
+    "github_actions_role":"VALIDATION_TRANSPORT_ONLY",
+    "canonical_next_transition":"NON_HOSTED_FORMAT_PATCH_APPLICATION" if patch.strip() else "NONE",
+    "authority_effect":"NONE",
+    "observed_utc":datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z"),
+}
+(report/"observation.json").write_text(json.dumps(payload,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+print(json.dumps({k:payload[k] for k in ("candidate_file_count","change_required","canonical_next_transition")},sort_keys=True))
+PY

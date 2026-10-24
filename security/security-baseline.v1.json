@@ -20,7 +20,7 @@
     "SECURITY.md",
     "security/security-baseline.v1.json",
     "tools/security_baseline_check.py",
-    ".github/workflows/security-baseline.yml",
+    "tools/tasks/folded/security-baseline.yml",
     "docs/CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md"
   ],
   "required_workflow_permissions": {

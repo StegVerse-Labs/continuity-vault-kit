@@ -1,0 +1,1 @@
+python3 tools/check_provider_readiness.py "${{ inputs.profile_path }}"

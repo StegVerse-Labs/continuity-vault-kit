@@ -1,0 +1,1 @@
+python3 tools/security_baseline_check.py

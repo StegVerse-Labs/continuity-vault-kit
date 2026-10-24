@@ -1,0 +1,1 @@
+python3 -c 'import json; json.load(open("schemas/experience-capsule.schema.json", encoding="utf-8")); print("schema JSON valid")'
