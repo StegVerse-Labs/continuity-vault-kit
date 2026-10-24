@@ -99,7 +99,6 @@ class FoldedWorkflowRecordTests(unittest.TestCase):
         registry, and its run blocks are exactly the step bodies of the group carrying it."""
         groups = {g["id"]: g for g in self.catalog["groups"]}
         carried = [c for c in self.reg["carried_pull_requests"] if c.get("source_copy")]
-        self.assertTrue(carried)
         for entry in carried:
             copy = ROOT / entry["source_copy"]
             self.assertEqual(hashlib.sha256(copy.read_bytes()).hexdigest(), entry["source_copy_sha256"], entry["source_copy"])
@@ -108,23 +107,19 @@ class FoldedWorkflowRecordTests(unittest.TestCase):
             found = collections.Counter(sha(b) for b in run_blocks(copy.read_text(encoding="utf-8")))
             self.assertEqual(found, collections.Counter(s["run_sha256"] for s in group["steps"]), entry["catalog_group"])
 
-    def test_pr263_carried_copies_cover_storage_interlock_and_guard(self):
-        """#263 @48e8a2b4 (same workflow bytes as #258 @4fdab7af): each carried copy is
-        registered, and each carrying group selects on the finish-point test file."""
-        entries = {c["catalog_group"]: c for c in self.reg["carried_pull_requests"]
-                   if c["pr"].endswith("#263")}
-        self.assertEqual(sorted(entries), [
-            "kv-storage-endpoint-v2.validate.pr263",
-            "runtime-import-and-secret-policy.guard.pr263",
-            "validate-kv-interlock-contract.validate.pr263",
-        ])
+    def test_pr263_landed_its_steps_are_the_base_groups(self):
+        """#263 landed on main as 6751d36: the storage, interlock and guard records are main's
+        workflows, their base groups run #263's steps, and no .pr263 carried form remains."""
         groups = {g["id"]: g for g in self.catalog["groups"]}
-        for gid, entry in entries.items():
-            self.assertEqual(entry["source_copy"], "tools/tasks/carried/pr263/" + entry["source_workflow"].split("/")[-1])
-            self.assertIn("tests/test_kv_skap_vault_finish_point.py", groups[gid]["select_when"]["paths_present"])
-            base = groups[gid.rsplit(".", 1)[0]]
-            self.assertIn("tests/test_kv_skap_vault_finish_point.py", base["select_when"]["paths_absent"])
-        self.assertEqual(len(groups["runtime-import-and-secret-policy.guard.pr263"]["steps"]), 7)
+        self.assertFalse([gid for gid in groups if gid.endswith(".pr263")])
+        self.assertFalse([c for c in self.reg["carried_pull_requests"] if c["pr"].endswith("#263")])
+        self.assertFalse((ROOT / "tools/tasks/carried/pr263").exists())
+        for gid in ("kv-storage-endpoint-v2.validate", "validate-kv-interlock-contract.validate"):
+            self.assertNotIn("select_when", groups[gid])
+        guard = groups["runtime-import-and-secret-policy.guard"]
+        self.assertEqual(len(guard["steps"]), 7)
+        self.assertEqual(guard["select_when"]["paths_absent"], [".stegverse/finish_point_verdict.py"])
+        self.assertEqual(len(groups["kv-storage-endpoint-v2.validate"]["steps"]), 4)
 
 
 if __name__ == "__main__":

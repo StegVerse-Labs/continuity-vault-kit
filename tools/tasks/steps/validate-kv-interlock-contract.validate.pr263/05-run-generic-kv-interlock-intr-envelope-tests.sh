@@ -1,1 +1,0 @@
-python -m unittest discover -s tests -p 'test_kv_interlock_intr_envelope.py' -v

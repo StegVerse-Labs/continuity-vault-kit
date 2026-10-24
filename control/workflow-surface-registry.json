@@ -772,7 +772,7 @@
         "jobs": {}
       },
       "record": "tools/tasks/folded/kv-storage-endpoint-v2.yml",
-      "record_sha256": "1c69ea1955d07e408b0caac36c36cd3bf8cbdbe64b1fb72b5a26e971062f2ef7",
+      "record_sha256": "71b2340bf9f65765ead9a8ce6c3e711905e303e76cdcd949278ea3a07dca69d0",
       "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
       "into": ".github/workflows/validation-dispatcher.yml",
       "catalog_groups": [
@@ -1198,7 +1198,7 @@
         "jobs": {}
       },
       "record": "tools/tasks/folded/runtime-import-and-secret-policy.yml",
-      "record_sha256": "932acc86cef0e70ae502aeceb2f30962ee1f16f0d9caddd4aa57c2a0e7e7ce30",
+      "record_sha256": "d6fd85b006a46784fc655e65ef97ea2a094676c18651e71d8a84cb3ee0f106d7",
       "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
       "into": ".github/workflows/validation-dispatcher.yml",
       "catalog_groups": [
@@ -1415,7 +1415,7 @@
         "jobs": {}
       },
       "record": "tools/tasks/folded/validate-kv-interlock-contract.yml",
-      "record_sha256": "2fff3619c7dd7ffb77483146716539f2506a20c3344b785f363e80117cba645b",
+      "record_sha256": "ef68a79deaca3b71005a40a055155fd3f61b8d1cd63c2bd379ce6e4faeff50cf",
       "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
       "into": ".github/workflows/validation-dispatcher.yml",
       "catalog_groups": [
@@ -1589,33 +1589,6 @@
       "pr": "StegVerse-Labs/continuity-vault-kit#261",
       "catalog_group": "runtime-import-and-secret-policy.guard.pr261",
       "change": "guard job from #261 head 8dd3df2e (fetch-depth 2); selected when .stegverse/workspace-parity-pin.json present"
-    },
-    {
-      "pr": "StegVerse-Labs/continuity-vault-kit#263",
-      "catalog_group": "kv-storage-endpoint-v2.validate.pr263",
-      "change": "#263 head 48e8a2b4: adds step 4 'Sovereign-KV binding and vault-lineage record type; existing contract bytes pinned (0 skipped)'; selected when tests/test_kv_skap_vault_finish_point.py present (#258 and #263)",
-      "source_workflow": ".github/workflows/kv-storage-endpoint-v2.yml",
-      "source_head": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
-      "source_copy": "tools/tasks/carried/pr263/kv-storage-endpoint-v2.yml",
-      "source_copy_sha256": "71b2340bf9f65765ead9a8ce6c3e711905e303e76cdcd949278ea3a07dca69d0"
-    },
-    {
-      "pr": "StegVerse-Labs/continuity-vault-kit#263",
-      "catalog_group": "validate-kv-interlock-contract.validate.pr263",
-      "change": "#263 head 48e8a2b4: fanout probe step adds --e0-standin-healthy-node; selected when tests/test_kv_skap_vault_finish_point.py present (#258 and #263)",
-      "source_workflow": ".github/workflows/validate-kv-interlock-contract.yml",
-      "source_head": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
-      "source_copy": "tools/tasks/carried/pr263/validate-kv-interlock-contract.yml",
-      "source_copy_sha256": "ef68a79deaca3b71005a40a055155fd3f61b8d1cd63c2bd379ce6e4faeff50cf"
-    },
-    {
-      "pr": "StegVerse-Labs/continuity-vault-kit#263",
-      "catalog_group": "runtime-import-and-secret-policy.guard.pr263",
-      "change": "#263 head 48e8a2b4 (same bytes at #258 4fdab7af): 7-step guard (adds LC-KV ladder test to step 4, KV/SKAP Vault finish point (E0) step 6, E0 witnesses step 7); selected when tests/test_kv_skap_vault_finish_point.py present and .stegverse/finish_point_verdict.py absent",
-      "source_workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
-      "source_head": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
-      "source_copy": "tools/tasks/carried/pr263/runtime-import-and-secret-policy.yml",
-      "source_copy_sha256": "d6fd85b006a46784fc655e65ef97ea2a094676c18651e71d8a84cb3ee0f106d7"
     }
   ],
   "open_decisions": [
@@ -1630,14 +1603,11 @@
         "kv-ranged-sha256-measurement.validate.py310",
         "kv-ranged-sha256-measurement.validate.py312",
         "kv-ranged-sha256-measurement.validate.py313",
-        "kv-storage-endpoint-v2.validate.pr263",
         "runtime-import-and-secret-policy.guard.pr260",
         "runtime-import-and-secret-policy.guard.pr261",
-        "runtime-import-and-secret-policy.guard.pr263",
-        "skap-loader-tests.skap-loader-tests",
-        "validate-kv-interlock-contract.validate.pr263"
+        "skap-loader-tests.skap-loader-tests"
       ],
-      "reason": "behavior carried from open pull requests #260/#261/#263/#265/#267 so they can drop their workflow-file changes (carried_pull_requests[])"
+      "reason": "behavior carried from open pull requests #260/#261/#265/#267 so they can drop their workflow-file changes (carried_pull_requests[])"
     },
     {
       "catalog_groups": [
