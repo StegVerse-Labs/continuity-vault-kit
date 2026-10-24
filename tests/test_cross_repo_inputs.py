@@ -21,7 +21,26 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / ".stegverse" / "cross_repo_inputs.py"
 PIN_PATH = ROOT / ".stegverse" / "workspace-parity-pin.json"
-WORKFLOW = ROOT / ".github" / "workflows" / "runtime-import-and-secret-policy.yml"
+CATALOG = ROOT / "tools" / "tasks" / "task_catalog.json"
+GUARD = "runtime-import-and-secret-policy.guard"
+
+
+def guard_steps():
+    """{step name: (catalog step, body)} of the one runtime-import-and-secret-policy.guard catalog group whose
+    select_when holds on this checkout (G17 cvk#268 folded the workflow into tools/tasks/task_catalog.json, run by
+    .github/workflows/validation-dispatcher.yml). Each body is checked against its pinned run_sha256."""
+    import hashlib
+    groups = [g for g in json.loads(CATALOG.read_text(encoding="utf-8"))["groups"]
+              if (g["id"] == GUARD or g["id"].startswith(GUARD + "."))
+              and all((ROOT / p).exists() for p in (g.get("select_when") or {}).get("paths_present", []))
+              and not any((ROOT / p).exists() for p in (g.get("select_when") or {}).get("paths_absent", []))]
+    assert len(groups) == 1, [g["id"] for g in groups]
+    out = {}
+    for s in groups[0]["steps"]:
+        data = (ROOT / s["run_file"]).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == s["run_sha256"], s["run_file"]
+        out[s["name"]] = (s, data.decode("utf-8"))
+    return out
 SPEC = json.loads((ROOT / ".stegverse" / "test-set-spec.json").read_text(encoding="utf-8"))
 
 _spec = importlib.util.spec_from_file_location("cross_repo_inputs", SCRIPT)
@@ -143,15 +162,18 @@ class PinMatchesTheTests(unittest.TestCase):
 
 class WorkflowUsesThePin(unittest.TestCase):
     def test_workspace_step_deselects_only_the_pinned_ids_and_fails_on_skips(self):
-        text = WORKFLOW.read_text(encoding="utf-8")
-        step = text.split("- name: Workspace projection contract", 1)[1].split("\n      - name:", 1)[0]
+        steps = guard_steps()
+        pick = lambda name: [b for n, (_, b) in steps.items() if (n or "").startswith(name)]
+        self.assertEqual(len(pick("Workspace projection contract")), 1)
+        step = pick("Workspace projection contract")[0]
         self.assertIn("cross_repo_inputs.py tests .stegverse/workspace-parity-pin.json", step)
         self.assertIn("deselected", step)
         self.assertIn("skips are never accepted", step)
         self.assertNotIn("::test_", step)
-        parity = text.split("- name: Workspace cross-repository parity", 1)[1].split("\n      - name:", 1)[0]
+        self.assertEqual(len(pick("Workspace cross-repository parity")), 1)
+        parity = pick("Workspace cross-repository parity")[0]
         self.assertIn("skips are never accepted", parity)
-        self.assertNotIn("continue-on-error", text)
+        self.assertEqual([n for n, (s, b) in steps.items() if s.get("continue_on_error") or "continue-on-error" in b], [])
 
 
 if __name__ == "__main__":

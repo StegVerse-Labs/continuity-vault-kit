@@ -3,7 +3,7 @@
  "generated_from": {
   "generator": "scripts/test_set_selection.py (StegVerse-Labs/.github)",
   "spec": ".stegverse/test-set-spec.json",
-  "spec_sha256": "de4437fa3e26474192521d6f4f69d17bcc5e0a4ff8fbb4bfffd036ed2710fe6f"
+  "spec_sha256": "e397b8e0146e1468da3f7872c77163190ffac1736ed2418dded3d2956cc8e56c"
  },
  "inputs": {},
  "repository": "StegVerse-Labs/continuity-vault-kit",
@@ -233,10 +233,10 @@
    "id": "tests/test_cross_repo_inputs.py",
    "inputs": [],
    "surfaces": [
-    ".github/workflows/runtime-import-and-secret-policy.yml",
     ".stegverse/cross_repo_inputs.py",
     ".stegverse/workspace-parity-pin.json",
-    "tests/test_cross_repo_inputs.py"
+    "tests/test_cross_repo_inputs.py",
+    "tools/tasks/task_catalog.json"
    ],
    "tests": [
     "tests.test_cross_repo_inputs"
@@ -428,12 +428,24 @@
    "id": "tests/test_finish_point_verdict.py",
    "inputs": [],
    "surfaces": [
-    ".github/workflows/runtime-import-and-secret-policy.yml",
     ".stegverse/finish_point_verdict.py",
-    "tests/test_finish_point_verdict.py"
+    "tests/test_finish_point_verdict.py",
+    "tools/tasks/task_catalog.json"
    ],
    "tests": [
     "tests.test_finish_point_verdict"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_folded_workflow_records.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_folded_workflow_records.py"
+   ],
+   "tests": [
+    "tests.test_folded_workflow_records"
    ]
   },
   {
@@ -898,9 +910,9 @@
    "id": "tests/test_kv_skap_vault_finish_point.py",
    "inputs": [],
    "surfaces": [
-    ".github/workflows/runtime-import-and-secret-policy.yml",
     ".stegverse/finish_point_verdict.py",
-    "tests/test_kv_skap_vault_finish_point.py"
+    "tests/test_kv_skap_vault_finish_point.py",
+    "tools/tasks/task_catalog.json"
    ],
    "tests": [
     "tests.test_kv_skap_vault_finish_point"
@@ -1701,6 +1713,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_workflow_surface_registry.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_workflow_surface_registry.py"
+   ],
+   "tests": [
+    "tests.test_workflow_surface_registry"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_workspace_assistant_binding.py",
    "inputs": [],
    "surfaces": [
@@ -1740,11 +1764,11 @@
    "id": "tests/test_workspace_decision_reasons.py",
    "inputs": [],
    "surfaces": [
-    ".github/workflows/runtime-import-and-secret-policy.yml",
     ".stegverse/cross_repo_inputs.py",
     ".stegverse/finish_point_verdict.py",
     ".stegverse/workspace-parity-pin.json",
-    "tests/test_workspace_decision_reasons.py"
+    "tests/test_workspace_decision_reasons.py",
+    "tools/tasks/task_catalog.json"
    ],
    "tests": [
     "tests.test_workspace_decision_reasons"
@@ -1780,11 +1804,11 @@
    "id": "tests/test_workspace_session_authentication.py",
    "inputs": [],
    "surfaces": [
-    ".github/workflows/runtime-import-and-secret-policy.yml",
     ".stegverse/cross_repo_inputs.py",
     ".stegverse/finish_point_verdict.py",
     ".stegverse/workspace-parity-pin.json",
-    "tests/test_workspace_session_authentication.py"
+    "tests/test_workspace_session_authentication.py",
+    "tools/tasks/task_catalog.json"
    ],
    "tests": [
     "tests.test_workspace_session_authentication"
@@ -2165,13 +2189,13 @@
    "tests/fixtures/**"
   ],
   "tests/test_cross_repo_inputs.py": [
-   ".github/workflows/**",
-   ".github/workflows/runtime-import-and-secret-policy.yml",
    ".stegverse/cross_repo_inputs.py",
    ".stegverse/test-set-spec.json",
    ".stegverse/workspace-parity-pin.json",
    "tests/test_workspace_decision_reasons.py",
-   "tests/test_workspace_session_authentication.py"
+   "tests/test_workspace_session_authentication.py",
+   "tools/tasks/**",
+   "tools/tasks/task_catalog.json"
   ],
   "tests/test_delegation_cases.py": [
    "delegation/decision.py",
@@ -2242,8 +2266,15 @@
    ".stegverse/finish_point_verdict.py",
    ".stegverse/test-set-spec.json"
   ],
+  "tests/test_folded_workflow_records.py": [
+   "control/workflow-surface-registry.json",
+   "tools/tasks/folded/**",
+   "tools/tasks/task_catalog.json"
+  ],
   "tests/test_global_hosted_workflow_authority.py": [
-   ".github/workflows/**"
+   ".github/workflows/**",
+   "control/workflow-surface-registry.json",
+   "tools/tasks/folded/**"
   ],
   "tests/test_healthcare_applicability.py": [
    "data/healthcare-authority-schema-registry.v1.json",
@@ -2277,24 +2308,25 @@
    "runtime/historical_provenance.py"
   ],
   "tests/test_hosted_candidate_authority_retirement.py": [
-   ".github/workflows/**",
-   ".github/workflows/automation-candidate-implementation.yml",
-   "CHANGELOG.md"
+   "CHANGELOG.md",
+   "tools/tasks/**",
+   "tools/tasks/folded/**",
+   "tools/tasks/folded/automation-candidate-implementation.yml"
   ],
   "tests/test_hosted_onboarding_control_plane_retirement.py": [
-   ".github/workflows/automation-candidate-lifecycle.yml",
-   ".github/workflows/onboarding-friction-bootstrap.yml",
-   ".github/workflows/onboarding-friction-maintenance.yml",
-   ".github/workflows/onboarding-friction.yml"
+   "tools/tasks/folded/automation-candidate-lifecycle.yml",
+   "tools/tasks/folded/onboarding-friction-bootstrap.yml",
+   "tools/tasks/folded/onboarding-friction-maintenance.yml",
+   "tools/tasks/folded/onboarding-friction.yml"
   ],
   "tests/test_hosted_release_authority_retirement.py": [
-   ".github/workflows/automated-release.yml",
-   ".github/workflows/build-and-attach-release.yml",
-   ".github/workflows/one_button_release.yml",
-   ".github/workflows/release-assets.yml",
-   ".github/workflows/release-cycle-outcome.yml",
-   ".github/workflows/release-cycle-recovery.yml",
-   ".github/workflows/release-integrity.yml"
+   "tools/tasks/folded/automated-release.yml",
+   "tools/tasks/folded/build-and-attach-release.yml",
+   "tools/tasks/folded/one_button_release.yml",
+   "tools/tasks/folded/release-assets.yml",
+   "tools/tasks/folded/release-cycle-outcome.yml",
+   "tools/tasks/folded/release-cycle-recovery.yml",
+   "tools/tasks/folded/release-integrity.yml"
   ],
   "tests/test_interlock_adoption_readiness_admission.py": [
    "scripts/admit_interlock_adoption_readiness.py",
@@ -2343,7 +2375,7 @@
    "tools/check_kv_email_ingress_policy.py"
   ],
   "tests/test_kv_format_hosted_mutation_retirement.py": [
-   ".github/workflows/kv-format-branch.yml"
+   "tools/tasks/folded/kv-format-branch.yml"
   ],
   "tests/test_kv_heartbeat_receipt_observer.py": [
    "runtime/kv_heartbeat_receipt_observer.py"
@@ -2484,7 +2516,7 @@
    "runtime/portable_directory_projection.py"
   ],
   "tests/test_production_provider_hosted_authority_retirement.py": [
-   ".github/workflows/production-provider-activation.yml"
+   "tools/tasks/folded/production-provider-activation.yml"
   ],
   "tests/test_provider_surface_capability_registry.py": [
    "specs/kv-provider-surface-capability-registry.v1.json",
@@ -2499,8 +2531,9 @@
    "reconstructive_memory/access.py"
   ],
   "tests/test_reconstructive_memory_activation_workflow.py": [
-   ".github/workflows/**",
-   ".github/workflows/production-provider-activation.yml"
+   "tools/tasks/**",
+   "tools/tasks/folded/**",
+   "tools/tasks/folded/production-provider-activation.yml"
   ],
   "tests/test_reconstructive_memory_authority.py": [
    "reconstructive_memory/__init__.py"
@@ -2588,9 +2621,9 @@
    "tests/fixtures/**"
   ],
   "tests/test_release_reconciliation_hosted_authority_retirement.py": [
-   ".github/workflows/downstream-propagation.yml",
-   ".github/workflows/reconcile-published-release.yml",
-   ".github/workflows/reconcile-release-activation.yml"
+   "tools/tasks/folded/downstream-propagation.yml",
+   "tools/tasks/folded/reconcile-published-release.yml",
+   "tools/tasks/folded/reconcile-release-activation.yml"
   ],
   "tests/test_secret_field_policy.py": [
    "runtime/secret_field_policy.py"
@@ -2658,8 +2691,8 @@
    "scripts/stage_kv_ai_memory_resident_inputs.py"
   ],
   "tests/test_stegdb_overlay_hosted_writeback_retirement.py": [
-   ".github/workflows/sync-knowledgevault-overlay-from-stegdb.yml",
-   ".github/workflows/sync-overlay-from-stegdb.yml"
+   "tools/tasks/folded/sync-knowledgevault-overlay-from-stegdb.yml",
+   "tools/tasks/folded/sync-overlay-from-stegdb.yml"
   ],
   "tests/test_storage_budget_policy.py": [
    "fixtures/storage-budget/**",
@@ -2675,6 +2708,13 @@
   ],
   "tests/test_vault_store.py": [
    "execution/vault_store.py"
+  ],
+  "tests/test_workflow_surface_registry.py": [
+   ".github/workflows/**",
+   "control/workflow-surface-registry.json",
+   "docs/WORKFLOW_SURFACE_MIRROR_HANDOFF.md",
+   "tools/tasks/run_catalog.py",
+   "tools/tasks/task_catalog.json"
   ],
   "tests/test_workspace_assistant_binding.py": [
    "fixtures/relationship-declarations/user-auri-v0.1.json",
@@ -2731,6 +2771,9 @@
   ],
   "tools/run_endpoint_fanout_probe.py": [
    "runtime/kv_interlock_endpoint.py"
+  ],
+  "tools/tasks/run_catalog.py": [
+   "tools/tasks/task_catalog.json"
   ],
   "tools/validate_experience_capsule.py": [
    "fixtures/multimodal/**"
