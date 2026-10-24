@@ -108,6 +108,24 @@ class FoldedWorkflowRecordTests(unittest.TestCase):
             found = collections.Counter(sha(b) for b in run_blocks(copy.read_text(encoding="utf-8")))
             self.assertEqual(found, collections.Counter(s["run_sha256"] for s in group["steps"]), entry["catalog_group"])
 
+    def test_pr263_carried_copies_cover_storage_interlock_and_guard(self):
+        """#263 @48e8a2b4 (same workflow bytes as #258 @4fdab7af): each carried copy is
+        registered, and each carrying group selects on the finish-point test file."""
+        entries = {c["catalog_group"]: c for c in self.reg["carried_pull_requests"]
+                   if c["pr"].endswith("#263")}
+        self.assertEqual(sorted(entries), [
+            "kv-storage-endpoint-v2.validate.pr263",
+            "runtime-import-and-secret-policy.guard.pr263",
+            "validate-kv-interlock-contract.validate.pr263",
+        ])
+        groups = {g["id"]: g for g in self.catalog["groups"]}
+        for gid, entry in entries.items():
+            self.assertEqual(entry["source_copy"], "tools/tasks/carried/pr263/" + entry["source_workflow"].split("/")[-1])
+            self.assertIn("tests/test_kv_skap_vault_finish_point.py", groups[gid]["select_when"]["paths_present"])
+            base = groups[gid.rsplit(".", 1)[0]]
+            self.assertIn("tests/test_kv_skap_vault_finish_point.py", base["select_when"]["paths_absent"])
+        self.assertEqual(len(groups["runtime-import-and-secret-policy.guard.pr263"]["steps"]), 7)
+
 
 if __name__ == "__main__":
     unittest.main()
