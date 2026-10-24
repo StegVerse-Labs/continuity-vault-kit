@@ -1,0 +1,1 @@
+python -m pytest -q tests/test_kv_cross_class_intr_fixtures.py

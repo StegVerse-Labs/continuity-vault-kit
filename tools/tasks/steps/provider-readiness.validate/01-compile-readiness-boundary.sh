@@ -1,0 +1,1 @@
+python3 -m compileall -q reconstructive_memory/readiness.py tools/check_provider_readiness.py tests/test_reconstructive_memory_readiness.py

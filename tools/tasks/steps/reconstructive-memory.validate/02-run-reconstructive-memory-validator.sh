@@ -1,0 +1,1 @@
+python3 tools/check_reconstructive_memory.py

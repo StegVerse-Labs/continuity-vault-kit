@@ -4,9 +4,9 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 FILES=(
- ".github/workflows/downstream-propagation.yml",
- ".github/workflows/reconcile-published-release.yml",
- ".github/workflows/reconcile-release-activation.yml",
+ "tools/tasks/folded/downstream-propagation.yml",
+ "tools/tasks/folded/reconcile-published-release.yml",
+ "tools/tasks/folded/reconcile-release-activation.yml",
 )
 
 class ReleaseReconciliationHostedAuthorityRetirementTests(unittest.TestCase):

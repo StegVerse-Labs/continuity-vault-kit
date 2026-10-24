@@ -1,0 +1,1 @@
+python3 scripts/run_intr_synthetic_runtime.py

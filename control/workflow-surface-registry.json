@@ -1,0 +1,1619 @@
+{
+  "schema": "stegverse.workflow-surface-registry/v1",
+  "goal_id": "G17-WORKFLOW-SURFACE-MINIMIZATION",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "policy_issue": "StegVerse-Labs/.github#167, #168",
+  "authority": "Rigel 2026-10-24: retroactive G17 enforcement (StegVerse-org/.github#166)",
+  "standard": "ACTION_BY_MANIFEST; every transition ends ALLOW, DENY or FAIL_CLOSED; no new external machines or dependencies",
+  "credential_authority": "TV/TVC only; no non-TV/TVC secret or token is introduced or moved",
+  "preferred_repository_workflow_count_max": 2,
+  "exception_repository_workflow_count_max": 3,
+  "above_two_rule": "KEEP_STANDALONE_EXCEPTION_REQUIRES_DOCUMENTED_TECHNICAL_NECESSITY_AND_EVIDENCE",
+  "invariants": [
+    "Every repository-authored workflow file must be explicitly registered in surfaces[] before merge/push. Unregistered workflow proliferation fails closed (tests/test_workflow_surface_registry.py).",
+    "A new check is a group in tools/tasks/task_catalog.json run by the stable validator dispatcher, never a new workflow file.",
+    "Registered triggers and permissions equal the workflow file's own; a drift fails closed.",
+    "No surface carries workflow_dispatch, schedule, repository_dispatch, issues or workflow_run unless its registered exception names it; release is carried only by the registered release lifecycle surface.",
+    "Each folded workflow's verbatim record is pinned by sha256 and its run blocks equal the catalog step bodies (tests/test_folded_workflow_records.py)."
+  ],
+  "unregistered_workflow_outcome": {
+    "disposition": "FAIL_CLOSED",
+    "failure_code": "UNREGISTERED_WORKFLOW_SURFACE",
+    "failed_predicate": "EVERY_WORKFLOW_FILE_IS_REGISTERED",
+    "required_evidence_or_repair": "register the file in control/workflow-surface-registry.json surfaces[] with a classification, or fold it into tools/tasks/task_catalog.json",
+    "retry_entrypoint": "tests/test_workflow_surface_registry.py",
+    "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+    "next_attempt": "the next pull request touching .github/workflows/"
+  },
+  "surfaces": [
+    {
+      "path": ".github/workflows/validation-dispatcher.yml",
+      "classification": "KEEP_STABLE_DISPATCHER",
+      "triggers": [
+        "pull_request",
+        "push"
+      ],
+      "permissions": {
+        "workflow": {},
+        "jobs": {
+          "plan": {
+            "contents": "read"
+          },
+          "check": {
+            "contents": "read"
+          },
+          "release-integrity": {
+            "contents": "read"
+          },
+          "automated-release": {
+            "contents": "read"
+          },
+          "release-cycle-outcome": {
+            "actions": "read",
+            "contents": "read"
+          },
+          "release-cycle-recovery": {
+            "actions": "read",
+            "contents": "read"
+          }
+        }
+      },
+      "lifecycle": "validation: every pull_request and every push to main; read-only; runs tools/tasks/task_catalog.json; the release readiness chain runs as four jobs keyed on the upstream job result",
+      "catalog": "tools/tasks/task_catalog.json"
+    },
+    {
+      "path": ".github/workflows/release-lifecycle.yml",
+      "classification": "KEEP_STABLE_DISPATCHER",
+      "triggers": [
+        "release"
+      ],
+      "permissions": {
+        "workflow": {},
+        "jobs": {
+          "plan": {
+            "contents": "read"
+          },
+          "check": {
+            "contents": "read"
+          }
+        }
+      },
+      "lifecycle": "release lifecycle: a release becoming published; read-only; runs the catalog groups declaring the release event",
+      "catalog_event": "release",
+      "lifecycle_trigger": {
+        "triggers": [
+          "release"
+        ],
+        "status": "PENDING_OWNER_APPROVAL",
+        "rationale": "release: published is a state transition of the repository (a release object reaching published), not an external machine; it is the only event build-and-attach-release, downstream-propagation and release-assets (push tags v*) observed. Kept as the second of two surfaces; no third workflow.",
+        "decision_owner": "Rigel"
+      }
+    }
+  ],
+  "folded": [
+    {
+      "workflow": ".github/workflows/automated-kv-upgrade-validation.yml",
+      "name": "Automated KV Upgrade Validation",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/automated-kv-upgrade-validation.yml",
+      "record_sha256": "e23035d1cac0a8eeabf85fd1a8811cc56cf86d93b62aa7caa7c6464e7fd6b395",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "automated-kv-upgrade-validation.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/automated-release.yml",
+      "name": "Automated release readiness - Validation Only",
+      "triggers_before": [
+        "workflow_run"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/automated-release.yml",
+      "record_sha256": "2b9b6724933c119daebc1568d1f5cec46675815e73b28d8ec024efd2164ccc41",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "automated-release.validate_release_readiness"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ],
+      "dispatcher_job": "automated-release"
+    },
+    {
+      "workflow": ".github/workflows/automation-candidate-implementation.yml",
+      "name": "Automation candidate implementation - Validation Only",
+      "triggers_before": [
+        "pull_request"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read",
+          "pull-requests": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/automation-candidate-implementation.yml",
+      "record_sha256": "887205d86e60b18299cfa639c5f71e1eb2c423cf479384ebd1db162b32b7f8a2",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "automation-candidate-implementation.observe"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/automation-candidate-lifecycle.yml",
+      "name": "Automation candidate lifecycle - Validation Only",
+      "triggers_before": [
+        "issues",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/automation-candidate-lifecycle.yml",
+      "record_sha256": "97bc8d24d5518a5498d074565d9ad85aa91a9eeec5ddc7efd889ec0b14522e98",
+      "classification": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "retained_as": "record only; no hosted trigger"
+    },
+    {
+      "workflow": ".github/workflows/build-and-attach-release.yml",
+      "name": "Published Release Source Reconstruction - Validation Only",
+      "triggers_before": [
+        "release"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/build-and-attach-release.yml",
+      "record_sha256": "20ddaf220d67ce1fd31e70085f85dc8180a19fcb0e5b703c8697ca72cb8871be",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/release-lifecycle.yml",
+      "catalog_groups": [
+        "build-and-attach-release.reconstruct"
+      ],
+      "events_after": [
+        "release"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/conversation-continuity-mvp.yml",
+      "name": "Conversation continuity MVP",
+      "triggers_before": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/conversation-continuity-mvp.yml",
+      "record_sha256": "813604b461ec734541ce549c37a9e67e614621a97b7ef31d176036a21ef4c561",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "conversation-continuity-mvp.verify"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/conversation-recall.yml",
+      "name": "Conversation Recall Validation",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/conversation-recall.yml",
+      "record_sha256": "00587eba909f874db373d8de33e505a4e6a4f2ca28a0fa53044654ff5931c951",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "conversation-recall.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/downstream-propagation.yml",
+      "name": "Downstream release propagation - Validation Only",
+      "triggers_before": [
+        "release",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/downstream-propagation.yml",
+      "record_sha256": "a7ebb2c448d892c287f9e2675a91045902fe32d426694be339d1559a8b8625c7",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/release-lifecycle.yml",
+      "catalog_groups": [
+        "downstream-propagation.observe"
+      ],
+      "events_after": [
+        "release"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/execution-recovery.yml",
+      "name": "KnowledgeVault Execution Recovery",
+      "triggers_before": [
+        "push",
+        "pull_request"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/execution-recovery.yml",
+      "record_sha256": "2b6f7c2a290f36b149504965f7412c0e94f3abe207eb65cbd4a6b2869afea5df",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "execution-recovery.validate-recovery-host"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/fidelity-governed-storage.yml",
+      "name": "Fidelity-Governed Storage Validation",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/fidelity-governed-storage.yml",
+      "record_sha256": "cca305ed350590278d2b1309b7a59f1d3fe767e96c0c4c8537841ef05a198099",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "fidelity-governed-storage.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/governed-action-execution.yml",
+      "name": "Governed Action Execution Validation",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/governed-action-execution.yml",
+      "record_sha256": "a3c876ec00f50fb0916b7c22215704b764ec85f4ddfd660672281c2924edf829",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "governed-action-execution.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/intr-lifecycle-closure.yml",
+      "name": "InTr Lifecycle Closure",
+      "triggers_before": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/intr-lifecycle-closure.yml",
+      "record_sha256": "df2e686e433f3a27f8d464234ed68b6561226fcb2e2693301a99d199a811f42d",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "intr-lifecycle-closure.closure"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-cloud-peer-adoption-provider-binding.yml",
+      "name": "KV Cloud Peer Adoption Provider Binding",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-cloud-peer-adoption-provider-binding.yml",
+      "record_sha256": "cc980859bc19a177da00353d0009773d857b67819de2cc89340a59d07e58ff7d",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-cloud-peer-adoption-provider-binding.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-coinbase-finance-ingress.yml",
+      "name": "Validate KV Coinbase Finance Ingress",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-coinbase-finance-ingress.yml",
+      "record_sha256": "abb56908429b71011d04f5739c556e147864e550f0e54d64cd12d37f53b9614f",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-coinbase-finance-ingress.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-connection-assembly.yml",
+      "name": "Validate KV Connection Assembly",
+      "triggers_before": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-connection-assembly.yml",
+      "record_sha256": "7a81d873f14d959627a0c29d455760d7b560daacbab7f9d341b956bdf5286a34",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-connection-assembly.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-connection-registry-materialization.yml",
+      "name": "Validate KV Connection Registry Materialization",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-connection-registry-materialization.yml",
+      "record_sha256": "c40da4562fd75f1832e78a701be64a2e512ed5f7c06b46db43cf206894018599",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-connection-registry-materialization.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-connection-revalidation.yml",
+      "name": "Validate KV Connection Revalidation",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-connection-revalidation.yml",
+      "record_sha256": "d89de414c7014291d10e75ab0abd60b3bca57f3f855b48d1ee2fe45b79fcd1e5",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-connection-revalidation.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-cross-platform-recovery.yml",
+      "name": "KV Cross-Platform Recovery",
+      "triggers_before": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-cross-platform-recovery.yml",
+      "record_sha256": "d09e612ccdbcb5c1c9328febea67cdda791d79dc32f1a3e2763e89e1da85e349",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-cross-platform-recovery.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-direct-source-ingress.yml",
+      "name": "Validate KV Direct-Source Ingress",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-direct-source-ingress.yml",
+      "record_sha256": "35820bc9ea6ae6d58899ba5489a9268b1b109ad30dfbdc9b715ca9f25a7c5759",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-direct-source-ingress.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-document-export.yml",
+      "name": "Validate governed KV document export",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-document-export.yml",
+      "record_sha256": "6b7c72b23159fa370e6035d0ea0a6c3c670aed459c14148027397fb3fd3daed1",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-document-export.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-existing-instance-adoption.yml",
+      "name": "KV Existing Instance Adoption",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-existing-instance-adoption.yml",
+      "record_sha256": "c5920b2816de610fe35b651bb4582ea804104a5bfb97cd720c36bbadf9857045",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-existing-instance-adoption.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-format-branch.yml",
+      "name": "KV Format Branch - Validation Only",
+      "triggers_before": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-format-branch.yml",
+      "record_sha256": "567a69937d12ced76a1cfaaa6f2d7d18610b96e116a35ca122ad3e44be75e130",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-format-branch.format_candidate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-guardrails.yml",
+      "name": "KV Guardrails (Layer + Footer + Emoji + InTr)",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-guardrails.yml",
+      "record_sha256": "7285fcab7713640a249550115eddad6c37fd96dbfd96b55ea6884c019b60df71",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-guardrails.kv-guardrails"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-historical-corpus-import.yml",
+      "name": "KV Historical Corpus Import",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-historical-corpus-import.yml",
+      "record_sha256": "d2e249eaebf42e3fdb1fa351cb6099fb367bfb6ad526bd95747d3ca8994251dc",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-historical-corpus-import.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-historical-provenance.yml",
+      "name": "KV Historical Provenance",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-historical-provenance.yml",
+      "record_sha256": "641fda9605b4fdf13cb9a7a0b76badeb34a666557fbb67b205d125c74224fb05",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-historical-provenance.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-monitor-targets.yml",
+      "name": "Validate KV Monitor Targets",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-monitor-targets.yml",
+      "record_sha256": "e8d411372b4c06ca5616c084e4c8fa178b625c31a5407a9c17bb62db519a0942",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-monitor-targets.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-personal-finance.yml",
+      "name": "Validate KV Personal Finance",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-personal-finance.yml",
+      "record_sha256": "86a85b343b8eff471e360a59b44cb4145ea9348ec226a9b430f84e7a29f856e0",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-personal-finance.validate"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/kv-storage-endpoint-v2.yml",
+      "name": "KV Storage Endpoint v2",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/kv-storage-endpoint-v2.yml",
+      "record_sha256": "1c69ea1955d07e408b0caac36c36cd3bf8cbdbe64b1fb72b5a26e971062f2ef7",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "kv-storage-endpoint-v2.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/onboarding-friction-bootstrap.yml",
+      "name": "Onboarding friction bootstrap - Validation Only",
+      "triggers_before": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/onboarding-friction-bootstrap.yml",
+      "record_sha256": "6e33cdd7f94351e4959a60e97dba29354c2360ee83313612f8be6419610d033e",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "onboarding-friction-bootstrap.validate"
+      ],
+      "events_after": [
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/onboarding-friction-maintenance.yml",
+      "name": "Onboarding friction maintenance - Validation Only",
+      "triggers_before": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/onboarding-friction-maintenance.yml",
+      "record_sha256": "c5ff2643b6bb89eb812c03427c9a17bcc6c147875aec2b6d56fe708eb370f4a5",
+      "classification": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "retained_as": "record only; no hosted trigger"
+    },
+    {
+      "workflow": ".github/workflows/onboarding-friction.yml",
+      "name": "Onboarding friction triage - Validation Only",
+      "triggers_before": [
+        "issues",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/onboarding-friction.yml",
+      "record_sha256": "5f5311ec8c521d7a14e2dc1fa77d3271ef5eb3ee3eccd8aa332ef87fc302d6d8",
+      "classification": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "retained_as": "record only; no hosted trigger"
+    },
+    {
+      "workflow": ".github/workflows/one_button_release.yml",
+      "name": "Release Candidate Source Validation - No Publication Authority",
+      "triggers_before": [
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/one_button_release.yml",
+      "record_sha256": "3227898dc279967ab15d5203fc448af5d5a8fbe6fbf45790d0bd82c8fad1cbe8",
+      "classification": "ELIMINATE",
+      "status": "PENDING_OWNER_DECISION",
+      "reason": "workflow_dispatch only (inputs version ...): release-candidate source validation by operator click"
+    },
+    {
+      "workflow": ".github/workflows/production-provider-activation.yml",
+      "name": "Production Provider Activation - Validation Only",
+      "triggers_before": [
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/production-provider-activation.yml",
+      "record_sha256": "9091454666e0f72148ae3bd7f11500f3ffd9297d89f3ed96f815601c1bbab06c",
+      "classification": "ELIMINATE",
+      "status": "PENDING_OWNER_DECISION",
+      "reason": "workflow_dispatch only; used hashicorp/setup-terraform@v3 (third-party action) for a validation-only terraform plan"
+    },
+    {
+      "workflow": ".github/workflows/progressive-delegation.yml",
+      "name": "Progressive Delegation Validation",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/progressive-delegation.yml",
+      "record_sha256": "ddc2b146e1b75d5806925f9698ea6f9167e185362c3f44e7c0bc8978d719b92a",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "progressive-delegation.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/provider-readiness.yml",
+      "name": "Production Provider Readiness",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/provider-readiness.yml",
+      "record_sha256": "45557d2f085f7f34678d74f6e1d30f601364d6f7db30f4bf1097b7ac1af2c4aa",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "provider-readiness.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/provider-surface-capability-registry.yml",
+      "name": "KV Provider Surface Capability Registry",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/provider-surface-capability-registry.yml",
+      "record_sha256": "7360b0f66aa60b0a91365f0800d3d96f58d7fe21639973204336555384b76d5a",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "provider-surface-capability-registry.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/reconcile-published-release.yml",
+      "name": "Reconcile published release evidence - Validation Only",
+      "triggers_before": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/reconcile-published-release.yml",
+      "record_sha256": "6e4398809819ffd53216e1bb13c64ab3f875274cb5e9a8716512caf1aaad1de9",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "reconcile-published-release.observe"
+      ],
+      "events_after": [
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/reconcile-release-activation.yml",
+      "name": "Activate release reconciliation - Validation Only",
+      "triggers_before": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/reconcile-release-activation.yml",
+      "record_sha256": "2b511c395344b71b084389baccd4211979e15a9ebd5b7af9ba0122f06b2e6c79",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "reconcile-release-activation.observe"
+      ],
+      "events_after": [
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/reconstructive-memory.yml",
+      "name": "Reconstructive Memory Validation",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/reconstructive-memory.yml",
+      "record_sha256": "c6525858e0188eb57a5d2866ca527cb00484ed98f978ac43f79b53fc6c1d2159",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "reconstructive-memory.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/release-assets.yml",
+      "name": "Release Asset Build Validation - No Publication Authority",
+      "triggers_before": [
+        "workflow_dispatch",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/release-assets.yml",
+      "record_sha256": "8c4f722d73f46c0881fece16c12982c402a08813f30e00b4347204751f0a0cb4",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/release-lifecycle.yml",
+      "catalog_groups": [
+        "release-assets.validate_release_assets"
+      ],
+      "events_after": [
+        "release"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/release-cycle-outcome.yml",
+      "name": "Release cycle outcome - Validation Only",
+      "triggers_before": [
+        "workflow_run",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "actions": "read",
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/release-cycle-outcome.yml",
+      "record_sha256": "80a3f7c7d40d9245806949a5f3edb4cf67336c427bd935a1f0f6b8c307bec9e5",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "release-cycle-outcome.observe-outcome"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ],
+      "dispatcher_job": "release-cycle-outcome"
+    },
+    {
+      "workflow": ".github/workflows/release-cycle-recovery.yml",
+      "name": "Release cycle recovery - Validation Only",
+      "triggers_before": [
+        "workflow_run",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "actions": "read",
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/release-cycle-recovery.yml",
+      "record_sha256": "cc69bda0e7ddad01df39a17cf6cd82b103e0c07e57a2035c11966a0710f42987",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "release-cycle-recovery.observe-recovery"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ],
+      "dispatcher_job": "release-cycle-recovery"
+    },
+    {
+      "workflow": ".github/workflows/release-integrity.yml",
+      "name": "Release integrity",
+      "triggers_before": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/release-integrity.yml",
+      "record_sha256": "95a76649263df6c044e67e9a59425abf41f06116e70a2fb1c9b5f6b931abc370",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "release-integrity.verify-release-integrity"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ],
+      "dispatcher_job": "release-integrity"
+    },
+    {
+      "workflow": ".github/workflows/release.yml",
+      "name": "build-vault-release",
+      "triggers_before": [
+        "workflow_dispatch",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/release.yml",
+      "record_sha256": "1ace10c299e8ef0d3fc5904e3319a60eca0cb705018237a4cd30a44ee7bba4f2",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "release.build"
+      ],
+      "events_after": [
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/repository-validation-diagnostics.yml",
+      "name": "Repository validation diagnostics",
+      "triggers_before": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/repository-validation-diagnostics.yml",
+      "record_sha256": "fd3ebb18ac3e0327d559e8d814a5a4947ef9e4f3c6ea59fc51371a276ee39533",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "repository-validation-diagnostics.diagnose"
+      ],
+      "events_after": [
+        "pull_request"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
+      "name": "Runtime Import + Secret Field Policy",
+      "triggers_before": [
+        "push",
+        "pull_request"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/runtime-import-and-secret-policy.yml",
+      "record_sha256": "932acc86cef0e70ae502aeceb2f30962ee1f16f0d9caddd4aa57c2a0e7e7ce30",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "runtime-import-and-secret-policy.guard"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/security-baseline.yml",
+      "name": "Security Baseline",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/security-baseline.yml",
+      "record_sha256": "1ba6f7fb3f03d9666f6d93baeb42b209352f8784ce65d5c637cd6230f219c480",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "security-baseline.validate-security-baseline"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/skap-vault-double-interlock.yml",
+      "name": "SKAP Vault Double Interlock Validation",
+      "triggers_before": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/skap-vault-double-interlock.yml",
+      "record_sha256": "c94a860fabce80c346c76d8ecf4c62db03789fa50cdc9508715549ad8eb9a209",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "skap-vault-double-interlock.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/storage-budget-policy.yml",
+      "name": "Storage Budget Policy Validation",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/storage-budget-policy.yml",
+      "record_sha256": "ae81a3b5c30ea76f2585a48eb31fe0a573494ec96f3c9257eee0d175d0838d33",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "storage-budget-policy.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/sync-knowledgevault-overlay-from-stegdb.yml",
+      "name": "Sync KnowledgeVault overlay from StegDB - Validation Only",
+      "triggers_before": [
+        "workflow_dispatch",
+        "schedule"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/sync-knowledgevault-overlay-from-stegdb.yml",
+      "record_sha256": "5b89bb43390ab5390aae76a49d52238cf12e31009ca52a354e3984c50fa26fbd",
+      "classification": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "retained_as": "record only; no hosted trigger"
+    },
+    {
+      "workflow": ".github/workflows/sync-overlay-from-stegdb.yml",
+      "name": "Sync overlay from StegDB - Validation Only",
+      "triggers_before": [
+        "workflow_dispatch",
+        "schedule"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/sync-overlay-from-stegdb.yml",
+      "record_sha256": "bc8302e3f9495731971fa77d3fca493e28faa9c39b7383d5fe24cfca36149608",
+      "classification": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "retained_as": "record only; no hosted trigger"
+    },
+    {
+      "workflow": ".github/workflows/validate-incident-index.yml",
+      "name": "Validate Actionable Incident Index",
+      "triggers_before": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/validate-incident-index.yml",
+      "record_sha256": "d59d298621221e6eb7d1fc96ed237f0e9ad393a4680093da1fd61cce6abd9714",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "validate-incident-index.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/validate-kv-ai-persistence-classes.yml",
+      "name": "Validate KV AI Persistence Classes",
+      "triggers_before": [
+        "push",
+        "pull_request"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/validate-kv-ai-persistence-classes.yml",
+      "record_sha256": "5cf6cc77e5a0a9604b662316d4bf85dcc91a8ba3f431d0f7f82f34adb248022a",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "validate-kv-ai-persistence-classes.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/validate-kv-email-ingress-policy.yml",
+      "name": "Validate KV Email Ingress Policy",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/validate-kv-email-ingress-policy.yml",
+      "record_sha256": "675e99b23fd258f92cdc73ad35bfadca4ffd4c68f26a052fcb90ba294b09fef0",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "validate-kv-email-ingress-policy.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/validate-kv-interlock-contract.yml",
+      "name": "Validate KV Interlock Contract",
+      "triggers_before": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/validate-kv-interlock-contract.yml",
+      "record_sha256": "2fff3619c7dd7ffb77483146716539f2506a20c3344b785f363e80117cba645b",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "validate-kv-interlock-contract.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/validate-organization-security-posture.yml",
+      "name": "Validate organization KV security posture",
+      "triggers_before": [
+        "pull_request",
+        "push"
+      ],
+      "permissions_before": {
+        "workflow": {
+          "contents": "read"
+        },
+        "jobs": {}
+      },
+      "record": "tools/tasks/folded/validate-organization-security-posture.yml",
+      "record_sha256": "b8b1545cd7ad542c4d572f8272e785517b5ec38bfcb20648f2e5ac8ba4a85ff8",
+      "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
+      "into": ".github/workflows/validation-dispatcher.yml",
+      "catalog_groups": [
+        "validate-organization-security-posture.validate"
+      ],
+      "events_after": [
+        "pull_request",
+        "push"
+      ]
+    }
+  ],
+  "fail_closed_pending": [
+    {
+      "surface": ".github/workflows/production-provider-activation.yml (workflow_dispatch; hashicorp/setup-terraform@v3)",
+      "now": "record tools/tasks/folded/production-provider-activation.yml; not run",
+      "disposition": "FAIL_CLOSED",
+      "failure_code": "THIRD_PARTY_ACTION_AND_DISPATCH_REMOVED_BY_G17",
+      "failed_predicate": "PROVIDER_ACTIVATION_PLAN_RUNS_WITHOUT_A_THIRD_PARTY_ACTION_BY_MANIFEST",
+      "required_evidence_or_repair": "a committed activation request selected by a StegVerse worker or the dispatcher, using a terraform the runner already carries or a stdlib plan check; hashicorp/setup-terraform is not reintroduced",
+      "retry_entrypoint": "tools/tasks/folded/production-provider-activation.yml",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on dispatch-only modes (#166); until then provider activation planning does not run hosted"
+    },
+    {
+      "surface": ".github/workflows/one_button_release.yml (workflow_dispatch only)",
+      "now": "record tools/tasks/folded/one_button_release.yml; not run",
+      "disposition": "FAIL_CLOSED",
+      "failure_code": "DISPATCH_TRIGGER_REMOVED_BY_G17",
+      "failed_predicate": "RELEASE_CANDIDATE_VALIDATION_IS_SELECTED_BY_COMMITTED_STATE",
+      "required_evidence_or_repair": "carry the candidate version as committed state (VERSION / release request) so release-integrity and the readiness chain select it; no click trigger",
+      "retry_entrypoint": "tools/tasks/folded/one_button_release.yml",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on dispatch-only modes (#166)"
+    },
+    {
+      "surface": "workflow_dispatch input modes of folded workflows: release-assets (tag/title/prerelease), downstream-propagation (release_tag), reconcile-published-release (release_tag), provider-readiness (profile_path step 'Validate requested profile')",
+      "now": "catalog groups run with the inputs empty, as GitHub renders them on push/pull_request/release; the provider-readiness dispatch-only step is unreachable",
+      "disposition": "FAIL_CLOSED",
+      "failure_code": "DISPATCH_TRIGGER_REMOVED_BY_G17",
+      "failed_predicate": "DISPATCH_INPUTS_ARE_COMMITTED_REQUESTS",
+      "required_evidence_or_repair": "commit the tag/profile as a request file the group reads (manifest) instead of a dispatch input",
+      "retry_entrypoint": "tools/tasks/task_catalog.json (groups release-assets.*, downstream-propagation.observe, reconcile-published-release.observe, provider-readiness.validate)",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on dispatch-only modes (#166)"
+    }
+  ],
+  "transfer_pending": [
+    {
+      "surface": ".github/workflows/automation-candidate-lifecycle.yml (issues + schedule 41 7 * * *)",
+      "now": "record tools/tasks/folded/automation-candidate-lifecycle.yml; not run by any hosted trigger",
+      "disposition": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "failure_code": "HOSTED_SCHEDULE_OR_ISSUE_TRIGGER_REMOVED_BY_G17",
+      "failed_predicate": "AUTOMATION_CANDIDATE_LIFECYCLE_RUNS_ON_A_STEGVERSE_WORKER_BY_MANIFEST",
+      "required_evidence_or_repair": "a StegVerse worker selects this observation from committed state (manifest) and runs the record's steps; no hosted cron/issues trigger",
+      "retry_entrypoint": "tools/tasks/folded/automation-candidate-lifecycle.yml",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on transferred schedules (#166); until a worker takes it over this observation does not run"
+    },
+    {
+      "surface": ".github/workflows/onboarding-friction-maintenance.yml (schedule 17 9 * * *)",
+      "now": "record tools/tasks/folded/onboarding-friction-maintenance.yml; not run by any hosted trigger",
+      "disposition": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "failure_code": "HOSTED_SCHEDULE_OR_ISSUE_TRIGGER_REMOVED_BY_G17",
+      "failed_predicate": "ONBOARDING_FRICTION_MAINTENANCE_RUNS_ON_A_STEGVERSE_WORKER_BY_MANIFEST",
+      "required_evidence_or_repair": "a StegVerse worker selects this observation from committed state (manifest) and runs the record's steps; no hosted cron/issues trigger",
+      "retry_entrypoint": "tools/tasks/folded/onboarding-friction-maintenance.yml",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on transferred schedules (#166); until a worker takes it over this observation does not run"
+    },
+    {
+      "surface": ".github/workflows/onboarding-friction.yml (issues (opened/edited/labeled ...))",
+      "now": "record tools/tasks/folded/onboarding-friction.yml; not run by any hosted trigger",
+      "disposition": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "failure_code": "HOSTED_SCHEDULE_OR_ISSUE_TRIGGER_REMOVED_BY_G17",
+      "failed_predicate": "ONBOARDING_FRICTION_TRIAGE_RUNS_ON_A_STEGVERSE_WORKER_BY_MANIFEST",
+      "required_evidence_or_repair": "a StegVerse worker selects this observation from committed state (manifest) and runs the record's steps; no hosted cron/issues trigger",
+      "retry_entrypoint": "tools/tasks/folded/onboarding-friction.yml",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on transferred schedules (#166); until a worker takes it over this observation does not run"
+    },
+    {
+      "surface": ".github/workflows/sync-knowledgevault-overlay-from-stegdb.yml (schedule 11 3 * * *)",
+      "now": "record tools/tasks/folded/sync-knowledgevault-overlay-from-stegdb.yml; not run by any hosted trigger",
+      "disposition": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "failure_code": "HOSTED_SCHEDULE_OR_ISSUE_TRIGGER_REMOVED_BY_G17",
+      "failed_predicate": "KNOWLEDGEVAULT_OVERLAY_SYNC_OBSERVATION_RUNS_ON_A_STEGVERSE_WORKER_BY_MANIFEST",
+      "required_evidence_or_repair": "a StegVerse worker selects this observation from committed state (manifest) and runs the record's steps; no hosted cron/issues trigger",
+      "retry_entrypoint": "tools/tasks/folded/sync-knowledgevault-overlay-from-stegdb.yml",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on transferred schedules (#166); until a worker takes it over this observation does not run"
+    },
+    {
+      "surface": ".github/workflows/sync-overlay-from-stegdb.yml (schedule 35 3 * * *)",
+      "now": "record tools/tasks/folded/sync-overlay-from-stegdb.yml; not run by any hosted trigger",
+      "disposition": "TRANSFER_TO_STEGVERSE_WORKER",
+      "status": "PENDING",
+      "failure_code": "HOSTED_SCHEDULE_OR_ISSUE_TRIGGER_REMOVED_BY_G17",
+      "failed_predicate": "OVERLAY_SYNC_OBSERVATION_RUNS_ON_A_STEGVERSE_WORKER_BY_MANIFEST",
+      "required_evidence_or_repair": "a StegVerse worker selects this observation from committed state (manifest) and runs the record's steps; no hosted cron/issues trigger",
+      "retry_entrypoint": "tools/tasks/folded/sync-overlay-from-stegdb.yml",
+      "owning_existing_goal": "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168); P4 maintenance StegVerse-org/.github#166",
+      "next_attempt": "Rigel decision on transferred schedules (#166); until a worker takes it over this observation does not run"
+    }
+  ],
+  "carried_pull_requests": [
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#262",
+      "catalog_group": "kv-guardrails.kv-guardrails",
+      "change": "step 24 'Guardrail repair guidance' (if: always(), JOB_STATUS gate)"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#267",
+      "catalog_group": "skap-loader-tests.skap-loader-tests",
+      "change": "new group (python 3.11, node 22; loader set, 0 skips)"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#267",
+      "catalog_group": "kv-guardrails.kv-guardrails",
+      "change": "removed Setup Node + \"Validate KV/SKAP loader\" step"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#265",
+      "catalog_group": "kv-ranged-sha256-measurement.validate.py310",
+      "change": "python 3.10; NOT_SELECTED until runtime/ranged_sha256_measurement.py exists"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#265",
+      "catalog_group": "kv-ranged-sha256-measurement.validate.py312",
+      "change": "python 3.12; NOT_SELECTED until runtime/ranged_sha256_measurement.py exists"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#265",
+      "catalog_group": "kv-ranged-sha256-measurement.validate.py313",
+      "change": "python 3.13; NOT_SELECTED until runtime/ranged_sha256_measurement.py exists"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#260",
+      "catalog_group": "runtime-import-and-secret-policy.guard.pr260",
+      "change": "guard job from #260 head 7354dc21 (fetch-depth 2); selected when .stegverse/test-sets.json present"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#261",
+      "catalog_group": "runtime-import-and-secret-policy.guard.pr261",
+      "change": "guard job from #261 head 8dd3df2e (fetch-depth 2); selected when .stegverse/workspace-parity-pin.json present"
+    }
+  ],
+  "open_decisions": [
+    "release lifecycle trigger on .github/workflows/release-lifecycle.yml (pending owner approval; count stays 2)",
+    "transferred schedules/issue triggers (5 workflows, transfer_pending[])",
+    "dispatch-only modes (fail_closed_pending[])",
+    "hashicorp/setup-terraform removal (production-provider-activation)"
+  ],
+  "catalog_additions": [
+    {
+      "catalog_groups": [
+        "kv-ranged-sha256-measurement.validate.py310",
+        "kv-ranged-sha256-measurement.validate.py312",
+        "kv-ranged-sha256-measurement.validate.py313",
+        "runtime-import-and-secret-policy.guard.pr260",
+        "runtime-import-and-secret-policy.guard.pr261",
+        "skap-loader-tests.skap-loader-tests"
+      ],
+      "reason": "behavior carried from open pull requests #260/#261/#265/#267 so they can drop their workflow-file changes (carried_pull_requests[])"
+    },
+    {
+      "catalog_groups": [
+        "workflow-surface-registry.validate"
+      ],
+      "reason": "G17: enforces the registry and the folded records (replaces EXPECTED_WORKFLOW_COUNT)"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+python3 tools/test_release_tools.py

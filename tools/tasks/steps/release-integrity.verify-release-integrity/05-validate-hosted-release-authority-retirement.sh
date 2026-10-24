@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_hosted_release_authority_retirement -v

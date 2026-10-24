@@ -1,0 +1,1 @@
+python -m pytest -q tests/test_stage_kv_ai_memory_resident_inputs.py

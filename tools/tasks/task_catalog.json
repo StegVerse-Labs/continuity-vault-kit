@@ -1,0 +1,3180 @@
+{
+  "schema": "stegverse.task-catalog/v1",
+  "repository": "StegVerse-Labs/continuity-vault-kit",
+  "goal_id": "G17-WORKFLOW-SURFACE-MINIMIZATION",
+  "authority": "Rigel 2026-10-24 retroactive G17 enforcement; StegVerse-Labs/.github#167/#168",
+  "dispatcher": ".github/workflows/validation-dispatcher.yml",
+  "release_lifecycle": ".github/workflows/release-lifecycle.yml",
+  "runner": "tools/tasks/run_catalog.py",
+  "rule": "Every check a folded workflow job ran is one group here; its step bodies are the original run blocks byte for byte, pinned by sha256. A new check is a new group (or a step in one), never a new workflow file.",
+  "path_filters": "Dropped: every group runs on every event it declares (a superset of the original path-filtered runs); a group whose subject is not yet in the tree is gated by select_when and receipts NOT_SELECTED.",
+  "folded_from_commit": "bcc2d75168b84b3d35b7f831df0b4fe039119631",
+  "groups": [
+    {
+      "id": "automated-kv-upgrade-validation.validate",
+      "source": {
+        "workflow": ".github/workflows/automated-kv-upgrade-validation.yml",
+        "workflow_name": "Automated KV Upgrade Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile automated upgrade tools and tests",
+          "run_file": "tools/tasks/steps/automated-kv-upgrade-validation.validate/01-compile-automated-upgrade-tools-and-tests.sh",
+          "run_sha256": "0571a17ed4dfc133d8b4269805bfadc96bc513b8eb0054e4ba6bded530db1b74"
+        },
+        {
+          "name": "Validate plan-only predecessor",
+          "run_file": "tools/tasks/steps/automated-kv-upgrade-validation.validate/02-validate-plan-only-predecessor.sh",
+          "run_sha256": "ae6c1d1622eecab85cddffac9578853174184b41041eb134c531c4cacc713f53"
+        },
+        {
+          "name": "Validate rollback-safe automated upgrade",
+          "run_file": "tools/tasks/steps/automated-kv-upgrade-validation.validate/03-validate-rollback-safe-automated-upgrade.sh",
+          "run_sha256": "82447066495002bce164f9452d16683e7e2acb7bc58d31a72915711d8183953c"
+        },
+        {
+          "name": "Prove hosted validation is non-authorizing",
+          "run_file": "tools/tasks/steps/automated-kv-upgrade-validation.validate/04-prove-hosted-validation-is-non-authorizing.sh",
+          "run_sha256": "58d98499f7164d55e51e1b74734544dbbcf855d8a0c5f5674456aa0ad6049c1d"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "automated-release.validate_release_readiness",
+      "source": {
+        "workflow": ".github/workflows/automated-release.yml",
+        "workflow_name": "Automated release readiness - Validation Only",
+        "job": "validate_release_readiness",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "workflow_run"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Determine whether a release candidate is required",
+          "run_file": "tools/tasks/steps/automated-release.validate_release_readiness/01-determine-whether-a-release-candidate-is-require.sh",
+          "run_sha256": "bd7e76fff17a22525adc96c95897edeaaddb51baeb3f892917eb7c40ecb2d44e",
+          "env": {
+            "SOURCE_CONCLUSION": "${{ github.event.workflow_run.conclusion }}",
+            "SOURCE_HEAD_SHA": "${{ github.event.workflow_run.head_sha }}"
+          },
+          "id": "gate"
+        },
+        {
+          "name": "Prepare ephemeral patch release candidate",
+          "run_file": "tools/tasks/steps/automated-release.validate_release_readiness/02-prepare-ephemeral-patch-release-candidate.sh",
+          "run_sha256": "a38b8c4958934631084c7db309c88184c6406ab2f35b16f908d94336068638f7",
+          "if": "steps.gate.outputs.enabled == 'true'",
+          "id": "version"
+        },
+        {
+          "name": "Verify ephemeral release candidate",
+          "run_file": "tools/tasks/steps/automated-release.validate_release_readiness/03-verify-ephemeral-release-candidate.sh",
+          "run_sha256": "9309ab1ee76a46159f1e279148bc43a764c70705e3badf3d8bdec02bbd2ea52f",
+          "if": "steps.gate.outputs.enabled == 'true'"
+        },
+        {
+          "name": "Emit non-authorizing release-readiness observation",
+          "run_file": "tools/tasks/steps/automated-release.validate_release_readiness/04-emit-non-authorizing-release-readiness-observati.sh",
+          "run_sha256": "1eea545de70f0eaa550a48eae038114a7b34db7a1311b67fb6d98005edf8a4a9",
+          "env": {
+            "SOURCE_CONCLUSION": "${{ github.event.workflow_run.conclusion }}",
+            "SOURCE_HEAD_SHA": "${{ github.event.workflow_run.head_sha }}",
+            "ELIGIBLE_SOURCE": "${{ steps.gate.outputs.eligible_source }}",
+            "RELEASE_REQUIRED": "${{ steps.gate.outputs.enabled }}",
+            "REASON": "${{ steps.gate.outputs.reason }}",
+            "CANDIDATE_VERSION": "${{ steps.version.outputs.value }}"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "continuity-vault-release-readiness-${{ github.run_id }}",
+          "path": "reports/release_readiness/release-readiness-observation.json\ndist/\n",
+          "if_no_files_found": "warn",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "0",
+        "persist_credentials": "false",
+        "timeout_minutes": 15,
+        "ref": "main",
+        "python_version": "3.12",
+        "artifact_name": "continuity-vault-release-readiness",
+        "artifact_if_no_files_found": "warn"
+      },
+      "dispatcher_job": "automated-release",
+      "chain": {
+        "after_job": "release-integrity",
+        "permissions": {
+          "contents": "read"
+        },
+        "was": "workflow_run (completed) on the workflow named in .github/workflows/automated-release.yml"
+      }
+    },
+    {
+      "id": "automation-candidate-implementation.observe",
+      "source": {
+        "workflow": ".github/workflows/automation-candidate-implementation.yml",
+        "workflow_name": "Automation candidate implementation - Validation Only",
+        "job": "observe",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request"
+        ],
+        "permissions_before": {
+          "contents": "read",
+          "pull-requests": "read"
+        },
+        "job_if_before": "github.event.pull_request.merged == true"
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Observe referenced candidate identifiers",
+          "run_file": "tools/tasks/steps/automation-candidate-implementation.observe/01-observe-referenced-candidate-identifiers.sh",
+          "run_sha256": "c85999bdc6d0fccae47d5e97d1b21a4013766cd81b3b86e8e4a87c5c6e1df7f7",
+          "env": {
+            "PR_BODY": "${{ github.event.pull_request.body }}",
+            "PR_TITLE": "${{ github.event.pull_request.title }}",
+            "PR_NUMBER": "${{ github.event.pull_request.number }}",
+            "PR_URL": "${{ github.event.pull_request.html_url }}",
+            "MERGE_SHA": "${{ github.event.pull_request.merge_commit_sha }}"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "automation-candidate-implementation-observation-${{ github.run_id }}",
+          "path": "reports/automation_candidates/candidate-implementation-observation.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "0",
+        "persist_credentials": "false",
+        "timeout_minutes": 10,
+        "ref": "main",
+        "artifact_name": "automation-candidate-implementation-observation",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "build-and-attach-release.reconstruct",
+      "source": {
+        "workflow": ".github/workflows/build-and-attach-release.yml",
+        "workflow_name": "Published Release Source Reconstruction - Validation Only",
+        "job": "reconstruct",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "release"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "release"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Rebuild release bundle for comparison",
+          "run_file": "tools/tasks/steps/build-and-attach-release.reconstruct/01-rebuild-release-bundle-for-comparison.sh",
+          "run_sha256": "2e217a02378bad6ae23dc14b15b018bfe9e1f709cd009c952b8c68163e0c2144"
+        },
+        {
+          "name": "Generate local SHA256 reconstruction evidence",
+          "run_file": "tools/tasks/steps/build-and-attach-release.reconstruct/02-generate-local-sha256-reconstruction-evidence.sh",
+          "run_sha256": "4fef44d1aedad37baedd01ff4de451c2f98732a2359c6b3942ec699d37dc94ed"
+        },
+        {
+          "name": "Emit validation-only observation",
+          "run_file": "tools/tasks/steps/build-and-attach-release.reconstruct/03-emit-validation-only-observation.sh",
+          "run_sha256": "1f32c9f3489597beebcc0d3f25209db8632cb6014ca4b091c8b18973b136f606"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "knowledgevault-published-release-reconstruction",
+          "path": "dist/",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 360,
+        "python_version": "3.x",
+        "artifact_name": "knowledgevault-published-release-reconstruction",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "conversation-continuity-mvp.verify",
+      "source": {
+        "workflow": ".github/workflows/conversation-continuity-mvp.yml",
+        "workflow_name": "Conversation continuity MVP",
+        "job": "verify",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile continuity tooling",
+          "run_file": "tools/tasks/steps/conversation-continuity-mvp.verify/01-compile-continuity-tooling.sh",
+          "run_sha256": "51ed72f75768f5490d65fb8a58e2fc244c484db2f8dcbfa28406b7be8fa6e8a9"
+        },
+        {
+          "name": "Run adversarial self-test",
+          "run_file": "tools/tasks/steps/conversation-continuity-mvp.verify/02-run-adversarial-self-test.sh",
+          "run_sha256": "5635312996f519dc635d1f74e354a3301e9033e25d0c5db8309ea4f8e741fbed"
+        },
+        {
+          "name": "Build public fixture receipt",
+          "run_file": "tools/tasks/steps/conversation-continuity-mvp.verify/03-build-public-fixture-receipt.sh",
+          "run_sha256": "9ee40d19dbd0ca14c50245e30019893e5b53a2f32802628eb65a1c592b0da6f1"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "conversation-continuity-evidence",
+          "path": "continuity-evidence/",
+          "if_no_files_found": "warn",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11",
+        "artifact_name": "conversation-continuity-evidence",
+        "artifact_if_no_files_found": "warn"
+      }
+    },
+    {
+      "id": "conversation-recall.validate",
+      "source": {
+        "workflow": ".github/workflows/conversation-recall.yml",
+        "workflow_name": "Conversation Recall Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile recall surface",
+          "run_file": "tools/tasks/steps/conversation-recall.validate/01-compile-recall-surface.sh",
+          "run_sha256": "c38885a6977475053f87adcbe95caea1d61ecdc14fdb73b541e489e7f06e68ad"
+        },
+        {
+          "name": "Run recall tests",
+          "run_file": "tools/tasks/steps/conversation-recall.validate/02-run-recall-tests.sh",
+          "run_sha256": "d0b034a42de23bbdc926f0516a4e770ed940b35e00d374164101d8e59e1dff08"
+        },
+        {
+          "name": "Demonstrate yesterday-to-now recall",
+          "run_file": "tools/tasks/steps/conversation-recall.validate/03-demonstrate-yesterday-to-now-recall.sh",
+          "run_sha256": "6e60ed33808180dadfce6dc34ae106a7363ef4f076c58fc557d4ee63b3b351e8"
+        },
+        {
+          "name": "Confirm incomplete work blocks archive readiness",
+          "run_file": "tools/tasks/steps/conversation-recall.validate/04-confirm-incomplete-work-blocks-archive-readiness.sh",
+          "run_sha256": "9a264dffa3d3010d205e7a03d8ec965c7eef87682a67d7ffebbfbac6d5305d41"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 10,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "downstream-propagation.observe",
+      "source": {
+        "workflow": ".github/workflows/downstream-propagation.yml",
+        "workflow_name": "Downstream release propagation - Validation Only",
+        "job": "observe",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "release",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "release"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Project downstream review requirement",
+          "run_file": "tools/tasks/steps/downstream-propagation.observe/01-project-downstream-review-requirement.sh",
+          "run_sha256": "050d727c89ac54dcbdfe8cef8594a51f78ec8c030b7033775e7e675b5b2645b6",
+          "env": {
+            "EVENT_TAG": "${{ github.event.release.tag_name }}",
+            "INPUT_TAG": "${{ inputs.release_tag }}",
+            "REPOSITORY": "${{ github.repository }}"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "downstream-propagation-observation-${{ github.run_id }}",
+          "path": "reports/downstream_propagation/observation.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "0",
+        "persist_credentials": "false",
+        "timeout_minutes": 15,
+        "ref": "main",
+        "artifact_name": "downstream-propagation-observation",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "execution-recovery.validate-recovery-host",
+      "source": {
+        "workflow": ".github/workflows/execution-recovery.yml",
+        "workflow_name": "KnowledgeVault Execution Recovery",
+        "job": "validate-recovery-host",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile recovery host and communication runtime journal",
+          "run_file": "tools/tasks/steps/execution-recovery.validate-recovery-host/01-compile-recovery-host-and-communication-runtime-.sh",
+          "run_sha256": "647ca711c38dc536e7fa09146ea1c7b44413f0be4439c44e163d79df3ab6dfd2"
+        },
+        {
+          "name": "Run recoverable execution and communication runtime tests",
+          "run_file": "tools/tasks/steps/execution-recovery.validate-recovery-host/02-run-recoverable-execution-and-communication-runt.sh",
+          "run_sha256": "d9918af746db02297dbb220ecac1f9323a89aac92eed15e87634bdf7263eb4dd"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 10,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "fidelity-governed-storage.validate",
+      "source": {
+        "workflow": ".github/workflows/fidelity-governed-storage.yml",
+        "workflow_name": "Fidelity-Governed Storage Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile validator, adapter, and tests",
+          "run_file": "tools/tasks/steps/fidelity-governed-storage.validate/01-compile-validator-adapter-and-tests.sh",
+          "run_sha256": "cf0a72672bd78d9f612d248919295660ed550b3499988538987646bd8d3205c8"
+        },
+        {
+          "name": "Validate reference capsules",
+          "run_file": "tools/tasks/steps/fidelity-governed-storage.validate/02-validate-reference-capsules.sh",
+          "run_sha256": "500af1ff185968836ea711c37b769a0bb3581c85c4a4c464972198c25debbe05"
+        },
+        {
+          "name": "Run invariant and access-boundary tests",
+          "run_file": "tools/tasks/steps/fidelity-governed-storage.validate/03-run-invariant-and-access-boundary-tests.sh",
+          "run_sha256": "4f616eb7361c0778147b8141d1cf4a4e7f7b64670a898cdb8ccf915eccfa6b59"
+        },
+        {
+          "name": "Confirm schema parses",
+          "run_file": "tools/tasks/steps/fidelity-governed-storage.validate/04-confirm-schema-parses.sh",
+          "run_sha256": "c9aac9fdcedc05d5ae4a9b22625d0448b89b2c8ea5ee44694e128bf868d7efd2"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 5,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "governed-action-execution.validate",
+      "source": {
+        "workflow": ".github/workflows/governed-action-execution.yml",
+        "workflow_name": "Governed Action Execution Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile execution surface",
+          "run_file": "tools/tasks/steps/governed-action-execution.validate/01-compile-execution-surface.sh",
+          "run_sha256": "76350826ecb1d2dce1ca0e3dcb0f10778b086367866398426ebc978db22472d6"
+        },
+        {
+          "name": "Validate envelope and result fixtures",
+          "run_file": "tools/tasks/steps/governed-action-execution.validate/02-validate-envelope-and-result-fixtures.sh",
+          "run_sha256": "b944ede83b6cc519fc8214913508da1b9eb85f778a60aef0e348365bb34d654d"
+        },
+        {
+          "name": "Run governed execution tests",
+          "run_file": "tools/tasks/steps/governed-action-execution.validate/03-run-governed-execution-tests.sh",
+          "run_sha256": "0b49abe0141dcce70a553f31d4ffdd69c8e8d5e063fc6310690bc08e71e3a55d"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 10,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "intr-lifecycle-closure.closure",
+      "source": {
+        "workflow": ".github/workflows/intr-lifecycle-closure.yml",
+        "workflow_name": "InTr Lifecycle Closure",
+        "job": "closure",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/intr-lifecycle-closure.closure/01-step.sh",
+          "run_sha256": "b641128f60054bf065cc34f952785b020cf07ef6601d93ce65e4ed1b5b9f64db"
+        },
+        {
+          "name": "Lifecycle closure contract",
+          "run_file": "tools/tasks/steps/intr-lifecycle-closure.closure/02-lifecycle-closure-contract.sh",
+          "run_sha256": "028b5daf26b2670a9c42dda3fc52d031fb39c710ae0e51eb5495abe49204deaa"
+        },
+        {
+          "name": "Secret field policy still admits governance assertions",
+          "run_file": "tools/tasks/steps/intr-lifecycle-closure.closure/03-secret-field-policy-still-admits-governance-asse.sh",
+          "run_sha256": "4a06880305443d780d7fd93d09400eefecffeed727ec7b835a880ebf380097d6"
+        },
+        {
+          "name": "Terminal receipt is records-only and grants nothing",
+          "run_file": "tools/tasks/steps/intr-lifecycle-closure.closure/04-terminal-receipt-is-records-only-and-grants-noth.sh",
+          "run_sha256": "5b93e372d9b3af3494380df573680b697be1057814f546eb3e4ea039272f0803"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 10,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-cloud-peer-adoption-provider-binding.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-cloud-peer-adoption-provider-binding.yml",
+        "workflow_name": "KV Cloud Peer Adoption Provider Binding",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Install test dependency",
+          "run_file": "tools/tasks/steps/kv-cloud-peer-adoption-provider-binding.validate/01-install-test-dependency.sh",
+          "run_sha256": "b641128f60054bf065cc34f952785b020cf07ef6601d93ce65e4ed1b5b9f64db"
+        },
+        {
+          "name": "Validate adoption to provider binding",
+          "run_file": "tools/tasks/steps/kv-cloud-peer-adoption-provider-binding.validate/02-validate-adoption-to-provider-binding.sh",
+          "run_sha256": "3f72860e0dc465542eb557c712cadcebe1d1059300cb7e7a449f5039f375f555"
+        },
+        {
+          "name": "Prove fail-closed provider/materialization boundary",
+          "run_file": "tools/tasks/steps/kv-cloud-peer-adoption-provider-binding.validate/03-prove-fail-closed-provider-materialization-bound.sh",
+          "run_sha256": "9b638134444132e0e0f152ea898ed42c00c573e932c1c824ffc388950898762a"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-coinbase-finance-ingress.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-coinbase-finance-ingress.yml",
+        "workflow_name": "Validate KV Coinbase Finance Ingress",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static Coinbase finance ingress checks",
+          "run_file": "tools/tasks/steps/kv-coinbase-finance-ingress.validate/01-static-coinbase-finance-ingress-checks.sh",
+          "run_sha256": "c6a92a8c90299e1075544549e64a72b9c913cec769a1c3931d65581c9ba85e38"
+        },
+        {
+          "name": "Coinbase finance ingress tests",
+          "run_file": "tools/tasks/steps/kv-coinbase-finance-ingress.validate/02-coinbase-finance-ingress-tests.sh",
+          "run_sha256": "bbc22fd782c3e08a8d72df2560684a5a7d10b3ac50b7b53f30d4aa19646245b2"
+        },
+        {
+          "name": "Existing Personal Finance tests",
+          "run_file": "tools/tasks/steps/kv-coinbase-finance-ingress.validate/03-existing-personal-finance-tests.sh",
+          "run_sha256": "9cb95b8be2b06272e6482f1698c0554db0d0c86698502871093b3917c1ad9120"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-connection-assembly.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-connection-assembly.yml",
+        "workflow_name": "Validate KV Connection Assembly",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static connection assembly checks",
+          "run_file": "tools/tasks/steps/kv-connection-assembly.validate/01-static-connection-assembly-checks.sh",
+          "run_sha256": "c97f37366415703a8eeb8f380a16269441494e66c6f96f1e2e7a1accb4153e25"
+        },
+        {
+          "name": "Connection assembly tests",
+          "run_file": "tools/tasks/steps/kv-connection-assembly.validate/02-connection-assembly-tests.sh",
+          "run_sha256": "6746a7e7c001e7dda18a9f88cb29a67e9bf0fe963b6a2eae609b25b50b685d1d"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-connection-registry-materialization.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-connection-registry-materialization.yml",
+        "workflow_name": "Validate KV Connection Registry Materialization",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static materialization checks",
+          "run_file": "tools/tasks/steps/kv-connection-registry-materialization.validate/01-static-materialization-checks.sh",
+          "run_sha256": "77d55c0d985bb15cd5d2d60027227d0e7d62374223669e4ce63e3e4836accae6"
+        },
+        {
+          "name": "Connection registry store tests",
+          "run_file": "tools/tasks/steps/kv-connection-registry-materialization.validate/02-connection-registry-store-tests.sh",
+          "run_sha256": "382198ea072d17cc5213c21d68add1cec03700e6253be5437fbd2de5e0495608"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-connection-revalidation.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-connection-revalidation.yml",
+        "workflow_name": "Validate KV Connection Revalidation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static revalidation checks",
+          "run_file": "tools/tasks/steps/kv-connection-revalidation.validate/01-static-revalidation-checks.sh",
+          "run_sha256": "930137b1142116a2341b9fc061ce233285ec6c166ee07f11e633eabbb8faf21f"
+        },
+        {
+          "name": "Revalidation tests",
+          "run_file": "tools/tasks/steps/kv-connection-revalidation.validate/02-revalidation-tests.sh",
+          "run_sha256": "3b8f08f6b80712369c703a99bd03d0d65f0ebf54f43bacfede07e85901971678"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-cross-platform-recovery.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-cross-platform-recovery.yml",
+        "workflow_name": "KV Cross-Platform Recovery",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile recovery tooling",
+          "run_file": "tools/tasks/steps/kv-cross-platform-recovery.validate/01-compile-recovery-tooling.sh",
+          "run_sha256": "1a6b07cf53650edef270e5d61fc3242220715c85214f1e15ebb394b31faa2354"
+        },
+        {
+          "name": "Run recovery tests",
+          "run_file": "tools/tasks/steps/kv-cross-platform-recovery.validate/02-run-recovery-tests.sh",
+          "run_sha256": "c80817806152d485718a3a78530b75a393172948608fa467db3d1f0330777094"
+        },
+        {
+          "name": "Emit deterministic recovery receipt",
+          "run_file": "tools/tasks/steps/kv-cross-platform-recovery.validate/03-emit-deterministic-recovery-receipt.sh",
+          "run_sha256": "ca78b3799513fc5aa30aa8ba04dcd67628f3bef424662584c3dafbdd7a80caa0"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "kv-cross-platform-recovery-evidence",
+          "path": "recovery-evidence/kv-cross-platform-recovery.receipt.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12",
+        "artifact_name": "kv-cross-platform-recovery-evidence",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "kv-direct-source-ingress.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-direct-source-ingress.yml",
+        "workflow_name": "Validate KV Direct-Source Ingress",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static direct-source ingress checks",
+          "run_file": "tools/tasks/steps/kv-direct-source-ingress.validate/01-static-direct-source-ingress-checks.sh",
+          "run_sha256": "c2a7ef479754a25552bacf61746ff666a72a2dd74bf625ded2a7022c1ef67271"
+        },
+        {
+          "name": "Direct-source ingress tests",
+          "run_file": "tools/tasks/steps/kv-direct-source-ingress.validate/02-direct-source-ingress-tests.sh",
+          "run_sha256": "110d455db46249183fa3a6955fa59c4ac498391932919153866e4d8456f631ae"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-document-export.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-document-export.yml",
+        "workflow_name": "Validate governed KV document export",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile document export boundary",
+          "run_file": "tools/tasks/steps/kv-document-export.validate/01-compile-document-export-boundary.sh",
+          "run_sha256": "3b373cc0339e52abc120ea3ed068572054fd5c23b0c96fc266d3bb65053ddc32"
+        },
+        {
+          "name": "Validate schema JSON",
+          "run_file": "tools/tasks/steps/kv-document-export.validate/02-validate-schema-json.sh",
+          "run_sha256": "ac3b30f3a7b8b10737b816c056320205997b32eb810d421b75bb3cd6abbeb6cf"
+        },
+        {
+          "name": "Run document export tests",
+          "run_file": "tools/tasks/steps/kv-document-export.validate/03-run-document-export-tests.sh",
+          "run_sha256": "91af58a5d3a2c08bb69e74ef0e974c6149aadf0a52a8326d686713f95489fb32"
+        },
+        {
+          "name": "Demonstrate bounded preparation",
+          "run_file": "tools/tasks/steps/kv-document-export.validate/04-demonstrate-bounded-preparation.sh",
+          "run_sha256": "89a2987592a77f4d290b0e337a4a6b72292795a590b2669e68c7141b0f90d0f2"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 10,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-existing-instance-adoption.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-existing-instance-adoption.yml",
+        "workflow_name": "KV Existing Instance Adoption",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Validate existing-KV adoption contract",
+          "run_file": "tools/tasks/steps/kv-existing-instance-adoption.validate/01-validate-existing-kv-adoption-contract.sh",
+          "run_sha256": "7b955c727a31bd291e3c94e64cd4faa38fdf14c18d308a0154c8d8435131ccdf"
+        },
+        {
+          "name": "Validate direct CLI import path",
+          "run_file": "tools/tasks/steps/kv-existing-instance-adoption.validate/02-validate-direct-cli-import-path.sh",
+          "run_sha256": "bd1aa6e503dcc0597d0645e8f6e585923a2855709626150fb51c020ab8dd4d74"
+        },
+        {
+          "name": "Prove fail-closed migration boundary",
+          "run_file": "tools/tasks/steps/kv-existing-instance-adoption.validate/03-prove-fail-closed-migration-boundary.sh",
+          "run_sha256": "75e1aed327713f8259350622beae05bb998d8a803e079f2eebeccfc021885b28"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-format-branch.format_candidate",
+      "source": {
+        "workflow": ".github/workflows/kv-format-branch.yml",
+        "workflow_name": "KV Format Branch - Validation Only",
+        "job": "format_candidate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Build formatted candidate outside repository",
+          "run_file": "tools/tasks/steps/kv-format-branch.format_candidate/01-build-formatted-candidate-outside-repository.sh",
+          "run_sha256": "4cbea2695b78da9a51326e9cb999e090dad9b5234e673dfd15f9afa373081da7",
+          "shell": "bash"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "kv-format-candidate-${{ github.run_id }}",
+          "path": "${{ runner.temp }}/kv-format-report/observation.json\n${{ runner.temp }}/kv-format-report/kv-format.patch\n",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "0",
+        "persist_credentials": "false",
+        "timeout_minutes": 10,
+        "python_version": "3.11",
+        "artifact_name": "kv-format-candidate",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "kv-guardrails.kv-guardrails",
+      "source": {
+        "workflow": ".github/workflows/kv-guardrails.yml",
+        "workflow_name": "KV Guardrails (Layer + Footer + Emoji + InTr)",
+        "job": "kv-guardrails",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "removed_steps": [
+          {
+            "name": "Validate KV/SKAP loader against shared envelope and TVC POLICY_ADMISSION vectors",
+            "run_sha256": "49a2d3650d0af9d492c1552754b3afd389083b73faa417a8d83bd5c321742a3c",
+            "source_pr": "StegVerse-Labs/continuity-vault-kit#267",
+            "moved_to": "skap-loader-tests.skap-loader-tests"
+          }
+        ],
+        "carried_changes": [
+          "#262 guidance step",
+          "#267 loader step and Setup Node moved to skap-loader-tests.skap-loader-tests"
+        ]
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Install public validators and cryptography",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/01-install-public-validators-and-cryptography.sh",
+          "run_sha256": "1e5d2252207b39d5acec2117b31774e60ada012dc937d551a6983b516ab52e1d"
+        },
+        {
+          "name": "Compile guardrail tools",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/02-compile-guardrail-tools.sh",
+          "run_sha256": "17dc9d06e976cdb1ec309171a04d6abe7bc3a01053306d2b444982e5c14f715c"
+        },
+        {
+          "name": "Validate hosted release authority retirement",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/03-validate-hosted-release-authority-retirement.sh",
+          "run_sha256": "affae85c1c0df06f110d77439947005a93aa6c78806cb127861ea85af74d96e9"
+        },
+        {
+          "name": "KV layer boundary + footer validation",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/04-kv-layer-boundary-footer-validation.sh",
+          "run_sha256": "d5507ad507316b8116077134adfad35bec556b02472737b600ead2347b00442a"
+        },
+        {
+          "name": "Emoji + glyph lint",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/05-emoji-glyph-lint.sh",
+          "run_sha256": "9b4eec4a625334bcd5997680ebcc96fcee5cd2224d158343dff356531d992dc0"
+        },
+        {
+          "name": "Validate SKAP InTr schemas and receipt chains",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/06-validate-skap-intr-schemas-and-receipt-chains.sh",
+          "run_sha256": "fc7eb1cd4ebcfe605d3fe8bc5f55f289d2ada088616a041866584d5beffeaf9e"
+        },
+        {
+          "name": "Validate non-authorizing Auri peripheral profiles and mode proposals",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/07-validate-non-authorizing-auri-peripheral-profile.sh",
+          "run_sha256": "b22c84ab572ac7ab648959db57939b6a51ef49bf8bd0aab734243221d1cb9eae"
+        },
+        {
+          "name": "Validate SKAP InTr semantic boundaries",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/08-validate-skap-intr-semantic-boundaries.sh",
+          "run_sha256": "893140667d3be72590cc77bfc43a083cbfee6f654f193850cf0cc9c90b3bd851"
+        },
+        {
+          "name": "Validate real SKAP cryptographic boundary",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/09-validate-real-skap-cryptographic-boundary.sh",
+          "run_sha256": "97a0b67c77fbbdaa6710b538c940f5d49b0a207666d701e24e39fa4b739fb77d"
+        },
+        {
+          "name": "Validate browser-to-SKAP public-key ingress",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/10-validate-browser-to-skap-public-key-ingress.sh",
+          "run_sha256": "1543af76ed61e96b015a3bf12f1f9be8a233de9aec2c406966753e9269a35a99"
+        },
+        {
+          "name": "Validate browser ciphertext to canonical SKAP admission bridge",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/11-validate-browser-ciphertext-to-canonical-skap-ad.sh",
+          "run_sha256": "9faf35ac2115972b76d8c9ac00af661ce2c86be64166b6674fe366d8eec5fa91"
+        },
+        {
+          "name": "Validate SKAP runtime rotation and revocation",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/12-validate-skap-runtime-rotation-and-revocation.sh",
+          "run_sha256": "fbb5a61b6eb8c4a1d1bed3d62bca0ac05e48b772488af0a4e56a66879500a6f6"
+        },
+        {
+          "name": "Validate TVC resident SKAP key-provider boundary",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/13-validate-tvc-resident-skap-key-provider-boundary.sh",
+          "run_sha256": "aeadd6dffef355bd89f8cacb70c2e9e69c166dd82240057bd4b081d9526ae5a1"
+        },
+        {
+          "name": "Validate portable wrapped-root envelope (SKAP layout v2) and cross-implementation vectors",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/14-validate-portable-wrapped-root-envelope-skap-lay.sh",
+          "run_sha256": "959ab9133a7f5693abbb7e3a2a854d848ce33be7f311d77ee5291d295439a735"
+        },
+        {
+          "name": "Validate transient owner-authorized SKAP ingress",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/16-validate-transient-owner-authorized-skap-ingress.sh",
+          "run_sha256": "ab277f01e4d1a91966a01285c64910d2d867414160eefc0d02b549f0a1d15726"
+        },
+        {
+          "name": "Validate KV InTr persistence boundary",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/17-validate-kv-intr-persistence-boundary.sh",
+          "run_sha256": "65bc6797d5d4f335e935caf46fa8f0d45531bb1829ec73b6285ae2676c408cac"
+        },
+        {
+          "name": "Validate SKAP ciphertext and ingress receipt KV readback",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/18-validate-skap-ciphertext-and-ingress-receipt-kv-.sh",
+          "run_sha256": "42d098f7202bde6a3158cac3f7855f18d58e379511545f53a2fab4bfb93e49c1"
+        },
+        {
+          "name": "Reconstruct synthetic SKAP InTr round trip",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/19-reconstruct-synthetic-skap-intr-round-trip.sh",
+          "run_sha256": "39429f7dc9ec8428ace6cfa18ccf666ba1e13f25beb3e87675a48d9e550a55a2"
+        },
+        {
+          "name": "Exercise non-secret InTr transport I/O",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/20-exercise-non-secret-intr-transport-i-o.sh",
+          "run_sha256": "fa225cbc2560c0be8e0356991a2f7b90cf1c742c439b92dfeac869df61cf43ab"
+        },
+        {
+          "name": "Exercise non-secret Coinbase external endpoint traversal",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/21-exercise-non-secret-coinbase-external-endpoint-t.sh",
+          "run_sha256": "25afde3aaec9504dc0cc7370d4ccfd4b959bb2fe1d9fb8503f0cc69fbf401f81"
+        },
+        {
+          "name": "Resolve synthetic SKAP material only after verified Coinbase TLS session",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/22-resolve-synthetic-skap-material-only-after-verif.sh",
+          "run_sha256": "63a447c20f2d4ceb9d06c9d8ddc5f9d9972095d975323561110043b9e94533e5"
+        },
+        {
+          "name": "Prove hosted validation is non-authorizing",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/23-prove-hosted-validation-is-non-authorizing.sh",
+          "run_sha256": "d28dec2d10b09744fa459c5cfca8e0ded7bd5d64a6f269f5864ccefd8fa610bb"
+        },
+        {
+          "name": "Guardrail repair guidance",
+          "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/24-guardrail-repair-guidance.sh",
+          "run_sha256": "61c5ec3478edaab87d0a29c57abea83e59d767b1836824ff73549e78ba61be4d",
+          "env": {
+            "JOB_STATUS": "${{ job.status }}"
+          },
+          "if": "always()",
+          "source_pr": "StegVerse-Labs/continuity-vault-kit#262",
+          "source_commit": "3cec1a3e3521d2559adfe5d5f922cb7b46fbc17c",
+          "replaces_run_sha256": "a49b61dcdb495a5362b613ddde4c420c54cdec0dbac243454b01ff1c31859598"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "skap-intr-synthetic-runtime-${{ github.run_id }}",
+          "path": "reports/skap_intr/synthetic-runtime-evidence.json",
+          "if_no_files_found": "error",
+          "if": null
+        },
+        {
+          "name": "skap-intr-coinbase-external-probe-${{ github.run_id }}",
+          "path": "reports/skap_intr/external-endpoint-probe-coinbase.json",
+          "if_no_files_found": "error",
+          "if": null
+        },
+        {
+          "name": "skap-coinbase-synthetic-sealed-session-${{ github.run_id }}",
+          "path": "reports/skap_intr/coinbase-synthetic-sealed-session.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11",
+        "artifact_name": "kv-guardrails.kv-guardrails",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "kv-historical-corpus-import.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-historical-corpus-import.yml",
+        "workflow_name": "KV Historical Corpus Import",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile runtime helpers",
+          "run_file": "tools/tasks/steps/kv-historical-corpus-import.validate/01-compile-runtime-helpers.sh",
+          "run_sha256": "b4b57abd96224bdf3368ef693d509de3ddaa61e5c70617d760d5bdb370f5b6ad"
+        },
+        {
+          "name": "Run focused tests",
+          "run_file": "tools/tasks/steps/kv-historical-corpus-import.validate/02-run-focused-tests.sh",
+          "run_sha256": "fa5a0368f819dfa154ddb7146d99620409233382508398e23c5317fdafa88600"
+        },
+        {
+          "name": "Validate source contract",
+          "run_file": "tools/tasks/steps/kv-historical-corpus-import.validate/03-validate-source-contract.sh",
+          "run_sha256": "29ba64a3197dbceac472e13d623c19c2ba94adec965ce6945f41075689328eef"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-historical-provenance.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-historical-provenance.yml",
+        "workflow_name": "KV Historical Provenance",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile runtime helper",
+          "run_file": "tools/tasks/steps/kv-historical-provenance.validate/01-compile-runtime-helper.sh",
+          "run_sha256": "dc603e70a41a96075ea7caaf02f3d575bdb84d132d7262680bf3347fcde076ec"
+        },
+        {
+          "name": "Run focused tests",
+          "run_file": "tools/tasks/steps/kv-historical-provenance.validate/02-run-focused-tests.sh",
+          "run_sha256": "accc8d8381987c0e99c4d347bf90c1f3a369303179cbbd1dc75fff61df7cd291"
+        },
+        {
+          "name": "Validate source contract",
+          "run_file": "tools/tasks/steps/kv-historical-provenance.validate/03-validate-source-contract.sh",
+          "run_sha256": "57f3ab454cf4fbbb02441c3230bf4c1d08899b51a44940d7f6dec29a58df1a7a"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-monitor-targets.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-monitor-targets.yml",
+        "workflow_name": "Validate KV Monitor Targets",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static monitor-target checks",
+          "run_file": "tools/tasks/steps/kv-monitor-targets.validate/01-static-monitor-target-checks.sh",
+          "run_sha256": "d98cbd5470de2aa76db882141fc280bb932b7db8c75e4ff4195082eef30b4539"
+        },
+        {
+          "name": "Monitor-target tests",
+          "run_file": "tools/tasks/steps/kv-monitor-targets.validate/02-monitor-target-tests.sh",
+          "run_sha256": "7c0830ec4a6dfadb9ef068ad1fb574fe14bc258e65ae89143a842c9fd315a579"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-personal-finance.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-personal-finance.yml",
+        "workflow_name": "Validate KV Personal Finance",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static finance boundary checks",
+          "run_file": "tools/tasks/steps/kv-personal-finance.validate/01-static-finance-boundary-checks.sh",
+          "run_sha256": "26bed7341198a9eebb21f9f31283caff365c9586957739d9cd1df529381402fa"
+        },
+        {
+          "name": "Personal finance unit tests",
+          "run_file": "tools/tasks/steps/kv-personal-finance.validate/02-personal-finance-unit-tests.sh",
+          "run_sha256": "9cb95b8be2b06272e6482f1698c0554db0d0c86698502871093b3917c1ad9120"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "kv-ranged-sha256-measurement.validate.py310",
+      "source": {
+        "workflow": ".github/workflows/kv-ranged-sha256-measurement.yml",
+        "workflow_name": "KV Ranged SHA-256 Measurement",
+        "job": "validate",
+        "job_name": null,
+        "commit": "af9606760c5cdbe489c1abed7b5bed11cdacbd1b",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#265",
+        "matrix": {
+          "python-version": "3.10"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile measurement module",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py310/01-compile-measurement-module.sh",
+          "run_sha256": "c09dbe4edd29732752e1bea0ea5feb982db3a7463a2d62840a974fc19f6736b1"
+        },
+        {
+          "name": "Stdlib only (no third-party import)",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py310/02-stdlib-only-no-third-party-import.sh",
+          "run_sha256": "6ca2f97d52b3a8ad0d0deea89e3a841cec68ee484c06c7ddc38b4bd91efc5787"
+        },
+        {
+          "name": "Run ranged sha256 tests (0 skipped required)",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py310/03-run-ranged-sha256-tests-0-skipped-required.sh",
+          "run_sha256": "317d705095834dfd44bdf74ea59b59ec591e7a773946ff08bfa04529b5be31d1"
+        },
+        {
+          "name": "Workflow authority invariant",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py310/04-workflow-authority-invariant.sh",
+          "run_sha256": "c0f773ff7d71123190a82d7ab8c35f6f4535357e70c773e0ab56a687a70927df"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.10"
+      },
+      "select_when": {
+        "paths_present": [
+          "runtime/ranged_sha256_measurement.py",
+          "tests/test_ranged_sha256_measurement.py"
+        ],
+        "reason": "the measurement module lands with #265; until then the group receipts NOT_SELECTED"
+      }
+    },
+    {
+      "id": "kv-ranged-sha256-measurement.validate.py312",
+      "source": {
+        "workflow": ".github/workflows/kv-ranged-sha256-measurement.yml",
+        "workflow_name": "KV Ranged SHA-256 Measurement",
+        "job": "validate",
+        "job_name": null,
+        "commit": "af9606760c5cdbe489c1abed7b5bed11cdacbd1b",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#265",
+        "matrix": {
+          "python-version": "3.12"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile measurement module",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py312/01-compile-measurement-module.sh",
+          "run_sha256": "c09dbe4edd29732752e1bea0ea5feb982db3a7463a2d62840a974fc19f6736b1"
+        },
+        {
+          "name": "Stdlib only (no third-party import)",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py312/02-stdlib-only-no-third-party-import.sh",
+          "run_sha256": "6ca2f97d52b3a8ad0d0deea89e3a841cec68ee484c06c7ddc38b4bd91efc5787"
+        },
+        {
+          "name": "Run ranged sha256 tests (0 skipped required)",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py312/03-run-ranged-sha256-tests-0-skipped-required.sh",
+          "run_sha256": "317d705095834dfd44bdf74ea59b59ec591e7a773946ff08bfa04529b5be31d1"
+        },
+        {
+          "name": "Workflow authority invariant",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py312/04-workflow-authority-invariant.sh",
+          "run_sha256": "c0f773ff7d71123190a82d7ab8c35f6f4535357e70c773e0ab56a687a70927df"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      },
+      "select_when": {
+        "paths_present": [
+          "runtime/ranged_sha256_measurement.py",
+          "tests/test_ranged_sha256_measurement.py"
+        ],
+        "reason": "the measurement module lands with #265; until then the group receipts NOT_SELECTED"
+      }
+    },
+    {
+      "id": "kv-ranged-sha256-measurement.validate.py313",
+      "source": {
+        "workflow": ".github/workflows/kv-ranged-sha256-measurement.yml",
+        "workflow_name": "KV Ranged SHA-256 Measurement",
+        "job": "validate",
+        "job_name": null,
+        "commit": "af9606760c5cdbe489c1abed7b5bed11cdacbd1b",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#265",
+        "matrix": {
+          "python-version": "3.13"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile measurement module",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py313/01-compile-measurement-module.sh",
+          "run_sha256": "c09dbe4edd29732752e1bea0ea5feb982db3a7463a2d62840a974fc19f6736b1"
+        },
+        {
+          "name": "Stdlib only (no third-party import)",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py313/02-stdlib-only-no-third-party-import.sh",
+          "run_sha256": "6ca2f97d52b3a8ad0d0deea89e3a841cec68ee484c06c7ddc38b4bd91efc5787"
+        },
+        {
+          "name": "Run ranged sha256 tests (0 skipped required)",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py313/03-run-ranged-sha256-tests-0-skipped-required.sh",
+          "run_sha256": "317d705095834dfd44bdf74ea59b59ec591e7a773946ff08bfa04529b5be31d1"
+        },
+        {
+          "name": "Workflow authority invariant",
+          "run_file": "tools/tasks/steps/kv-ranged-sha256-measurement.validate.py313/04-workflow-authority-invariant.sh",
+          "run_sha256": "c0f773ff7d71123190a82d7ab8c35f6f4535357e70c773e0ab56a687a70927df"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.13"
+      },
+      "select_when": {
+        "paths_present": [
+          "runtime/ranged_sha256_measurement.py",
+          "tests/test_ranged_sha256_measurement.py"
+        ],
+        "reason": "the measurement module lands with #265; until then the group receipts NOT_SELECTED"
+      }
+    },
+    {
+      "id": "kv-storage-endpoint-v2.validate",
+      "source": {
+        "workflow": ".github/workflows/kv-storage-endpoint-v2.yml",
+        "workflow_name": "KV Storage Endpoint v2",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile storage adapter",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate/01-compile-storage-adapter.sh",
+          "run_sha256": "a1d2d92d7a4749b7fe48933f7e5b55615d8eb2da68e29477b20946e2289787eb"
+        },
+        {
+          "name": "Run storage endpoint v2 tests",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate/02-run-storage-endpoint-v2-tests.sh",
+          "run_sha256": "4d74b45d2f25c2abfe4c84ddc4d99b504a20fb18ada555ad1bdcf91e00352373"
+        },
+        {
+          "name": "Prove legacy request contract and authority boundaries",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate/03-prove-legacy-request-contract-and-authority-boun.sh",
+          "run_sha256": "0842aefd85a46292f6455fd560916014afe8ce93acc39e90a7fb3161d4f74f96"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "onboarding-friction-bootstrap.validate",
+      "source": {
+        "workflow": ".github/workflows/onboarding-friction-bootstrap.yml",
+        "workflow_name": "Onboarding friction bootstrap - Validation Only",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Validate expected label vocabulary without mutation",
+          "run_file": "tools/tasks/steps/onboarding-friction-bootstrap.validate/01-validate-expected-label-vocabulary-without-mutat.sh",
+          "run_sha256": "6eeea22699a11010d11a0b201ee360629dc7c4af6dd370d2897fb9177a9e7cf2"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "onboarding-friction-bootstrap-${{ github.run_id }}",
+          "path": "reports/onboarding_friction/bootstrap-observation.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 5,
+        "artifact_name": "onboarding-friction-bootstrap",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "progressive-delegation.validate",
+      "source": {
+        "workflow": ".github/workflows/progressive-delegation.yml",
+        "workflow_name": "Progressive Delegation Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile delegation surface",
+          "run_file": "tools/tasks/steps/progressive-delegation.validate/01-compile-delegation-surface.sh",
+          "run_sha256": "a962269655b63db3be7713b53e89f841c8922fd22bf53021a4b595b152aa9e8f"
+        },
+        {
+          "name": "Validate delegation policies",
+          "run_file": "tools/tasks/steps/progressive-delegation.validate/02-validate-delegation-policies.sh",
+          "run_sha256": "29270b27c59f1445857f65f0a2cf508cb2b6f0f85147590c652380e6a4551f0f"
+        },
+        {
+          "name": "Run authority, onboarding, lifecycle, and relationship tests",
+          "run_file": "tools/tasks/steps/progressive-delegation.validate/03-run-authority-onboarding-lifecycle-and-relations.sh",
+          "run_sha256": "04ce794f40b29a17ce42760f9a0e2cc22c18b56018c3d29caea49ffe31237cdc"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 10,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "provider-readiness.validate",
+      "source": {
+        "workflow": ".github/workflows/provider-readiness.yml",
+        "workflow_name": "Production Provider Readiness",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile readiness boundary",
+          "run_file": "tools/tasks/steps/provider-readiness.validate/01-compile-readiness-boundary.sh",
+          "run_sha256": "1131fd8e6338c29fb96be2f71d17f0c0c9b087540a41e3dcd1ece3943ae488bb"
+        },
+        {
+          "name": "Run readiness tests",
+          "run_file": "tools/tasks/steps/provider-readiness.validate/02-run-readiness-tests.sh",
+          "run_sha256": "37f5422bfdd02205b4f9226ba818b7fff66b8725ea560376fc760a34f2bd62bb"
+        },
+        {
+          "name": "Confirm template remains fail-closed",
+          "run_file": "tools/tasks/steps/provider-readiness.validate/03-confirm-template-remains-fail-closed.sh",
+          "run_sha256": "2ce006470a71828734ede7d22b9b0bcd14e664160b6a6c687c4f05e0f70a0ad7",
+          "if": "github.event_name != 'workflow_dispatch'"
+        },
+        {
+          "name": "Validate requested profile",
+          "run_file": "tools/tasks/steps/provider-readiness.validate/04-validate-requested-profile.sh",
+          "run_sha256": "dae6aa76270ab8e22819dc97bc88e6f1cc56c262a298acdf901db7147d423049",
+          "if": "github.event_name == 'workflow_dispatch'"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "provider-surface-capability-registry.validate",
+      "source": {
+        "workflow": ".github/workflows/provider-surface-capability-registry.yml",
+        "workflow_name": "KV Provider Surface Capability Registry",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile validator and tests",
+          "run_file": "tools/tasks/steps/provider-surface-capability-registry.validate/01-compile-validator-and-tests.sh",
+          "run_sha256": "2542799e3ca1150d06d5a6f93ac0e91a18f8beb5ad84fd2d0a0e0f17ae90f6c5"
+        },
+        {
+          "name": "Validate canonical provider/surface registry",
+          "run_file": "tools/tasks/steps/provider-surface-capability-registry.validate/02-validate-canonical-provider-surface-registry.sh",
+          "run_sha256": "23c498ff7946331beb665d40403f3c2e5446b11d8e8da55020ac66ce1b3ab20a"
+        },
+        {
+          "name": "Run provider/surface registry tests",
+          "run_file": "tools/tasks/steps/provider-surface-capability-registry.validate/03-run-provider-surface-registry-tests.sh",
+          "run_sha256": "fac814dd8fb5b250b1f116a3ccd0c32c4c209be388ad4237e019862f3c1c1ea9"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "reconcile-published-release.observe",
+      "source": {
+        "workflow": ".github/workflows/reconcile-published-release.yml",
+        "workflow_name": "Reconcile published release evidence - Validation Only",
+        "job": "observe",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Validate retained release evidence without mutation",
+          "run_file": "tools/tasks/steps/reconcile-published-release.observe/01-validate-retained-release-evidence-without-mutat.sh",
+          "run_sha256": "44aef7065a0ae8cefbdab4dd4f314453ec32989dc4fc298b245312ec800425a9",
+          "env": {
+            "INPUT_TAG": "${{ inputs.release_tag }}",
+            "REPOSITORY": "${{ github.repository }}"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "release-reconciliation-observation-${{ github.run_id }}",
+          "path": "reports/release_reconciliation/observation.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 10,
+        "ref": "main",
+        "artifact_name": "release-reconciliation-observation",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "reconcile-release-activation.observe",
+      "source": {
+        "workflow": ".github/workflows/reconcile-release-activation.yml",
+        "workflow_name": "Activate release reconciliation - Validation Only",
+        "job": "observe",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Emit non-authorizing reconciliation request",
+          "run_file": "tools/tasks/steps/reconcile-release-activation.observe/01-emit-non-authorizing-reconciliation-request.sh",
+          "run_sha256": "e38f393487926dba8d4b309a15576a9e28d68f3652f57e36f969ef3066168c7e"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "release-reconciliation-request-${{ github.run_id }}",
+          "path": "reports/release_reconciliation/activation-request.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "no_checkout_in_source": true,
+        "artifact_name": "release-reconciliation-request",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "reconstructive-memory.validate",
+      "source": {
+        "workflow": ".github/workflows/reconstructive-memory.yml",
+        "workflow_name": "Reconstructive Memory Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile reconstructive memory",
+          "run_file": "tools/tasks/steps/reconstructive-memory.validate/01-compile-reconstructive-memory.sh",
+          "run_sha256": "d5978af5f75a3c34e4c2d21d6c12a355afc3c42420c0cb82c51cadd72242bc6e"
+        },
+        {
+          "name": "Run reconstructive memory validator",
+          "run_file": "tools/tasks/steps/reconstructive-memory.validate/02-run-reconstructive-memory-validator.sh",
+          "run_sha256": "f4d55fc76d5b8f212eadb30bad5d3d8a4b7cc06b816481cb45a8cd7e2b27f8a4"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "release-assets.validate_release_assets",
+      "source": {
+        "workflow": ".github/workflows/release-assets.yml",
+        "workflow_name": "Release Asset Build Validation - No Publication Authority",
+        "job": "validate_release_assets",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "event_mapping": "push tags v* -> release published"
+      },
+      "events": [
+        "release"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Build release artifacts",
+          "run_file": "tools/tasks/steps/release-assets.validate_release_assets/01-build-release-artifacts.sh",
+          "run_sha256": "2e217a02378bad6ae23dc14b15b018bfe9e1f709cd009c952b8c68163e0c2144"
+        },
+        {
+          "name": "Validate release assets",
+          "run_file": "tools/tasks/steps/release-assets.validate_release_assets/02-validate-release-assets.sh",
+          "run_sha256": "de2d6112b03211002771066b4d3779dabfc35e2257f5cc3b72212cc98a09ec7b",
+          "shell": "bash"
+        },
+        {
+          "name": "Emit non-authorizing release observation",
+          "run_file": "tools/tasks/steps/release-assets.validate_release_assets/03-emit-non-authorizing-release-observation.sh",
+          "run_sha256": "d1edb4f51a5edf52d49d8583ffda68e26e523ab4b1fee70e4a3afcdf20249554"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "knowledgevault-release-assets-validation",
+          "path": "dist/",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 360,
+        "python_version": "3.11",
+        "artifact_name": "knowledgevault-release-assets-validation",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "release-cycle-outcome.observe-outcome",
+      "source": {
+        "workflow": ".github/workflows/release-cycle-outcome.yml",
+        "workflow_name": "Release cycle outcome - Validation Only",
+        "job": "observe-outcome",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "workflow_dispatch",
+          "workflow_run"
+        ],
+        "permissions_before": {
+          "actions": "read",
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Derive non-authorizing release-cycle observation",
+          "run_file": "tools/tasks/steps/release-cycle-outcome.observe-outcome/01-derive-non-authorizing-release-cycle-observation.sh",
+          "run_sha256": "d83b5b807e8a2303e602650ad5a776bb30d1d719e083167faf992b4a7fd9a9e1",
+          "env": {
+            "EVENT_NAME": "${{ github.event_name }}",
+            "SOURCE_CONCLUSION": "${{ github.event.workflow_run.conclusion }}",
+            "SOURCE_RUN_ID": "${{ github.event.workflow_run.id }}",
+            "SOURCE_HEAD_SHA": "${{ github.event.workflow_run.head_sha }}",
+            "REPOSITORY": "${{ github.repository }}",
+            "CURRENT_RUN_ID": "${{ github.run_id }}"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "release-cycle-observation-${{ github.run_id }}",
+          "path": "reports/release_cycle/hosted-release-cycle-observation.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "0",
+        "persist_credentials": "false",
+        "timeout_minutes": 10,
+        "ref": "main",
+        "artifact_name": "release-cycle-observation",
+        "artifact_if_no_files_found": "error"
+      },
+      "dispatcher_job": "release-cycle-outcome",
+      "chain": {
+        "after_job": "automated-release",
+        "permissions": {
+          "actions": "read",
+          "contents": "read"
+        },
+        "was": "workflow_run (completed) on the workflow named in .github/workflows/release-cycle-outcome.yml"
+      }
+    },
+    {
+      "id": "release-cycle-recovery.observe-recovery",
+      "source": {
+        "workflow": ".github/workflows/release-cycle-recovery.yml",
+        "workflow_name": "Release cycle recovery - Validation Only",
+        "job": "observe-recovery",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "workflow_dispatch",
+          "workflow_run"
+        ],
+        "permissions_before": {
+          "actions": "read",
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Derive non-authorizing recovery recommendation",
+          "run_file": "tools/tasks/steps/release-cycle-recovery.observe-recovery/01-derive-non-authorizing-recovery-recommendation.sh",
+          "run_sha256": "9e3fbf2fe4d079e053ed488eba2d1f6e1f5b44a39c5e53d39b0aa4b318b42baa"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "release-cycle-recovery-observation-${{ github.run_id }}",
+          "path": "reports/release_cycle/hosted-release-recovery-observation.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "0",
+        "persist_credentials": "false",
+        "timeout_minutes": 10,
+        "ref": "main",
+        "artifact_name": "release-cycle-recovery-observation",
+        "artifact_if_no_files_found": "error"
+      },
+      "dispatcher_job": "release-cycle-recovery",
+      "chain": {
+        "after_job": "release-cycle-outcome",
+        "permissions": {
+          "actions": "read",
+          "contents": "read"
+        },
+        "was": "workflow_run (completed) on the workflow named in .github/workflows/release-cycle-recovery.yml"
+      }
+    },
+    {
+      "id": "release-integrity.verify-release-integrity",
+      "source": {
+        "workflow": ".github/workflows/release-integrity.yml",
+        "workflow_name": "Release integrity",
+        "job": "verify-release-integrity",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Run release tooling self-test",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/01-run-release-tooling-self-test.sh",
+          "run_sha256": "7b59854044cb05153caf13522f0bd0317212c83116e4156e1443d530e49a140b"
+        },
+        {
+          "name": "Run vault initializer self-test",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/02-run-vault-initializer-self-test.sh",
+          "run_sha256": "bde983bf33bc3ebb9f019b8231ca32ef30e2bb8a1bd79e31c03856fe7fb12b42"
+        },
+        {
+          "name": "Run clean-room Packageable User KV proof",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/03-run-clean-room-packageable-user-kv-proof.sh",
+          "run_sha256": "794fbebf1aadbc29087f3a5899cc84e2bc9e49463b92097cbd423967882e7c58"
+        },
+        {
+          "name": "Validate automation contracts",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/04-validate-automation-contracts.sh",
+          "run_sha256": "1e660f35c68d425ec1e8c772df79b69c790f53db70a138e934ee4431d9430a1c"
+        },
+        {
+          "name": "Validate hosted release authority retirement",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/05-validate-hosted-release-authority-retirement.sh",
+          "run_sha256": "affae85c1c0df06f110d77439947005a93aa6c78806cb127861ea85af74d96e9"
+        },
+        {
+          "name": "Validate hosted candidate authority retirement",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/06-validate-hosted-candidate-authority-retirement.sh",
+          "run_sha256": "6c1062aca1fa24346dd63ed027a9331aced24ae28a10b5bdf48bee9741c18e53"
+        },
+        {
+          "name": "Validate hosted onboarding control-plane retirement",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/07-validate-hosted-onboarding-control-plane-retirem.sh",
+          "run_sha256": "0ed0eb7806be55d4282e5e7f8794d06960fecb9393345b30028be24036858a2e"
+        },
+        {
+          "name": "Validate production provider hosted authority retirement",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/08-validate-production-provider-hosted-authority-re.sh",
+          "run_sha256": "ecd9413ecc5010fb3daf0ecf0e6b78ff6c0bd9b0601b4b6b173d6893491ffee5"
+        },
+        {
+          "name": "Validate release reconciliation hosted authority retirement",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/09-validate-release-reconciliation-hosted-authority.sh",
+          "run_sha256": "6eed0741a9ea4385c8c13a4c1b12257a601b518822f26851fb47624637e0def6"
+        },
+        {
+          "name": "Validate StegDB overlay hosted writeback retirement",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/10-validate-stegdb-overlay-hosted-writeback-retirem.sh",
+          "run_sha256": "c391183af702f5a74ba8e7fdaabe77c06e1bd8f6a500dba09c3b3588f1afc7ba"
+        },
+        {
+          "name": "Validate KV format hosted mutation retirement",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/11-validate-kv-format-hosted-mutation-retirement.sh",
+          "run_sha256": "ab95a07162aff9f2d0d4786071780518a72d1fd30f581250594ec8a16c317c77"
+        },
+        {
+          "name": "Validate repository-wide hosted workflow authority",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/12-validate-repository-wide-hosted-workflow-authori.sh",
+          "run_sha256": "506d51e9e2b4fccb998cec565a89bd4c73366f5c7511ce667c91ef57bb017262"
+        },
+        {
+          "name": "Rebuild release evidence",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/13-rebuild-release-evidence.sh",
+          "run_sha256": "a9c269e16ac7638e892cc8ea88bd1a49846e8a091ad2734a3ae3a0bfe3e439e2"
+        },
+        {
+          "name": "Validate manifest shape",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/14-validate-manifest-shape.sh",
+          "run_sha256": "fe2d1e58739ae0b207a19599ac4abd1e3df0041fab0f0967d279c411dd138d8b"
+        },
+        {
+          "name": "Create non-authorizing release-integrity observation",
+          "run_file": "tools/tasks/steps/release-integrity.verify-release-integrity/15-create-non-authorizing-release-integrity-observa.sh",
+          "run_sha256": "896469c898775fe9db10f3ad1ebcb663c7c898232fa658e3648fbf3156c93ee9",
+          "env": {
+            "RUN_ID": "${{ github.run_id }}",
+            "RUN_ATTEMPT": "${{ github.run_attempt }}",
+            "COMMIT_SHA": "${{ github.sha }}",
+            "REPOSITORY": "${{ github.repository }}"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "continuity-vault-release-integrity-${{ github.sha }}",
+          "path": "dist/\nreports/release_integrity/release-integrity-observation.json\n",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "0",
+        "persist_credentials": "false",
+        "timeout_minutes": 10,
+        "python_version": "3.12",
+        "artifact_name": "continuity-vault-release-integrity",
+        "artifact_if_no_files_found": "error"
+      },
+      "dispatcher_job": "release-integrity",
+      "chain": {
+        "after_job": null,
+        "permissions": {
+          "contents": "read"
+        },
+        "was": "first stage"
+      }
+    },
+    {
+      "id": "release.build",
+      "source": {
+        "workflow": ".github/workflows/release.yml",
+        "workflow_name": "build-vault-release",
+        "job": "build",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Build release",
+          "run_file": "tools/tasks/steps/release.build/01-build-release.sh",
+          "run_sha256": "2e217a02378bad6ae23dc14b15b018bfe9e1f709cd009c952b8c68163e0c2144"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "continuity-vault-dist",
+          "path": "dist/",
+          "if_no_files_found": "warn",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11",
+        "artifact_name": "continuity-vault-dist",
+        "artifact_if_no_files_found": "warn"
+      }
+    },
+    {
+      "id": "repository-validation-diagnostics.diagnose",
+      "source": {
+        "workflow": ".github/workflows/repository-validation-diagnostics.yml",
+        "workflow_name": "Repository validation diagnostics",
+        "job": "diagnose",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Capture KV layer diagnostics",
+          "run_file": "tools/tasks/steps/repository-validation-diagnostics.diagnose/01-capture-kv-layer-diagnostics.sh",
+          "run_sha256": "040ca70ce824163482e34a8d4634090468960b982b6631ae48a91d41bac4e2ae"
+        },
+        {
+          "name": "Capture emoji diagnostics",
+          "run_file": "tools/tasks/steps/repository-validation-diagnostics.diagnose/02-capture-emoji-diagnostics.sh",
+          "run_sha256": "6c74375dfba1c61491774b3469a1a5b15661d77a0d657e9c4ba503121a5a1998"
+        },
+        {
+          "name": "Capture automation contract diagnostics",
+          "run_file": "tools/tasks/steps/repository-validation-diagnostics.diagnose/03-capture-automation-contract-diagnostics.sh",
+          "run_sha256": "9891b38425ae6eb121889b1f76d1e099d09f5c966d090820d73d392dc8af33bb"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "repository-validation-diagnostics-${{ github.sha }}",
+          "path": "kv-layer-diagnostics.txt\nemoji-diagnostics.txt\nautomation-contract-diagnostics.txt\n",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 5,
+        "python_version": "3.12",
+        "artifact_name": "repository-validation-diagnostics",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "runtime-import-and-secret-policy.guard",
+      "source": {
+        "workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
+        "workflow_name": "Runtime Import + Secret Field Policy",
+        "job": "guard",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/01-step.sh",
+          "run_sha256": "16f1d2311f945b766836a442e2575b712c362472e5f14900468c38108bc1f36c"
+        },
+        {
+          "name": "Compile every runtime and skap module",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/02-compile-every-runtime-and-skap-module.sh",
+          "run_sha256": "ad6d0082e17a942fbbd1ed235eead59731a38db06bccd67ef3ae8341d1a32266"
+        },
+        {
+          "name": "Secret field policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/03-secret-field-policy.sh",
+          "run_sha256": "4a06880305443d780d7fd93d09400eefecffeed727ec7b835a880ebf380097d6"
+        },
+        {
+          "name": "Boundary modules that consume the policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/04-boundary-modules-that-consume-the-policy.sh",
+          "run_sha256": "a7787d6010691bce82cbd7a8e9b4f0ab71b900b7304d80b4016f510a2cb5c804"
+        },
+        {
+          "name": "Workspace projection contract",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/05-workspace-projection-contract.sh",
+          "run_sha256": "d6d2211e9f2fef14391412d36b7dd68f211291fad8d3c40b2697dfc1fb137697"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      },
+      "select_when": {
+        "paths_absent": [
+          ".stegverse/finish_point_verdict.py"
+        ],
+        "reason": "superseded by the #260/#261 guard variants once .stegverse/finish_point_verdict.py lands"
+      }
+    },
+    {
+      "id": "runtime-import-and-secret-policy.guard.pr260",
+      "source": {
+        "workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
+        "workflow_name": "Runtime Import + Secret Field Policy",
+        "job": "guard",
+        "job_name": null,
+        "commit": "7354dc21c5bd392e92929bec04a3eb48647f9d52",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#260",
+        "stacked_on": "#258"
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/01-step.sh",
+          "run_sha256": "16f1d2311f945b766836a442e2575b712c362472e5f14900468c38108bc1f36c"
+        },
+        {
+          "name": "Compile every runtime and skap module",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/02-compile-every-runtime-and-skap-module.sh",
+          "run_sha256": "ad6d0082e17a942fbbd1ed235eead59731a38db06bccd67ef3ae8341d1a32266"
+        },
+        {
+          "name": "Secret field policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/03-secret-field-policy.sh",
+          "run_sha256": "4a06880305443d780d7fd93d09400eefecffeed727ec7b835a880ebf380097d6"
+        },
+        {
+          "name": "Boundary modules that consume the policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/04-boundary-modules-that-consume-the-policy.sh",
+          "run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade"
+        },
+        {
+          "name": "Workspace projection contract",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/05-workspace-projection-contract.sh",
+          "run_sha256": "d6d2211e9f2fef14391412d36b7dd68f211291fad8d3c40b2697dfc1fb137697"
+        },
+        {
+          "name": "Finish-point verdict paths, NOT_SELECTED and SELECTED (unittest, no skips)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/06-finish-point-verdict-paths-not-selected-and-sele.sh",
+          "run_sha256": "2cdb29293cd6694c5208b85c988d3266adb0bceeb2ad856fb1e1600996f795d0"
+        },
+        {
+          "name": "Callable test set - is the finish point selected by this change (pinned StegVerse-Labs selector)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/07-callable-test-set-is-the-finish-point-selected-b.sh",
+          "run_sha256": "6a1dae6d52731ad0ab7b260c4978c55275f9918d97b78ce6d11600a878c29c2e",
+          "env": {
+            "EVENT": "${{ github.event_name }}",
+            "PR_HEAD": "${{ github.event.pull_request.head.sha }}"
+          },
+          "id": "select"
+        },
+        {
+          "name": "KV/SKAP Vault finish point (E0)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/08-kv-skap-vault-finish-point-e0.sh",
+          "run_sha256": "33588154cfa738b4271be3642a251d0245306b0fea71f2e7ed0f2b2991c18390",
+          "env": {
+            "RUN": "${{ steps.select.outputs.run }}"
+          }
+        },
+        {
+          "name": "KV/SKAP Vault E0 witnesses",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr260/09-kv-skap-vault-e0-witnesses.sh",
+          "run_sha256": "ff23ade1822d0cb67dd2cb6f5415abb98563e9439f4fb24b4df3a4d0c86d6c2e"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "2",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      },
+      "select_when": {
+        "paths_present": [
+          ".stegverse/finish_point_verdict.py",
+          ".stegverse/labs-tool-pin.json",
+          ".stegverse/test-set-spec.json",
+          ".stegverse/test-sets.json"
+        ],
+        "paths_absent": [
+          ".stegverse/cross_repo_inputs.py"
+        ],
+        "reason": "#260 support files present"
+      }
+    },
+    {
+      "id": "runtime-import-and-secret-policy.guard.pr261",
+      "source": {
+        "workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
+        "workflow_name": "Runtime Import + Secret Field Policy",
+        "job": "guard",
+        "job_name": null,
+        "commit": "8dd3df2e6f8b27ef76175f395dac7b37a2d61370",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#261",
+        "stacked_on": "#260"
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/01-step.sh",
+          "run_sha256": "16f1d2311f945b766836a442e2575b712c362472e5f14900468c38108bc1f36c"
+        },
+        {
+          "name": "Compile every runtime and skap module",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/02-compile-every-runtime-and-skap-module.sh",
+          "run_sha256": "ad6d0082e17a942fbbd1ed235eead59731a38db06bccd67ef3ae8341d1a32266"
+        },
+        {
+          "name": "Secret field policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/03-secret-field-policy.sh",
+          "run_sha256": "4a06880305443d780d7fd93d09400eefecffeed727ec7b835a880ebf380097d6"
+        },
+        {
+          "name": "Boundary modules that consume the policy",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/04-boundary-modules-that-consume-the-policy.sh",
+          "run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade"
+        },
+        {
+          "name": "Workspace projection contract (no skips; cross-repository parity runs in its own step)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/05-workspace-projection-contract-no-skips-cross-rep.sh",
+          "run_sha256": "4e83c840ba853fc819442e48b06ad1ceb6788c06cf2a9d3edfdf83b052b25174"
+        },
+        {
+          "name": "Finish-point verdict paths, NOT_SELECTED and SELECTED (unittest, no skips)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/06-finish-point-verdict-paths-not-selected-and-sele.sh",
+          "run_sha256": "2cdb29293cd6694c5208b85c988d3266adb0bceeb2ad856fb1e1600996f795d0"
+        },
+        {
+          "name": "Callable test set - is the finish point selected by this change (pinned StegVerse-Labs selector)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/07-callable-test-set-is-the-finish-point-selected-b.sh",
+          "run_sha256": "e518ab3e810869274bab27985c49a3bf4cd512b04f0a8e13ed463079e6ea6c69",
+          "env": {
+            "EVENT": "${{ github.event_name }}",
+            "PR_HEAD": "${{ github.event.pull_request.head.sha }}"
+          },
+          "id": "select"
+        },
+        {
+          "name": "KV/SKAP Vault finish point (E0)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/08-kv-skap-vault-finish-point-e0.sh",
+          "run_sha256": "33588154cfa738b4271be3642a251d0245306b0fea71f2e7ed0f2b2991c18390",
+          "env": {
+            "RUN": "${{ steps.select.outputs.run }}"
+          }
+        },
+        {
+          "name": "Workspace cross-repository parity (pinned Site and StegVerse-Labs/.github), NOT_SELECTED or SELECTED (no skips)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/09-workspace-cross-repository-parity-pinned-site-an.sh",
+          "run_sha256": "aaf310871683a18f3dcdde09cc57f02ae3f116c5ffa2675e546087314787e6a3",
+          "env": {
+            "RUN": "${{ steps.select.outputs.parity_run }}"
+          }
+        },
+        {
+          "name": "KV/SKAP Vault E0 witnesses",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/10-kv-skap-vault-e0-witnesses.sh",
+          "run_sha256": "ff23ade1822d0cb67dd2cb6f5415abb98563e9439f4fb24b4df3a4d0c86d6c2e"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "2",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      },
+      "select_when": {
+        "paths_present": [
+          ".stegverse/finish_point_verdict.py",
+          ".stegverse/labs-tool-pin.json",
+          ".stegverse/test-set-spec.json",
+          ".stegverse/test-sets.json",
+          ".stegverse/cross_repo_inputs.py",
+          ".stegverse/workspace-parity-pin.json"
+        ],
+        "reason": "#261 support files present"
+      }
+    },
+    {
+      "id": "security-baseline.validate-security-baseline",
+      "source": {
+        "workflow": ".github/workflows/security-baseline.yml",
+        "workflow_name": "Security Baseline",
+        "job": "validate-security-baseline",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile validator",
+          "run_file": "tools/tasks/steps/security-baseline.validate-security-baseline/01-compile-validator.sh",
+          "run_sha256": "472e15d77b8023d1b6ae0c68de9d1b0f35001df3cd493154609d0d301854a81f"
+        },
+        {
+          "name": "Validate Federal Floor Plus baseline",
+          "run_file": "tools/tasks/steps/security-baseline.validate-security-baseline/02-validate-federal-floor-plus-baseline.sh",
+          "run_sha256": "a977107f037bf0db096696b8ab2cfcb5631416617a09142ce7149a1c9152fb09"
+        },
+        {
+          "name": "Validate existing repository contracts",
+          "run_file": "tools/tasks/steps/security-baseline.validate-security-baseline/03-validate-existing-repository-contracts.sh",
+          "run_sha256": "7bcbfbb738dd0a60c5b180f969e72317ad0a116e57c18579c3c5f8640ddf1a84"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "skap-loader-tests.skap-loader-tests",
+      "source": {
+        "workflow": ".github/workflows/skap-loader-tests.yml",
+        "workflow_name": "SKAP Loader Tests (diff-selected callable set)",
+        "job": "skap-loader-tests",
+        "job_name": null,
+        "commit": "f1a291eb5ec853bebcd8f69d729c90ec5737cd5e",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        },
+        "source_pr": "StegVerse-Labs/continuity-vault-kit#267",
+        "path_filter_dropped": true
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Run the SKAP loader set (0 skipped required)",
+          "run_file": "tools/tasks/steps/skap-loader-tests.skap-loader-tests/01-run-the-skap-loader-set-0-skipped-required.sh",
+          "run_sha256": "5dda4ff3cec04715953ce706cf02148f06a43b2ca6f1c6ee7a2d8cf6a92ba79b"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11",
+        "node_version": "22"
+      }
+    },
+    {
+      "id": "skap-vault-double-interlock.validate",
+      "source": {
+        "workflow": ".github/workflows/skap-vault-double-interlock.yml",
+        "workflow_name": "SKAP Vault Double Interlock Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile validator",
+          "run_file": "tools/tasks/steps/skap-vault-double-interlock.validate/01-compile-validator.sh",
+          "run_sha256": "e71231c5c06e2a93a0dd7cedde73cadcfd5e8e905ef5722d4f9e4602ba6650da"
+        },
+        {
+          "name": "Validate contract and deterministic negative cases",
+          "run_file": "tools/tasks/steps/skap-vault-double-interlock.validate/02-validate-contract-and-deterministic-negative-cas.sh",
+          "run_sha256": "25835f572bc36257e833838317d41c7ba4a0e67c9acfa524c03cca2428518bd4"
+        },
+        {
+          "name": "Assert two independent InTr boundaries and no secret authority leakage",
+          "run_file": "tools/tasks/steps/skap-vault-double-interlock.validate/03-assert-two-independent-intr-boundaries-and-no-se.sh",
+          "run_sha256": "b14597f20f129b711906a927d5fe420131d5c5fc398b5be613c7529dbf92f7bc"
+        },
+        {
+          "name": "Prove hosted validation is non-authorizing",
+          "run_file": "tools/tasks/steps/skap-vault-double-interlock.validate/04-prove-hosted-validation-is-non-authorizing.sh",
+          "run_sha256": "4722f128bc25bf8e3b6adf75933322b4b50c635280010a5d97e917833be3728f"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 360,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "storage-budget-policy.validate",
+      "source": {
+        "workflow": ".github/workflows/storage-budget-policy.yml",
+        "workflow_name": "Storage Budget Policy Validation",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile executable policy surface",
+          "run_file": "tools/tasks/steps/storage-budget-policy.validate/01-compile-executable-policy-surface.sh",
+          "run_sha256": "35fcb7845ca39ca9048c749e04d21261d303c5347c67675276c02f7ff620eca1"
+        },
+        {
+          "name": "Validate reference policies",
+          "run_file": "tools/tasks/steps/storage-budget-policy.validate/02-validate-reference-policies.sh",
+          "run_sha256": "fa243eb1a59f7796d71cbefc1a9d1cc3732bbc28a9f2812a789fb6d52a8159b7"
+        },
+        {
+          "name": "Run invariant and planner tests",
+          "run_file": "tools/tasks/steps/storage-budget-policy.validate/03-run-invariant-and-planner-tests.sh",
+          "run_sha256": "b6c9681b609f27ad98db73adbfac0379f679d295acd52a44d023aac322066d09"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 10,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "validate-incident-index.validate",
+      "source": {
+        "workflow": ".github/workflows/validate-incident-index.yml",
+        "workflow_name": "Validate Actionable Incident Index",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile incident tooling",
+          "run_file": "tools/tasks/steps/validate-incident-index.validate/01-compile-incident-tooling.sh",
+          "run_sha256": "cdbb0641e78990a936f81c438705785abde1f6bd6de57ff42016854cd25f326a"
+        },
+        {
+          "name": "Run synthetic incident-index tests",
+          "run_file": "tools/tasks/steps/validate-incident-index.validate/02-run-synthetic-incident-index-tests.sh",
+          "run_sha256": "1fa12ccd4eab37c51b89bfa688b0b2cf1e8ddd937356767039df922f5e8e499f"
+        },
+        {
+          "name": "Run synthetic handoff reconciliation tests",
+          "run_file": "tools/tasks/steps/validate-incident-index.validate/03-run-synthetic-handoff-reconciliation-tests.sh",
+          "run_sha256": "7bb8dbda6694173a85da516e5e30077fe5790dfadd985bd845436de7b2d59ab5"
+        },
+        {
+          "name": "Validate synthetic index directly",
+          "run_file": "tools/tasks/steps/validate-incident-index.validate/04-validate-synthetic-index-directly.sh",
+          "run_sha256": "9f3229e1a0d36816612d82f18b82b7ac4862a65a210174b03a8db02aa0f417cf"
+        },
+        {
+          "name": "Prove bounded retrieval path",
+          "run_file": "tools/tasks/steps/validate-incident-index.validate/05-prove-bounded-retrieval-path.sh",
+          "run_sha256": "516539000b94e7a4ffc4b6535a51e65a1e7db2593f07ba5cad04ec84c888d6d5"
+        },
+        {
+          "name": "Prove HANDOFF/index consistency path",
+          "run_file": "tools/tasks/steps/validate-incident-index.validate/06-prove-handoff-index-consistency-path.sh",
+          "run_sha256": "d8809073d9187bf5a0b2b6a5bed40c8da7eed5109e73b12f30a88ae6585aefee"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.11"
+      }
+    },
+    {
+      "id": "validate-kv-ai-persistence-classes.validate",
+      "source": {
+        "workflow": ".github/workflows/validate-kv-ai-persistence-classes.yml",
+        "workflow_name": "Validate KV AI Persistence Classes",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/01-step.sh",
+          "run_sha256": "65caebe083b2f53a339126619814d2190017f901942aa90028b48cdae7fc970e"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/02-step.sh",
+          "run_sha256": "c0f1af2f9a51189638d2542b5dabfecd3697cb8523fd023af6a0aa90d09d387a"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/03-step.sh",
+          "run_sha256": "5f3daa5221c194e8ce45827340c663495aa4b7ae72053499d85d4e6844896b8e"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/04-step.sh",
+          "run_sha256": "3dc612c922df3bbe115a94795a0b61c62b26e7ec520de94c4e403fd2ffab385b"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/05-step.sh",
+          "run_sha256": "b5d1331e741863fc1fd4bf9dc26baa3493ed5f97aa27f6079eb4e70155399c00"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/06-step.sh",
+          "run_sha256": "ffc9a5a88c972158052c2cab295e51e0333967bc70575f6cd7880ebad8264716"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/07-step.sh",
+          "run_sha256": "0b1387f69f2404628f753809c32838a2885204a5b5e67695c13133f9d5c9bfcf"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/08-step.sh",
+          "run_sha256": "ce7323d2f4fe85840f396b839deb978e827f66e970f229da689ead2be99d7ed6"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/09-step.sh",
+          "run_sha256": "6703ec231047630fac2aa052f8be35879121ff0e2fb0e543317905c7c790fec0"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/10-step.sh",
+          "run_sha256": "27ef200218f28ec9be246b5c4532bfa25322b013c6a4fb42c848cd67a1eed058"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/11-step.sh",
+          "run_sha256": "cf08c7ceae57e02802f176f2096475de86f7af901f4097402be97472e6f5b7ae"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/12-step.sh",
+          "run_sha256": "ffe7c0f77fa14ed0417c10f16849c5788e807af562acddb80dea8886d9030120"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/13-step.sh",
+          "run_sha256": "340f447659819c434a4dda856b1f108c2dc96ab44f4c1229fc107f2780fe9b4e"
+        },
+        {
+          "name": null,
+          "run_file": "tools/tasks/steps/validate-kv-ai-persistence-classes.validate/14-step.sh",
+          "run_sha256": "dc322e702e2fc7256e216b1b3e4bee0b0061a9dd5e24aaf4db3f5555a670b905"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "validate-kv-email-ingress-policy.validate",
+      "source": {
+        "workflow": ".github/workflows/validate-kv-email-ingress-policy.yml",
+        "workflow_name": "Validate KV Email Ingress Policy",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Validate canonical policy",
+          "run_file": "tools/tasks/steps/validate-kv-email-ingress-policy.validate/01-validate-canonical-policy.sh",
+          "run_sha256": "86a38d25b2dbe565bb112f6e340a1dab220eec7fe65fad2c450fb4ad43a5c55d"
+        },
+        {
+          "name": "Validate documented provider registry",
+          "run_file": "tools/tasks/steps/validate-kv-email-ingress-policy.validate/02-validate-documented-provider-registry.sh",
+          "run_sha256": "0438ea3dc4c2fc22c4f838bb8c76c912b59d7db49a40f53aa9304bfff31199ba"
+        },
+        {
+          "name": "Run deterministic tests",
+          "run_file": "tools/tasks/steps/validate-kv-email-ingress-policy.validate/03-run-deterministic-tests.sh",
+          "run_sha256": "185dd45524d499d8a1330722c16115f8025501be4efd29ec5aa20f271ca7e6aa"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "validate-kv-interlock-contract.validate",
+      "source": {
+        "workflow": ".github/workflows/validate-kv-interlock-contract.yml",
+        "workflow_name": "Validate KV Interlock Contract",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push",
+          "workflow_dispatch"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Compile canonical contract tooling",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/01-compile-canonical-contract-tooling.sh",
+          "run_sha256": "2e97241349b9f3574dbc9fa873a2f63ba5689dc261328520622b58f0f044577d"
+        },
+        {
+          "name": "Validate canonical contract",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/02-validate-canonical-contract.sh",
+          "run_sha256": "f24fc64617932379cf5f06766e5d45054511b671bca2cc04f8e15bcb72821420"
+        },
+        {
+          "name": "Run canonical contract tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/03-run-canonical-contract-tests.sh",
+          "run_sha256": "7fcb03bb9b3ba3c486a801760685175943ce91f1ea51170c6318383eaabf106f"
+        },
+        {
+          "name": "Validate generic KV Interlock InTr envelope",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/04-validate-generic-kv-interlock-intr-envelope.sh",
+          "run_sha256": "87147f3152eb1e3dc7dc278e090c5443122fe2c3fa76c4b2a9e0342d02fb3a05"
+        },
+        {
+          "name": "Run generic KV Interlock InTr envelope tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/05-run-generic-kv-interlock-intr-envelope-tests.sh",
+          "run_sha256": "dc0fde3d02fc8c89551920b05d7e0435f7ea71c697494c1c8e47cf460c305af1"
+        },
+        {
+          "name": "Run KV Interlock runtime endpoint tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/06-run-kv-interlock-runtime-endpoint-tests.sh",
+          "run_sha256": "3564eba731be7e501bf9f1edf0168a7548972853e6052c66d08197ea294d9aed"
+        },
+        {
+          "name": "Run endpoint fanout probe tests",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/07-run-endpoint-fanout-probe-tests.sh",
+          "run_sha256": "94f8513f109af5123858735a626a43d2858516b1d57548737b5b24b0bd3fd346"
+        },
+        {
+          "name": "Emit endpoint fanout probe evidence",
+          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/08-emit-endpoint-fanout-probe-evidence.sh",
+          "run_sha256": "1de22984454a9643be1d5c50c5e2277b48f907ded72b8fd92d0ee8046314a6c4"
+        }
+      ],
+      "artifacts": [
+        {
+          "name": "endpoint-fanout-probe-evidence",
+          "path": "probe-evidence/endpoint-fanout-probe.result.json",
+          "if_no_files_found": "error",
+          "if": null
+        }
+      ],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "true",
+        "timeout_minutes": 360,
+        "python_version": "3.12",
+        "artifact_name": "endpoint-fanout-probe-evidence",
+        "artifact_if_no_files_found": "error"
+      }
+    },
+    {
+      "id": "validate-organization-security-posture.validate",
+      "source": {
+        "workflow": ".github/workflows/validate-organization-security-posture.yml",
+        "workflow_name": "Validate organization KV security posture",
+        "job": "validate",
+        "job_name": null,
+        "commit": "bcc2d75",
+        "triggers_before": [
+          "pull_request",
+          "push"
+        ],
+        "permissions_before": {
+          "contents": "read"
+        }
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "steps": [
+        {
+          "name": "Static posture checks",
+          "run_file": "tools/tasks/steps/validate-organization-security-posture.validate/01-static-posture-checks.sh",
+          "run_sha256": "99ea9173d7834b3c243f8f002ebcb62084cf9a244b85948727a6cb425b96df58"
+        },
+        {
+          "name": "Deterministic posture tests",
+          "run_file": "tools/tasks/steps/validate-organization-security-posture.validate/02-deterministic-posture-tests.sh",
+          "run_sha256": "94b17810c8e8fea5fde196b847dbd542bd20b0f07b2094ea8cf59109d261eeb1"
+        }
+      ],
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 360,
+        "python_version": "3.12"
+      }
+    },
+    {
+      "id": "workflow-surface-registry.validate",
+      "source": {
+        "added_by": "G17 consolidation",
+        "name": "Workflow surface registry",
+        "note": "G17: enforces the registry and folded records (replaces EXPECTED_WORKFLOW_COUNT)"
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 15,
+        "python_version": "3.12"
+      },
+      "steps": [
+        {
+          "name": "Registry, folded records and authority markers hold",
+          "run_file": "tools/tasks/steps/workflow-surface-registry.validate/01-registry-records-and-authority-hold.sh",
+          "run_sha256": "dc782e9a4bde4966b6575f9aeacc7dce0a368263f279d8c1bab680898b37fd67"
+        }
+      ]
+    }
+  ]
+}

@@ -4,8 +4,8 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 FILES=(
- ".github/workflows/sync-knowledgevault-overlay-from-stegdb.yml",
- ".github/workflows/sync-overlay-from-stegdb.yml",
+ "tools/tasks/folded/sync-knowledgevault-overlay-from-stegdb.yml",
+ "tools/tasks/folded/sync-overlay-from-stegdb.yml",
 )
 
 class StegDBOverlayHostedWritebackRetirementTests(unittest.TestCase):

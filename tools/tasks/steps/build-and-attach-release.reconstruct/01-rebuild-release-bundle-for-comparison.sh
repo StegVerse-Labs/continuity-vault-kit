@@ -1,0 +1,1 @@
+python3 tools/build_release.py

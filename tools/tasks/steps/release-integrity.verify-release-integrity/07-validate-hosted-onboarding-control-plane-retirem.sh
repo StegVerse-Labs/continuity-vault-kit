@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_hosted_onboarding_control_plane_retirement -v
