@@ -178,7 +178,7 @@ class WorkflowSurfaceRegistryTests(unittest.TestCase):
         self.assertEqual(sorted(triggers(text)), ["pull_request", "push"])
         self.assertNotIn("paths", head)
         self.assertIn("run_catalog.py verify", text)
-        self.assertIn("run_catalog.py run --group", text)
+        self.assertRegex(text, r"run_catalog\.py\"? run --group")
         self.assertEqual(permissions(text)["workflow"], {})
 
     def test_every_folded_check_is_a_catalog_group(self):

@@ -69,6 +69,20 @@ jobs:
           ref: ${{ matrix.ref }}
           fetch-depth: ${{ matrix.fetch_depth }}
           persist-credentials: ${{ matrix.persist_credentials }}
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        if: matrix.ref != ''
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        if: matrix.ref != ''
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - name: Second checkout the folded job made
         if: matrix.x_repository
         uses: actions/checkout@v4
@@ -89,7 +103,7 @@ jobs:
         with:
           node-version: "${{ matrix.node_version }}"
       - name: Run the catalog group
-        run: python3 tools/tasks/run_catalog.py run --group "${{ matrix.group }}"
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "${{ matrix.group }}"
       - name: Retain the artifact the folded job uploaded
         if: always() && matrix.artifact_name
         uses: actions/upload-artifact@v4
@@ -128,7 +142,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Run the catalog group
-        run: python3 tools/tasks/run_catalog.py run --group "release-integrity.verify-release-integrity"
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "release-integrity.verify-release-integrity"
       - name: Retain the artifact the folded job uploaded
         if: always()
         uses: actions/upload-artifact@v4
@@ -167,12 +181,24 @@ jobs:
           ref: main
           fetch-depth: 0
           persist-credentials: false
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - name: Python the folded job set up
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Run the catalog group
-        run: python3 tools/tasks/run_catalog.py run --group "automated-release.validate_release_readiness"
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "automated-release.validate_release_readiness"
       - name: Retain the artifact the folded job uploaded
         if: always()
         uses: actions/upload-artifact@v4
@@ -212,8 +238,20 @@ jobs:
           ref: main
           fetch-depth: 0
           persist-credentials: false
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - name: Run the catalog group
-        run: python3 tools/tasks/run_catalog.py run --group "release-cycle-outcome.observe-outcome"
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "release-cycle-outcome.observe-outcome"
       - name: Retain the artifact the folded job uploaded
         if: always()
         uses: actions/upload-artifact@v4
@@ -253,8 +291,20 @@ jobs:
           ref: main
           fetch-depth: 0
           persist-credentials: false
+      - name: Catalog runner from the dispatcher's commit (the folded job checked out another ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .catalog-runner
+          sparse-checkout: tools/tasks
+          persist-credentials: false
+      - name: Keep the catalog runner outside the checked-out tree
+        run: |
+          mv .catalog-runner "$RUNNER_TEMP/catalog-runner"
+          echo "CATALOG_RUNNER_DIR=$RUNNER_TEMP/catalog-runner" >> "$GITHUB_ENV"
+          echo "CATALOG_WORK_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - name: Run the catalog group
-        run: python3 tools/tasks/run_catalog.py run --group "release-cycle-recovery.observe-recovery"
+        run: python3 "${CATALOG_RUNNER_DIR:-.}/tools/tasks/run_catalog.py" run --group "release-cycle-recovery.observe-recovery"
       - name: Retain the artifact the folded job uploaded
         if: always()
         uses: actions/upload-artifact@v4

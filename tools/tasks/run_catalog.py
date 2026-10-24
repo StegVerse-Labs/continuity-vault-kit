@@ -28,6 +28,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "tools/tasks/task_catalog.json"
+# The tree the steps run in. Defaults to the runner's own checkout; a folded job that checked
+# out another ref (e.g. `ref: main`) runs this runner from the dispatcher's commit and sets
+# CATALOG_WORK_ROOT to the checked-out tree, so step bodies stay pinned to this catalog.
+WORK = Path(os.environ.get("CATALOG_WORK_ROOT") or ROOT).resolve()
 EXPR = re.compile(r"\$\{\{\s*(.*?)\s*\}\}")
 OWNING_GOAL = "G17-WORKFLOW-SURFACE-MINIMIZATION (StegVerse-Labs/.github#167/#168)"
 
@@ -347,7 +351,7 @@ def run_group(gid):
         return 0
 
     env = dict(os.environ)
-    env["GITHUB_WORKSPACE"] = env.get("GITHUB_WORKSPACE") or str(ROOT)
+    env["GITHUB_WORKSPACE"] = env.get("GITHUB_WORKSPACE") or str(WORK)
     ctx = {"steps": {}, "success": True, "matrix": group.get("matrix_values") or {}}
     for key, value in (group.get("env") or {}).items():
         env[key] = substitute(value, env, ctx)
@@ -376,7 +380,7 @@ def run_group(gid):
             text = raw.decode("utf-8")
             # GitHub renders ${{ }} in a run block before the shell sees it; so does this.
             script.write_bytes(substitute(text, env, ctx).encode("utf-8") if EXPR.search(text) else raw)
-            cwd = ROOT / substitute(step.get("working_directory") or ".", env, ctx)
+            cwd = WORK / substitute(step.get("working_directory") or ".", env, ctx)
             print(f"::group::[{gid}] {n}. {name}", flush=True)
             timeout = step.get("timeout_minutes") or group.get("timeout_minutes")
             try:
@@ -433,7 +437,7 @@ def collect_artifacts(group, env, temp):
             line = substitute(line.strip(), env)
             if not line or line.startswith("!"):
                 continue
-            pattern = line if os.path.isabs(line) else str(ROOT / line)
+            pattern = line if os.path.isabs(line) else str(WORK / line)
             for match in glob.glob(pattern, recursive=True):
                 source = Path(match)
                 target = dest / source.name
@@ -447,8 +451,8 @@ def collect_artifacts(group, env, temp):
 def selection(group):
     """select_when: {"paths_present": [...], "paths_absent": [...]} over this checkout."""
     when = group.get("select_when") or {}
-    missing = [p for p in when.get("paths_present", []) if not (ROOT / p).exists()]
-    present = [p for p in when.get("paths_absent", []) if (ROOT / p).exists()]
+    missing = [p for p in when.get("paths_present", []) if not (WORK / p).exists()]
+    present = [p for p in when.get("paths_absent", []) if (WORK / p).exists()]
     if missing or present:
         return False, {"paths_missing": missing, "paths_present": present, "selects_when": when.get("reason", "")}
     return True, None
