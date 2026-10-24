@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 
 from tools.run_endpoint_fanout_probe import (
+    E0_STANDIN_LABEL,
+    e0_standin_healthy_node,
     LEGACY_RECORD_RESULT_SCHEMA,
     LEGACY_RECORD_STATUS_FIELD,
     record_result_status,
@@ -10,9 +12,14 @@ from tools.run_endpoint_fanout_probe import (
 )
 
 
+
+def e0_probe():
+    return run_probe("alpha-probe-value", probe_id="probe-alpha", healthy_node_ledger_checkout=e0_standin_healthy_node(),
+                     healthy_node_locus=E0_STANDIN_LABEL)
+
 class EndpointFanoutProbeTests(unittest.TestCase):
     def test_one_probe_becomes_exactly_two_reports(self):
-        result = run_probe("alpha-probe-value", probe_id="probe-alpha")
+        result = e0_probe()
         self.assertTrue(result["pass"])
         self.assertEqual(result["report_count"], 2)
         self.assertEqual(
@@ -21,7 +28,7 @@ class EndpointFanoutProbeTests(unittest.TestCase):
         )
 
     def test_kv_report_returns_endpoint_status_and_binding(self):
-        result = run_probe("alpha-probe-value", probe_id="probe-alpha")
+        result = e0_probe()
         report = result["reports"]["kv_interlock_endpoint_status"]
         self.assertEqual(report["endpoint_status"], "PASS")
         self.assertEqual(report["decision"], "ALLOW_BOUNDED_CONTEXT")
@@ -41,7 +48,7 @@ class EndpointFanoutProbeTests(unittest.TestCase):
         self.assertTrue(returned["payload_ref"].endswith(report["status_observation_sha256"]))
 
     def test_master_records_report_records_full_travel(self):
-        result = run_probe("alpha-probe-value", probe_id="probe-alpha")
+        result = e0_probe()
         report = result["reports"]["master_records_travel"]
         self.assertEqual(len(report["hops"]), 5)
         self.assertEqual(
@@ -70,14 +77,14 @@ class EndpointFanoutProbeTests(unittest.TestCase):
         self.assertEqual(LEGACY_RECORD_STATUS_FIELD, "custody_status")
         legacy = {"schema": LEGACY_RECORD_RESULT_SCHEMA, LEGACY_RECORD_STATUS_FIELD: "TEST_ONLY_RECORDED"}
         self.assertEqual(record_result_status(legacy), "TEST_ONLY_RECORDED")
-        result = run_probe("alpha-probe-value", probe_id="probe-alpha")
+        result = e0_probe()
         current = result["reports"]["master_records_travel"]["master_records_result"]
         self.assertEqual(record_result_status(current), "TEST_ONLY_RECORDED")
         with self.assertRaises(ValueError):
             record_result_status({"schema": "other", "record_status": "TEST_ONLY_RECORDED"})
 
     def test_probe_is_non_secret_and_does_not_mutate_canonical_state(self):
-        result = run_probe("alpha-probe-value", probe_id="probe-alpha")
+        result = e0_probe()
         text = str(result).lower()
         self.assertNotIn("password", text)
         self.assertNotIn("private_key", text)
@@ -88,6 +95,21 @@ class EndpointFanoutProbeTests(unittest.TestCase):
             result["reports"]["kv_interlock_endpoint_status"]["return_interlock"]["canonical_state_changed"]
         )
         self.assertEqual(result["authority_effect"], "NONE_TEST_ONLY")
+
+
+class EndpointFanoutProbeLayer1Tests(unittest.TestCase):
+    def test_without_a_receipted_health_report_the_probe_fails_closed_at_layer1(self) -> None:
+        result = run_probe("alpha-probe-value", probe_id="probe-alpha")  # real path: no health ledger bound
+        self.assertFalse(result["pass"])
+        refusal = result["layer1_refusal"]
+        self.assertEqual((refusal["decision"], refusal["failure_code"]), ("FAIL_CLOSED", "KV_ACCESS_LAYER1_REFUSED"))
+        self.assertEqual(refusal["refusal_cause"], "HEALTHY_NODE_LEDGER_NOT_ONBOARDED")
+        self.assertNotIn("reports", result)
+
+    def test_e0_standin_run_is_labelled_not_evidence(self) -> None:
+        result = e0_probe()
+        self.assertTrue(result["pass"])
+        self.assertEqual(result["healthy_node_locus"], "E0_STANDIN_HEALTHY_NODE_NOT_EVIDENCE")
 
 
 if __name__ == "__main__":

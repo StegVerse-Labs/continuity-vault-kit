@@ -1,0 +1,28 @@
+{
+  "authority_effect": "NONE",
+  "evidence": {
+    "authority_effect": "NONE_TEST_FIXTURE",
+    "repository": "StegVerse-org/LLM-adapter",
+    "schema": "stegverse.repository-ledger-initialization/v1"
+  },
+  "hb_reference": {
+    "authority_effect": "NONE",
+    "derived_from_clock": false,
+    "epoch": 32,
+    "frequency_hz": 100,
+    "heartbeat_id": "HB:32",
+    "period_ms": 10,
+    "progression_dependency": "OSCILLATOR_ONLY"
+  },
+  "observed_at": null,
+  "observed_at_is_descriptive_not_ordering": true,
+  "ordering": "OSCILLATOR_HEARTBEAT_EPOCH_ONLY",
+  "predecessor_state_sha256": "sha256:d92e0782322835b569e15e109babade725bb446d22478513ca5fa57d42122ccc",
+  "previous_receipt_sha256": null,
+  "receipt_sha256": "sha256:e7175b7ad2beb11330f4cba79c7e922636b9fef008eca9001e2ffbb059b6f2d1",
+  "repository": "StegVerse-org/LLM-adapter",
+  "schema": "stegverse.repo-transition-receipt/v1",
+  "successor_state_sha256": "sha256:784658fb7957c68f467d1b6ec3067ac4a1e729aed1846890350c810768f8e1da",
+  "transition_class": "REPOSITORY_LEDGER_INITIALIZATION",
+  "transition_id": "REPOSITORY_LEDGER_INITIALIZATION:test-fixture"
+}

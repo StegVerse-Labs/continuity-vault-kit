@@ -26,3 +26,48 @@ This binding does not authenticate providers, resolve credentials, decide Interl
 
 ## Manual work
 None.
+
+## Additive: vault-lineage record type (class B consumes-extension)
+
+KV-SKAP-VAULT-FUNCTIONAL-001 (finish point continuity-vault-kit#258) consumes this Goal for
+`KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND`: the durable custody location a vault's receipt-hash lineage is read
+from on any device. This binding now carries a second record type, `KV_SKAP_VAULT_LINEAGE`:
+
+- `build_vault_lineage_record` wraps an exported `stegverse.kv-skap-vault-lineage/v1` lineage as
+  `stegverse.task-registry-sovereign-kv-vault-lineage-record/v1`, re-deriving every receipt hash, the chain
+  and the head, and refusing credential or key material.
+- `build_vault_lineage_custody_binding` produces the existing v1 provider WRITE request
+  (object_ref = lineage hash) plus a v1 READ request from `build_vault_lineage_readback_request`
+  (runtime/kv_storage_provider_adapter.py), so any device reads the lineage back by its exact hash.
+- `validate_vault_lineage_custody_result` requires the admitted WRITE receipt and that the read-back
+  lineage re-derives to the bound hash and head.
+
+The projection-request schema, the event binding, its receipt and the adapter's v1 request builder are
+byte-unchanged; `tests/test_sovereign_kv_vault_lineage_record.py` pins their digests as observed at main
+`bcc2d75`. No provider I/O, credential, or authority is added (`authority_effect: NONE`).
+
+## Ladder conformance (StegVerse-Labs/.github#3330, LC-KV-02 and LC-KV-03(a))
+
+- **LC-KV-02.** `validate_vault_lineage_custody_result` is the E0 terminal of the durable-custody validation
+  handoff and now returns a disposition instead of raising. On success it returns the custody receipt with
+  `disposition: ALLOW`. Otherwise it returns a six-field FAIL_CLOSED: `failure_code`, `failed_predicate`
+  (`AUTHENTIC_ADMITTED_PROVIDER_WRITE_AND_EXACT_EVENT_HASH_READBACK_FROM_SOVEREIGN_KV`),
+  `required_evidence_or_repair`, `retry_entrypoint`, `owning_existing_goal` (this Goal) and `next_attempt`.
+  The raise stays internal in `_validate_vault_lineage_custody_result_strict`.
+- **LC-KV-03, revision 1 (withdrawal).** The ecosystem git-ref custody adapter
+  (`refs/stegverse/kv-custody/<principal>`, formerly `runtime/kv_ecosystem_git_ref_custody.py`) is removed:
+  it reached custody without passing either credential layer. `vault_lineage_registry()` is `default_registry()`
+  again, and no provider is an access path. A provider may at most carry the sealed lineage below the gates.
+- **Two credential layers (LC-KV-03 rev 1, LC-KV-08).** `validate_vault_lineage_custody_result` now also
+  requires the provider receipt to bind `kv_access_receipt_hash` and `skap_access_receipt_hash`:
+  - The first is the layer-1 INTR_DEVICE_KV receipt, minted by `KVInterlockRuntime.handle` for a currently
+    admitted healthy node.
+  - The second is the layer-2 INTR_KV_SKAP receipt. A separate gate inside KV mints it, and its
+    `prior_receipt_hash` is the layer-1 receipt.
+  - The caller supplies `access_receipt_verifier`, which is the layer-2 gate's `verify_access_chain` in
+    continuity-vault-kit#258. The verifier checks both receipts against the gates' own receipt stores; a
+    non-empty string is never accepted.
+  - A missing or unverified layer returns a six-field FAIL_CLOSED that names the refusing layer:
+    `KV_ACCESS_LAYER1_REFUSED` (failed_predicate `KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE`) or
+    `SKAP_ACCESS_LAYER2_REFUSED` (failed_predicate `SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT`).
+  - This module mints neither receipt.

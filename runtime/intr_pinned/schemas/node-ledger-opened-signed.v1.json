@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/node-ledger-opened-signed.v1.json",
+  "title": "StegVerse signed NODE_LEDGER_OPENED envelope v1 (LC-KV-16)",
+  "description": "The InTr anchor body for an EPHEMERAL node ledger: StegOS's generation-time record (node-ledger-opened-generation.v1.json) plus a detached Ed25519 signature over common.signed_message('stegverse.node-ledger-opened-signature/v1', record) by a signer published in .stegverse/node-ledger/node-ledger-opened-signers.v1.json (TV/TVC custody; bots never hold keys). An unsigned record is FAIL_CLOSED NODE_LEDGER_OPENED_UNSIGNED, an unpublished key_id NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED, a non-verifying signature NODE_LEDGER_OPENED_SIGNATURE_INVALID. Producer: llm_adapter.endpoint_ledger_anchor.signed_opened; verifier: opened_signature_failure (stdlib llm_adapter.ed25519_verify).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "genesis_receipt_sha256",
+    "node_ledger_opened",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.node-ledger-opened-signed/v1"
+    },
+    "genesis_receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Equal to node_ledger_opened.genesis_receipt_sha256."
+    },
+    "node_ledger_opened": {
+      "$ref": "https://stegverse.org/schemas/node-ledger-opened-generation.v1.json"
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "key_id",
+        "signature_b64"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A key_id in node-ledger-opened-signers.v1.json."
+        },
+        "signature_b64": {
+          "type": "string",
+          "minLength": 88,
+          "maxLength": 88
+        }
+      }
+    }
+  }
+}

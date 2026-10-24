@@ -1,24 +1,37 @@
 import json
+import sys
 import tempfile
 import unittest
+from pathlib import Path
 
-from execution.adapter import canonical_sha256
-from execution.vault_store import KnowledgeVaultExecutionStore, VaultStoreError
-from skap.crypto_boundary import seal
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from execution.adapter import canonical_sha256  # noqa: E402
+from execution.vault_store import KnowledgeVaultExecutionStore, SkapAccessRefused, VaultStoreError  # noqa: E402
+from kv_two_layer_e0 import TwoLayers  # noqa: E402
+from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
+#: A stored skap.crypto_boundary.seal output (synthetic plaintext, test-only key): the vault store never decrypts, so
+#: these tests need no cryptography import (Coordination class D ruling on cvk#258).
+SEALED_FIXTURE = json.loads((Path(__file__).resolve().parent / "fixtures" / "skap_sealed_material.synthetic.json")
+                            .read_text(encoding="utf-8"))
+
+PRINCIPAL = "principal:owner"
+SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
+       "owning_existing_goal", "next_attempt")
 
 
 class SkapKvPersistenceTests(unittest.TestCase):
+    """SKAP sealed-credential persistence, reached through both credential layers (LC-KV-07, .github#3330 rev 1)."""
+
+    def setUp(self):
+        self.layers = TwoLayers(principal=PRINCIPAL)
+
+    def access(self, operation, stream_id):
+        return {"skap_gate": self.layers.gate, "principal_ref": PRINCIPAL,
+                "skap_access_receipt_hash": self.layers.skap_hash(operation, stream_id)}
+
     def make_bundle(self):
-        sealed = seal(
-            b"synthetic-coinbase-credential",
-            root_key=b"k" * 32,
-            object_id="skap://APIs/coinbase/test/v1",
-            credential_version=1,
-            wrapping_policy_ref="policy://skap/coinbase/advanced-trade",
-            purpose="coinbase.permission_observation",
-            endpoint_ref="https://api.coinbase.com",
-            key_authority_ref="tvc://credential-root/test-only",
-        ).envelope
+        sealed = json.loads(json.dumps(SEALED_FIXTURE["envelope"]))
         receipt = {
             "schema": "stegverse.skap.owner_credential_ingress_receipt/v1",
             "object_id": sealed["object_id"],
@@ -30,7 +43,7 @@ class SkapKvPersistenceTests(unittest.TestCase):
             "source_class": "TRUSTED_INTERACTIVE_EDGE",
             "key_authority_ref": sealed["key_authority_ref"],
             "sealed_material_hash": canonical_sha256(sealed),
-            "plaintext_length": len(b"synthetic-coinbase-credential"),
+            "plaintext_length": SEALED_FIXTURE["plaintext_length"],
             "owner_authorized": True,
             "plaintext_persisted": False,
             "device_durable_secret_custody": False,
@@ -45,21 +58,21 @@ class SkapKvPersistenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeVaultExecutionStore(tmp)
             sealed, receipt = self.make_bundle()
-            store.append_skap_sealed_credential("coinbase-test-v1", sealed, receipt)
+            store.append_skap_sealed_credential("coinbase-test-v1", sealed, receipt, **self.access("SKAP_SEALED_CREDENTIAL_APPEND", "coinbase-test-v1"))
 
-            readback = store.read_skap_sealed_credential("coinbase-test-v1")
+            readback = store.read_skap_sealed_credential("coinbase-test-v1", **self.access("SKAP_SEALED_CREDENTIAL_READ", "coinbase-test-v1"))
             self.assertEqual(readback, sealed)
             self.assertEqual(canonical_sha256(readback), canonical_sha256(sealed))
 
             serialized = json.dumps({
-                "extensions": store.read_stream("Extensions", "coinbase-test-v1"),
-                "receipts": store.read_stream("Receipts", "coinbase-test-v1"),
+                "extensions": at_rest(store, "Extensions", "coinbase-test-v1"),
+                "receipts": at_rest(store, "Receipts", "coinbase-test-v1"),
             }, sort_keys=True)
             self.assertNotIn("synthetic-coinbase-credential", serialized)
             self.assertNotIn("kkkkkkkk", serialized)
             self.assertIn(sealed["ciphertext_b64"], serialized)
-            self.assertFalse(store.read_stream("Extensions", "coinbase-test-v1")[0]["kv_decryption_authority"])
-            self.assertFalse(store.read_stream("Extensions", "coinbase-test-v1")[0]["kv_secret_resolution_authority"])
+            self.assertFalse(at_rest(store, "Extensions", "coinbase-test-v1")[0]["kv_decryption_authority"])
+            self.assertFalse(at_rest(store, "Extensions", "coinbase-test-v1")[0]["kv_secret_resolution_authority"])
 
     def test_receipt_must_bind_exact_ciphertext(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -67,7 +80,7 @@ class SkapKvPersistenceTests(unittest.TestCase):
             sealed, receipt = self.make_bundle()
             receipt["sealed_material_hash"] = "sha256:" + "0" * 64
             with self.assertRaisesRegex(VaultStoreError, "sealed-material hash mismatch"):
-                store.append_skap_sealed_credential("bad-hash", sealed, receipt)
+                store.append_skap_sealed_credential("bad-hash", sealed, receipt, **self.access("SKAP_SEALED_CREDENTIAL_APPEND", "bad-hash"))
 
     def test_kv_rejects_plaintext_key_or_authority_claims(self):
         mutations = [
@@ -85,13 +98,13 @@ class SkapKvPersistenceTests(unittest.TestCase):
                 if receipt.get("sealed_material_hash") != canonical_sha256(sealed):
                     receipt["sealed_material_hash"] = canonical_sha256(sealed)
                 with self.assertRaisesRegex(VaultStoreError, expected):
-                    store.append_skap_sealed_credential("bad-boundary", sealed, receipt)
+                    store.append_skap_sealed_credential("bad-boundary", sealed, receipt, **self.access("SKAP_SEALED_CREDENTIAL_APPEND", "bad-boundary"))
 
     def test_stored_record_tamper_is_detected_before_readback(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = KnowledgeVaultExecutionStore(tmp)
             sealed, receipt = self.make_bundle()
-            extension_path, _ = store.append_skap_sealed_credential("tamper-test", sealed, receipt)
+            extension_path, _ = store.append_skap_sealed_credential("tamper-test", sealed, receipt, **self.access("SKAP_SEALED_CREDENTIAL_APPEND", "tamper-test"))
             original = sealed["ciphertext_b64"]
             replacement_first = "B" if original[0] == "A" else "A"
             tampered = replacement_first + original[1:]
@@ -101,7 +114,48 @@ class SkapKvPersistenceTests(unittest.TestCase):
             self.assertNotEqual(text, extension_path.read_text(encoding="utf-8"))
             extension_path.write_text(text, encoding="utf-8")
             with self.assertRaisesRegex(VaultStoreError, "hash verification"):
-                store.read_skap_sealed_credential("tamper-test")
+                store.read_skap_sealed_credential("tamper-test", **self.access("SKAP_SEALED_CREDENTIAL_READ", "tamper-test"))
+
+
+    def test_sealed_credentials_are_unreachable_without_both_layers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = KnowledgeVaultExecutionStore(tmp)
+            sealed, receipt = self.make_bundle()
+            append = self.access("SKAP_SEALED_CREDENTIAL_APPEND", "s1")
+            cases = [
+                ({}, "B"),  # no gate: the bypass is closed
+                ({"skap_gate": self.layers.gate, "principal_ref": PRINCIPAL}, "C"),  # no receipt
+                ({**append, "skap_access_receipt_hash": "intr:not-a-receipt"}, "C"),  # a caller-asserted ref
+                ({**append, "principal_ref": "principal:other"}, "C"),  # receipt scoped to another principal
+                (self.access("SKAP_SEALED_CREDENTIAL_READ", "s1"), "C"),  # receipt for another operation
+                (self.access("SKAP_SEALED_CREDENTIAL_APPEND", "s2"), "C"),  # receipt for another stream
+            ]
+            for kwargs, failure_class in cases:
+                with self.assertRaises(SkapAccessRefused) as caught:
+                    store.append_skap_sealed_credential("s1", sealed, receipt, **kwargs)
+                fields = caught.exception.fields
+                self.assertEqual((fields["disposition"], fields["failure_class"]), ("FAIL_CLOSED", failure_class))
+                self.assertIn(fields["failure_code"], ("SKAP_ACCESS_LAYER2_REFUSED",))
+                for field in SIX:
+                    self.assertTrue(fields[field], field)
+                self.assertFalse((Path(tmp) / "_System").exists())  # refused before any state is touched
+            store.append_skap_sealed_credential("s1", sealed, receipt, **append)
+            with self.assertRaises(SkapAccessRefused):  # a SKAP-access receipt is single-use
+                store.append_skap_sealed_credential("s1", sealed, receipt, **append)
+            with self.assertRaises(SkapAccessRefused):
+                store.read_skap_sealed_credential("s1")
+            for category in ("Extensions", "Receipts"):  # LC-KV-07: the ungated read refuses SKAP streams
+                with self.assertRaises(SkapAccessRefused):
+                    store.read_stream(category, "s1")
+            record = at_rest(store, "Extensions", "s1")[0]
+            self.assertEqual(record["access"]["skap_access_receipt_hash"], append["skap_access_receipt_hash"])
+            self.assertTrue(record["access"]["kv_access_receipt_hash"].startswith("sha256:"))
+
+
+def at_rest(store, category, stream_id):
+    """The bytes at rest, read as an inspector would (not a KV read path; read_stream refuses SKAP streams)."""
+    path = store.execution_root / category / f"{stream_id}.jsonl"
+    return [json.loads(line)["record"] for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 if __name__ == "__main__":

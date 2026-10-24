@@ -1,0 +1,74 @@
+{
+  "schema": "stegverse.repo-transition-ledger-contract/v1",
+  "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
+  "ledger_level": "REPOSITORY",
+  "receipt_schema": "stegverse.repo-transition-receipt/v1",
+  "append_only_receipts": true,
+  "required_fields": [
+    "repository",
+    "transition_id",
+    "transition_class",
+    "predecessor_state_sha256",
+    "successor_state_sha256",
+    "evidence",
+    "authority_effect",
+    "observed_at",
+    "previous_receipt_sha256"
+  ],
+  "replay_rule": "REPOSITORY_REPLAY_MUST_NOT_REQUIRE_ORGANIZATION_OR_ECOSYSTEM_REPLAY",
+  "repository_ledger_location": {
+    "repository": "STEGVERSE_KV",
+    "ref": "KV_INTR_ENDPOINT",
+    "namespace": "_Vault/SKAP/Receipts",
+    "locator_form": "kv://_Vault/SKAP/Receipts on the KV instance STEGVERSE_KV (KV instance -> storage endpoint -> access adapter -> location; KV #2 request lineage SITE-CLOUD-KV-4347408852127319cbda574f02e03edb); read back as HEAD.json + receipts/<sha256 hex>.json",
+    "new_ledger_root": true,
+    "designation_source": "KV-SKAP-LEDGER-LOCATION-001 under KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324), designated by StegVerse-Labs/continuity-vault-kit per StegVerse-org/.github#167 comment 6372442705 (Coordination correction; defers to cvk docs/KV_AI_PERSISTENCE_LAYOUTS.md, KV_STORAGE_ENDPOINT_V2_MIRROR_HANDOFF.md and SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md @bcc2d75): the SKAP Vault's recorded receipt chain inside STEGVERSE_KV ('skap_vault'): layer-2 receipts (stegverse.skap-access-receipt/v1, INTR_KV_SKAP), TV/TVC custody-reference issuance (stegverse.tvc.skap-custody-reference-issuance/v1, StegVerse-Labs/TVC#537) and custody-result receipts (stegverse.tvc.skap-custody-operation-result/v1), at access_receipts _Vault/SKAP/Receipts (specs/skap-kv-storage-layout.v2.json). KV is independent of the Orgs and keeps its own recorded receipt chains behind its own InTr endpoint; they are never stored on any Org ledger ref. 'repository' STEGVERSE_KV is the KV class/instance (logical root _StegVerse/), not a GitHub repository; 'ref' KV_INTR_ENDPOINT is the only access route; the namespace is the documented in-KV location. Storage is the documented KV Storage Endpoint v2 model (runtime/kv_storage_provider_adapter.py, stegverse.kv.storage-endpoint-descriptor/v2): STEGVERSE_KV is the existing Google Drive KV #2 lineage SITE-CLOUD-KV-4347408852127319cbda574f02e03edb (PENDING_INTERLOCK_INTR; not regenerated, rehashed or treated as executed). The provider is not authority. Same repository_ledger_location keys as StegVerse-org/LLM-adapter#431; new_ledger_root true because this is KV's own chain root, not a subtree of an Org ledger. Reachable only from inside KV through KV's InTr (layer 2): a read must carry a layer-1 KV-access receipt minted by KV's InTr ingress. Ciphertext lives only behind SKAP (_Vault/SKAP/Sealed); the root key is wrapped at _Vault/SKAP/Root/wrapped-root-envelope.json and unwrapped only by the owner-only recovery secret (ENVELOPE v2). Genesis follows the existing two-event crossing model (SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md line 55 @d749bb2, CAPTURE): event 1, the SKAP chain's REPOSITORY_LEDGER_INITIALIZATION genesis receipt recorded in KV storage at _Vault/SKAP/Receipts; event 2, a digest-only InTr crossing receipt (pointer/digest plus SUPPLIED_HB_EPOCH) appended to and read back from the Org ledger, which is the exactly-once fence for that crossing only. The SKAP genesis itself is never held on the Org ledger.",
+    "initialization": "Genesis is a REPOSITORY_LEDGER_INITIALIZATION transition for STEGVERSE_KV:_Vault/SKAP/Receipts whose first receipt has previous_receipt_sha256 null, computed by KV on its own side and recorded at _Vault/SKAP/Receipts only after InTr admission. An empty storage location is never taken as a genesis. Genesis follows the existing two-event crossing model (SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md line 55 @d749bb2, CAPTURE): event 1, the SKAP chain's REPOSITORY_LEDGER_INITIALIZATION genesis receipt recorded in KV storage at _Vault/SKAP/Receipts; event 2, a digest-only InTr crossing receipt (pointer/digest plus SUPPLIED_HB_EPOCH) appended to and read back from the Org ledger, which is the exactly-once fence for that crossing only. The SKAP genesis itself is never held on the Org ledger.",
+    "rule": "KV computes every receipt of this chain from its own side and replays it from _Vault/SKAP/Receipts back to genesis; it never reads an Org ledger to replay it. CORRESPONDENCE_NOT_STORAGE: an Org/KV interaction is two linked receipts, one in each side's own chain, linked by receipt_sha256; neither ledger is copied across the boundary, and a receipt naming another repository is refused (KV_RECEIPT_CHAIN_FOREIGN_RECORD_REFUSED). The storage provider's own records (file ids, revisions, owners, sharing, metadata files) never cross into KV (EXTERNAL_STORAGE_RECORD_REFUSED). Rollback: the head is signed by a published kv_ledger_head_signer, and the newest head KV itself recorded on its own receipt chain (KV_RECORDED_RECEIPT_CHAIN_HEAD) must stay on the read-back chain (KV_LEDGER_HEAD_ROLLBACK_DETECTED); the watermark never comes from the Org ledger (KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED). Order lives in KV's receipt chain, never in a provider's file history. The MyKV AI Assistant (WORKSPACE_ASSISTANT) proposes; it never transitions this chain (every mutation needs InTr admission).",
+    "expected_genesis_receipt_sha256": null,
+    "expected_genesis_note": "Null on purpose. Per #167 comment 6372442705 item 6 the genesis pin is computed in advance once #431's genesis aligns with SUPPLIED_HB_EPOCH (StegVerse-Labs/.github#3263/#3290, Lane B); pin-after-observe (#162 comment 6371352606) stays only as the read-back check. Until then every read is FAIL_CLOSED KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED; an unpinned genesis is never accepted."
+  },
+  "ledger_designation": {
+    "schema": "stegverse.endpoint-ledger-designation/v1",
+    "endpoint_id": "STEGVERSE_KV:_Vault/SKAP/Receipts",
+    "endpoint_kind": "SKAP_VAULT",
+    "stores": [
+      {
+        "store_type": "KV_STORAGE_ENDPOINT",
+        "storage_endpoint_schema": "stegverse.kv.storage-endpoint-descriptor/v2",
+        "provider_id": "google-drive",
+        "access_adapter": "provider-or-file-provider",
+        "kv_class": "STEGVERSE_KV",
+        "kv_request_id": "SITE-CLOUD-KV-4347408852127319cbda574f02e03edb",
+        "location": "_Vault/SKAP/Receipts"
+      }
+    ],
+    "provider_selection": "SINGLE_PROVIDER_V1",
+    "genesis_class": "REPOSITORY_LEDGER_INITIALIZATION",
+    "expected_genesis_receipt_sha256": null,
+    "head_signer_source": "KV_LEDGER_HEAD_SIGNER",
+    "rollback_watermark_source": {
+      "source": "KV_RECORDED_RECEIPT_CHAIN_HEAD",
+      "org_crossing_cross_check": {
+        "source": "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD",
+        "path_ids": [
+          "StegVerse-org->STEGVERSE_KV:_Vault/SKAP/Receipts:intr-destination"
+        ],
+        "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK"
+      }
+    }
+  },
+  "designation_notes": {
+    "store_type_note": "KV_STORAGE_ENDPOINT (proposed to Lane B; #167 comment 6372442705: KV Storage Endpoint v2 names only): one documented KV Storage Endpoint v2 descriptor (runtime/kv_storage_provider_adapter.py default_registry(); provider_id, access_adapter as there) plus the KV instance, the KV #2 request lineage and the in-KV location. No new adapter interface, no ledger-wide encryption.",
+    "head_signers_path": ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+    "append_route": "KV_INTR_INGRESS then SkapLayer2Gate (layer 2) only",
+    "path_ids_note": "The rollback watermark is KV's own recorded receipt chain head (KV_RECORDED_RECEIPT_CHAIN_HEAD, the head kv_ledger_head_signer signs, StegVerse-Labs/TVC#542 @4c2504da): KV is independent of the Orgs (Coordination's provisional class A repair, StegVerse-org/.github#167; C-review pending). The reader reads it itself from KV's own append-only head record (.stegverse/node-ledger/head-record.v1.jsonl; absent or malformed: KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING, class A; regressed: DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED; LC-KV-23 class A per StegVerse-org/.github#167 comment 6374130335); a caller's recorded_head is only a claim; a watermark or designation sourced from the Org ledger is refused KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED (class A). The intr-destination path_ids (proposed in StegVerse-org/.github#235 @f84b97c1's declared_paths form, not yet declared) appear only under the required org_crossing_cross_check: the reader obtains the Org's digest-only crossing record itself and compares it only to refuse (newer or non-ancestor head: DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED; not observable after a crossing: FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED, class B; never crossed: skipped at E0), authority NONE, never the watermark; the Org never grants.",
+    "refuses": "Any org ledger ref or git-ref designation (store_type GIT_REF, StegVerse-org/.github, refs/stegverse/organization-ledger, repository-ledger/...): KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER. Any store_type other than KV_STORAGE_ENDPOINT: KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2. More than one store: ENDPOINT_LEDGER_MULTI_PROVIDER_NOT_SUPPORTED. Any key outside the closed schema runtime.kv_receipt_ledgers.CONTRACT_KEY_SCHEMA: ENDPOINT_ORG_MEMBERSHIP_REFUSED when membership-like, else KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY (LC-KV-24). A rollback_watermark_source (or read input) sourced from the Org ledger rather than KV_RECORDED_RECEIPT_CHAIN_HEAD: KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED (class A).",
+    "org_crossing_receipts": "No KV or SKAP Vault recorded receipt chain is on any Org organization-ledger ref (LC-KV-21, StegVerse-org/.github#163 comment 6372658597). The Org ledger carries only digest-only InTr crossing receipts: a pointer/digest plus SUPPLIED_HB_EPOCH, where the digest is KV_RECORDED_RECEIPT_CHAIN_HEAD (the head_receipt_sha256 signed by kv_ledger_head_signer, StegVerse-Labs/TVC#542 @4c2504da).",
+    "head_digest_name": "KV_RECORDED_RECEIPT_CHAIN_HEAD",
+    "genesis_crossing": "Genesis follows the existing two-event crossing model (SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md line 55 @d749bb2, CAPTURE): event 1, the SKAP chain's REPOSITORY_LEDGER_INITIALIZATION genesis receipt recorded in KV storage at _Vault/SKAP/Receipts; event 2, a digest-only InTr crossing receipt (pointer/digest plus SUPPLIED_HB_EPOCH) appended to and read back from the Org ledger, which is the exactly-once fence for that crossing only. The SKAP genesis itself is never held on the Org ledger.",
+    "org_membership": "No endpoint (KV, SKAP Vault, node or gateway) is ever a GitHub Organization member (Rigel's rule, via Coordination on StegVerse-org/.github#160). STEGVERSE_KV is the KV class, not a GitHub repository: no org repository, no org-membership, team or app-installation binding, no org ref. KV reaches the Orgs only through InTr (KV_INTR_ENDPOINT, intr-destination path_ids). Any such binding: ENDPOINT_ORG_MEMBERSHIP_REFUSED."
+  },
+  "propagation_rule": "PROPAGATE_ONLY_EVIDENCE_NEEDED_BY_NEXT_HIGHER_LEVEL",
+  "authority_effect": "NONE_CONTRACT_ONLY"
+}

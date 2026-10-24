@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/endpoint-kind.v1.json",
+  "title": "StegVerse InTr endpoint kind v1",
+  "description": "Every InTr endpoint declares endpoint_kind and reuses the org InTr classes (INTR_MESH_PATH_TRANSFER, INTR_MESH_PATH_INGRESS / ORGANIZATION_INTR_DESTINATION_INGRESS; StegVerse-org/.github data/intr-protocol/v1/protocol.json). Rule (1): no endpoint chain is anchored on the org ledger. EPHEMERAL and PERMANENT keep their own ledger (REPOSITORY_LEDGER_INITIALIZATION genesis, stegverse.endpoint-ledger-genesis/v1); the anchor record is on that ledger and the Org records only its own digest-only crossing receipt. PERMANENT is designated on the node's own storage endpoint (NODE_STORAGE_ENDPOINT, the same way as STEGVERSE_KV; Q-PERMANENT-REPOSITORY-LEDGER, StegVerse-org/.github#167 comment 6374130335) and read only through llm_adapter.endpoint_ledger_designation; on an org GIT_REF it is DENY ENDPOINT_ORG_MEMBERSHIP_REFUSED, class A (#167 comment 6373412055 items 3 and 4); no node reader is documented (NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED). KV and SKAP_VAULT are STEGVERSE_KV:<location> designations with the cvk storage-endpoint keys (llm_adapter.endpoint_ledger_designation), never opened on an org ref. GATEWAY has no designated carrier ledger: refused (GATEWAY_CARRIER_LEDGER_NOT_DESIGNATED). Only EPHEMERAL dissolves (NODE_DISSOLUTION; disbursed to the Org Ledger as digest-only crossing receipts and read back; root inadmissible after). ORG is an organization's .github ledger: it issues anchors (issuer ORGANIZATION_LEDGER) and is never a node health root. Code: StegVerse-org/LLM-adapter llm_adapter.endpoint_ledger_anchor.",
+  "$defs": {
+    "endpoint_kind": {
+      "enum": [
+        "EPHEMERAL",
+        "PERMANENT",
+        "GATEWAY",
+        "KV",
+        "SKAP_VAULT",
+        "ORG"
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "endpoint_kind",
+    "ledger_model",
+    "ledger_lifetime",
+    "dissolves"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.endpoint-kind/v1"
+    },
+    "endpoint_kind": {
+      "$ref": "#/$defs/endpoint_kind"
+    },
+    "ledger_model": {
+      "enum": [
+        "OWN_LEDGER",
+        "NODE_STORAGE_ENDPOINT_DESIGNATION",
+        "STEGVERSE_KV_DESIGNATION",
+        "NOT_DESIGNATED",
+        "ORGANIZATION_LEDGER"
+      ]
+    },
+    "ledger_lifetime": {
+      "enum": [
+        "BOUNDED_UNTIL_DISSOLUTION",
+        "UNBOUNDED"
+      ]
+    },
+    "dissolves": {
+      "type": "boolean"
+    },
+    "node_kind": {
+      "enum": [
+        "StegApp",
+        "StegBrowser",
+        "StegNode"
+      ]
+    },
+    "anchor": {
+      "enum": [
+        "NODE_LEDGER_OPENED_VIA_INTR_PATH_RECEIPT_PAIR",
+        "INTR_PATH_RECEIPT_PAIR",
+        "ENDPOINT_LEDGER_DESIGNATION",
+        "REFUSED_GATEWAY_CARRIER_LEDGER_NOT_DESIGNATED",
+        "NONE_IS_THE_ISSUER"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "const": "EPHEMERAL"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "node_kind"
+        ],
+        "properties": {
+          "ledger_model": {
+            "const": "OWN_LEDGER"
+          },
+          "ledger_lifetime": {
+            "const": "BOUNDED_UNTIL_DISSOLUTION"
+          },
+          "dissolves": {
+            "const": true
+          },
+          "anchor": {
+            "const": "NODE_LEDGER_OPENED_VIA_INTR_PATH_RECEIPT_PAIR"
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "node_kind"
+          ]
+        },
+        "properties": {
+          "ledger_lifetime": {
+            "const": "UNBOUNDED"
+          },
+          "dissolves": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "const": "PERMANENT"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "NODE_STORAGE_ENDPOINT_DESIGNATION"
+          },
+          "anchor": {
+            "const": "INTR_PATH_RECEIPT_PAIR"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "enum": [
+              "KV",
+              "SKAP_VAULT"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "STEGVERSE_KV_DESIGNATION"
+          },
+          "anchor": {
+            "const": "ENDPOINT_LEDGER_DESIGNATION"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "const": "GATEWAY"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "NOT_DESIGNATED"
+          },
+          "anchor": {
+            "const": "REFUSED_GATEWAY_CARRIER_LEDGER_NOT_DESIGNATED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "endpoint_kind": {
+            "const": "ORG"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ledger_model": {
+            "const": "ORGANIZATION_LEDGER"
+          },
+          "anchor": {
+            "const": "NONE_IS_THE_ISSUER"
+          }
+        }
+      }
+    }
+  ],
+  "authority_effect": "NONE_SCHEMA_ONLY"
+}
