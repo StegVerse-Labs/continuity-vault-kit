@@ -2279,9 +2279,8 @@
    ".stegverse/test-set-spec.json"
   ],
   "tests/test_folded_workflow_records.py": [
+   ".stegverse/finish_point_verdict.py",
    "control/workflow-surface-registry.json",
-   "tests/test_kv_skap_vault_finish_point.py",
-   "tools/tasks/carried/pr263/**",
    "tools/tasks/folded/**",
    "tools/tasks/task_catalog.json"
   ],
