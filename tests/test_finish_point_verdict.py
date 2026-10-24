@@ -4,11 +4,14 @@ NOT_SELECTED: a sealed DIFF selection, diff available, finish set not selected -
 selection digest, head/base sha and reason; the finish step passes on it. SELECTED: everything else, including
 every case where selection cannot be shown complete. The selector stub verifies seals with the same rule as the
 pinned StegVerse-Labs selector (sha256 over sorted, compact JSON without receipt_sha256); CI loads the pinned
-selector itself. The workflow checks assert no step carries an if:, so nothing in the job can be reported skipped.
+selector itself. The runner checks assert no step carries an if:, so nothing in the job can be reported skipped. The runner is the
+runtime-import-and-secret-policy.guard catalog group that select_when picks for this checkout (G17 cvk#268 folded
+the workflow into tools/tasks/task_catalog.json, run by .github/workflows/validation-dispatcher.yml).
 Stdlib unittest, E0.
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import re
@@ -23,7 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / ".stegverse" / "finish_point_verdict.py"
 SPEC = json.loads((ROOT / ".stegverse" / "test-set-spec.json").read_text(encoding="utf-8"))
 SET_ID = SPEC["finish_point_set"]
-WORKFLOW = ROOT / next(p for p in SPEC["extra_surfaces"][SET_ID] if p.endswith(".yml"))
+CATALOG = ROOT / next(p for p in SPEC["extra_surfaces"][SET_ID] if p.endswith("task_catalog.json"))
+GUARD = "runtime-import-and-secret-policy.guard"
 
 _spec = importlib.util.spec_from_file_location("finish_point_verdict", SCRIPT)
 V = importlib.util.module_from_spec(_spec)
@@ -110,25 +114,52 @@ class SelectedPath(unittest.TestCase):
                     self.assertEqual(cli("not-selected", str(out)).returncode, 1)
 
 
+def selected_guard_group():
+    """The one runtime-import-and-secret-policy.guard group whose select_when holds on this checkout."""
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    picked = []
+    for group in catalog["groups"]:
+        if group["id"] != GUARD and not group["id"].startswith(GUARD + "."):
+            continue
+        when = group.get("select_when") or {}
+        if all((ROOT / p).exists() for p in when.get("paths_present", [])) and \
+                not any((ROOT / p).exists() for p in when.get("paths_absent", [])):
+            picked.append(group)
+    return picked
+
+
 class NoVisibleSkip(unittest.TestCase):
     def setUp(self):
-        self.text = WORKFLOW.read_text(encoding="utf-8")
+        picked = selected_guard_group()
+        self.assertEqual(len(picked), 1, [g["id"] for g in picked])
+        self.group = picked[0]
+        self.steps = self.group["steps"]
+        self.bodies = []
+        for step in self.steps:
+            data = (ROOT / step["run_file"]).read_bytes()
+            self.assertEqual(hashlib.sha256(data).hexdigest(), step["run_sha256"], step["run_file"])
+            self.bodies.append(data.decode("utf-8"))
 
     def test_no_job_or_step_carries_an_if(self):
-        self.assertEqual(re.findall(r"^\s*-?\s*if:", self.text, re.M), [])
+        self.assertNotIn("if", self.group)
+        self.assertEqual([s["name"] for s in self.steps if "if" in s], [])
+        self.assertEqual([s["name"] for s in self.steps if s.get("continue_on_error")], [])
 
     def test_select_never_fails_and_the_finish_step_receipts_or_runs(self):
-        sel = self.text.split("id: select", 1)[1]
+        at = [i for i, s in enumerate(self.steps) if s.get("id") == "select"]
+        self.assertEqual(len(at), 1)
+        i = at[0]
+        sel = self.bodies[i]
         self.assertIn("finish_point_verdict.py decide", sel)
         self.assertIn("set +e", sel)
-        run_body = sel.split("run: |", 1)[1].split("\n      - name:", 1)[0]
-        self.assertEqual(run_body.rstrip().splitlines()[-1].strip(), "exit 0")
-        finish = sel.split("\n      - name:", 1)[1]
+        self.assertEqual(sel.rstrip().splitlines()[-1].strip(), "exit 0")
+        finish = self.bodies[i + 1]
+        self.assertEqual(self.steps[i + 1].get("env", {}).get("RUN"), "${{ steps.select.outputs.run }}")
         gate = finish.index("finish_point_verdict.py not-selected")
         test = finish.index("python -m unittest")
         self.assertLess(gate, finish.index("tests.test_", gate))
         self.assertGreater(test, gate)
-        self.assertIn("tests.test_finish_point_verdict", self.text.split("id: select", 1)[0])
+        self.assertTrue(any("tests.test_finish_point_verdict" in b for b in self.bodies[:i]))
 
 
 if __name__ == "__main__":

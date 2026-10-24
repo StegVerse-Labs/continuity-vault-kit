@@ -7,24 +7,24 @@
  },
  "extra_surfaces": {
   "tests/test_finish_point_verdict.py": [
-   ".github/workflows/runtime-import-and-secret-policy.yml",
-   ".stegverse/finish_point_verdict.py"
+   ".stegverse/finish_point_verdict.py",
+   "tools/tasks/task_catalog.json"
   ],
   "tests/test_kv_skap_vault_finish_point.py": [
-   ".github/workflows/runtime-import-and-secret-policy.yml",
-   ".stegverse/finish_point_verdict.py"
+   ".stegverse/finish_point_verdict.py",
+   "tools/tasks/task_catalog.json"
   ]
  },
  "extra_surfaces_why": {
-  "tests/test_finish_point_verdict.py": "tests both verdict paths: it loads .stegverse/finish_point_verdict.py by file path (not an import a static scan follows) and reads the runner workflow to assert no step carries an if:",
-  "tests/test_kv_skap_vault_finish_point.py": "the runner workflow holds the step that runs this test (Lane D adjacency ruling, finish_test_runners); the imports and file reads (runtime/kv_skap_vault.py, runtime/secret_field_policy.py) are found statically; .stegverse/finish_point_verdict.py decides whether the finish step runs the test (SELECTED) or receipts NOT_SELECTED, so an edit to it is routed to this set"
+  "tests/test_finish_point_verdict.py": "tests both verdict paths: it loads .stegverse/finish_point_verdict.py by file path (not an import a static scan follows) and reads the runner (the selected runtime-import-and-secret-policy.guard group of tools/tasks/task_catalog.json, G17 cvk#268) to assert no step carries an if:",
+  "tests/test_kv_skap_vault_finish_point.py": "the runner (the selected runtime-import-and-secret-policy.guard group of tools/tasks/task_catalog.json, run by .github/workflows/validation-dispatcher.yml since G17 cvk#268) holds the step that runs this test (Lane D adjacency ruling, finish_test_runners); the imports and file reads (runtime/kv_skap_vault.py, runtime/secret_field_policy.py) are found statically; .stegverse/finish_point_verdict.py decides whether the finish step runs the test (SELECTED) or receipts NOT_SELECTED, so an edit to it is routed to this set"
  },
  "finish_point_set": "tests/test_kv_skap_vault_finish_point.py",
  "import_roots": [],
  "inputs": {},
  "manifest": ".stegverse/test-sets.json",
  "module_inputs": {},
- "purpose": "callable finish-point set for the 'KV/SKAP Vault finish point (E0)' step of .github/workflows/runtime-import-and-secret-policy.yml: the set tests/test_kv_skap_vault_finish_point.py runs when a diff path is in its closure, and every set (so this one) runs when a path maps to no set, shapes selection, or the diff is unreadable. The other sets exist only so a path that another test verifies is mapped; this manifest drives the finish-point step alone (StegVerse-org/.github#166, reusing the pinned StegVerse-Labs selector)",
+ "purpose": "callable finish-point set for the 'KV/SKAP Vault finish point (E0)' step of the runtime-import-and-secret-policy.guard catalog group (tools/tasks/task_catalog.json; folded from .github/workflows/runtime-import-and-secret-policy.yml by G17 cvk#268): the set tests/test_kv_skap_vault_finish_point.py runs when a diff path is in its closure, and every set (so this one) runs when a path maps to no set, shapes selection, or the diff is unreadable. The other sets exist only so a path that another test verifies is mapped; this manifest drives the finish-point step alone (StegVerse-org/.github#166, reusing the pinned StegVerse-Labs selector)",
  "repository": "StegVerse-Labs/continuity-vault-kit",
  "runner": "unittest",
  "schema": "stegverse.test-set-spec/v1",
