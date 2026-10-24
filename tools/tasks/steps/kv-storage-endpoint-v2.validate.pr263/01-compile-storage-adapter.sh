@@ -1,1 +1,0 @@
-python -m py_compile runtime/kv_storage_provider_adapter.py

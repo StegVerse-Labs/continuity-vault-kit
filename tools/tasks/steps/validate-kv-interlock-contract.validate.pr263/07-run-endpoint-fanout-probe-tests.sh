@@ -1,1 +1,0 @@
-python -m unittest discover -s tests -p 'test_endpoint_fanout_probe.py' -v
