@@ -94,6 +94,20 @@ class FoldedWorkflowRecordTests(unittest.TestCase):
             found = collections.Counter(sha(b) for b in run_blocks((FOLDED / name).read_text(encoding="utf-8")))
             self.assertEqual(found, expected, name)
 
+    def test_carried_pull_request_copies_are_pinned_and_are_the_catalog_step_bodies(self):
+        """A carried PR's workflow copy (tools/tasks/carried/) is pinned by sha256 in the
+        registry, and its run blocks are exactly the step bodies of the group carrying it."""
+        groups = {g["id"]: g for g in self.catalog["groups"]}
+        carried = [c for c in self.reg["carried_pull_requests"] if c.get("source_copy")]
+        self.assertTrue(carried)
+        for entry in carried:
+            copy = ROOT / entry["source_copy"]
+            self.assertEqual(hashlib.sha256(copy.read_bytes()).hexdigest(), entry["source_copy_sha256"], entry["source_copy"])
+            group = groups[entry["catalog_group"]]
+            self.assertEqual(group["source"].get("source_pr"), entry["pr"])
+            found = collections.Counter(sha(b) for b in run_blocks(copy.read_text(encoding="utf-8")))
+            self.assertEqual(found, collections.Counter(s["run_sha256"] for s in group["steps"]), entry["catalog_group"])
+
 
 if __name__ == "__main__":
     unittest.main()
