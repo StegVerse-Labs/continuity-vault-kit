@@ -1,0 +1,1 @@
+python3 tools/test_clean_room_user_kv.py

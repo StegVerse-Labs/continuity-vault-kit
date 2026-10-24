@@ -1,0 +1,1 @@
+python scripts/validate_kv_cross_class_intr_transition.py

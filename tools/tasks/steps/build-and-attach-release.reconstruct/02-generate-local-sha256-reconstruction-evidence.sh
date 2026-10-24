@@ -1,0 +1,1 @@
+sha256sum dist/*.zip > dist/KnowledgeVault_SHA256.txt

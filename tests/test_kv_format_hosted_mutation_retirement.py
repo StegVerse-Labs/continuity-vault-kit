@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-WORKFLOW=ROOT/".github/workflows/kv-format-branch.yml"
+WORKFLOW=ROOT/"tools/tasks/folded/kv-format-branch.yml"
 
 class KVFormatHostedMutationRetirementTests(unittest.TestCase):
     def test_format_workflow_is_candidate_only(self):

@@ -1,0 +1,1 @@
+python -m pytest -q tests/test_secret_field_policy.py

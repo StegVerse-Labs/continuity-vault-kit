@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_skap_kv_persistence -v

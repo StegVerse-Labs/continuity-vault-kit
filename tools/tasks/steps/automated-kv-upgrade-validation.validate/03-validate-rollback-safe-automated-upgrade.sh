@@ -1,0 +1,1 @@
+python3 -m unittest tests.test_automated_legacy_kv_upgrade -v

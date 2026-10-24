@@ -9,6 +9,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 THRESHOLD = 3
+# G17 (StegVerse-Labs/.github#167/#168): the workflows these contracts name were folded
+# into the task catalog; their verbatim records live here and
+# tests/test_folded_workflow_records.py proves each record's run blocks are the catalog
+# step bodies the stable dispatcher runs.
+FOLDED_ROOT = REPO_ROOT / "tools" / "tasks" / "folded"
 
 WORKFLOWS = {
     "release-integrity.yml": {
@@ -168,7 +173,7 @@ def read_json(path: Path) -> dict[str, object]:
 
 
 def validate_workflows() -> None:
-    workflow_root = REPO_ROOT / ".github" / "workflows"
+    workflow_root = REPO_ROOT / "tools" / "tasks" / "folded"
     for filename, required_tokens in WORKFLOWS.items():
         text = read_text(workflow_root / filename)
         missing = sorted(token for token in required_tokens if token not in text)
@@ -183,8 +188,8 @@ def validate_workflows() -> None:
 
 
 def validate_release_cycle() -> None:
-    integrity = read_text(REPO_ROOT / ".github" / "workflows" / "release-integrity.yml")
-    release = read_text(REPO_ROOT / ".github" / "workflows" / "automated-release.yml")
+    integrity = read_text(REPO_ROOT / "tools" / "tasks" / "folded" / "release-integrity.yml")
+    release = read_text(REPO_ROOT / "tools" / "tasks" / "folded" / "automated-release.yml")
     combined = integrity + "\n" + release
     forbidden = (
         "gh issue view 7",
@@ -213,7 +218,7 @@ def validate_release_cycle() -> None:
 
 
 def validate_hosted_release_cycle_boundary() -> None:
-    workflow_root = REPO_ROOT / ".github" / "workflows"
+    workflow_root = REPO_ROOT / "tools" / "tasks" / "folded"
     for filename in (
         "release-integrity.yml",
         "automated-release.yml",
@@ -320,7 +325,8 @@ def validate_all_hosted_workflows_non_authorizing() -> None:
         "helm upgrade",
         "repository_dispatch",
     }
-    workflows = sorted(workflow_root.glob("*.yml"))
+    # G17: the live surface plus the verbatim records of every folded workflow.
+    workflows = sorted(workflow_root.glob("*.yml")) + sorted(FOLDED_ROOT.glob("*.yml"))
     if len(workflows) < 1:
         fail("no hosted workflows found for authority audit")
     for path in workflows:
@@ -330,10 +336,15 @@ def validate_all_hosted_workflows_non_authorizing() -> None:
         present = sorted(token for token in forbidden if token in text)
         if present:
             fail(f"{path.name} reintroduces hosted authority: {', '.join(present)}")
+    # ... and every step body the stable dispatcher runs from the task catalog.
+    for path in sorted((REPO_ROOT / "tools" / "tasks" / "steps").rglob("*.sh")):
+        present = sorted(token for token in forbidden if token in read_text(path))
+        if present:
+            fail(f"{path.relative_to(REPO_ROOT)} reintroduces hosted authority: {', '.join(present)}")
 
 
 def validate_kv_format_hosted_boundary() -> None:
-    workflow = read_text(REPO_ROOT / ".github" / "workflows" / "kv-format-branch.yml")
+    workflow = read_text(REPO_ROOT / "tools" / "tasks" / "folded" / "kv-format-branch.yml")
     forbidden = {
         "contents: write",
         "git push",
@@ -362,7 +373,7 @@ def validate_kv_format_hosted_boundary() -> None:
 
 
 def validate_stegdb_overlay_hosted_boundary() -> None:
-    workflow_root = REPO_ROOT / ".github" / "workflows"
+    workflow_root = REPO_ROOT / "tools" / "tasks" / "folded"
     for filename in ("sync-knowledgevault-overlay-from-stegdb.yml", "sync-overlay-from-stegdb.yml"):
         text = read_text(workflow_root / filename)
         forbidden = {
@@ -393,7 +404,7 @@ def validate_stegdb_overlay_hosted_boundary() -> None:
 
 
 def validate_release_reconciliation_hosted_boundary() -> None:
-    workflow_root = REPO_ROOT / ".github" / "workflows"
+    workflow_root = REPO_ROOT / "tools" / "tasks" / "folded"
     files = (
         "downstream-propagation.yml",
         "reconcile-published-release.yml",
@@ -432,7 +443,7 @@ def validate_release_reconciliation_hosted_boundary() -> None:
 
 
 def validate_production_provider_hosted_boundary() -> None:
-    workflow = read_text(REPO_ROOT / ".github" / "workflows" / "production-provider-activation.yml")
+    workflow = read_text(REPO_ROOT / "tools" / "tasks" / "folded" / "production-provider-activation.yml")
     forbidden = {
         "id-token: write",
         "aws-actions/configure-aws-credentials",
@@ -469,7 +480,7 @@ def validate_production_provider_hosted_boundary() -> None:
 
 def validate_candidate_implementation_boundary() -> None:
     workflow = read_text(
-        REPO_ROOT / ".github" / "workflows" / "automation-candidate-implementation.yml"
+        REPO_ROOT / "tools" / "tasks" / "folded" / "automation-candidate-implementation.yml"
     )
     forbidden = {
         "contents: write",
@@ -508,7 +519,7 @@ def validate_candidate_implementation_boundary() -> None:
 
 
 def validate_hosted_onboarding_control_plane_boundary() -> None:
-    workflow_root = REPO_ROOT / ".github" / "workflows"
+    workflow_root = REPO_ROOT / "tools" / "tasks" / "folded"
     files = (
         "onboarding-friction.yml",
         "onboarding-friction-maintenance.yml",
@@ -595,8 +606,8 @@ def validate_issue_form() -> None:
 
 def validate_threshold_consistency() -> None:
     paths = [
-        REPO_ROOT / ".github" / "workflows" / "onboarding-friction.yml",
-        REPO_ROOT / ".github" / "workflows" / "automation-candidate-lifecycle.yml",
+        REPO_ROOT / "tools" / "tasks" / "folded" / "onboarding-friction.yml",
+        REPO_ROOT / "tools" / "tasks" / "folded" / "automation-candidate-lifecycle.yml",
         REPO_ROOT / "evidence" / "onboarding-friction" / "README.md",
         REPO_ROOT / "docs" / "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md",
     ]

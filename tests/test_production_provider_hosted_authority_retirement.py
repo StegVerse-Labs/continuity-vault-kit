@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-WORKFLOW=ROOT/".github/workflows/production-provider-activation.yml"
+WORKFLOW=ROOT/"tools/tasks/folded/production-provider-activation.yml"
 
 class ProductionProviderHostedAuthorityRetirementTests(unittest.TestCase):
     def test_hosted_workflow_cannot_acquire_or_apply_production_authority(self):

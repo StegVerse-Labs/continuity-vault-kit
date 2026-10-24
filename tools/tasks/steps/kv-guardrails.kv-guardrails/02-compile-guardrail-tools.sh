@@ -1,0 +1,29 @@
+python3 -m py_compile \
+  tools/kv_layer_check.py \
+  tools/emoji_lint.py \
+  scripts/validate_skap_intr_review_candidate.py \
+  scripts/validate_intr_packet_review_candidate.py \
+  scripts/intr_hop_receipt.py \
+  scripts/validate_skap_endpoint_contracts.py \
+  scripts/run_intr_synthetic_runtime.py \
+  scripts/run_intr_external_endpoint_probe.py \
+  scripts/run_skap_coinbase_synthetic_sealed_session.py \
+  skap/crypto_boundary.py \
+  skap/browser_ingress.py \
+  skap/browser_admission.py \
+  skap/key_provider.py \
+  skap/portable_envelope.py \
+  skap/ingress.py \
+  execution/vault_store.py \
+  tests/test_vault_store.py \
+  tests/test_skap_kv_persistence.py \
+  tests/test_skap_browser_ingress.py \
+  tests/test_skap_browser_admission.py \
+  tests/test_skap_intr_reconstruction.py \
+  tests/test_skap_crypto_boundary.py \
+  tests/test_skap_crypto_lifecycle_runtime.py \
+  tests/test_skap_tvc_key_provider.py \
+  tests/test_skap_portable_envelope.py \
+  tests/test_skap_loader_js.py \
+  tests/test_skap_owner_ingress.py \
+  tests/test_hosted_release_authority_retirement.py

@@ -1,0 +1,1 @@
+python -m py_compile execution/adapter.py execution/recovery.py execution/extensions.py execution/vault_store.py execution/communication_runtime.py tests/test_execution_recovery.py tests/test_vault_store.py tests/test_cross_edge_selection_receipt.py tests/test_communication_runtime.py

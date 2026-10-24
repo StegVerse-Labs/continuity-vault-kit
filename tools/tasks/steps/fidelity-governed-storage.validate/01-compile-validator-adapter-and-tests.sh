@@ -1,0 +1,1 @@
+python3 -m compileall -q multimodal_storage tools/validate_experience_capsule.py tests/test_experience_capsule.py tests/test_multimodal_storage_adapter.py

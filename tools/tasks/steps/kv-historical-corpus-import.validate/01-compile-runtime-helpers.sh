@@ -1,0 +1,1 @@
+python3 -m py_compile runtime/historical_provenance.py runtime/historical_corpus_import.py tools/check_kv_historical_corpus_import.py
