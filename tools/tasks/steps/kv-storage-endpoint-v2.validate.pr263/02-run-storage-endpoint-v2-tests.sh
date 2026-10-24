@@ -1,1 +1,0 @@
-python -m unittest -v tests.test_storage_endpoint_v2

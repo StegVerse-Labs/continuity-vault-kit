@@ -1,1 +1,0 @@
-python -m pytest -q tests/test_workspace_projection.py tests/test_workspace_continuity_checkpoint.py tests/test_workspace_assistant_binding.py tests/test_workspace_session_authentication.py tests/test_workspace_tasks_projection.py tests/test_workspace_family_projections.py tests/test_workspace_continuity_checkpoint_projection.py tests/test_workspace_decision_reasons.py

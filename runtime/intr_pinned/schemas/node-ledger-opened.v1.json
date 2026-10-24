@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/node-ledger-opened.v1.json",
+  "title": "StegVerse NODE_LEDGER_OPENED anchor v1 (issued)",
+  "description": "The anchor of an EPHEMERAL node ledger, issued by the organization ledger, in the shape StegVerse-Labs/continuity-vault-kit#258 consumes. issuer_receipt_ref is the org ledger's own INTR_MESH_PATH_INGRESS (ORGANIZATION_INTR_DESTINATION_INGRESS) receipt that carried StegOS's generation-time record (node-ledger-opened-generation.v1.json). receipt_sha256 is sha256 over the canonical JSON (sort_keys, separators , :, ensure_ascii false) of every other field. Producer and ORGANIZATION_LEDGER verifier: StegVerse-org/LLM-adapter llm_adapter.endpoint_ledger_anchor.issued_anchor / verify_node_ledger_opened_anchor. TV/TVC is in the issuer enum but no TV/TVC verifier exists (TVC receipts unsigned: TVC#537, LC-KV-08), so a TV/TVC anchor is refused.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "transition_class",
+    "node_id",
+    "node_identity_key",
+    "genesis_receipt_sha256",
+    "issuer",
+    "issuer_receipt_ref",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.node-ledger-opened/v1"
+    },
+    "transition_class": {
+      "const": "NODE_LEDGER_OPENED"
+    },
+    "node_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "node_identity_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "custody",
+        "key_id",
+        "node_id",
+        "public_key_b64"
+      ],
+      "description": "Public-key reference only (StegVerse-Labs/StegOS#426 node_identity_key; checked by node_receipt_common.node_identity_key_failure). Never key material.",
+      "properties": {
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "custody": {
+          "const": "TV/TVC"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "public_key_b64": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44
+        }
+      }
+    },
+    "genesis_receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "issuer": {
+      "enum": [
+        "ORGANIZATION_LEDGER",
+        "TV/TVC"
+      ]
+    },
+    "issuer_receipt_ref": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "authority_effect": "NONE_SCHEMA_ONLY"
+}

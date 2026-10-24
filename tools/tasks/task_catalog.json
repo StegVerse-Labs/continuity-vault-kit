@@ -1608,7 +1608,7 @@
         "workflow_name": "KV Storage Endpoint v2",
         "job": "validate",
         "job_name": null,
-        "commit": "bcc2d75",
+        "commit": "6751d36",
         "triggers_before": [
           "pull_request",
           "push",
@@ -1635,67 +1635,13 @@
           "run_sha256": "4d74b45d2f25c2abfe4c84ddc4d99b504a20fb18ada555ad1bdcf91e00352373"
         },
         {
-          "name": "Prove legacy request contract and authority boundaries",
-          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate/03-prove-legacy-request-contract-and-authority-boun.sh",
-          "run_sha256": "0842aefd85a46292f6455fd560916014afe8ce93acc39e90a7fb3161d4f74f96"
-        }
-      ],
-      "artifacts": [],
-      "runner": {
-        "fetch_depth": "1",
-        "persist_credentials": "true",
-        "timeout_minutes": 360,
-        "python_version": "3.12"
-      },
-      "select_when": {
-        "paths_absent": [
-          "tests/test_kv_skap_vault_finish_point.py"
-        ],
-        "reason": "superseded by kv-storage-endpoint-v2.validate.pr263 once #258/#263 lands"
-      }
-    },
-    {
-      "id": "kv-storage-endpoint-v2.validate.pr263",
-      "source": {
-        "workflow": ".github/workflows/kv-storage-endpoint-v2.yml",
-        "workflow_name": "KV Storage Endpoint v2",
-        "job": "validate",
-        "job_name": null,
-        "commit": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
-        "triggers_before": [
-          "pull_request",
-          "push",
-          "workflow_dispatch"
-        ],
-        "permissions_before": {
-          "contents": "read"
-        },
-        "source_pr": "StegVerse-Labs/continuity-vault-kit#263"
-      },
-      "events": [
-        "pull_request",
-        "push"
-      ],
-      "env": {},
-      "steps": [
-        {
-          "name": "Compile storage adapter",
-          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/01-compile-storage-adapter.sh",
-          "run_sha256": "a1d2d92d7a4749b7fe48933f7e5b55615d8eb2da68e29477b20946e2289787eb"
-        },
-        {
-          "name": "Run storage endpoint v2 tests",
-          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/02-run-storage-endpoint-v2-tests.sh",
-          "run_sha256": "4d74b45d2f25c2abfe4c84ddc4d99b504a20fb18ada555ad1bdcf91e00352373"
-        },
-        {
           "name": "Sovereign-KV binding and vault-lineage record type; existing contract bytes pinned (0 skipped)",
-          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/03-sovereign-kv-binding-and-vault-lineage-record-ty.sh",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate/03-sovereign-kv-binding-and-vault-lineage-record-ty.sh",
           "run_sha256": "2ddee610ca23b655273b3ea45483651e48f18ff33551d3d694f1af574e68aa2d"
         },
         {
           "name": "Prove legacy request contract and authority boundaries",
-          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate.pr263/04-prove-legacy-request-contract-and-authority-boun.sh",
+          "run_file": "tools/tasks/steps/kv-storage-endpoint-v2.validate/04-prove-legacy-request-contract-and-authority-boun.sh",
           "run_sha256": "0842aefd85a46292f6455fd560916014afe8ce93acc39e90a7fb3161d4f74f96"
         }
       ],
@@ -1705,12 +1651,6 @@
         "persist_credentials": "true",
         "timeout_minutes": 360,
         "python_version": "3.12"
-      },
-      "select_when": {
-        "paths_present": [
-          "tests/test_kv_skap_vault_finish_point.py"
-        ],
-        "reason": "present on #258 and #263, absent on main; until then the group receipts NOT_SELECTED and the base group keeps running"
       }
     },
     {
@@ -2445,7 +2385,7 @@
         "workflow_name": "Runtime Import + Secret Field Policy",
         "job": "guard",
         "job_name": null,
-        "commit": "bcc2d75",
+        "commit": "6751d36",
         "triggers_before": [
           "pull_request",
           "push"
@@ -2478,12 +2418,22 @@
         {
           "name": "Boundary modules that consume the policy",
           "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/04-boundary-modules-that-consume-the-policy.sh",
-          "run_sha256": "a7787d6010691bce82cbd7a8e9b4f0ab71b900b7304d80b4016f510a2cb5c804"
+          "run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade"
         },
         {
           "name": "Workspace projection contract",
           "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/05-workspace-projection-contract.sh",
           "run_sha256": "d6d2211e9f2fef14391412d36b7dd68f211291fad8d3c40b2697dfc1fb137697"
+        },
+        {
+          "name": "KV/SKAP Vault finish point (E0)",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/06-kv-skap-vault-finish-point-e0.sh",
+          "run_sha256": "211a62024ccd047c44211444c6424fa0d2fb0426d8dd0b974c1b2d9f2650380f"
+        },
+        {
+          "name": "KV/SKAP Vault E0 witnesses",
+          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/07-kv-skap-vault-e0-witnesses.sh",
+          "run_sha256": "ff23ade1822d0cb67dd2cb6f5415abb98563e9439f4fb24b4df3a4d0c86d6c2e"
         }
       ],
       "artifacts": [],
@@ -2495,10 +2445,9 @@
       },
       "select_when": {
         "paths_absent": [
-          ".stegverse/finish_point_verdict.py",
-          "tests/test_kv_skap_vault_finish_point.py"
+          ".stegverse/finish_point_verdict.py"
         ],
-        "reason": "superseded by .guard.pr263 once tests/test_kv_skap_vault_finish_point.py lands, and by the #260/#261 guard variants once .stegverse/finish_point_verdict.py lands"
+        "reason": "superseded by the #260/#261 guard variants once .stegverse/finish_point_verdict.py lands; #263's steps are main's since 6751d36"
       }
     },
     {
@@ -2702,82 +2651,6 @@
           ".stegverse/workspace-parity-pin.json"
         ],
         "reason": "#261 support files present"
-      }
-    },
-    {
-      "id": "runtime-import-and-secret-policy.guard.pr263",
-      "source": {
-        "workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
-        "workflow_name": "Runtime Import + Secret Field Policy",
-        "job": "guard",
-        "job_name": null,
-        "commit": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
-        "triggers_before": [
-          "pull_request",
-          "push"
-        ],
-        "permissions_before": {
-          "contents": "read"
-        },
-        "source_pr": "StegVerse-Labs/continuity-vault-kit#263"
-      },
-      "events": [
-        "pull_request",
-        "push"
-      ],
-      "env": {},
-      "steps": [
-        {
-          "name": null,
-          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/01-step.sh",
-          "run_sha256": "16f1d2311f945b766836a442e2575b712c362472e5f14900468c38108bc1f36c"
-        },
-        {
-          "name": "Compile every runtime and skap module",
-          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/02-compile-every-runtime-and-skap-module.sh",
-          "run_sha256": "ad6d0082e17a942fbbd1ed235eead59731a38db06bccd67ef3ae8341d1a32266"
-        },
-        {
-          "name": "Secret field policy",
-          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/03-secret-field-policy.sh",
-          "run_sha256": "4a06880305443d780d7fd93d09400eefecffeed727ec7b835a880ebf380097d6"
-        },
-        {
-          "name": "Boundary modules that consume the policy",
-          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/04-boundary-modules-that-consume-the-policy.sh",
-          "run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade"
-        },
-        {
-          "name": "Workspace projection contract",
-          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/05-workspace-projection-contract.sh",
-          "run_sha256": "d6d2211e9f2fef14391412d36b7dd68f211291fad8d3c40b2697dfc1fb137697"
-        },
-        {
-          "name": "KV/SKAP Vault finish point (E0)",
-          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/06-kv-skap-vault-finish-point-e0.sh",
-          "run_sha256": "211a62024ccd047c44211444c6424fa0d2fb0426d8dd0b974c1b2d9f2650380f"
-        },
-        {
-          "name": "KV/SKAP Vault E0 witnesses",
-          "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr263/07-kv-skap-vault-e0-witnesses.sh",
-          "run_sha256": "ff23ade1822d0cb67dd2cb6f5415abb98563e9439f4fb24b4df3a4d0c86d6c2e"
-        }
-      ],
-      "artifacts": [],
-      "runner": {
-        "fetch_depth": "1",
-        "persist_credentials": "true",
-        "timeout_minutes": 360,
-        "python_version": "3.12"
-      },
-      "select_when": {
-        "paths_present": [
-          "tests/test_kv_skap_vault_finish_point.py"
-        ],
-        "paths_absent": [
-          ".stegverse/finish_point_verdict.py"
-        ],
-        "reason": "#258/#263 tree (finish-point test present) without the #260/#261 verdict support"
       }
     },
     {
@@ -3180,7 +3053,7 @@
         "workflow_name": "Validate KV Interlock Contract",
         "job": "validate",
         "job_name": null,
-        "commit": "bcc2d75",
+        "commit": "6751d36",
         "triggers_before": [
           "pull_request",
           "push",
@@ -3234,94 +3107,6 @@
         {
           "name": "Emit endpoint fanout probe evidence",
           "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate/08-emit-endpoint-fanout-probe-evidence.sh",
-          "run_sha256": "1de22984454a9643be1d5c50c5e2277b48f907ded72b8fd92d0ee8046314a6c4"
-        }
-      ],
-      "artifacts": [
-        {
-          "name": "endpoint-fanout-probe-evidence",
-          "path": "probe-evidence/endpoint-fanout-probe.result.json",
-          "if_no_files_found": "error",
-          "if": null
-        }
-      ],
-      "runner": {
-        "fetch_depth": "1",
-        "persist_credentials": "true",
-        "timeout_minutes": 360,
-        "python_version": "3.12",
-        "artifact_name": "endpoint-fanout-probe-evidence",
-        "artifact_if_no_files_found": "error"
-      },
-      "select_when": {
-        "paths_absent": [
-          "tests/test_kv_skap_vault_finish_point.py"
-        ],
-        "reason": "superseded by validate-kv-interlock-contract.validate.pr263 once #258/#263 lands"
-      }
-    },
-    {
-      "id": "validate-kv-interlock-contract.validate.pr263",
-      "source": {
-        "workflow": ".github/workflows/validate-kv-interlock-contract.yml",
-        "workflow_name": "Validate KV Interlock Contract",
-        "job": "validate",
-        "job_name": null,
-        "commit": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
-        "triggers_before": [
-          "pull_request",
-          "push",
-          "workflow_dispatch"
-        ],
-        "permissions_before": {
-          "contents": "read"
-        },
-        "source_pr": "StegVerse-Labs/continuity-vault-kit#263"
-      },
-      "events": [
-        "pull_request",
-        "push"
-      ],
-      "env": {},
-      "steps": [
-        {
-          "name": "Compile canonical contract tooling",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/01-compile-canonical-contract-tooling.sh",
-          "run_sha256": "2e97241349b9f3574dbc9fa873a2f63ba5689dc261328520622b58f0f044577d"
-        },
-        {
-          "name": "Validate canonical contract",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/02-validate-canonical-contract.sh",
-          "run_sha256": "f24fc64617932379cf5f06766e5d45054511b671bca2cc04f8e15bcb72821420"
-        },
-        {
-          "name": "Run canonical contract tests",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/03-run-canonical-contract-tests.sh",
-          "run_sha256": "7fcb03bb9b3ba3c486a801760685175943ce91f1ea51170c6318383eaabf106f"
-        },
-        {
-          "name": "Validate generic KV Interlock InTr envelope",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/04-validate-generic-kv-interlock-intr-envelope.sh",
-          "run_sha256": "87147f3152eb1e3dc7dc278e090c5443122fe2c3fa76c4b2a9e0342d02fb3a05"
-        },
-        {
-          "name": "Run generic KV Interlock InTr envelope tests",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/05-run-generic-kv-interlock-intr-envelope-tests.sh",
-          "run_sha256": "dc0fde3d02fc8c89551920b05d7e0435f7ea71c697494c1c8e47cf460c305af1"
-        },
-        {
-          "name": "Run KV Interlock runtime endpoint tests",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/06-run-kv-interlock-runtime-endpoint-tests.sh",
-          "run_sha256": "3564eba731be7e501bf9f1edf0168a7548972853e6052c66d08197ea294d9aed"
-        },
-        {
-          "name": "Run endpoint fanout probe tests",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/07-run-endpoint-fanout-probe-tests.sh",
-          "run_sha256": "94f8513f109af5123858735a626a43d2858516b1d57548737b5b24b0bd3fd346"
-        },
-        {
-          "name": "Emit endpoint fanout probe evidence",
-          "run_file": "tools/tasks/steps/validate-kv-interlock-contract.validate.pr263/08-emit-endpoint-fanout-probe-evidence.sh",
           "run_sha256": "f12a3f3e6083214a5f66f8fa7ab2e6a87a7188994d5faa5bcaf29f0d00c18424"
         }
       ],
@@ -3340,12 +3125,6 @@
         "python_version": "3.12",
         "artifact_name": "endpoint-fanout-probe-evidence",
         "artifact_if_no_files_found": "error"
-      },
-      "select_when": {
-        "paths_present": [
-          "tests/test_kv_skap_vault_finish_point.py"
-        ],
-        "reason": "present on #258 and #263, absent on main; until then the group receipts NOT_SELECTED and the base group keeps running"
       }
     },
     {

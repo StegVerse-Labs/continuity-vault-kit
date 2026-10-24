@@ -1,1 +1,0 @@
-python -m unittest discover -s tests -p 'test_kv_interlock_runtime_endpoint.py' -v

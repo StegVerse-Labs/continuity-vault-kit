@@ -1,1 +1,0 @@
-python -m pip install --disable-pip-version-check pytest jsonschema cryptography

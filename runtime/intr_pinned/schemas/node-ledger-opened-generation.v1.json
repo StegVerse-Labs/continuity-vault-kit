@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stegverse.org/schemas/node-ledger-opened-generation.v1.json",
+  "title": "StegVerse NODE_LEDGER_OPENED generation record v1 (StegOS emission)",
+  "description": "Emitted by StegVerse-Labs/StegOS stegos.ephemeral_node_ledger_open.open_ephemeral_node_ledger when StegOS generates an EPHEMERAL StegApp, StegBrowser or StegNode. Carried to the org ledger as the message body of the InTr path pair; the org ledger's ingress then issues node-ledger-opened.v1.json. It has no issuer or issuer_receipt_ref: StegOS is not an issuer, and the issuer's receipt does not exist until after emission. receipt_sha256 seals every other field (canonical JSON).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "transition_class",
+    "disposition",
+    "endpoint_kind",
+    "node_kind",
+    "node_id",
+    "node_identity_key",
+    "genesis_receipt_sha256",
+    "profile_sha256",
+    "ledger_lifetime",
+    "disbursement",
+    "emitted_by",
+    "emitted_at",
+    "ledger_opened",
+    "credential_authority_effect",
+    "authority_effect",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stegverse.node-ledger-opened-generation/v1"
+    },
+    "transition_class": {
+      "const": "NODE_LEDGER_OPENED"
+    },
+    "disposition": {
+      "const": "ALLOW"
+    },
+    "endpoint_kind": {
+      "const": "EPHEMERAL"
+    },
+    "node_kind": {
+      "enum": [
+        "StegApp",
+        "StegBrowser",
+        "StegNode"
+      ]
+    },
+    "node_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "node_identity_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "custody",
+        "key_id",
+        "node_id",
+        "public_key_b64"
+      ],
+      "description": "Public-key reference only (StegVerse-Labs/StegOS#426 node_identity_key; checked by node_receipt_common.node_identity_key_failure). Never key material.",
+      "properties": {
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "custody": {
+          "const": "TV/TVC"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "public_key_b64": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44
+        }
+      }
+    },
+    "genesis_receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "profile_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "ledger_lifetime": {
+      "const": "BOUNDED_UNTIL_DISSOLUTION"
+    },
+    "disbursement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "on_event",
+        "destination"
+      ],
+      "properties": {
+        "on_event": {
+          "const": "NODE_DISSOLUTION"
+        },
+        "destination": {
+          "const": "refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/LLM-adapter"
+        }
+      }
+    },
+    "emitted_by": {
+      "const": "stegos.ephemeral_node_ledger_open"
+    },
+    "emitted_at": {
+      "const": "STEGOS_NODE_GENERATION"
+    },
+    "ledger_opened": {
+      "const": true
+    },
+    "credential_authority_effect": {
+      "const": "NONE"
+    },
+    "authority_effect": {
+      "const": "NONE_RECORD_ONLY"
+    },
+    "receipt_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "authority_effect": "NONE_SCHEMA_ONLY"
+}
