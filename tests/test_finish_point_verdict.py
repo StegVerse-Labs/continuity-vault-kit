@@ -114,6 +114,51 @@ class SelectedPath(unittest.TestCase):
                     self.assertEqual(cli("not-selected", str(out)).returncode, 1)
 
 
+PARITY_SETS = SPEC["workspace_parity_sets"]
+
+
+class ParitySetsBothPaths(unittest.TestCase):
+    """--set-key workspace_parity_sets: a list of set ids, selected when any is (StegVerse-org/.github#166)."""
+
+    def test_list_not_selected_when_no_listed_set_is_selected_and_selected_when_any_is(self):
+        v = V.decide("pull_request", PARITY_SETS, record(), SELECTOR)
+        self.assertEqual((v["verdict"], v["run"], v["set_id"]), ("NOT_SELECTED", False, sorted(PARITY_SETS)))
+        for sid in PARITY_SETS:
+            with self.subTest(set_id=sid):
+                rec = record(selected=[{"id": sid, "reasons": [{"reason": "DIFF_PATH_MATCHES_SURFACE"}]}])
+                v = V.decide("pull_request", PARITY_SETS, rec, SELECTOR)
+                self.assertEqual((v["verdict"], v["reason"]), ("SELECTED", "DIFF_PATH_IN_SET_CLOSURE"))
+        rec = record(selected=[{"id": SET_ID, "reasons": [{"reason": "DIFF_PATH_MATCHES_SURFACE"}]}])
+        self.assertEqual(V.decide("pull_request", PARITY_SETS, rec, SELECTOR)["verdict"], "NOT_SELECTED")
+        for bad in ([], [""], [None], 7):
+            with self.subTest(bad=bad):
+                self.assertEqual(V.decide("pull_request", bad, record(), SELECTOR)["reason"],
+                                 "FINISH_POINT_SET_ID_UNAVAILABLE")
+
+    def test_cli_set_key_and_not_selected_is_bound_to_its_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sel = Path(tmp, "selection.json")
+            sel.write_text(json.dumps(record()), encoding="utf-8")
+            stub = Path(tmp, "selector.py")
+            stub.write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+            outs = {}
+            for key in ("finish_point_set", "workspace_parity_sets"):
+                outs[key] = Path(tmp, key + ".json")
+                r = cli("decide", "--event", "pull_request", "--spec", ".stegverse/test-set-spec.json", "--set-key", key,
+                        "--selection", str(sel), "--selector", str(stub), "--out", str(outs[key]))
+                self.assertEqual((r.returncode, r.stdout.strip()), (0, "run=false"))
+            spec = ["--spec", ".stegverse/test-set-spec.json"]
+            for key, path in outs.items():
+                other = "workspace_parity_sets" if key == "finish_point_set" else "finish_point_set"
+                self.assertEqual(cli("not-selected", str(path), *spec, "--set-key", key).returncode, 0)
+                self.assertEqual(cli("not-selected", str(path), *spec, "--set-key", other).returncode, 1)
+            self.assertEqual(cli("not-selected", str(outs["workspace_parity_sets"]), "--spec",
+                                 str(Path(tmp, "missing.json")), "--set-key", "workspace_parity_sets").returncode, 1)
+            r = cli("decide", "--event", "pull_request", "--spec", ".stegverse/test-set-spec.json", "--set-key",
+                    "no_such_key", "--selection", str(sel), "--selector", str(stub), "--out", str(Path(tmp, "x.json")))
+            self.assertEqual(r.stdout.strip(), "run=true")
+
+
 def selected_guard_group():
     """The one runtime-import-and-secret-policy.guard group whose select_when holds on this checkout."""
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
@@ -160,6 +205,23 @@ class NoVisibleSkip(unittest.TestCase):
         self.assertLess(gate, finish.index("tests.test_", gate))
         self.assertGreater(test, gate)
         self.assertTrue(any("tests.test_finish_point_verdict" in b for b in self.bodies[:i]))
+
+    def step(self, name):
+        hit = [i for i, s in enumerate(self.steps) if (s.get("name") or "").startswith(name)]
+        self.assertEqual(len(hit), 1, name)
+        return hit[0]
+
+    def test_parity_step_receipts_its_own_verdict_or_runs_the_pinned_tests(self):
+        sel = self.bodies[[i for i, s in enumerate(self.steps) if s.get("id") == "select"][0]]
+        self.assertIn("--set-key workspace_parity_sets", sel)
+        self.assertIn("parity_run=", sel)
+        i = self.step("Workspace cross-repository parity")
+        step = self.bodies[i]
+        self.assertIn("steps.select.outputs.parity_run", " ".join(self.steps[i].get("env", {}).values()) + step)
+        gate = step.index("not-selected \"$RUNNER_TEMP/workspace-parity-verdict.json\"")
+        self.assertIn("--set-key workspace_parity_sets", step[gate:step.index("\n", gate)])
+        self.assertLess(gate, step.index("cross_repo_inputs.py materialize"))
+        self.assertLess(step.index("cross_repo_inputs.py materialize"), step.index("python -m pytest"))
 
 
 if __name__ == "__main__":

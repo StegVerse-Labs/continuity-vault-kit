@@ -3,7 +3,7 @@
  "generated_from": {
   "generator": "scripts/test_set_selection.py (StegVerse-Labs/.github)",
   "spec": ".stegverse/test-set-spec.json",
-  "spec_sha256": "1774b13e507fc321cac635833de0d90c2b0b7b0bcb9716e264ce8aeb35b16495"
+  "spec_sha256": "e397b8e0146e1468da3f7872c77163190ffac1736ed2418dded3d2956cc8e56c"
  },
  "inputs": {},
  "repository": "StegVerse-Labs/continuity-vault-kit",
@@ -225,6 +225,21 @@
    ],
    "tests": [
     "tests.test_cross_platform_recovery"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_cross_repo_inputs.py",
+   "inputs": [],
+   "surfaces": [
+    ".stegverse/cross_repo_inputs.py",
+    ".stegverse/workspace-parity-pin.json",
+    "tests/test_cross_repo_inputs.py",
+    "tools/tasks/task_catalog.json"
+   ],
+   "tests": [
+    "tests.test_cross_repo_inputs"
    ]
   },
   {
@@ -1761,7 +1776,11 @@
    "id": "tests/test_workspace_decision_reasons.py",
    "inputs": [],
    "surfaces": [
-    "tests/test_workspace_decision_reasons.py"
+    ".stegverse/cross_repo_inputs.py",
+    ".stegverse/finish_point_verdict.py",
+    ".stegverse/workspace-parity-pin.json",
+    "tests/test_workspace_decision_reasons.py",
+    "tools/tasks/task_catalog.json"
    ],
    "tests": [
     "tests.test_workspace_decision_reasons"
@@ -1797,7 +1816,11 @@
    "id": "tests/test_workspace_session_authentication.py",
    "inputs": [],
    "surfaces": [
-    "tests/test_workspace_session_authentication.py"
+    ".stegverse/cross_repo_inputs.py",
+    ".stegverse/finish_point_verdict.py",
+    ".stegverse/workspace-parity-pin.json",
+    "tests/test_workspace_session_authentication.py",
+    "tools/tasks/task_catalog.json"
    ],
    "tests": [
     "tests.test_workspace_session_authentication"
@@ -2176,6 +2199,15 @@
   "tests/test_cross_platform_recovery.py": [
    "fixtures/kv_cross_platform_recovery_cases.json",
    "tests/fixtures/**"
+  ],
+  "tests/test_cross_repo_inputs.py": [
+   ".stegverse/cross_repo_inputs.py",
+   ".stegverse/test-set-spec.json",
+   ".stegverse/workspace-parity-pin.json",
+   "tests/test_workspace_decision_reasons.py",
+   "tests/test_workspace_session_authentication.py",
+   "tools/tasks/**",
+   "tools/tasks/task_catalog.json"
   ],
   "tests/test_delegation_cases.py": [
    "delegation/decision.py",

@@ -1,0 +1,36 @@
+{
+ "authority_effect": "NONE",
+ "inputs": {
+  "gh": {
+   "commit": "86382e60da984fa02892fecfac2b9bdec0e64a5f",
+   "dest": "../gh",
+   "files": {
+    "schemas/user-facing-explanation.v1.schema.json": "67a61ab5b2c17fedccb71a1da86ce64802495d3e2b92ed1f0565ca10d7552449",
+    "scripts/user_facing_explanation.py": "0eacf30bd60f2d226fc93f04efb4216a3b9bce3ac2595d788bf8f06067b3f3ae"
+   },
+   "repository": "StegVerse-Labs/.github",
+   "url": "https://github.com/StegVerse-Labs/.github",
+   "why": "tests/test_workspace_decision_reasons.py loads ../gh/scripts/user_facing_explanation.py (which reads ../gh/schemas/user-facing-explanation.v1.schema.json) and builds a conformant explanation from every session and binding reason"
+  },
+  "site": {
+   "commit": "a1d717d1e83986456598934f8cf61e99a4df6a81",
+   "dest": "../site",
+   "files": {
+    "assets/workspace-assistant-binding.js": "78946aa34bdbf3a4922e9738fe324505fd545e0d67046b44f07c8fd124e7389a",
+    "assets/workspace-session-authentication.js": "6e43cd5e500212822a6eace581d4af26cf421c9b726cd4aa1f7bf8a0235980af"
+   },
+   "repository": "StegVerse-Labs/Site",
+   "url": "https://github.com/StegVerse-Labs/Site",
+   "why": "tests/test_workspace_session_authentication.py and tests/test_workspace_decision_reasons.py compare the runtime predicates and reason text with ../site/assets/workspace-session-authentication.js and ../site/assets/workspace-assistant-binding.js"
+  }
+ },
+ "re_pin": "move a commit (and its file sha256 values) only in a change that also runs this set: the pin file is a surface of both test files' sets, so editing it selects them",
+ "schema": "stegverse.cross-repo-input-pin/v1",
+ "set_key": "workspace_parity_sets",
+ "tests": [
+  "tests/test_workspace_decision_reasons.py::test_mirrors_site_reason_text_when_site_checkout_is_present",
+  "tests/test_workspace_decision_reasons.py::test_records_build_conformant_explanations_whose_why_is_the_reason",
+  "tests/test_workspace_session_authentication.py::test_mirrors_site_module_predicate_names_when_site_checkout_is_present"
+ ],
+ "why": "the three cross-repository parity tests of the Workspace projection contract read sibling checkouts of StegVerse-Labs/Site and StegVerse-Labs/.github; without them they skipped (91 passed, 3 skipped). Both repositories are public: these commits are fetched anonymously and only these bytes are used (StegVerse-org/.github#166)"
+}

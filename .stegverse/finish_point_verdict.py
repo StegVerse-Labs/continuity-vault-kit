@@ -7,9 +7,13 @@ Anything that cannot be shown complete widens to SELECTED: a non pull_request ev
 fetched or did not match its sha256 pin, a missing or unreadable record, a seal that does not verify, mode ALL,
 an unavailable diff, or any error here. Stdlib only, no clock, no network, authority effect NONE.
 
-  decide       --event E --spec S [--selection R] [--selector P] [--head H] [--base B] [--pr-head P] --out V
-               prints run=true|false (always exits 0)
-  not-selected V   exits 0 only when V is a sealed NOT_SELECTED verdict, printing it; otherwise exits 1
+  decide       --event E --spec S [--set-key K] [--selection R] [--selector P] [--head H] [--base B] [--pr-head P]
+               --out V    prints run=true|false (always exits 0)
+  not-selected V [--spec S --set-key K]   exits 0 only when V is a sealed NOT_SELECTED verdict (for the set(s) the
+               spec key K names, when given), printing it; otherwise exits 1
+
+--set-key (default finish_point_set) names the spec key holding the set: one set id, or a list of set ids that is
+selected when any of them is (the Workspace cross-repository parity step uses workspace_parity_sets).
 """
 from __future__ import annotations
 
@@ -55,6 +59,10 @@ def decide(event: str, set_id: str | None, record: Any, selector: Any, head: str
            base: str | None = None, pr_head: str | None = None) -> dict:
     rec = record if isinstance(record, Mapping) else {}
     detail: Any = None
+    if isinstance(set_id, (list, tuple)):
+        set_id = sorted(set_id) if set_id and all(isinstance(i, str) and i for i in set_id) else None
+    elif not isinstance(set_id, str):
+        set_id = None
     if not set_id:
         verdict, reason = "SELECTED", "FINISH_POINT_SET_ID_UNAVAILABLE"
     elif event != "pull_request":
@@ -71,7 +79,8 @@ def decide(event: str, set_id: str | None, record: Any, selector: Any, head: str
     elif rec.get("diff_available") is not True:
         verdict, reason = "SELECTED", "DIFF_UNAVAILABLE"
     else:
-        hit = [s for s in rec.get("selected") or [] if isinstance(s, Mapping) and s.get("id") == set_id]
+        ids = {set_id} if isinstance(set_id, str) else set(set_id)
+        hit = [s for s in rec.get("selected") or [] if isinstance(s, Mapping) and s.get("id") in ids]
         if hit:
             verdict, reason = "SELECTED", "DIFF_PATH_IN_SET_CLOSURE"
             detail = list(hit[0].get("reasons") or [])[:5]
@@ -119,19 +128,27 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--base")
     d.add_argument("--pr-head")
     d.add_argument("--out", required=True)
+    d.add_argument("--set-key", default="finish_point_set",
+                   help="the spec key naming the set (a set id, or a list of set ids: selected when any is)")
     n = sub.add_parser("not-selected")
     n.add_argument("verdict")
+    n.add_argument("--spec", help="with --set-key: the verdict must be for the set(s) that key names")
+    n.add_argument("--set-key")
     a = parser.parse_args(argv)
     if a.command == "not-selected":
         v = _read_json(a.verdict)
         ok = (seal_verifies(v) and v.get("schema") == SCHEMA and v.get("verdict") == "NOT_SELECTED"
               and v.get("run") is False and v.get("event") == "pull_request")
+        if ok and a.set_key:
+            spec = _read_json(a.spec)
+            want = spec.get(a.set_key) if isinstance(spec, Mapping) else None
+            ok = want is not None and v.get("set_id") == (sorted(want) if isinstance(want, list) else want)
         if ok:
             print(json.dumps(v, indent=1, sort_keys=True))
         return 0 if ok else 1
     try:
         spec = _read_json(a.spec)
-        set_id = spec.get("finish_point_set") if isinstance(spec, Mapping) else None
+        set_id = spec.get(a.set_key) if isinstance(spec, Mapping) else None
         verdict = decide(a.event, set_id, _read_json(a.selection), load_selector(a.selector), a.head, a.base,
                          a.pr_head)
     except Exception as exc:  # noqa: BLE001 - any error widens to SELECTED
