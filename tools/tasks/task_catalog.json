@@ -50,7 +50,9 @@
         {
           "name": "Prove hosted validation is non-authorizing",
           "run_file": "tools/tasks/steps/automated-kv-upgrade-validation.validate/04-prove-hosted-validation-is-non-authorizing.sh",
-          "run_sha256": "58d98499f7164d55e51e1b74734544dbbcf855d8a0c5f5674456aa0ad6049c1d"
+          "run_sha256": "49b514aed2946f1a0f6ce16befc772eabd0b5188c3aa15d9e555f67d14cb396a",
+          "replaces_run_sha256": "58d98499f7164d55e51e1b74734544dbbcf855d8a0c5f5674456aa0ad6049c1d",
+          "adaptation": "G17: reads .github/workflows/validation-dispatcher.yml (the surface that runs this check) instead of .github/workflows/automated-kv-upgrade-validation.yml, which is folded; assertions unchanged"
         }
       ],
       "artifacts": [],
@@ -1194,7 +1196,9 @@
         {
           "name": "Prove hosted validation is non-authorizing",
           "run_file": "tools/tasks/steps/kv-guardrails.kv-guardrails/23-prove-hosted-validation-is-non-authorizing.sh",
-          "run_sha256": "d28dec2d10b09744fa459c5cfca8e0ded7bd5d64a6f269f5864ccefd8fa610bb"
+          "run_sha256": "6b6750dc4e67e0929b097ece7553e3d2b604d760434de91135b3d7dcddb52bd7",
+          "replaces_run_sha256": "d28dec2d10b09744fa459c5cfca8e0ded7bd5d64a6f269f5864ccefd8fa610bb",
+          "adaptation": "G17: reads .github/workflows/validation-dispatcher.yml (the surface that runs this check) instead of .github/workflows/kv-guardrails.yml, which is folded; assertions unchanged"
         },
         {
           "name": "Guardrail repair guidance",

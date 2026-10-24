@@ -1,6 +1,6 @@
 python3 - <<'PY'
 from pathlib import Path
-text=Path('.github/workflows/automated-kv-upgrade-validation.yml').read_text(encoding='utf-8')
+text=Path('.github/workflows/validation-dispatcher.yml').read_text(encoding='utf-8')
 assert 'contents: read' in text
 for marker in ('contents:' + ' write', 'git' + ' push', 'secrets' + '.'):
     assert marker not in text, marker
