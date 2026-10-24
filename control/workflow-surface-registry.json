@@ -1593,7 +1593,7 @@
     {
       "pr": "StegVerse-Labs/continuity-vault-kit#263",
       "catalog_group": "kv-storage-endpoint-v2.validate.pr263",
-      "change": "#263 head 48e8a2b4: adds step 4 'Sovereign-KV binding and vault-lineage record type; existing contract bytes pinned (0 skipped)'; selected when runtime/kv_receipt_ledgers.py present",
+      "change": "#263 head 48e8a2b4: adds step 4 'Sovereign-KV binding and vault-lineage record type; existing contract bytes pinned (0 skipped)'; selected when tests/test_kv_skap_vault_finish_point.py present (#258 and #263)",
       "source_workflow": ".github/workflows/kv-storage-endpoint-v2.yml",
       "source_head": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
       "source_copy": "tools/tasks/carried/pr263/kv-storage-endpoint-v2.yml",
@@ -1602,11 +1602,20 @@
     {
       "pr": "StegVerse-Labs/continuity-vault-kit#263",
       "catalog_group": "validate-kv-interlock-contract.validate.pr263",
-      "change": "#263 head 48e8a2b4: fanout probe step adds --e0-standin-healthy-node; selected when runtime/kv_receipt_ledgers.py present",
+      "change": "#263 head 48e8a2b4: fanout probe step adds --e0-standin-healthy-node; selected when tests/test_kv_skap_vault_finish_point.py present (#258 and #263)",
       "source_workflow": ".github/workflows/validate-kv-interlock-contract.yml",
       "source_head": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
       "source_copy": "tools/tasks/carried/pr263/validate-kv-interlock-contract.yml",
       "source_copy_sha256": "ef68a79deaca3b71005a40a055155fd3f61b8d1cd63c2bd379ce6e4faeff50cf"
+    },
+    {
+      "pr": "StegVerse-Labs/continuity-vault-kit#263",
+      "catalog_group": "runtime-import-and-secret-policy.guard.pr263",
+      "change": "#263 head 48e8a2b4 (same bytes at #258 4fdab7af): 7-step guard (adds LC-KV ladder test to step 4, KV/SKAP Vault finish point (E0) step 6, E0 witnesses step 7); selected when tests/test_kv_skap_vault_finish_point.py present and .stegverse/finish_point_verdict.py absent",
+      "source_workflow": ".github/workflows/runtime-import-and-secret-policy.yml",
+      "source_head": "48e8a2b495f1e1a1e7f9a1145e7f2942f2272341",
+      "source_copy": "tools/tasks/carried/pr263/runtime-import-and-secret-policy.yml",
+      "source_copy_sha256": "d6fd85b006a46784fc655e65ef97ea2a094676c18651e71d8a84cb3ee0f106d7"
     }
   ],
   "open_decisions": [
@@ -1624,6 +1633,7 @@
         "kv-storage-endpoint-v2.validate.pr263",
         "runtime-import-and-secret-policy.guard.pr260",
         "runtime-import-and-secret-policy.guard.pr261",
+        "runtime-import-and-secret-policy.guard.pr263",
         "skap-loader-tests.skap-loader-tests",
         "validate-kv-interlock-contract.validate.pr263"
       ],
