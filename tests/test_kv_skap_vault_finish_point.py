@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import hashlib
 import json
 import subprocess
 import sys
@@ -19,6 +20,34 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+#: Consumed-source pin (CONSUMES_DEPENDENCY ruling, StegVerse-Labs/.github#3327 c6392179411): the finish point consumes
+#: runtime/kv_storage_provider_adapter.py, owned by TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001, through
+#: runtime/kv_receipt_ledgers.py. It is pinned to the continuity-vault-kit commit below and its sha256, and verified
+#: here before anything imports it. Any edit to the pinned file is routed to its owner task; it is never silently used.
+CONSUMED_SOURCE_PIN = {
+    "repository": "StegVerse-Labs/continuity-vault-kit",
+    "commit": "859f1cf7f65f87b35e65fd8a9aa58e2933a12c01",
+    "owner_task_id": "TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001",
+    "files": {
+        "runtime/kv_storage_provider_adapter.py": "d6ab2d2395e045d703787917388cf9656261424e1f1ae78cfc36c4b41b08e1ee",
+    },
+}
+
+
+def _consumed_pin_divergence() -> list[str]:
+    out = []
+    for rel, digest in CONSUMED_SOURCE_PIN["files"].items():
+        actual = hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()
+        if actual != digest:
+            out.append(f"{rel}: sha256 {actual} != pin {digest} @{CONSUMED_SOURCE_PIN['commit']}")
+    return out
+
+
+_PIN_DIVERGENCE = _consumed_pin_divergence()
+if _PIN_DIVERGENCE:  # verified before use: refuse to import the consumed source at all
+    raise RuntimeError("FAIL_CLOSED CONSUMED_SOURCE_PIN_DIVERGES (route the edit to "
+                       f"{CONSUMED_SOURCE_PIN['owner_task_id']}): " + "; ".join(_PIN_DIVERGENCE))
 
 from runtime import kv_skap_vault as kv  # noqa: E402
 
@@ -46,6 +75,7 @@ def vault_with_consent(purposes=("WRITE", "READ"), projection="p"):
 
 class KvSkapVaultFinishPoint(unittest.TestCase):
     def test_finish_point_verdict(self) -> None:
+        self.assertEqual(_consumed_pin_divergence(), [])  # the consumed source is the pinned bytes
         verdict = kv.finish_point()
         self.assertEqual(verdict["task_id"], "KV-SKAP-VAULT-FUNCTIONAL-001")
         self.assertEqual(verdict["scope_digest"],
