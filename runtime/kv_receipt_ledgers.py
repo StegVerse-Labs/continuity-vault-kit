@@ -93,9 +93,13 @@ HEAD_RECORD_SCHEMA = "stegverse.kv-recorded-head/v1"
 HEAD_RECORD_KEYS = ("schema", "head_receipt_sha256", "previous_record_sha256", "record_sha256")
 #: LC-KV-23 (b): the Org's digest-only crossing records for this endpoint's path_ids, read by the reader itself
 #: (never the caller): ``ORG_CROSSING_READER(designation, which) -> list | None`` (None: not observable). At E0 an
-#: injected fixture; in production the existing InTr readback. cvk has none exposed today, so this is None
-#: (UNKNOWN_NOT_AUTHENTICALLY_OBSERVED): a chain that has crossed fails closed KV_CROSSING_RECORD_NOT_OBSERVED.
-ORG_CROSSING_READER = None
+#: injected fixture; in production ``runtime.org_crossing_reader.read`` (LC-KV-26, the Org end): a clock-free,
+#: network-free read of an anonymously fetched snapshot of the public Org ledger, emitting only genuine crossings
+#: between distinct orgs that already carry endpoint_head_sha256. With no snapshot it returns None, so a read fails
+#: closed KV_CROSSING_RECORD_NOT_OBSERVED. Used only to refuse, never to grant (#167 c6374130335).
+from runtime import org_crossing_reader as _ocr  # noqa: E402  (imports nothing from this module)
+
+ORG_CROSSING_READER = _ocr.read
 ORG_CROSSING_KEYS = ("path_id", "receipt_sha256", "endpoint_head_sha256", "supplied_hb_epoch")
 CROSS_CHECK_ROLE = "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK"
 ORG_SOURCED_CODE = "KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED"

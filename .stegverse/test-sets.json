@@ -1041,6 +1041,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_org_crossing_reader.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_org_crossing_reader.py"
+   ],
+   "tests": [
+    "tests.test_org_crossing_reader"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_organization_security_posture.py",
    "inputs": [],
    "surfaces": [
@@ -2022,7 +2034,8 @@
    ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
    "KV_STORAGE_ENDPOINT_V2_MIRROR_HANDOFF.md",
    "runtime/kv_interlock_endpoint.py",
-   "runtime/kv_storage_provider_adapter.py"
+   "runtime/kv_storage_provider_adapter.py",
+   "runtime/org_crossing_reader.py"
   ],
   "runtime/kv_relationship_state_store.py": [
    "runtime/kv_instance_relationships.py"
@@ -2039,6 +2052,9 @@
    "runtime/kv_receipt_ledgers.py",
    "runtime/kv_skap_layer2.py",
    "runtime/secret_field_policy.py"
+  ],
+  "runtime/org_crossing_reader.py": [
+   "tools/observers/org_ledger_observer.py"
   ],
   "runtime/organization_security_posture.py": [
    "policy/organization-security-postures.v1.json"
@@ -2451,7 +2467,10 @@
    "runtime/kv_relationship_state_store.py"
   ],
   "tests/test_kv_skap_account_transfer.py": [
+   "KV_SKAP_GATE_ACCOUNT_TRANSFER_MIRROR_HANDOFF.md",
+   "docs/KV_SKAP_GATE_ACCOUNT_TRANSFER_PROTOCOL.md",
    "runtime/kv_skap_account_transfer.py",
+   "schemas/kv-skap-gate-account-transfer-envelope.schema.json",
    "tests/fixtures/**",
    "tests/fixtures/kv_skap_account_metadata_conformance_v1.json"
   ],
@@ -2512,6 +2531,12 @@
    "runtime/kv_skap_layer2.py",
    "runtime/kv_skap_vault.py",
    "specs/skap-vault-double-interlock.v1.json"
+  ],
+  "tests/test_org_crossing_reader.py": [
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/org_crossing_reader.py",
+   "tools/observers/**",
+   "tools/observers/org_ledger_observer.py"
   ],
   "tests/test_organization_security_posture.py": [
    "runtime/organization_security_posture.py"
@@ -2799,6 +2824,9 @@
   "tools/init_vault.py": [
    "VERSION",
    "vault_template/KnowledgeVault/**"
+  ],
+  "tools/observers/org_ledger_observer.py": [
+   "runtime/org_crossing_reader.py"
   ],
   "tools/plan_legacy_kv_upgrade.py": [
    "VERSION",
