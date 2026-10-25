@@ -991,10 +991,10 @@ class KvSkapLedgerLocation(unittest.TestCase):
         rows = {r["receipt_ledger"]: r for r in rl.receipt_ledger_prerequisites()}
         self.assertEqual([b["failure_code"] for b in rows["kv"]["fail_closed"]],
                          ["KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR", "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED",
-                          rl.PIN_MECHANISM_CODE, "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED"])
+                          "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED"])
         self.assertEqual([b["failure_code"] for b in rows["skap_vault"]["fail_closed"]],
                          ["KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR",
-                          "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED", rl.PIN_MECHANISM_CODE,
+                          "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED",
                           "KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED"])
         for row in rows.values():
             self.assertEqual(row["disposition"], "FAIL_CLOSED")
@@ -1459,3 +1459,87 @@ class KvSkapLedgerLocation(unittest.TestCase):
         self.assertNotIn("from cryptography", source)
         modules, why = ep.load_pinned_intr()
         self.assertIsNotNone(modules, why)  # the vendored #432 bytes still match their pins
+
+
+def _genesis_root(which, epoch, klass=None, previous=None, derived=False):
+    """TEST-ONLY: a scratch read-back root holding one KV genesis receipt whose hb_reference carries `epoch`."""
+    hne = pinned()["healthy_node_evaluator"]
+    spec = rl.RECEIPT_LEDGERS[which]
+    body = {"schema": "stegverse.repo-transition-receipt/v1", "repository": spec["repository"],
+            "transition_id": "REPOSITORY_LEDGER_INITIALIZATION:e0", "transition_class": klass or rl.GENESIS_CLASS,
+            "predecessor_state_sha256": hne.sha({"previous": None}), "successor_state_sha256": hne.sha({"t": "g"}),
+            "evidence": {"label": E0_LABEL, "repository": spec["repository"]}, "authority_effect": "NONE",
+            "hb_reference": {"epoch": epoch, "derived_from_clock": derived}, "observed_at": None,
+            "previous_receipt_sha256": previous}
+    receipt = {**body, "receipt_sha256": hne.sha(body)}
+    root = Path(tempfile.mkdtemp(prefix="e0-kv-genesis-"))
+    where = root / spec["storage_location"]
+    (where / "receipts").mkdir(parents=True)
+    (where / "receipts" / (receipt["receipt_sha256"][7:] + ".json")).write_text(json.dumps(receipt), encoding="utf-8")
+    (where / "HEAD.json").write_text(json.dumps({"receipt_sha256": receipt["receipt_sha256"]}), encoding="utf-8")
+    return root, receipt
+
+
+class LcKv27KvOwnedGenesisPin(unittest.TestCase):
+    """LC-KV-27 (#167 c6394287652): the genesis pin is KV-owned; the withdrawn org-hosted planner row is gone."""
+
+    def assertSix(self, out, code, klass):
+        self.assertEqual(out["disposition"], "FAIL_CLOSED", out)
+        self.assertEqual((out["failure_code"], out["failure_class"]), (code, klass), out)
+        for field in rl.SIX_FIELDS:
+            self.assertTrue(str(out[field]).strip(), field)
+
+    def test_org_hosted_pin_mechanism_row_is_removed(self):
+        self.assertFalse(hasattr(rl, "PIN_MECHANISM_CODE"))
+        self.assertFalse(hasattr(rl, "pin_mechanism_org_hosted"))
+        for row in rl.receipt_ledger_prerequisites():
+            text = json.dumps(row)
+            self.assertNotIn("KV_RECEIPT_CHAIN_GENESIS_PIN_MECHANISM_ORG_HOSTED", text)
+            for withdrawn in ("#431", "#235", "organization-ledger", "Lane B"):
+                self.assertNotIn(withdrawn, text, withdrawn)
+            pin = next(b for b in row["fail_closed"] if b["failure_code"] == "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED")
+            self.assertEqual(pin["retry_entrypoint"], rl.PIN_ENTRYPOINT)
+            self.assertIn("LC-KV-27", pin["owning_existing_goal"])
+            self.assertIn("LC-KV-28", pin["next_attempt"])
+            self.assertIn(rl.PIN_MECHANISM, pin["required_evidence_or_repair"])
+
+    def test_production_plan_fails_closed_on_kv2(self):
+        for which in rl.RECEIPT_LEDGERS:
+            out = rl.plan_genesis_pin(which, spa.default_registry().get("google-drive"), "/nonexistent", hb_epoch=40)
+            self.assertSix(out, "KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR", "B")
+
+    def test_e0_plan_returns_kv_own_genesis_and_writes_nothing(self):
+        for which in rl.RECEIPT_LEDGERS:
+            with self.subTest(which=which), kv_chain_e0(which, None) as spec:
+                before = Path(spec["contract_path"]).read_bytes()
+                root, genesis = _genesis_root(which, "40")
+                out = rl.plan_genesis_pin(which, device_local(), root, hb_epoch=40)
+                self.assertEqual(out["disposition"], "ALLOW", out)
+                self.assertEqual(out["expected_genesis_receipt_sha256"], genesis["receipt_sha256"])
+                self.assertEqual(out["pin_fields"], list(rl.PIN_FIELDS))
+                self.assertEqual((out["ledger_written"], out["authority_effect"]), (False, "NONE"))
+                self.assertEqual(Path(spec["contract_path"]).read_bytes(), before)
+
+    def test_e0_plan_refusals(self):
+        with kv_chain_e0("kv", None):
+            root, _ = _genesis_root("kv", "40")
+            self.assertSix(rl.plan_genesis_pin("kv", device_local(), root), "HB_EPOCH_NOT_SUPPLIED", "C")
+            self.assertSix(rl.plan_genesis_pin("kv", device_local(), root, hb_epoch=31), "HB_EPOCH_INVALID", "C")
+            self.assertSix(rl.plan_genesis_pin("kv", device_local(), root, hb_epoch=41),
+                           "KV_RECEIPT_CHAIN_GENESIS_NOT_AT_SUPPLIED_HB_EPOCH", "C")
+            self.assertSix(rl.plan_genesis_pin("kv", spa.default_registry().get("google-drive"), root, hb_epoch=40),
+                           "KV_STORAGE_ENDPOINT_NOT_THE_DESIGNATED_ONE", "C")
+            self.assertSix(rl.plan_genesis_pin("kv", device_local(), None, hb_epoch=40),
+                           "KV_RECEIPT_CHAIN_UNREADABLE", "D")
+            clock, _ = _genesis_root("kv", "40", derived=True)
+            self.assertSix(rl.plan_genesis_pin("kv", device_local(), clock, hb_epoch=40),
+                           "KV_RECEIPT_CHAIN_GENESIS_NOT_AT_SUPPLIED_HB_EPOCH", "C")
+            other, _ = _genesis_root("kv", "40", klass="RECEIPT_APPENDED")
+            self.assertSix(rl.plan_genesis_pin("kv", device_local(), other, hb_epoch=40),
+                           "KV_RECEIPT_CHAIN_GENESIS_UNREADABLE", "C")
+        with kv_chain_e0("kv", "sha256:" + "cd" * 32):
+            root, _ = _genesis_root("kv", "40")
+            self.assertSix(rl.plan_genesis_pin("kv", device_local(), root, hb_epoch=40),
+                           "KV_RECEIPT_CHAIN_GENESIS_ALREADY_PINNED", "C")
+        self.assertSix(rl.plan_genesis_pin("nope", device_local(), None, hb_epoch=40), "KV_RECEIPT_CHAIN_UNKNOWN", "C")
+

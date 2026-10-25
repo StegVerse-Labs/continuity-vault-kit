@@ -147,7 +147,17 @@ PREDICATE = "KV_RECEIPTS_READ_BACK_FROM_KV_OWN_RECEIPT_CHAIN_ONLY"
 RETRY = ("runtime.kv_receipt_ledgers.read_receipt_ledger('kv', <storage endpoint adapter>, <readback root>, "
          "<head attestation>, <org-recorded head>); skap_vault only via "
          "runtime.kv_skap_layer2.SkapLayer2Gate.receipt_ledger")
-PIN_MECHANISM_CODE = "KV_RECEIPT_CHAIN_GENESIS_PIN_MECHANISM_ORG_HOSTED"
+#: LC-KV-27 (P1 via Coordination, StegVerse-org/.github#163 c6394287429, #167 c6394287652): the genesis pin is KV-owned.
+#: The withdrawn org-hosted planner row (KV_RECEIPT_CHAIN_GENESIS_PIN_MECHANISM_ORG_HOSTED) is removed: KV's own ledger
+#: is never on an Org ledger ref, and no InTr hop inside an org is involved. plan_genesis_pin reads KV's own genesis
+#: receipt back from KV's own storage endpoint and returns the value an admitted continuity-vault-kit change pins into
+#: the contract; it writes nothing.
+PIN_MECHANISM = "KV_OWNED_RECEIPT_CHAIN_GENESIS_PIN"
+PIN_TASK = ("LC-KV-27 (KV-owned receipt-chain genesis pin) under " + TASK)
+PIN_ENTRYPOINT = ("runtime.kv_receipt_ledgers.plan_genesis_pin(<'kv'|'skap_vault'>, <storage endpoint adapter>, "
+                  "<readback root>, hb_epoch=<SUPPLIED_HB_EPOCH>)")
+PIN_FIELDS = ("repository_ledger_location.expected_genesis_receipt_sha256",
+              "ledger_designation.expected_genesis_receipt_sha256")
 GENESIS_CROSSING = ('Genesis follows the existing two-event crossing model (SKAP_PORTABLE_ENVELOPE_V2_MIRROR_HANDOFF.md '
                     "line 55 @d749bb2, CAPTURE): event 1, the SKAP chain's REPOSITORY_LEDGER_INITIALIZATION genesis "
                     'receipt recorded in KV storage at _Vault/SKAP/Receipts; event 2, a digest-only InTr crossing receipt'
@@ -182,29 +192,83 @@ def kv2_pending(which: str) -> dict[str, Any]:
                          "the admitted KV #2 lineage")
 
 
-def pin_mechanism_org_hosted(which: str) -> dict[str, Any]:
-    """Six-field FAIL_CLOSED: the only genesis-pin mechanism is org-hosted (Lane B holds KV wiring)."""
-    return _refuse(which, PIN_MECHANISM_CODE, "B",
-                   "a per-endpoint genesis pin from Lane B that accepts a KV-owned location contract: "
-                   "StegVerse-org/LLM-adapter#431 @66a098fa's planner (contract_shape_failure) and receiver still "
-                   "require StegVerse-org/.github refs/stegverse/organization-ledger; per #167 comment 6372442705 "
-                   "item 6 the pin is computed in advance once #431's genesis aligns with SUPPLIED_HB_EPOCH "
-                   "(StegVerse-Labs/.github#3263/#3290)",
-                   "when Lane B posts the per-endpoint, SUPPLIED_HB_EPOCH-aligned pin; no KV wiring before then",
-                   f"{RECEIPT_LEDGERS[which]['storage_location']}: no mechanism can pin a KV-owned genesis yet",
-                   owner="StegVerse-org/.github#162 / StegVerse-org/LLM-adapter#431 (Lane B)",
-                   predicate="GENESIS_PIN_MECHANISM_ACCEPTS_KV_OWNED_LOCATION",
-                   retry="StegVerse-org/LLM-adapter#431 REPOSITORY_LEDGER_GENESIS_PIN (per-endpoint form, Lane B)")
-
-
 def _not_pinned(which: str, location: str) -> dict[str, Any]:
     return _refuse(which, "KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED", "B",
-                   f"expected_genesis_receipt_sha256 in {RECEIPT_LEDGERS[which]['contract_path']} (both the #431 "
-                   f"location and the ledger_designation), set by an admitted change from the {GENESIS_CLASS} genesis "
-                   "computed in advance (SUPPLIED_HB_EPOCH) and checked on read-back; never by hand and never invented",
-                   f"after {PIN_MECHANISM_CODE} clears (Lane B); event-driven, no cron, no polling",
+                   f"expected_genesis_receipt_sha256 in {RECEIPT_LEDGERS[which]['contract_path']} (both "
+                   f"{' and '.join(PIN_FIELDS)}), set by an admitted continuity-vault-kit change to the value "
+                   f"{PIN_MECHANISM} ({PIN_ENTRYPOINT}) returns from KV's own {GENESIS_CLASS} genesis receipt, computed "
+                   "with SUPPLIED_HB_EPOCH and read back from KV's own storage endpoint; never by hand and never invented",
+                   "on KV's own genesis receipt event on its storage endpoint (after KV #2 provider execution, "
+                   "LC-KV-28), then the admitted cvk pin change; event-driven, no cron, no polling",
                    f"{location}: expected_genesis_receipt_sha256 is null; any store can mint a genesis, so none is "
-                   "accepted", owner=f"{TASK}; dependency owner Lane B (#162 / LLM-adapter#431)")
+                   "accepted", owner=PIN_TASK, retry=PIN_ENTRYPOINT)
+
+
+def plan_genesis_pin(which: str, storage_endpoint: Any = None, readback_root: Any = None,
+                     hb_epoch: Any = None) -> dict[str, Any]:
+    """LC-KV-27, the KV-owned genesis pin. Pure: it writes nothing and reads no clock and no Org ledger.
+
+    KV's own chain is read back from the designated storage endpoint (KV #2 lineage). Its genesis must be a
+    hash-intact REPOSITORY_LEDGER_INITIALIZATION receipt for this chain's repository whose hb_reference carries the
+    supplied HB epoch (the shared supplied-epoch rule). ALLOW returns that receipt_sha256 and the two contract fields
+    an admitted continuity-vault-kit change sets to it (the contract_sha256 pin moves with it). Every other outcome is a
+    six-field FAIL_CLOSED."""
+    if which not in RECEIPT_LEDGERS:
+        return _refuse(which, "KV_RECEIPT_CHAIN_UNKNOWN", "C", f"one of {sorted(RECEIPT_LEDGERS)}",
+                       "on the corrected call", f"{which!r} is not a KV receipt chain", owner=PIN_TASK,
+                       predicate="GENESIS_PIN_IS_KV_OWNED", retry=PIN_ENTRYPOINT)
+    d, refusal = designation(which)
+    if refusal:
+        return refusal
+    store = d["store"]
+    if store["kv_request_id"] == KV2_REQUEST_ID and KV2_GOVERNANCE_STATE == "PENDING_INTERLOCK_INTR":
+        return kv2_pending(which)
+
+    def fail(code: str, klass: str, repair: str, nxt: str, detail: str) -> dict[str, Any]:
+        return _refuse(which, code, klass, repair, nxt, detail, owner=PIN_TASK, predicate="GENESIS_PIN_IS_KV_OWNED",
+                       retry=PIN_ENTRYPOINT)
+
+    if d["expected_genesis_receipt_sha256"] is not None:
+        return fail("KV_RECEIPT_CHAIN_GENESIS_ALREADY_PINNED", "C", "none: the contract already pins this chain's genesis",
+                    "never: a pinned genesis is not re-pinned", f"{d['location']} pins {d['expected_genesis_receipt_sha256']}")
+    modules, why = _pinned()
+    if modules is None:
+        return fail("PINNED_INTR_CODE_UNAVAILABLE", "C", "the digest-pinned modules", "on re-vendor", why)
+    epoch_failure = modules["supplied_epoch"].supplied_epoch_failure(hb_epoch)
+    if epoch_failure:
+        return fail(epoch_failure[0], "C", "the SUPPLIED_HB_EPOCH the genesis was computed with (ASCII [0-9]+, >= 32)",
+                    "on the corrected call with the supplied epoch; no clock is read", epoch_failure[1])
+    if getattr(storage_endpoint, "provider_id", None) != store["provider_id"] \
+            or not callable(getattr(storage_endpoint, "descriptor", None)) \
+            or storage_endpoint.descriptor().get("access_adapter") != store["access_adapter"]:
+        return fail("KV_STORAGE_ENDPOINT_NOT_THE_DESIGNATED_ONE", "C",
+                    f"the storage endpoint {store['provider_id']} ({store['access_adapter']}) the designation names",
+                    "with the designated storage endpoint", f"storage endpoint {getattr(storage_endpoint, 'provider_id', None)!r}")
+    root = Path(readback_root) / store["location"] if readback_root is not None else None
+    if root is None or not root.is_dir():
+        return fail("KV_RECEIPT_CHAIN_UNREADABLE", "D", f"the {store['location']} read back through the storage endpoint",
+                    "on the next storage endpoint READ", f"no read-back at {root}")
+    chain, failure, detail = modules["healthy_node_evaluator"].read_chain(root, d["repository"])
+    genesis = chain[-1] if chain else None
+    if failure or genesis is None or genesis.get("transition_class") != GENESIS_CLASS \
+            or genesis.get("previous_receipt_sha256") is not None:
+        return fail("KV_RECEIPT_CHAIN_GENESIS_UNREADABLE", "C",
+                    f"one KV-computed chain at {store['location']} back to its {GENESIS_CLASS} genesis "
+                    "(an empty location is never a genesis)", "on an intact chain", f"{failure or 'no genesis'} {detail}")
+    hb = genesis.get("hb_reference")
+    epoch = hb.get("epoch") if isinstance(hb, dict) else None
+    epoch_failure = modules["supplied_epoch"].supplied_epoch_failure(epoch, hb)
+    if epoch_failure or str(epoch) != str(hb_epoch):
+        return fail("KV_RECEIPT_CHAIN_GENESIS_NOT_AT_SUPPLIED_HB_EPOCH", "C",
+                    "a genesis receipt whose hb_reference carries the supplied HB epoch",
+                    "never: a genesis at another or a clock-derived epoch is not this pin",
+                    f"genesis hb_reference epoch {epoch!r}, supplied {hb_epoch!r}"
+                    + (f" ({epoch_failure[1]})" if epoch_failure else ""))
+    return {"disposition": ALLOW, "receipt_ledger": which, "mechanism": PIN_MECHANISM,
+            "expected_genesis_receipt_sha256": genesis["receipt_sha256"], "supplied_hb_epoch": str(hb_epoch),
+            "contract_path": d["contract_path"], "pin_fields": list(PIN_FIELDS), "location": d["location"],
+            "store_location": d["store_location"], "applied_by": "an admitted continuity-vault-kit change; never by hand",
+            "ledger_written": False, "authority_effect": "NONE"}
 
 
 MEMBERSHIP_CODE = "ENDPOINT_ORG_MEMBERSHIP_REFUSED"
@@ -816,7 +880,7 @@ def receipt_ledger_prerequisites() -> list[dict[str, Any]]:
         if d and d["store"]["kv_request_id"] == KV2_REQUEST_ID and KV2_GOVERNANCE_STATE == "PENDING_INTERLOCK_INTR":
             blocking.append(kv2_pending(which))
         if d and d["expected_genesis_receipt_sha256"] is None:
-            blocking += [_not_pinned(which, d["location"]), pin_mechanism_org_hosted(which)]
+            blocking.append(_not_pinned(which, d["location"]))
         if not load_head_signers():
             blocking.append(_head_failure({}, which, d, None, "", ""))
         row = {"prerequisite": "KV_RECEIPT_CHAIN_DESIGNATED_READABLE_AND_GENESIS_PINNED", "receipt_ledger": which,
@@ -851,6 +915,6 @@ def custody_ledgers_config() -> dict[str, Any]:
 
 __all__ = ["CORRESPONDENCE_RULE", "KV_LEDGER", "SKAP_VAULT_LEDGER", "RECEIPT_LEDGERS", "STORE_KEYS", "STORE_TYPE",
            "GENESIS_CROSSING", "custody_ledgers_config", "designation", "head_attestation_body",
-           "CONTRACT_KEY_SCHEMA", "MEMBERSHIP_CODE", "UNKNOWN_KEY_CODE", "ORG_SOURCED_CODE", "WATERMARK_MISSING_CODE", "WATERMARK_SOURCE", "watermark_org_sourced", "watermark_missing", "kv2_pending", "load_head_signers", "org_membership_refused", "pin_mechanism_org_hosted", "read_receipt_ledger",
+           "CONTRACT_KEY_SCHEMA", "MEMBERSHIP_CODE", "UNKNOWN_KEY_CODE", "ORG_SOURCED_CODE", "WATERMARK_MISSING_CODE", "WATERMARK_SOURCE", "watermark_org_sourced", "watermark_missing", "kv2_pending", "load_head_signers", "org_membership_refused", "plan_genesis_pin", "PIN_MECHANISM", "PIN_ENTRYPOINT", "read_receipt_ledger",
            "HEAD_RECORD", "NOT_OBSERVED_CODE", "ROLLBACK_CODE", "ORG_CROSSING_READER", "not_observed",
            "receipt_ledger_binding", "receipt_ledger_prerequisites", "receipt_on_ledger"]
