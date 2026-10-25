@@ -1,6 +1,6 @@
 {
   "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://stegverse.org/schemas/intr-boundary-transfer.schema.json",
+  "$id":"https://stegverse.org/schemas/kv-skap-gate-account-transfer-envelope.schema.json",
   "title":"KV to SKAP Vault in-KV gate account-transfer envelope",
   "type":"object",
   "additionalProperties":false,

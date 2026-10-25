@@ -15,10 +15,10 @@ The architecture then stated a KV ↔ SKAP Vault InTr link (retired: the SKAP Va
 Added:
 
 - `schemas/kv-skap-account-metadata-transfer.schema.json`
-- `schemas/intr-boundary-transfer.schema.json`
+- `schemas/kv-skap-gate-account-transfer-envelope.schema.json`
 - `runtime/kv_skap_account_transfer.py`
 - `tests/test_kv_skap_account_transfer.py`
-- `docs/KV_SKAP_INTR_ACCOUNT_TRANSFER_PROTOCOL.md`
+- `docs/KV_SKAP_GATE_ACCOUNT_TRANSFER_PROTOCOL.md`
 
 The transfer is intentionally split into three layers:
 
@@ -45,8 +45,12 @@ No authentic KV→SKAP account transfer is claimed from this source work. Comple
 
 ## In-KV SKAP gate framing (KV_SKAP_ACCOUNT_TRANSFER_INTR_ENVELOPE_RESIDUAL)
 
-Updated 2026-10-25 under this Goal Task (Coordination ruling, StegVerse-org/.github#167 comment 6392591875 (b)). The SKAP Vault sits inside KV, so the KV → SKAP Vault transfer is the in-KV SKAP gate (`KV_INTERNAL_SKAP_GATE`), never an InTr hop. The envelope schema is `stegverse.kv-skap-gate.account-transfer-envelope/v1` (retired: the InTr boundary-transfer schema), and the builders are `build_kv_interlock_request` and `build_skap_gate_envelope`. The envelope field is `gate_receipt_ref`, and the conformance fixture keys are `kv_skap_gate_envelope` and `gate_receipt`. There is no alias. The receiving side, TVC `tools/skap_kv_account_metadata_ingress.py`, moves in the same coordinated change. The declared file paths of this task are kept as they are (`schemas/intr-boundary-transfer.schema.json`, `docs/KV_SKAP_INTR_ACCOUNT_TRANSFER_PROTOCOL.md` and this handoff). Renaming them is left to the task owner (class D note on #167).
+Updated 2026-10-25 under this Goal Task (Coordination ruling, StegVerse-org/.github#167 comment 6392591875 (b)). The SKAP Vault sits inside KV, so the KV → SKAP Vault transfer is the in-KV SKAP gate (`KV_INTERNAL_SKAP_GATE`), never an InTr hop. The envelope schema is `stegverse.kv-skap-gate.account-transfer-envelope/v1` (retired: the InTr boundary-transfer schema), and the builders are `build_kv_interlock_request` and `build_skap_gate_envelope`. The envelope field is `gate_receipt_ref`, and the conformance fixture keys are `kv_skap_gate_envelope` and `gate_receipt`. There is no alias. The receiving side, TVC `tools/skap_kv_account_metadata_ingress.py`, moves in the same coordinated change. The declared file paths were first kept and recorded as class D (KV_SKAP_TRANSFER_DECLARED_PATH_NAMES_RETAINED) on #167.
 Item `KV_SKAP_ACCOUNT_TRANSFER_INTR_ENVELOPE_RESIDUAL` and its closure are recorded on StegVerse-org/.github#167.
+
+## Declared paths renamed (Coordination ruling (2): RENAME)
+
+Updated 2026-10-25 under this Goal Task. Coordination ruled RENAME on KV_SKAP_TRANSFER_DECLARED_PATH_NAMES_RETAINED (StegVerse-org/.github#167). The declared envelope schema is now `schemas/kv-skap-gate-account-transfer-envelope.schema.json`, with `$id` `https://stegverse.org/schemas/kv-skap-gate-account-transfer-envelope.schema.json`. The declared protocol document is now `docs/KV_SKAP_GATE_ACCOUNT_TRANSFER_PROTOCOL.md`. The old file names and `$id` are retired with no dual names, and `tests/test_kv_skap_account_transfer.py` keeps them out of the tree. Historical evidence/ and reports/ are receipts and are not rewritten. This handoff keeps its file name (the ruling covers the schema and the protocol document).
 
 ## Manual work
 
