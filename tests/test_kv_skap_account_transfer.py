@@ -114,10 +114,15 @@ RETIRED_TRANSFER_TOKENS = ("stegverse.intr." + "boundary-transfer", "build_intr_
                            "build_intr_" + "request(", "intr_" + "boundary_envelope", "Internal InTr " + "Boundary Transfer",
                            # Coordination ruling (2) RENAME on KV_SKAP_TRANSFER_DECLARED_PATH_NAMES_RETAINED: the declared
                            # schema and protocol-document names (and the schema $id) that called the transfer InTr.
-                           "intr-" + "boundary-transfer", "KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_PROTOCOL")
-RETIRED_DECLARED_PATHS = ("schemas/intr-" + "boundary-transfer.schema.json", "docs/KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_PROTOCOL.md")
+                           "intr-" + "boundary-transfer", "KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_PROTOCOL",
+                           # The same ruling, confirmed for the handoffs (#167 c6393224851 (2)): this task's handoff here
+                           # and TVC's paired receiving-side handoff.
+                           "KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_MIRROR_HANDOFF", "SKAP_KV_INTR_ACCOUNT_" + "METADATA_INGRESS")
+RETIRED_DECLARED_PATHS = ("schemas/intr-" + "boundary-transfer.schema.json", "docs/KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_PROTOCOL.md",
+                          "KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_MIRROR_HANDOFF.md")
 RENAMED_DECLARED_PATHS = ("schemas/kv-skap-gate-account-transfer-envelope.schema.json",
                           "docs/KV_SKAP_GATE_ACCOUNT_TRANSFER_PROTOCOL.md")
+HANDOFF = "KV_SKAP_GATE_ACCOUNT_TRANSFER_MIRROR_HANDOFF.md"
 
 
 class InKvSkapGateEnvelopeTests(unittest.TestCase):
@@ -135,7 +140,8 @@ class InKvSkapGateEnvelopeTests(unittest.TestCase):
             self.assertTrue((ROOT / path).is_file(), path)
         schema = json.loads((ROOT / RENAMED_DECLARED_PATHS[0]).read_text(encoding="utf-8"))
         self.assertEqual(schema["$id"], "https://stegverse.org/" + RENAMED_DECLARED_PATHS[0])
-        handoff = (ROOT / "KV_SKAP_INTR_ACCOUNT_TRANSFER_MIRROR_HANDOFF.md").read_text(encoding="utf-8")
+        self.assertTrue((ROOT / HANDOFF).is_file(), HANDOFF)
+        handoff = (ROOT / HANDOFF).read_text(encoding="utf-8")
         for path in RENAMED_DECLARED_PATHS:
             self.assertIn(f"`{path}`", handoff)
 
