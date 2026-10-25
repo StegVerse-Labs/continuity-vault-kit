@@ -256,8 +256,8 @@ VAULT_LINEAGE_CUSTODY_RETRY = ("runtime.task_registry_event_sovereign_kv_binding
 
 # Two sequential credential layers (StegVerse-Labs/.github#3330 rev 1, LC-KV-03/08): a custody result is admitted only
 # when the provider receipt binds a layer-1 KV-access receipt (INTR_DEVICE_KV, minted by KVInterlockRuntime.handle for
-# a currently admitted healthy node) and a layer-2 SKAP-access receipt (INTR_KV_SKAP, minted by the separate layer-2
-# gate inside KV, prior_receipt_hash == the layer-1 receipt). Both are verified against the gates' own receipt stores
+# a currently admitted healthy node) and a layer-2 SKAP-access receipt (KV_INTERNAL_SKAP_GATE, minted by the separate in-KV layer-2
+# gate, not an InTr hop, prior_receipt_hash == the layer-1 receipt). Both are verified against the gates' own receipt stores
 # through access_receipt_verifier; a non-empty string is never accepted. This module mints neither receipt.
 KV_ACCESS_LAYER1_REFUSED = "KV_ACCESS_LAYER1_REFUSED"
 SKAP_ACCESS_LAYER2_REFUSED = "SKAP_ACCESS_LAYER2_REFUSED"
@@ -301,7 +301,7 @@ def _require_access_layers(provider_receipt: Dict[str, Any], verifier: Any) -> t
     if not _is_sha256_uri(skap_hash):
         raise VaultLineageAccessLayerRefused(SKAP_ACCESS_LAYER2_REFUSED, (
             "the provider receipt binds no layer-2 skap_access_receipt_hash; custody records enter or leave the SKAP "
-            "Vault only through the INTR_KV_SKAP gate whose prior_receipt_hash is the layer-1 receipt"))
+            "Vault only through the in-KV KV_INTERNAL_SKAP_GATE gate whose prior_receipt_hash is the layer-1 receipt"))
     if verifier is None:
         raise VaultLineageAccessLayerRefused(KV_ACCESS_LAYER1_REFUSED, (
             "no access_receipt_verifier was supplied, so the layer receipts cannot be checked against the gates' "

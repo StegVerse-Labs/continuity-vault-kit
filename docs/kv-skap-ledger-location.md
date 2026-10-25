@@ -188,8 +188,8 @@ StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. He
         - Both assert today's ALLOW as a documented residual, not as a pass condition.
       - Under Coordination's ruling, a crossing record ahead of the KV head is DENY
         `KV_LEDGER_HEAD_ROLLBACK_DETECTED`. That is the only code for it, with no alias.
-- **The SKAP chain is reached only through KV's InTr.** A read goes through `SkapLayer2Gate.receipt_ledger` with a
-  layer-1 receipt minted by KV. Otherwise it is refused with `SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR`.
+- **The SKAP chain is reached only from inside KV.** A read goes through `SkapLayer2Gate.receipt_ledger` (the
+  in-KV gate, never an InTr hop) with a layer-1 receipt minted by KV. Otherwise it is refused with `SKAP_RECEIPT_CHAIN_NOT_FROM_INSIDE_KV`.
 - **Org designations are refused.** Any org ledger ref or git-ref designation is refused with
   `KV_RECEIPT_CHAIN_DESIGNATED_ON_ORG_LEDGER`.
 
@@ -230,10 +230,16 @@ KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324) from `sha256:d68e239b
 `sha256:d4a98dc0c0ff9db7dbc05b1b97d93573dda7b59dcd2a7628e2cf6620e26c7ef2`. Four predicates join the sealed
 `expected_evidence_predicates`, and `runtime.kv_skap_vault` (SCOPE_DIGEST, PREDICATES) evaluates each with real checks:
 
+The no-intra-org-InTr reseal then moves it to
+`sha256:95f060fcc2b2455908c838fbcada36eb80b05cad2bf15b8a0b9607cd4672d9dc`: the layer-2 predicate is renamed
+`SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV`. InTr runs only between distinct orgs, and the SKAP Vault sits inside KV, so
+KV reaching it is the in-KV gate `KV_INTERNAL_SKAP_GATE`, never an InTr hop.
+
+
 - `KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE`: the local exercise refuses KV access without a healthy-node ALLOW,
   and a healthy node gets a layer-1 receipt minted by `KVInterlockRuntime.handle` on the `INTR_DEVICE_KV` boundary.
   The evidence is the `access_constraints` row of the same name (`layer1_kv_access_receipts`).
-- `SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV`: an ungated bind, a direct read, a caller-asserted InTr ref and an
+- `SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV`: an ungated bind, a direct read, a caller-asserted InTr ref and an
   ungated reconstruct are all refused (`SKAP_ACCESS_LAYER2_REFUSED`). The evidence is `layer2_skap_access_receipts`.
 - `SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT`: SKAP entry with a forged or missing layer-1 prior is refused.
   The evidence is each layer-2 `prior_receipt_hash` equalling its layer-1 KV-access receipt.

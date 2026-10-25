@@ -1250,7 +1250,7 @@
         "jobs": {}
       },
       "record": "tools/tasks/folded/skap-vault-double-interlock.yml",
-      "record_sha256": "c94a860fabce80c346c76d8ecf4c62db03789fa50cdc9508715549ad8eb9a209",
+      "record_sha256": "d2531fffad88090659bf55cbc4dce60448e8492d2a9806c5900158cf564eb87c",
       "classification": "CONSOLIDATE_INTO_STABLE_DISPATCHER",
       "into": ".github/workflows/validation-dispatcher.yml",
       "catalog_groups": [

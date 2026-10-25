@@ -1,11 +1,13 @@
-"""Layer 2 of the two credential layers: the SKAP Vault is reachable only through InTr from inside KV (E0, stdlib only).
+"""Layer 2 of the two credential layers: the SKAP Vault is reachable only from inside KV, through the in-KV SKAP gate (E0, stdlib only).
 
 StegVerse-Labs/.github#3330 rev 1, LC-KV-07/08/11/12, for KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324).
 
 Layer 1 is ``KVInterlockRuntime.handle`` (runtime/kv_interlock_endpoint.py), the DEVICE->KV InTr entry (INTR_DEVICE_KV).
 It admits only a currently admitted healthy node, and it mints a KV-access receipt into its own receipt store.
 
-Layer 2 is ``SkapLayer2Gate.admit``, the KV->SKAP InTr entry (INTR_KV_SKAP), and it is a separate gate:
+Layer 2 is ``SkapLayer2Gate.admit``, the in-KV SKAP gate (KV_INTERNAL_SKAP_GATE), and it is a separate gate. It is
+not an InTr hop: the SKAP Vault sits inside KV, and InTr runs only between distinct orgs, so KV reaching the SKAP
+Vault never crosses InTr. The gate:
 * It admits a transition only when its ``prior_receipt_hash`` is a KV-access receipt that the layer-1 runtime
   minted and still re-derives. The gate looks the receipt up through ``verify_kv_access_receipt`` and never
   recomputes or accepts a caller-asserted one.
@@ -27,12 +29,12 @@ from runtime.kv_receipt_ledgers import KV_LEDGER, SKAP_VAULT_LEDGER, receipt_led
 GOAL_REF = "KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324)"
 LAYER2_REFUSAL_CODE = "SKAP_ACCESS_LAYER2_REFUSED"
 LAYER1_REFUSAL_CODE = "KV_ACCESS_LAYER1_REFUSED"
-LAYER2_BOUNDARY = "INTR_KV_SKAP"
+LAYER2_BOUNDARY = "KV_INTERNAL_SKAP_GATE"
 LAYER1_BOUNDARY = "INTR_DEVICE_KV"
-TRANSITION_SCHEMA = "stegverse.intr-kv-skap-transition/v1"
+TRANSITION_SCHEMA = "stegverse.kv-skap-gate-request/v1"
 SKAP_ACCESS_RECEIPT_SCHEMA = "stegverse.skap-access-receipt/v1"
 KV_ACCESS_RECEIPT_SCHEMA = "stegverse.kv-access-receipt/v1"
-PREDICATE_REACHABLE_FROM_KV = "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV"
+PREDICATE_REACHABLE_FROM_KV = "SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV"
 PREDICATE_PRIOR_LAYER1 = "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT"
 PREDICATE_HEALTHY_NODE = "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE"
 RETRY = "runtime.kv_skap_layer2.SkapLayer2Gate.admit (StegVerse-Labs/continuity-vault-kit)"
@@ -61,7 +63,7 @@ def layer2_refusal(cause: str, detail: str, *, predicate: str = PREDICATE_REACHA
         "required_evidence_or_repair": f"{cause}: {detail}",
         "retry_entrypoint": RETRY,
         "owning_existing_goal": GOAL_REF,
-        "next_attempt": "on the next KV->SKAP InTr transition whose prior_receipt_hash is a layer-1 KV-access receipt",
+        "next_attempt": "on the next in-KV SKAP gate request whose prior_receipt_hash is a layer-1 KV-access receipt",
         "failure_class": failure_class,
         "refusal_cause": cause,
         "skap_access_receipt": None,
@@ -71,14 +73,14 @@ def layer2_refusal(cause: str, detail: str, *, predicate: str = PREDICATE_REACHA
 
 def kv_skap_transition(*, principal_ref: str, operation: str, subject_ref: str,
                        prior_receipt_hash: str) -> dict[str, Any]:
-    """The INTR_KV_SKAP transition a KV-side caller submits to layer 2 (it asserts nothing about either hop)."""
+    """The in-KV SKAP gate request a KV-side caller submits to layer 2 (it asserts nothing about either layer)."""
     return {"schema": TRANSITION_SCHEMA, "boundary": LAYER2_BOUNDARY, "from_role": "KV", "to_role": "SKAP_VAULT",
             "principal_ref": principal_ref, "operation": operation, "subject_ref": subject_ref,
             "prior_receipt_hash": prior_receipt_hash}
 
 
 class SkapLayer2Gate:
-    """The KV->SKAP InTr gate. It holds its own receipt store, apart from the layer-1 runtime's store."""
+    """The in-KV SKAP gate (not an InTr hop). It holds its own receipt store, apart from the layer-1 runtime's store."""
 
     def __init__(self, layer1: Any) -> None:
         self._layer1 = layer1
@@ -131,10 +133,10 @@ class SkapLayer2Gate:
     def receipt_ledger(self, kv_access_receipt_hash: Any = None, storage_endpoint: Any = None,
                        readback_root: Any = None, head_attestation: Any = None,
                        recorded_head: Any = None) -> dict[str, Any]:
-        """Layer 2's recorded receipt chain inside KV, reachable only through KV's InTr (STEGVERSE_KV
+        """Layer 2's recorded receipt chain inside KV, reachable only from inside KV after the layer-1 InTr entry (STEGVERSE_KV
         _Vault/SKAP/Receipts; KV-SKAP-LEDGER-LOCATION-001): layer-2, TV/TVC custody-issuance (TVC#537) and
         custody-result receipts. It needs a layer-1 KV-access receipt the layer-1 runtime minted; without one it is
-        FAIL_CLOSED SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR. Then FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR
+        FAIL_CLOSED SKAP_RECEIPT_CHAIN_NOT_FROM_INSIDE_KV. Then FAIL_CLOSED KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR
         and KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED. Genesis: two-event crossing model (ENVELOPE v2 line 55).
         The rollback watermark is read back by the reader from KV's own head record, and the Org's digest-only
         crossing records are compared only to refuse (runtime.kv_receipt_ledgers.read_receipt_ledger; ruling
@@ -156,13 +158,13 @@ class SkapLayer2Gate:
         if not isinstance(transition, dict) or set(transition) != _TRANSITION_KEYS \
                 or transition.get("schema") != TRANSITION_SCHEMA or transition.get("boundary") != LAYER2_BOUNDARY \
                 or transition.get("from_role") != "KV" or transition.get("to_role") != "SKAP_VAULT":
-            return layer2_refusal("INTR_KV_SKAP_TRANSITION_MALFORMED",
+            return layer2_refusal("KV_SKAP_GATE_REQUEST_MALFORMED",
                                   f"submit a {TRANSITION_SCHEMA} KV->SKAP_VAULT transition (kv_skap_transition)")
         if transition["operation"] not in OPERATIONS:
-            return layer2_refusal("INTR_KV_SKAP_OPERATION_UNKNOWN", f"operation must be one of {OPERATIONS}")
+            return layer2_refusal("KV_SKAP_GATE_OPERATION_UNKNOWN", f"operation must be one of {OPERATIONS}")
         for field in ("principal_ref", "subject_ref"):
             if not isinstance(transition[field], str) or not transition[field]:
-                return layer2_refusal("INTR_KV_SKAP_TRANSITION_MALFORMED", f"{field} is required")
+                return layer2_refusal("KV_SKAP_GATE_REQUEST_MALFORMED", f"{field} is required")
         prior = transition["prior_receipt_hash"]
         if not isinstance(prior, str) or not prior.startswith("sha256:"):
             return layer2_refusal("LAYER1_KV_ACCESS_RECEIPT_ABSENT", (

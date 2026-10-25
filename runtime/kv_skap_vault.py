@@ -19,8 +19,10 @@ Authority is unchanged and is not duplicated here:
   rev 1):
   * Layer 1: KV is reachable only through InTr from a currently admitted healthy node. This is
     ``KVInterlockRuntime.handle``, INTR_DEVICE_KV, and it consumes the InTr healthy-node evaluator.
-  * Layer 2: the SKAP Vault is reachable only through InTr from inside KV. This is ``SkapLayer2Gate``,
-    INTR_KV_SKAP, a separate gate fed by a layer-1 receipt.
+  * Layer 2: the SKAP Vault is reachable only from inside KV. This is ``SkapLayer2Gate``, KV_INTERNAL_SKAP_GATE,
+    a separate in-KV gate fed by a layer-1 receipt. It is not an InTr hop: the SKAP Vault sits inside KV and
+    InTr runs only between distinct orgs.
+  * The SKAP Vault, inside KV, is the only PII and credential store for every user, the ecosystem included.
   * Every vault operation consumes one layer-2 receipt, and ``skap_entry`` is the deterministic SKAP entry. This
     module decides no node's health and asserts neither hop.
 * WorkerCoordinator holds claim and fence. This module claims nothing.
@@ -56,7 +58,7 @@ from runtime.secret_field_policy import find_forbidden_field
 
 TASK_ID = "KV-SKAP-VAULT-FUNCTIONAL-001"
 GOAL_REF = "StegVerse-Labs/.github#3324 (KV-SKAP-VAULT-FUNCTIONAL-001, PROPOSED)"
-SCOPE_DIGEST = "sha256:d4a98dc0c0ff9db7dbc05b1b97d93573dda7b59dcd2a7628e2cf6620e26c7ef2"
+SCOPE_DIGEST = "sha256:95f060fcc2b2455908c838fbcada36eb80b05cad2bf15b8a0b9607cd4672d9dc"
 LOWEST_SUPPORTED_MODE = "E0"
 RECEIPT_SCHEMA = "stegverse.kv-skap-vault-receipt/v1"
 VERDICT_SCHEMA = "stegverse.kv-skap-vault-finish-point-verdict/v1"
@@ -69,6 +71,9 @@ MATERIAL_TOKENS = ("password", "secret", "token", "private_key", "key_material",
 #: The sealed expected_evidence_predicates, in sealed order (StegVerse-Labs/.github#3324). LC-KV-09 (class A,
 #: StegVerse-Labs/.github#3330 scoped-tasks/LC-KV-09.json @7fb472a2) resealed d68e239b -> d4a98dc0 by adding the three
 #: access-path constraints and ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER as sealed predicates, before the E0 one.
+#: The no-intra-org-InTr reseal (class A) then renamed the layer-2 predicate to SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV,
+#: d4a98dc0 -> 95f060fc: InTr runs only between distinct orgs, and the SKAP Vault sits inside KV, so KV reaching it is
+#: the in-KV gate, never an InTr hop.
 PREDICATES = (
     "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT",
     "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY",
@@ -79,7 +84,7 @@ PREDICATES = (
     "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER",
     "NO_DUPLICATED_GOVERNANCE_CREDENTIAL_VERIFIER_OR_KV_AUTHORITY",
     "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE",
-    "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV",
+    "SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV",
     "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT",
     "ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER",
     "FINISH_POINT_VERDICT_REACHED_AT_E0_WITHOUT_LLM",
@@ -135,14 +140,15 @@ def _refuse_material(value: Any, where: str, predicate: str) -> None:
 # --- the two credential layers (StegVerse-Labs/.github#3330 rev 1, revised LC-KV-03, LC-KV-07/08/10/11/12) ------------
 # Layer 1: KV is reachable only through InTr from a currently admitted healthy node. That is
 #   KVInterlockRuntime.handle (INTR_DEVICE_KV), which mints a KV-access receipt.
-# Layer 2: the SKAP Vault is reachable only through InTr from inside KV. That is SkapLayer2Gate.admit
-#   (INTR_KV_SKAP, runtime/kv_skap_layer2.py), a separate gate. It admits a transition whose prior_receipt_hash is a
+# Layer 2: the SKAP Vault is reachable only from inside KV. That is SkapLayer2Gate.admit
+#   (KV_INTERNAL_SKAP_GATE, runtime/kv_skap_layer2.py), a separate in-KV gate, never an InTr hop (InTr runs only
+#   between distinct orgs, and the SKAP Vault sits inside KV). It admits a transition whose prior_receipt_hash is a
 #   layer-1 receipt that the layer-1 runtime minted, and it mints a single-use SKAP-access receipt.
 # Every KVSkapVault operation consumes one SKAP-access receipt before it reads or changes anything, so a direct call
 # reaches nothing. skap_entry() below is the deterministic SKAP entry that drives both steps. A lineage receipt records
 # the layer-1 and layer-2 receipt hashes and the InTr receipt ref, so the finish point can re-verify the chain.
 LAYER_PREDICATE_L1 = "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE"
-LAYER_PREDICATE_L2 = "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV"
+LAYER_PREDICATE_L2 = "SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV"
 LAYER_PREDICATE_PRIOR = "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT"
 #: Where each access constraint was enforced before the LC-KV-09 reseal. Each constraint is now also its own sealed
 #: predicate (it fails both its own row and this mapped predicate); the mapping is kept so nothing is loosened.
@@ -352,7 +358,7 @@ def _consume_layer2(gate: Any, principal_ref: str, operation: str, subject_ref: 
             "SkapLayer2Gate.admit with a layer-1 KV-access receipt and pass skap_access_receipt_hash"), failure_class="C")
     if gate is None or not callable(getattr(gate, "consume", None)):
         raise VaultRefusal(LAYER2_REFUSAL_CODE, LAYER_PREDICATE_L2, (
-            "the SKAP Vault is reachable only through InTr from inside KV: construct the vault with the layer-2 gate "
+            "the SKAP Vault is reachable only from inside KV, through the in-KV SKAP gate: construct the vault with it "
             "(runtime.kv_skap_layer2.SkapLayer2Gate over KVInterlockRuntime) and enter through skap_entry"),
             next_attempt="on the next SKAP operation admitted by the layer-2 gate")
     if type(gate) not in (SkapLayer2Gate, _LocalExerciseGate):
@@ -388,7 +394,7 @@ def skap_entry(gate: Any, vault: "KVSkapVault | None", *, operation: str, kv_acc
                arguments: dict[str, Any]) -> dict[str, Any]:
     """LC-KV-12: the deterministic SKAP entry inside KV. It is the one caller of the SKAP read and bind paths.
 
-    It submits exactly one INTR_KV_SKAP transition, whose prior_receipt_hash is the caller's layer-1 KV-access
+    It submits exactly one in-KV SKAP gate request (KV_INTERNAL_SKAP_GATE), whose prior_receipt_hash is the caller's layer-1 KV-access
     receipt, to the layer-2 gate. Only on ALLOW does it run the one vault operation with the minted SKAP-access
     receipt. It returns ALLOW with the result, or a six-field FAIL_CLOSED from whichever layer refused. It never
     raises a refusal.
@@ -482,7 +488,7 @@ EVIDENCE_BOUND = {
         LAYER2_REFUSAL_CODE, "B",
         "the vault holds custody-key references only and admits nothing without its layer-2 gate; supply "
         "evidence.layer1_kv_access_receipts and evidence.layer2_skap_access_receipts, the two credential layers that "
-        "every lineage receipt records (access_constraints rows SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV and "
+        "every lineage receipt records (access_constraints rows SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV and "
         "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT)", GOAL_REF, None),
     "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER": (
         "TVC_CUSTODY_KEY_ISSUANCE_NOT_OBSERVED", "B",
@@ -495,10 +501,10 @@ EVIDENCE_BOUND = {
         "the local exercise refuses KV access without a healthy-node ALLOW or with an unverified InTr boundary; supply "
         "evidence.layer1_kv_access_receipts (access_constraints row KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE)",
         GOAL_REF, None),
-    "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV": (
+    "SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV": (
         LAYER2_REFUSAL_CODE, "B",
         "the local exercise refuses every direct, caller-asserted, replayed or out-of-scope SKAP call; supply "
-        "evidence.layer2_skap_access_receipts (access_constraints row SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV)",
+        "evidence.layer2_skap_access_receipts (access_constraints row SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV)",
         GOAL_REF, None),
     "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT": (
         LAYER2_REFUSAL_CODE, "B",
@@ -910,7 +916,7 @@ ACCESS_REPAIR = {
         "evidence."),
     LAYER_PREDICATE_L2: (
         "supply evidence.layer2_skap_access_receipts: one stegverse.skap-access-receipt/v1 minted by "
-        "SkapLayer2Gate.admit (INTR_KV_SKAP) per lineage receipt, used once, for the operation and principal it names"),
+        "SkapLayer2Gate.admit (KV_INTERNAL_SKAP_GATE) per lineage receipt, used once, for the operation and principal it names"),
     LAYER_PREDICATE_PRIOR: (
         "each layer-2 receipt's prior_receipt_hash must be the layer-1 KV-access receipt the lineage receipt records, "
         "and each layer-1 receipt admits one layer-2 transition"),
@@ -1014,12 +1020,12 @@ def _check_layer2(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
             return ("LAYER2_SKAP_ACCESS_RECEIPT_REUSED", "C", f"{where} reuses a single-use SKAP-access receipt")
         seen.add(skap_hash)
         if not _rederives(skap, "receipt_hash") or skap.get("schema") != SKAP_ACCESS_RECEIPT_SCHEMA \
-                or skap.get("boundary") != "INTR_KV_SKAP" or skap.get("minted_by") != "SkapLayer2Gate.admit" \
+                or skap.get("boundary") != "KV_INTERNAL_SKAP_GATE" or skap.get("minted_by") != "SkapLayer2Gate.admit" \
                 or skap.get("from_role") != "KV" or skap.get("principal_ref") != principal \
                 or skap.get("operation") != KIND_OPERATION.get(receipt.get("kind")) \
                 or skap.get("layer1_intr_receipt_ref") != access.get("intr_receipt_ref"):
             return ("LAYER2_SKAP_ACCESS_RECEIPT_INVALID", "C",
-                    f"{where}: the layer-2 receipt must re-derive as an INTR_KV_SKAP receipt minted by "
+                    f"{where}: the layer-2 receipt must re-derive as a KV_INTERNAL_SKAP_GATE receipt minted by "
                     "SkapLayer2Gate.admit from KV for this principal and operation")
     return None
 

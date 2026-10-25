@@ -140,32 +140,6 @@
       "runtime_observed": false
     },
     {
-      "capability_type": "KV_SKAP_INTR",
-      "capability_state": "DEFINED_UNOBSERVED",
-      "direction": "BIDIRECTIONAL",
-      "carrier_profiles": ["InTr"],
-      "binding_requirements": {
-        "device_node_continuity_required": true,
-        "kv_continuity_binding_required": true,
-        "skap_boundary_binding_required": true
-      },
-      "required_boundaries": ["KNOWLEDGEVAULT<->SKAP_VAULT"],
-      "receipt_requirements": {
-        "capability_establishment_receipt_required": true,
-        "adjacent_boundary_receipts_required": true,
-        "reconstruction_evidence_required": true
-      },
-      "reuse_policy": {
-        "reuse_allowed_when_valid": true,
-        "revoked_fails_closed": true,
-        "expired_fails_closed": true,
-        "superseded_fails_closed": true
-      },
-      "reference_observation": null,
-      "authority_effect": "NONE",
-      "runtime_observed": false
-    },
-    {
       "capability_type": "TVC_RELAY",
       "capability_state": "DEFINED_UNOBSERVED",
       "direction": "BIDIRECTIONAL",

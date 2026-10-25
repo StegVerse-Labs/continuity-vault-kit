@@ -62,7 +62,7 @@ byte-unchanged; `tests/test_sovereign_kv_vault_lineage_record.py` pins their dig
   requires the provider receipt to bind `kv_access_receipt_hash` and `skap_access_receipt_hash`:
   - The first is the layer-1 INTR_DEVICE_KV receipt, minted by `KVInterlockRuntime.handle` for a currently
     admitted healthy node.
-  - The second is the layer-2 INTR_KV_SKAP receipt. A separate gate inside KV mints it, and its
+  - The second is the layer-2 KV_INTERNAL_SKAP_GATE receipt. A separate gate inside KV mints it, and its
     `prior_receipt_hash` is the layer-1 receipt.
   - The caller supplies `access_receipt_verifier`, which is the layer-2 gate's `verify_access_chain` in
     continuity-vault-kit#258. The verifier checks both receipts against the gates' own receipt stores; a

@@ -122,10 +122,13 @@ Every credential-specific read/write/rotation/revocation must traverse:
 ```text
 DEVICE
 -> INTR_DEVICE_KV
--> KV
--> INTR_KV_SKAP
--> SKAP_VAULT
+-> KV (the SKAP Vault sits inside KV)
+-> SKAP_VAULT, through the in-KV gate KV_INTERNAL_SKAP_GATE
 ```
+
+There is exactly one InTr boundary. InTr runs only between distinct orgs and never inside one org, so KV reaching
+the SKAP Vault is never an InTr hop. The SKAP Vault, inside KV, is the only PII and credential store for every user,
+the ecosystem included.
 
 Direct Device→SKAP and KV→credential-plaintext paths remain forbidden. Both receipts are mandatory; the second must bind the first; secret plaintext is forbidden in receipts; transit transfers no authority.
 

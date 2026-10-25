@@ -2773,9 +2773,9 @@
           "run_sha256": "25835f572bc36257e833838317d41c7ba4a0e67c9acfa524c03cca2428518bd4"
         },
         {
-          "name": "Assert two independent InTr boundaries and no secret authority leakage",
-          "run_file": "tools/tasks/steps/skap-vault-double-interlock.validate/03-assert-two-independent-intr-boundaries-and-no-se.sh",
-          "run_sha256": "b14597f20f129b711906a927d5fe420131d5c5fc398b5be613c7529dbf92f7bc"
+          "name": "Assert one InTr boundary, the in-KV SKAP gate, and no secret authority leakage",
+          "run_file": "tools/tasks/steps/skap-vault-double-interlock.validate/03-assert-one-intr-boundary-the-in-kv-skap-gate-and.sh",
+          "run_sha256": "5e058657a45b6369943455d024fb9e94b8c2d7807e2c7bab98dbc6838c739f61"
         },
         {
           "name": "Prove hosted validation is non-authorizing",

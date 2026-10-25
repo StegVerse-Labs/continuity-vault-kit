@@ -49,7 +49,7 @@ class KvSkapVaultFinishPoint(unittest.TestCase):
         verdict = kv.finish_point()
         self.assertEqual(verdict["task_id"], "KV-SKAP-VAULT-FUNCTIONAL-001")
         self.assertEqual(verdict["scope_digest"],
-                         "sha256:d4a98dc0c0ff9db7dbc05b1b97d93573dda7b59dcd2a7628e2cf6620e26c7ef2")  # LC-KV-09 reseal
+                         "sha256:95f060fcc2b2455908c838fbcada36eb80b05cad2bf15b8a0b9607cd4672d9dc")  # no-intra-org-InTr reseal (after LC-KV-09)
         self.assertEqual([r["predicate"] for r in verdict["predicates"]], list(kv.PREDICATES))
         self.assertEqual(len(kv.PREDICATES), 13)
         unmet = [r for r in verdict["predicates"] if r["disposition"] != "ALLOW"]
@@ -86,7 +86,7 @@ class KvSkapVaultFinishPoint(unittest.TestCase):
                          {**{p: "KV_FINISH_POINT_EVIDENCE_INVALID" for p in kv._EVIDENCE_CHECKS},
                           "SKAP_VAULT_INSIDE_KV_HOLDS_CUSTODY_KEY_REFERENCES_ONLY": "SKAP_ACCESS_LAYER2_REFUSED",
                           "KV_REACHABLE_ONLY_VIA_INTR_FROM_HEALTHY_NODE": "KV_ACCESS_LAYER1_REFUSED",
-                          "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV": "SKAP_ACCESS_LAYER2_REFUSED",
+                          "SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV": "SKAP_ACCESS_LAYER2_REFUSED",
                           "SKAP_ACCESS_REQUIRES_PRIOR_LAYER1_KV_ACCESS_RECEIPT": "SKAP_ACCESS_LAYER2_REFUSED"})
 
 
@@ -473,7 +473,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         self.assertEqual(set(mapping), {kv.LAYER_PREDICATE_L1, kv.LAYER_PREDICATE_L2, kv.LAYER_PREDICATE_PRIOR})
         self.assertTrue(set(mapping.values()) <= set(kv.PREDICATES), mapping)
         self.assertTrue(set(mapping) <= set(kv.PREDICATES), mapping)  # LC-KV-09: each row is a sealed predicate
-        self.assertTrue(kv.SCOPE_DIGEST.startswith("sha256:d4a98dc0"))
+        self.assertTrue(kv.SCOPE_DIGEST.startswith("sha256:95f060fc"))
         baseline = kv.evaluate(evidence_bundle())
         self.assertEqual(baseline["access_constraints_conformant"], 3)
         allowed = {r["predicate"] for r in baseline["predicates"] if r["disposition"] == "ALLOW"}

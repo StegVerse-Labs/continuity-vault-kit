@@ -45,9 +45,11 @@ DEVICE_KV_INTR
 PUBLIC_HTTPS_INGRESS
 ADJACENT_EXTERNAL_API_EGRESS
 NODE_TO_NODE_SYNC
-KV_SKAP_INTR
 TVC_RELAY
 ```
+
+There is no KV/SKAP transport type: the SKAP Vault sits inside KV and is reached through the in-KV gate, and InTr runs
+only between distinct orgs, never inside one org.
 
 These names describe StegVerse transport semantics, not merely carrier technology.
 

@@ -105,7 +105,6 @@
         "PUBLIC_HTTPS_INGRESS",
         "ADJACENT_EXTERNAL_API_EGRESS",
         "NODE_TO_NODE_SYNC",
-        "KV_SKAP_INTR",
         "TVC_RELAY"
       ],
       "properties": {
@@ -122,9 +121,6 @@
           "type": "boolean"
         },
         "NODE_TO_NODE_SYNC": {
-          "type": "boolean"
-        },
-        "KV_SKAP_INTR": {
           "type": "boolean"
         },
         "TVC_RELAY": {

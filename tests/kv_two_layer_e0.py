@@ -1,6 +1,6 @@
 """E0 test harness for the two credential layers (StegVerse-Labs/.github#3330 rev 1). Used by tests only.
 
-Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (INTR_KV_SKAP).
+Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (KV_INTERNAL_SKAP_GATE).
 
 Health is decided by the REAL pinned InTr code, vendored byte-identical from StegVerse-org/LLM-adapter#432 @eecf4843
 (re-pinned to cvk#263 @9bc54d05) under runtime/intr_pinned/: layer 1 calls
