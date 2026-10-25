@@ -206,14 +206,24 @@ retry_entrypoint, owning_existing_goal and next_attempt.
 | failure_code | class | owner | next attempt |
 |---|---|---|---|
 | KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR | B | KV-CONNECTION-REVALIDATION-WORKER-001 (KV #2 SITE-CLOUD-KV-4347…) | on KV #2 governance and provider execution |
-| KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED | B | this task; Lane B dependency | after the pin mechanism clears |
-| KV_RECEIPT_CHAIN_GENESIS_PIN_MECHANISM_ORG_HOSTED | B | #162 / LLM-adapter#431 (Lane B) | on the per-endpoint pin aligned with SUPPLIED_HB_EPOCH |
+| KV_RECEIPT_CHAIN_GENESIS_NOT_PINNED | B | LC-KV-27 (KV-owned genesis pin) under this task | on KV's own genesis receipt on its storage endpoint (after LC-KV-28), then the admitted cvk pin change |
 | KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED | B | this task; TVC#542 head-signer pattern (Lane C) | on signer publication |
 
 ### The genesis pin
 
-The genesis stays `null`. Once #431's genesis aligns with SUPPLIED_HB_EPOCH (StegVerse-Labs/.github#3263/#3290),
-the pin is computed in advance. Pin-after-observe then remains only as the read-back check.
+The genesis stays `null` until KV's own genesis receipt exists. The pin is KV-owned (LC-KV-27). The withdrawn
+org-hosted planner row (KV_RECEIPT_CHAIN_GENESIS_PIN_MECHANISM_ORG_HOSTED) is removed: KV's own ledger is never on an
+Org ledger ref, and no InTr hop inside an org is involved.
+
+`runtime.kv_receipt_ledgers.plan_genesis_pin(which, storage_endpoint, readback_root, hb_epoch=...)` reads KV's own
+chain back from the designated storage endpoint. It requires a hash-intact REPOSITORY_LEDGER_INITIALIZATION genesis
+whose `hb_reference` carries the supplied HB epoch (SUPPLIED_HB_EPOCH, the shared supplied-epoch rule). It returns
+that receipt_sha256 for both `repository_ledger_location.expected_genesis_receipt_sha256` and
+`ledger_designation.expected_genesis_receipt_sha256`. It writes nothing. An admitted continuity-vault-kit change sets
+the two fields, and the `contract_sha256` pin moves with them. A fabricated digest is not evidence.
+
+In production the planner fails closed on KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR (LC-KV-28) until KV #2 has
+provider execution. Pin-after-observe stays as the read-back check.
 
 ### Genesis crossing: the two-event model
 
