@@ -2468,6 +2468,7 @@
    "runtime/kv_receipt_ledgers.py",
    "runtime/kv_skap_layer2.py",
    "runtime/kv_skap_vault.py",
+   "runtime/kv_storage_provider_adapter.py",
    "tests/kv_two_layer_e0.py"
   ],
   "tests/test_kv_storage_provider_adapter.py": [
