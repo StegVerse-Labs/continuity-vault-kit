@@ -754,6 +754,12 @@ def org_side(reader):
         rl.ORG_CROSSING_READER = saved
 
 
+def both_ends(which, *heads):
+    """TEST-ONLY (LC-KV-26): the Org side holds a digest-only crossing record naming each of `heads`, so a read-back
+    head among them is held at both ends (the Org side and KV's own head record)."""
+    return org_side(lambda d, w: [org_crossing(which, h) for h in heads])
+
+
 def e0_kv_attestation(which, chain, **override):
     from kv_two_layer_e0 import E0_ROUTE_SEED, signer
     d = rl.designation(which)[0]
@@ -1015,7 +1021,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
         prior = layers.kv_hash()
         carried = "sha256:" + "ab" * 32
         root, chain = e0_kv_root("skap_vault", (carried,))
-        with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]):
+        with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]), both_ends("skap_vault", chain[0]["receipt_sha256"]):
             out = layers.gate.receipt_ledger(prior, device_local(), root, e0_kv_attestation("skap_vault", chain),
                                              kvwm(chain[0]["receipt_sha256"]))
             self.assertEqual(out["disposition"], "ALLOW", out)
@@ -1035,6 +1041,11 @@ class KvSkapLedgerLocation(unittest.TestCase):
         carried = "sha256:" + "ab" * 32
         root, chain = e0_kv_root("kv", (carried,))
         with kv_chain_e0("kv", chain[-1]["receipt_sha256"]):
+            # LC-KV-26: a head held only at KV's end (no Org crossing record names it) is never ALLOW
+            out = rl.read_receipt_ledger("kv", device_local(), root, e0_kv_attestation("kv", chain))
+            self.assertSix(out, "KV_CROSSING_RECORD_NOT_OBSERVED", "B")
+            self.assertEqual(out["failed_predicate"], "KV_HEAD_RECORDED_AT_BOTH_ENDS")
+        with kv_chain_e0("kv", chain[-1]["receipt_sha256"]), both_ends("kv", chain[0]["receipt_sha256"]):
             good = e0_kv_attestation("kv", chain)
             head = kvwm(chain[0]["receipt_sha256"])
             out = rl.read_receipt_ledger("kv", device_local(), root, good, head)
@@ -1104,8 +1115,9 @@ class KvSkapLedgerLocation(unittest.TestCase):
                     read = lambda r, att, wm: layers.gate.receipt_ledger(layers.kv_hash(), device_local(), r, att, wm)
                 else:
                     read = lambda r, att, wm: rl.read_receipt_ledger(which, device_local(), r, att, wm)
-                self.assertEqual(read(root, e0_kv_attestation(which, chain), kvwm(newest))["disposition"], "ALLOW")
-                self.assertEqual(read(root, e0_kv_attestation(which, chain), None)["disposition"], "ALLOW")
+                with both_ends(which, newest):
+                    self.assertEqual(read(root, e0_kv_attestation(which, chain), kvwm(newest))["disposition"], "ALLOW")
+                    self.assertEqual(read(root, e0_kv_attestation(which, chain), None)["disposition"], "ALLOW")
                 # HEAD.json regressed, KV's head record kept: the reader's own readback catches it, with or without
                 # a claim, and a claim regressed to the presented head cannot rescue it (ruling 6374130335)
                 for claim in (None, kvwm(newest), kvwm(chain[-1]["receipt_sha256"])):
@@ -1128,7 +1140,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
         for which in self.CHAINS:
             root, chain = e0_kv_root(which, (carried,))
             newest = chain[0]["receipt_sha256"]
-            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]):
+            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]), both_ends(which, newest):
                 att = e0_kv_attestation(which, chain)
                 if which == "skap_vault":
                     layers = TwoLayers()
@@ -1138,7 +1150,8 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 # KV-chain-sourced watermark: ALLOW at E0
                 out = read(kvwm(newest))
                 self.assertEqual(out["disposition"], "ALLOW", out)
-                never_crossed = {"observed": False, "compared": 0, "never_crossed": True,
+                never_crossed = {"observed": True, "compared": 1, "never_crossed": True,
+                                 "head_recorded_at_both_ends": True,
                                  "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK", "authority_effect": "NONE"}
                 self.assertEqual(out["rollback_watermark"], {"source": "KV_RECORDED_RECEIPT_CHAIN_HEAD",
                                                              "head_receipt_sha256": newest, "read_from": rl.HEAD_RECORD,
@@ -1203,8 +1216,9 @@ class KvSkapLedgerLocation(unittest.TestCase):
         KV's head record are rolled back together to an older head, so KV's own readback alone cannot see it; the
         Org's digest-only crossing record (read by the reader, never the caller) names the newer head: DENY
         KV_LEDGER_HEAD_ROLLBACK_DETECTED, also for REGRESSED_TO_PRESENTED_HEAD. After a crossing an unobservable or
-        omitted Org side is FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED (B); a never-crossed E0 chain ALLOWs at its
-        current head. The Org never grants."""
+        omitted Org side is FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED (B). LC-KV-26 case 1: a never-crossed chain (the
+        rollback to before the first crossing) is no longer skipped; its head is held only at KV's end, so it is
+        FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED (B, KV_HEAD_RECORDED_AT_BOTH_ENDS). The Org never grants."""
         carried, org_rec = "sha256:" + "ab" * 32, "sha256:" + "0c" * 32
         for which in self.CHAINS:
             ingress = ("INTR_MESH_PATH_INGRESS", {"organization_receipt_sha256": org_rec})
@@ -1221,16 +1235,25 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 else:
                     read = lambda r, att, wm=None: rl.read_receipt_ledger(which, device_local(), r, att, wm)
                 att, old_att = e0_kv_attestation(which, chain), e0_kv_attestation(which, old_chain)
-                # never crossed, no Org record observable: comparison skipped, ALLOW at the current head (E0)
-                out = read(old_root, old_att)
-                self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", old_head), out)
-                self.assertTrue(out["rollback_watermark"]["org_crossing_cross_check"]["never_crossed"])
+                # LC-KV-26 case 1, closed: never crossed and no Org record observable is no longer skipped; the
+                # rolled-back head is held only at KV's end, so it is FAIL_CLOSED, never ALLOW
+                for reader in (None, lambda d, w: None, lambda d, w: []):
+                    with org_side(reader):
+                        out = read(old_root, old_att)
+                        self.assertSix(out, "KV_CROSSING_RECORD_NOT_OBSERVED", "B")
+                        self.assertEqual(out["failed_predicate"], "KV_HEAD_RECORDED_AT_BOTH_ENDS")
+                # a never-crossed head the Org side records (its genesis/first-head crossing): ALLOW at that head
+                with both_ends(which, old_head):
+                    out = read(old_root, old_att)
+                    self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", old_head), out)
+                    self.assertTrue(out["rollback_watermark"]["org_crossing_cross_check"]["never_crossed"])
                 with org_side(lambda d, w: [org_crossing(which, crossed_head)]):
                     # the current chain, both sides recorded: ALLOW (the Org digest refused nothing; it grants nothing)
                     out = read(root, att, kvwm(crossed_head))
                     self.assertEqual(out["disposition"], "ALLOW", out)
                     self.assertEqual(out["rollback_watermark"]["org_crossing_cross_check"],
                                      {"observed": True, "compared": 1, "never_crossed": False,
+                                      "head_recorded_at_both_ends": True,
                                       "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK", "authority_effect": "NONE"})
                     # whole-chain rollback, with no claim and with REGRESSED_TO_PRESENTED_HEAD: DENY
                     for claim in (None, kvwm(old_head), kvwm(old_head, org_crossing_cross_check=old_head)):
@@ -1260,62 +1283,61 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 t_root, t_chain = e0_kv_root(which, (carried,), klass="INTR_MESH_PATH_TRANSFER")
                 self.assertSix(read(t_root, e0_kv_attestation(which, t_chain)), "KV_CROSSING_RECORD_NOT_OBSERVED", "B")
 
-    def test_lc_kv_26_rollback_after_the_last_crossing_is_a_documented_residual(self):
-        """LC-KV-26 (class B, owner Lane B on the node side; StegVerse-org/.github#162). This is a witness of a
-        documented residual and is not a pass condition. P1's joint review of #263 @34496af5 found
-        WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK.
+    def test_lc_kv_26_rollback_after_the_last_crossing_is_refused_both_ends(self):
+        """LC-KV-26 (closed). P1's joint review of #263 @34496af5 found
+        WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK; P4 reproduced it (StegVerse-org/.github#166 comment
+        6375605423 §3.1, repro_p1_item1.py). The whole store is rolled back together (receipts, HEAD.json and KV's head
+        record) to a point after the last crossing, dropping internal heads and keeping the crossed head.
 
-        The whole store is rolled back together: the receipts, HEAD.json and KV's head record. The rollback point is
-        after the last crossing. It drops the internal heads appended after that crossing and keeps the crossed head.
-        Today that read is ALLOW, for kv and for SKAP through the gate.
-
-        The Org side cannot detect it. The Org's digest-only crossing record names only the crossed head, which is
-        still on the rolled-back chain and is an ancestor of the rolled-back head. Heads appended after the last
-        crossing never crossed, so no Org record names them, and KV's own head record was rolled back with the store.
-
-        This is the counterpart of the pre-first-crossing residual (never crossed, no Org record): see
-        test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record.
-
-        The repair is owned by LC-KV-26: a node->KV crossing recorded at both ends, with a digest-only node-side record
-        of the observed KV head and/or an Org-side genesis/first-head crossing. The repair will turn this witness into
-        DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED, the code Coordination's ruling keeps. P4 reproduced this independently
-        (StegVerse-org/.github#166 comment 6375605423 §3.1, repro_p1_item1.py). This test is that scenario, plus one more leg that
-        drops only one internal head."""
+        Repair (Coordination to P1, 05:03Z: "a crossing record held at both ends (the org side and KV's own ledger)";
+        #167 c6393119202): a read-back head is ALLOW only when it is held at both ends, KV's own head record and an
+        observed Org digest-only crossing record naming it. So:
+        - an internal head held only at KV's end was never readable (FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED, B,
+          KV_HEAD_RECORDED_AT_BOTH_ENDS), so no reader relied on a head that a rollback could drop;
+        - once an internal head is held at both ends, dropping it is DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED, the one
+          code Coordination's ruling keeps, with or without a caller claim. The Org still never grants."""
         carried, org_rec = "sha256:" + "ab" * 32, "sha256:" + "0c" * 32
         ingress = ("INTR_MESH_PATH_INGRESS", {"organization_receipt_sha256": org_rec})
         internal = [("RECEIPT_APPENDED", {"receipt_sha256": "sha256:" + h * 32}) for h in ("e1", "e2")]
         for which in self.CHAINS:
             root, chain = e0_kv_root(which, (carried,), extra=(ingress, *internal))
-            crossed_head = chain[2]["receipt_sha256"]
+            crossed_head, newest = chain[2]["receipt_sha256"], chain[0]["receipt_sha256"]
             self.assertEqual(chain[2]["transition_class"], "INTR_MESH_PATH_INGRESS")
-            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]), \
-                    org_side(lambda d, w: [org_crossing(which, crossed_head)]):
+            with self.subTest(which=which), kv_chain_e0(which, chain[-1]["receipt_sha256"]):
                 if which == "skap_vault":
                     layers = TwoLayers()
                     read = lambda r, att, wm=None: layers.gate.receipt_ledger(layers.kv_hash(), device_local(), r,
                                                                              att, wm)
                 else:
                     read = lambda r, att, wm=None: rl.read_receipt_ledger(which, device_local(), r, att, wm)
-                self.assertEqual(read(root, e0_kv_attestation(which, chain))["disposition"], "ALLOW")
-                # whole-store rollbacks after the last crossing: one internal head dropped, then both
-                for kept in (internal[:1], ()):
-                    old_root, old_chain = e0_kv_root(which, (carried,), extra=(ingress, *kept))
-                    self.assertEqual(old_chain, chain[len(internal) - len(kept):])
-                    self.assertEqual(old_chain[len(kept)]["receipt_sha256"], crossed_head)  # crossed head preserved
-                    old_head = old_chain[0]["receipt_sha256"]
-                    out = read(old_root, e0_kv_attestation(which, old_chain))
-                    # RESIDUAL (LC-KV-26): ALLOW today at the rolled-back head; the Org record refused nothing
-                    self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", old_head), out)
+                att = e0_kv_attestation(which, chain)
+                # the internal heads held only at KV's end (the Org records only the crossed head): never readable
+                with both_ends(which, crossed_head):
+                    for claim in (None, kvwm(newest)):
+                        out = read(root, att, claim)
+                        self.assertSix(out, "KV_CROSSING_RECORD_NOT_OBSERVED", "B")
+                        self.assertEqual(out["failed_predicate"], "KV_HEAD_RECORDED_AT_BOTH_ENDS")
+                        self.assertIn(newest, out["detail"])
+                # every head held at both ends: ALLOW at the newest head
+                with both_ends(which, crossed_head, chain[1]["receipt_sha256"], newest):
+                    out = read(root, att)
+                    self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", newest), out)
                     self.assertEqual(out["rollback_watermark"]["org_crossing_cross_check"],
-                                     {"observed": True, "compared": 1, "never_crossed": False,
+                                     {"observed": True, "compared": 3, "never_crossed": False,
+                                      "head_recorded_at_both_ends": True,
                                       "role": "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK", "authority_effect": "NONE"})
-                    # a recorded_head claim equal to the rolled-back head is no help either (P4's repro): ALLOW
-                    out = read(old_root, e0_kv_attestation(which, old_chain), kvwm(old_head))
-                    self.assertEqual((out["disposition"], out["head_receipt_sha256"]), ("ALLOW", old_head), out)
-                    # only a party that holds the newer head (today the caller's claim; after LC-KV-26 the node's
-                    # digest-only record of the observed KV head) can see it: DENY KV_LEDGER_HEAD_ROLLBACK_DETECTED
-                    self.assertSix(read(old_root, e0_kv_attestation(which, old_chain), kvwm(chain[0]["receipt_sha256"])),
-                                   "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
+                    # whole-store rollbacks after the last crossing: one internal head dropped, then both
+                    for kept in (internal[:1], ()):
+                        old_root, old_chain = e0_kv_root(which, (carried,), extra=(ingress, *kept))
+                        self.assertEqual(old_chain, chain[len(internal) - len(kept):])
+                        self.assertEqual(old_chain[len(kept)]["receipt_sha256"], crossed_head)  # crossed head kept
+                        old_head = old_chain[0]["receipt_sha256"]
+                        old_att = e0_kv_attestation(which, old_chain)
+                        # DENY with no claim, with a claim equal to the rolled-back head (P4's repro) and with the
+                        # newer head's claim
+                        for claim in (None, kvwm(old_head), kvwm(newest)):
+                            out = read(old_root, old_att, claim)
+                            self.assertSix(out, "KV_LEDGER_HEAD_ROLLBACK_DETECTED", "C", disposition="DENY")
 
     def test_external_storage_records_are_refused(self):
         """The provider's own records (Drive metadata files, revisions) never cross into KV."""

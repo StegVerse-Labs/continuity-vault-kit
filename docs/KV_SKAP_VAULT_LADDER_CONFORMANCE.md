@@ -100,23 +100,29 @@ bindings was considered and not added: whoever can write the vault directory can
 restoring gate provenance from it on load would turn a local file into authority. `KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND`
 stays until a bound durable custody location exists.
 
-**KV receipt-chain rollback (LC-KV-26, class B, owner Lane B on the node side, StegVerse-org/.github#162).**
-Two whole-store rollbacks, where the receipts, `HEAD.json` and KV's head record roll back together, still reach ALLOW
-today, for kv and for SKAP through the gate:
+**KV receipt-chain rollback (LC-KV-26, closed by P1, StegVerse-org/.github#163).** The rule is Coordination's, relayed
+to P1 at 05:03Z: "a crossing record held at both ends (the org side and KV's own ledger), never an InTr hop inside one
+org" (#167 c6393119202). InTr runs only between distinct organizations (`StegVerse-Labs/.github:data/intr-protocol/v1/protocol.json:174`),
+and the SKAP Vault sits inside KV, reached only through the in-KV SKAP gate. SKAP invariant (Labs
+`docs/FEDERATION_DIRECTORY.md:3`): "SKAP Vault inside KV is the only PII and credential store for every user, the
+ecosystem's own included; the ecosystem holds none (HST citation pending P1 #163)." Nothing here adds a store or a
+credential: the Org record stays digest-only and refuse-only.
 
-1. **A rollback to before the first crossing.** The chain shows no crossing and no Org record is observable, so the
-   ruling's never-crossed rule skips the comparison. The Org side never learned of any KV head before a crossing, and
-   it records no KV genesis or first head.
+A read-back head is ALLOW only when it is held at both ends: it is the newest head in KV's own head record and an
+observed Org digest-only crossing record names it (`endpoint_head_sha256`). Otherwise the read is six-field
+FAIL_CLOSED `KV_CROSSING_RECORD_NOT_OBSERVED` (class B, predicate `KV_HEAD_RECORDED_AT_BOTH_ENDS`). The two
+whole-store rollbacks (receipts, `HEAD.json` and KV's head record rolled back together), for kv and for SKAP through
+the gate, are now closed:
+
+1. **A rollback to before the first crossing.** A never-crossed chain is no longer skipped. With no Org record its head
+   is held only at KV's end, so the read is FAIL_CLOSED. Once the Org side records a head (the genesis/first-head
+   crossing), a rollback behind it is DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
 2. **A rollback to after the last crossing, dropping the internal heads but keeping the crossed head** (P1's
-   `WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK`, joint review of #263 @34496af5). Every Org crossing
-   record still names an ancestor of the rolled-back head. The dropped heads never crossed, so nothing outside KV
-   holds their digest.
+   `WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK`, joint review of #263 @34496af5). An internal head held
+   only at KV's end was never readable, so no reader relied on a head that a rollback could drop. Once it is held at
+   both ends, dropping it is DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`, with or without a caller claim.
 
-The repair is a node→KV crossing recorded at both ends, with a digest-only node-side record of the observed KV head,
-and/or an Org-side genesis/first-head crossing. With it, both cases become DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
-That is the one code Coordination's ruling keeps for a rollback, including a crossing record ahead of the KV head, and
-there is no alias.
-
-The witnesses are `tests.test_kv_ladder_conformance_lc_kv`: test_lc_kv_26_rollback_after_the_last_crossing_is_a_documented_residual
-for case 2, and test_lc_kv_23's never-crossed leg for case 1. Each asserts the current ALLOW as a documented
-residual. See `docs/kv-skap-ledger-location.md` ("Residual limits").
+That is the one code Coordination's ruling keeps for a rollback, with no alias. The Org never grants. The witnesses are
+`tests.test_kv_ladder_conformance_lc_kv`: test_lc_kv_26_rollback_after_the_last_crossing_is_refused_both_ends (case
+2) and test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record (case 1). See
+`docs/kv-skap-ledger-location.md` ("Both ends").

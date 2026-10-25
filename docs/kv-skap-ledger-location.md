@@ -153,39 +153,36 @@ StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. He
     - If a record names a head newer than KV's, or a head that is not an ancestor of KV's head, the read is DENY
       `KV_LEDGER_HEAD_ROLLBACK_DETECTED`. This refuses a whole-chain rollback that rewrote both `HEAD.json` and the
       head record.
-    - If no crossing record is observable (no reader, reader error, malformed or empty result): when KV's chain
-      shows it has never crossed (no `INTR_MESH_PATH_TRANSFER` or `INTR_MESH_PATH_INGRESS` record), the comparison
-      is skipped and the read is ALLOW at E0. Otherwise it is six-field FAIL_CLOSED
-      `KV_CROSSING_RECORD_NOT_OBSERVED` (class B, predicate `ORG_SIDE_OF_EACH_CROSSING_OBSERVED_BY_THE_READER`,
-      owner .github#162), never ALLOW.
+    - If no crossing record is observable (no reader, reader error, malformed or empty result) and the chain has
+      crossed, the read is six-field FAIL_CLOSED `KV_CROSSING_RECORD_NOT_OBSERVED` (class B, predicate
+      `ORG_SIDE_OF_EACH_CROSSING_OBSERVED_BY_THE_READER`, owner .github#162), never ALLOW. A never-crossed chain is
+      no longer skipped (LC-KV-26, below).
     - Both sides record each crossing (Lane B's rule at LLM-adapter#432 @c4cfc145, adopted, under the two-event
       model of ENVELOPE v2 line 55 @d749bb2). When the Org side is observed but an ingress crossing on KV's chain has
       no matching Org record, the read is FAIL_CLOSED `INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES` (class B).
     - The Org never grants: the comparison result is echoed with authority NONE and can only refuse.
-    - **Residual limits.** These two whole-store rollbacks still reach ALLOW today, for kv and for SKAP through
-      `SkapLayer2Gate`. In each, the receipts, `HEAD.json` and KV's head record are rolled back together, so KV's
-      own readback is self-consistent.
-      1. **Rollback to before the first crossing.** The rolled-back chain has no `INTR_MESH_PATH_TRANSFER` or
-         `INTR_MESH_PATH_INGRESS` record and no Org record is observable, so the comparison is skipped under the
-         ruling's never-crossed rule (E0 ALLOW). The Org side cannot detect this, because it only ever learns about
-         a KV head through a crossing. The rolled-back chain claims none, and nothing on the Org side records KV's
-         genesis or its first head.
+    - **Both ends (LC-KV-26, closed).** Coordination's rule, relayed to P1 at 05:03Z: "a crossing record held at
+      both ends (the org side and KV's own ledger), never an InTr hop inside one org" (#167 c6393119202). A
+      read-back head is ALLOW only when it is the newest head in KV's own head record and an observed Org
+      digest-only crossing record names it (`endpoint_head_sha256`). Otherwise the read is six-field FAIL_CLOSED
+      `KV_CROSSING_RECORD_NOT_OBSERVED` (class B, predicate `KV_HEAD_RECORDED_AT_BOTH_ENDS`, owner .github#162).
+      This closes the two whole-store rollbacks (receipts, `HEAD.json` and KV's head record rolled back together),
+      for kv and for SKAP through `SkapLayer2Gate`:
+      1. **Rollback to before the first crossing.** A never-crossed chain with no Org record is FAIL_CLOSED, not
+         skipped. Once the Org side records a head (the genesis/first-head crossing), a rollback behind it is DENY
+         `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
       2. **Rollback to after the last crossing, with the internal heads rolled back and the crossed head kept**
-         (P1, joint review of #263 @34496af5: `WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK`). Every
-         Org crossing record names a head that is still on the rolled-back chain and is an ancestor of its head, so
-         the comparison refuses nothing. The Org side cannot detect this either. Heads appended after the last
-         crossing never crossed, so no digest of them exists outside KV, and KV's own head record went back with
-         the store. Only a party that holds the newer head can see the regression. Today that is a caller's
-         `recorded_head` claim, which is refused with DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
-      - Both are tracked as **LC-KV-26** (class B, owner Lane B on the node side, StegVerse-org/.github#162).
-        - The repair is a node→KV crossing recorded at both ends, with a digest-only node-side record of the KV
-          head it observed, and/or an Org-side genesis/first-head crossing.
-        - Once that is in place, both cases are DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`.
-        - Witnesses:
-          - case 1: `test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record` (its never-crossed
-            leg);
-          - case 2: `test_lc_kv_26_rollback_after_the_last_crossing_is_a_documented_residual`.
-        - Both assert today's ALLOW as a documented residual, not as a pass condition.
+         (P1, joint review of #263 @34496af5: `WHOLE_STORE_AFTER_LAST_CROSSING_INTERNAL_HEADS_ROLLED_BACK`). An
+         internal head held only at KV's end was never readable, so no reader relied on a head that a rollback
+         could drop. Once it is held at both ends, dropping it is DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`, with or
+         without a caller claim.
+      - The Org record stays digest-only and refuse-only; it never grants and is never the watermark. This adds no
+        InTr hop inside one org: the Org (StegVerse-org) and KV are distinct organizations, and the SKAP Vault is
+        reached only through the in-KV gate. SKAP invariant (Labs `docs/FEDERATION_DIRECTORY.md:3`): "SKAP Vault
+        inside KV is the only PII and credential store for every user, the ecosystem's own included; the ecosystem
+        holds none (HST citation pending P1 #163)."
+      - Witnesses: case 1, `test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record`; case 2,
+        `test_lc_kv_26_rollback_after_the_last_crossing_is_refused_both_ends`.
       - Under Coordination's ruling, a crossing record ahead of the KV head is DENY
         `KV_LEDGER_HEAD_ROLLBACK_DETECTED`. That is the only code for it, with no alias.
 - **The SKAP chain is reached only from inside KV.** A read goes through `SkapLayer2Gate.receipt_ledger` (the
