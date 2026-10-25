@@ -1,8 +1,8 @@
-# KV ↔ SKAP InTr Account Metadata Transfer Protocol
+# KV → SKAP Vault Account Metadata Transfer Protocol (in-KV SKAP gate)
 
 Status: `IMPLEMENTATION_CANDIDATE`
 Protocol packet: `stegverse.kv-skap.account-metadata-transfer/v1`
-Boundary envelope: `stegverse.intr.boundary-transfer/v1`
+Gate envelope: `stegverse.kv-skap-gate.account-transfer-envelope/v1`
 Goal Task ID: `SS-SKAP-AUTHENTIC-ACCOUNT-METADATA-POPULATION-001`
 
 ## Purpose
@@ -16,8 +16,8 @@ My KV owner selection
   -> bounded provider-account observation
   -> KnowledgeVault non-secret transfer packet
   -> KV-INTERLOCK-v1 COMMIT_CANDIDATE
-  -> exact InTr boundary-transfer envelope
-  -> InTr decision / durable receipt
+  -> exact in-KV SKAP gate envelope
+  -> in-KV SKAP gate decision / durable receipt
   -> SKAP Vault account-metadata admission
   -> SKAP receipt
   -> TVC account-inventory projection
@@ -25,7 +25,7 @@ My KV owner selection
 
 ## Why this is separate from ordinary KV COMMIT
 
-`KV-INTERLOCK-v1` intentionally grants no direct SKAP or provider authority. Therefore the KV request remains a candidate-only request. The new boundary-transfer envelope binds the exact KV request hash to the exact transfer packet hash and names `SKAP_Vault` as the destination boundary. Canonical state may not change until the receiving InTr/SKAP side produces the separately validated transition/admission receipt.
+`KV-INTERLOCK-v1` intentionally grants no direct SKAP or provider authority. Therefore the KV request remains a candidate-only request. The in-KV SKAP gate envelope binds the exact KV request hash to the exact transfer packet hash and names `SKAP_Vault` as the destination boundary. Canonical state may not change until the receiving SKAP side, through the in-KV SKAP gate, produces the separately validated transition/admission receipt.
 
 ## Transfer packet
 
@@ -55,9 +55,9 @@ The KnowledgeVault request uses canonical `kv.interlock.request.v1` with:
 
 This request is not itself a SKAP write.
 
-## Boundary-transfer envelope
+## In-KV SKAP gate envelope
 
-The InTr envelope binds:
+The SKAP Vault sits inside KV, so this crossing is the in-KV SKAP gate (`KV_INTERNAL_SKAP_GATE`), never an InTr hop: InTr runs only between distinct orgs. The gate envelope binds:
 
 - source boundary `KnowledgeVault`;
 - destination boundary `SKAP_Vault`;
@@ -66,7 +66,7 @@ The InTr envelope binds:
 - transfer id;
 - exact transfer-packet hash;
 - exact payload hash;
-- InTr receipt reference once available;
+- in-KV SKAP gate receipt reference (`gate_receipt_ref`) once available;
 - `canonical_state_changed=false` before receiving-side admission;
 - `credential_material_transferred=false`.
 
@@ -74,8 +74,8 @@ Any request/packet hash mismatch, destination mismatch, secret-bearing field, ra
 
 ## Receiving-side requirement
 
-The SKAP-side consumer must independently validate the same packet and envelope hashes, require an applicable InTr decision/receipt for `SKAP_ACCOUNT_METADATA_ADMIT`, and write a receipt whose non-secret fields are sufficient for `TVC/tools/skap_account_inventory_projection.py` to enumerate the account. The receiving side must not invent provider identity or upgrade synthetic/test evidence to authentic population.
+The SKAP-side consumer must independently validate the same packet and envelope hashes, require an applicable in-KV SKAP gate decision/receipt for `SKAP_ACCOUNT_METADATA_ADMIT`, and write a receipt whose non-secret fields are sufficient for `TVC/tools/skap_account_inventory_projection.py` to enumerate the account. The receiving side must not invent provider identity or upgrade synthetic/test evidence to authentic population.
 
 ## Runtime truth
 
-This source contract does not prove an authentic KV → SKAP runtime transfer has occurred. Runtime completion requires one owner-selected real account to traverse this protocol, produce a retained InTr receipt and retained SKAP account metadata receipt, and then appear in the TVC account inventory projection.
+This source contract does not prove an authentic KV → SKAP runtime transfer has occurred. Runtime completion requires one owner-selected real account to traverse this protocol, produce a retained in-KV SKAP gate receipt and retained SKAP account metadata receipt, and then appear in the TVC account inventory projection.
