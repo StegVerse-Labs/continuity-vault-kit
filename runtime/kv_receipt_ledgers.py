@@ -75,7 +75,10 @@ PATH_ID_SUFFIX = ":intr-destination"
 #: (ENVELOPE v2 line 55 @d749bb2) event 2 lives on the Org ledger. A KV chain that holds a crossing record has
 #: crossed: its Org side must be observed by the reader (else KV_CROSSING_RECORD_NOT_OBSERVED, B) and every ingress
 #: record must point at an observed Org record (else INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES, B; Lane B's rule).
-#: A chain with none has never crossed: with no Org record observable the comparison is skipped (E0 ALLOW).
+#: LC-KV-26 (Coordination, relayed to P1 05:03Z: "a crossing record held at both ends (the org side and KV's own
+#: ledger)"): KV's read-back head, the newest head in KV's own head record, must also be named by an observed Org
+#: digest-only crossing record (endpoint_head_sha256). A head held at only one end, a never-crossed chain included, is
+#: FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED (B, predicate KV_HEAD_RECORDED_AT_BOTH_ENDS); the Org still never grants.
 CROSSING_CLASSES = ("INTR_MESH_PATH_TRANSFER", "INTR_MESH_PATH_INGRESS")
 INGRESS_CLASS = "INTR_MESH_PATH_INGRESS"
 CROSSING_CODE = "INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES"
@@ -96,6 +99,7 @@ ORG_CROSSING_READER = None
 ORG_CROSSING_KEYS = ("path_id", "receipt_sha256", "endpoint_head_sha256", "supplied_hb_epoch")
 CROSS_CHECK_ROLE = "DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK"
 ORG_SOURCED_CODE = "KV_ROLLBACK_WATERMARK_ORG_LEDGER_SOURCED"
+BOTH_ENDS_PREDICATE = "KV_HEAD_RECORDED_AT_BOTH_ENDS"
 HEAD_ATTESTATION_SCHEMA = "stegverse.kv-ledger-head-attestation/v1"
 HEAD_ATTESTATION_FIELDS = ("schema", "endpoint_id", "store_location", "genesis_receipt_sha256", "head_receipt_sha256",
                            "signer_role")
@@ -613,14 +617,18 @@ def _epoch_ok(value: Any) -> bool:
     return isinstance(value, str) and value.isascii() and value.isdigit() and int(value) >= 32
 
 
-def not_observed(which: str, detail: str) -> dict[str, Any]:
-    """Six-field FAIL_CLOSED (class B): the chain has crossed, but the Org's side of the crossing is not observed."""
+def not_observed(which: str, detail: str,
+                 predicate: str = "ORG_SIDE_OF_EACH_CROSSING_OBSERVED_BY_THE_READER") -> dict[str, Any]:
+    """Six-field FAIL_CLOSED (class B): the Org's side of a crossing is not observed. With predicate
+    KV_HEAD_RECORDED_AT_BOTH_ENDS (LC-KV-26): KV's read-back head is held only at KV's end, no observed Org crossing
+    record names it (a never-crossed chain included)."""
     return _refuse(which, NOT_OBSERVED_CODE, "B",
                    "the Org's digest-only crossing record (path_id, receipt_sha256, endpoint_head_sha256, "
                    "supplied_hb_epoch) for this endpoint's intr-destination path_ids, read by the reader itself from "
-                   "the Org side of the crossing (the existing InTr readback); a caller-supplied digest is never "
-                   "relied on", "on the read-back of the Org side of the crossing (event-triggered)", detail,
-                   owner=CROSSING_GOAL, predicate="ORG_SIDE_OF_EACH_CROSSING_OBSERVED_BY_THE_READER")
+                   "the Org side of the crossing (the existing InTr readback), naming KV's read-back head so the head "
+                   "is held at both ends (LC-KV-26); a caller-supplied digest is never relied on",
+                   "on the read-back of the Org side of the crossing (event-triggered)", detail,
+                   owner=CROSSING_GOAL, predicate=predicate)
 
 
 def _org_crossing(which: str, d: Mapping[str, Any], chain: list[dict[str, Any]]) -> tuple[dict | None, dict | None]:
@@ -643,8 +651,10 @@ def _org_crossing(which: str, d: Mapping[str, Any], chain: list[dict[str, Any]])
         if crossed:
             return None, not_observed(which, f"the chain holds crossing record {crossed[0]['receipt_sha256']}; "
                                              f"no Org crossing record for {sorted(ids)} was observed")
-        return {"observed": observed is not None, "compared": 0, "never_crossed": True,
-                "role": CROSS_CHECK_ROLE, "authority_effect": "NONE"}, None
+        # LC-KV-26 case 1 (rollback to before the first crossing): a never-crossed chain is no longer skipped
+        return None, not_observed(which, f"KV's head {chain[0]['receipt_sha256']} has never crossed: no Org crossing "
+                                         f"record for {sorted(ids)} was observed, so the head is held only at KV's end",
+                                  predicate=BOTH_ENDS_PREDICATE)
     on_chain = {r["receipt_sha256"] for r in chain}
     for r in relevant:
         if r["endpoint_head_sha256"] not in on_chain:
@@ -664,8 +674,13 @@ def _org_crossing(which: str, d: Mapping[str, Any], chain: list[dict[str, Any]])
                                  f"the endpoint ingress record {r['receipt_sha256']} points at {peer!r}, which no "
                                  "observed Org crossing record holds", owner=CROSSING_GOAL,
                                  predicate="EACH_CROSSING_RECORDED_BY_BOTH_ENDPOINTS")
+    # LC-KV-26 case 2 (rollback after the last crossing): every head a reader can rely on is held at both ends
+    if chain[0]["receipt_sha256"] not in {r["endpoint_head_sha256"] for r in relevant}:
+        return None, not_observed(which, f"KV's read-back head {chain[0]['receipt_sha256']} is held only at KV's end: "
+                                         f"none of the {len(relevant)} observed Org crossing record(s) names it",
+                                  predicate=BOTH_ENDS_PREDICATE)
     return {"observed": True, "compared": len(relevant), "never_crossed": not crossed,
-            "role": CROSS_CHECK_ROLE, "authority_effect": "NONE"}, None
+            "head_recorded_at_both_ends": True, "role": CROSS_CHECK_ROLE, "authority_effect": "NONE"}, None
 
 
 def _read(which: str, storage_endpoint: Any, readback_root: Any, head_attestation: Any, via_kv_intr: Any,
@@ -762,8 +777,9 @@ def read_receipt_ledger(which: str, storage_endpoint: Any = None, readback_root:
     one naming a KV head that is newer than or not an ancestor of the read-back head -> DENY
     KV_LEDGER_HEAD_ROLLBACK_DETECTED; a chain that has crossed with no Org record observed -> FAIL_CLOSED
     KV_CROSSING_RECORD_NOT_OBSERVED (B); an ingress record with no observed Org peer -> FAIL_CLOSED
-    INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES (B). A never-crossed chain with no Org record observable skips the
-    comparison. The Org never grants."""
+    INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES (B); a read-back head that no observed Org record names (a never-crossed
+    chain included) -> FAIL_CLOSED KV_CROSSING_RECORD_NOT_OBSERVED (B, KV_HEAD_RECORDED_AT_BOTH_ENDS, LC-KV-26). The
+    Org never grants."""
     return _read(which, storage_endpoint, readback_root, head_attestation, None, recorded_head)
 
 
