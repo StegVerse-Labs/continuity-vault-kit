@@ -2418,9 +2418,7 @@
         {
           "name": "Boundary modules that consume the policy",
           "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard/04-boundary-modules-that-consume-the-policy.sh",
-          "run_sha256": "dc90ce3314812e8209ac50662cbf617659b9c6e309af81322796e6864f36e97b",
-          "replaces_run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade",
-          "adaptation": "LC-KV-26 (StegVerse-org/.github#162 c6393962100): adds tests/test_org_crossing_reader.py, the Org-end reader behind ORG_CROSSING_READER; the folded body is otherwise unchanged"
+          "run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade"
         },
         {
           "name": "Workspace projection contract",
@@ -2592,7 +2590,9 @@
         {
           "name": "Boundary modules that consume the policy",
           "run_file": "tools/tasks/steps/runtime-import-and-secret-policy.guard.pr261/04-boundary-modules-that-consume-the-policy.sh",
-          "run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade"
+          "run_sha256": "dc90ce3314812e8209ac50662cbf617659b9c6e309af81322796e6864f36e97b",
+          "replaces_run_sha256": "7761ead35b3b03c9520237cd93ec2eb855dcb093fdf94e209f7849339c99dade",
+          "adaptation": "LC-KV-26 (StegVerse-org/.github#162 c6393962100): adds tests/test_org_crossing_reader.py, the Org-end reader behind ORG_CROSSING_READER; the folded body is otherwise unchanged"
         },
         {
           "name": "Workspace projection contract (no skips; cross-repository parity runs in its own step)",
