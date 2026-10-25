@@ -11,7 +11,7 @@ identity, continuity, or governance authority.
 
 LC-KV-07 (StegVerse-Labs/.github#3330 rev 1): the SKAP sealed-credential append/read are SKAP Vault operations, so
 they are reachable only through both credential layers. Each call consumes one single-use SKAP-access receipt from
-the layer-2 gate (runtime.kv_skap_layer2.SkapLayer2Gate, INTR_KV_SKAP). The gate mints that receipt only on a
+the layer-2 gate (runtime.kv_skap_layer2.SkapLayer2Gate, KV_INTERNAL_SKAP_GATE). The gate mints that receipt only on a
 layer-1 KV-access receipt (KVInterlockRuntime.handle, INTR_DEVICE_KV, healthy node). Without the gate and receipt,
 the call raises SkapAccessRefused, which carries a six-field FAIL_CLOSED, before any state is touched.
 """
@@ -127,7 +127,7 @@ def _validate_skap_ingress_receipt_for_kv(receipt: dict[str, Any], sealed: dict[
 
 
 SKAP_LAYER2_REFUSAL_CODE = "SKAP_ACCESS_LAYER2_REFUSED"
-SKAP_LAYER2_PREDICATE = "SKAP_VAULT_REACHABLE_ONLY_VIA_INTR_FROM_KV"
+SKAP_LAYER2_PREDICATE = "SKAP_VAULT_REACHABLE_ONLY_FROM_INSIDE_KV"
 SKAP_OWNING_GOAL = "KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324)"
 
 
@@ -175,7 +175,7 @@ def _consume_skap_access(gate: Any, receipt_hash: Any, *, principal_ref: Any, op
                          subject_ref: str) -> dict[str, Any]:
     if gate is None or not callable(getattr(gate, "consume", None)):
         raise SkapAccessRefused(
-            "SKAP sealed credentials are reachable only through InTr from inside KV: pass skap_gate "
+            "SKAP sealed credentials are reachable only from inside KV, through the in-KV SKAP gate: pass skap_gate "
             "(runtime.kv_skap_layer2.SkapLayer2Gate over KVInterlockRuntime) and a SKAP-access receipt",
             failure_class="B")
     if not _exact_gate(gate):

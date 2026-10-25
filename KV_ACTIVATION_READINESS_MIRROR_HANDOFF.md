@@ -332,7 +332,7 @@ authority_transfer != false
 provider_operation_authorized != false
 provider_operation_started != false
 credential_plaintext_observed != false
-SKAP storage connector != KV_SKAP_INTR_ONLY
+SKAP storage connector != KV_INTERNAL_SKAP_GATE_ONLY
 KV decryption authority != false
 execution_authority != NONE
 secret/private-key/plaintext-bearing material present
@@ -443,9 +443,9 @@ service with explicit external-provider dependency:
   additionally requires ADJACENT_EXTERNAL_API_EGRESS
 ```
 
-Operation-specific transport types remain owned by the lane that requests them. The readiness layer does not globally force HIL `PUBLIC_HTTPS_INGRESS`, `NODE_TO_NODE_SYNC`, `KV_SKAP_INTR`, or `TVC_RELAY` onto unrelated actions.
+Operation-specific transport types remain owned by the lane that requests them. The readiness layer does not globally force HIL `PUBLIC_HTTPS_INGRESS`, `NODE_TO_NODE_SYNC`, or `TVC_RELAY` onto unrelated actions.
 
-The readiness facts expose all seven typed capability observations explicitly. The canonical SV-DN-1/Hugging Face observation has now been admitted as the first authentic typed transport fact:
+The readiness facts expose all six typed capability observations explicitly. (KV to SKAP Vault is not a transport capability: the SKAP Vault sits inside KV, and InTr runs only between distinct orgs, so there is no KV/SKAP InTr carrier to observe.) The canonical SV-DN-1/Hugging Face observation has now been admitted as the first authentic typed transport fact:
 
 ```text
 KV_DISTRIBUTION_DOWNLOAD=false
@@ -453,7 +453,6 @@ DEVICE_KV_INTR=false
 PUBLIC_HTTPS_INGRESS=false
 ADJACENT_EXTERNAL_API_EGRESS=true
 NODE_TO_NODE_SYNC=false
-KV_SKAP_INTR=false
 TVC_RELAY=false
 ```
 

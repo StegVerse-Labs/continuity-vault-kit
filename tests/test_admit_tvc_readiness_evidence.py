@@ -36,7 +36,7 @@ def boundary_ready(**overrides):
         "ready_for_skap_vault_ingress": True,
         "credential_authority": "TV/TVC",
         "credential_custody_target": "KV_HOSTED_SKAP_VAULT",
-        "storage_connector": "KV_SKAP_INTR_ONLY",
+        "storage_connector": "KV_INTERNAL_SKAP_GATE_ONLY",
         "device_durable_secret_custody": False,
         "kv_decryption_authority": False,
         "provider_operation_authorized": False,

@@ -76,7 +76,7 @@ def _require_boundary_authority_boundary(boundary: dict[str, Any]) -> None:
         raise AdmissionError("SKAP boundary credential authority mismatch")
     if boundary.get("credential_custody_target") != "KV_HOSTED_SKAP_VAULT":
         raise AdmissionError("SKAP boundary custody target mismatch")
-    if boundary.get("storage_connector") != "KV_SKAP_INTR_ONLY":
+    if boundary.get("storage_connector") != "KV_INTERNAL_SKAP_GATE_ONLY":
         raise AdmissionError("SKAP boundary storage connector mismatch")
     if boundary.get("device_durable_secret_custody") is not False:
         raise AdmissionError("device durable secret custody must be false")

@@ -22,7 +22,7 @@ plus a per-endpoint ``ledger_designation`` in #431 @a2237bc3 endpoint_ledger_des
 store of the proposed ``store_type`` KV_STORAGE_ENDPOINT:
 
 * ``kv``: ``_StegVerse/Receipts``. KV layer-1 receipts (stegverse.kv-access-receipt/v1, INTR_DEVICE_KV).
-* ``skap_vault``: ``_Vault/SKAP/Receipts``. Layer-2 receipts (stegverse.skap-access-receipt/v1, INTR_KV_SKAP),
+* ``skap_vault``: ``_Vault/SKAP/Receipts``. Layer-2 receipts (stegverse.skap-access-receipt/v1, KV_INTERNAL_SKAP_GATE),
   TV/TVC custody-reference issuance (TVC#537) and custody-result receipts. Read only through
   ``SkapLayer2Gate.receipt_ledger``.
 
@@ -128,12 +128,12 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     SKAP_VAULT_LEDGER: {
         "storage_location": "_Vault/SKAP/Receipts",
         "contract_path": ".stegverse/receipt-chains/skap-receipts.contract.json",
-        "contract_sha256": "sha256:7f0a0536214213b6dfc74074fec9c2375d130d875fc7fcc6c7796a77b901a86f",
+        "contract_sha256": "sha256:1e886348a7a84fb148bb91e84d84f99cb5101d86dfb34ab84104e54982e0bc13",
         "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
                     "stegverse.tvc.skap-custody-operation-result/v1"],
-        "read_by": "runtime.kv_skap_layer2.SkapLayer2Gate.receipt_ledger (layer 2, via KV's InTr only)",
+        "read_by": "runtime.kv_skap_layer2.SkapLayer2Gate.receipt_ledger (layer 2, from inside KV only)",
         "not_designated_code": "CUSTODY_RECEIPT_CHAIN_NOT_DESIGNATED",
         "endpoint_kind": "SKAP_VAULT",
         "via_kv_intr_only": True,
@@ -670,10 +670,10 @@ def _read(which: str, storage_endpoint: Any, readback_root: Any, head_attestatio
         return refusal
     why = _via_kv_intr_failure(d, via_kv_intr)
     if why:
-        return _refuse(which, "SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR", "A",
+        return _refuse(which, "SKAP_RECEIPT_CHAIN_NOT_FROM_INSIDE_KV", "A",
                        "read the SKAP receipt chain only through runtime.kv_skap_layer2.SkapLayer2Gate.receipt_ledger "
                        "with a layer-1 KV-access receipt the KV runtime minted (two-layer access rule)",
-                       "on the corrected call, through KV's InTr", why, predicate="SKAP_VAULT_REACHED_ONLY_VIA_KV_INTR")
+                       "on the corrected call, from inside KV after the layer-1 InTr entry", why, predicate="SKAP_VAULT_REACHED_ONLY_FROM_INSIDE_KV")
     store = d["store"]
     if store["kv_request_id"] == KV2_REQUEST_ID and KV2_GOVERNANCE_STATE == "PENDING_INTERLOCK_INTR":
         return kv2_pending(which)

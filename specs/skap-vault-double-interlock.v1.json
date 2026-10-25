@@ -4,11 +4,11 @@
   "logical_location": "KV/_Vault/SKAP",
   "credential_storage_owner": "SKAP_VAULT",
   "credential_authority": "TV/TVC",
+  "intr_scope": "INTR_RUNS_ONLY_BETWEEN_DISTINCT_ORGS_NEVER_INSIDE_ONE_ORG",
   "canonical_topology": [
     "DEVICE",
     "INTR_DEVICE_KV",
     "KV",
-    "INTR_KV_SKAP",
     "SKAP_VAULT"
   ],
   "boundaries": {
@@ -21,7 +21,9 @@
       "receipt_required": true
     },
     "kv_skap": {
-      "connector": "InTr",
+      "connector": "KV_INTERNAL_SKAP_GATE",
+      "intr_hop": false,
+      "skap_vault_inside_kv": true,
       "required": true,
       "kv_plaintext_persistence": false,
       "kv_decryption_authority": false,
@@ -52,7 +54,7 @@
   },
   "transition_receipts": {
     "device_kv_receipt_schema": "stegverse.intr.boundary_transition_receipt/v1",
-    "kv_skap_receipt_schema": "stegverse.intr.boundary_transition_receipt/v1",
+    "kv_skap_receipt_schema": "stegverse.skap-access-receipt/v1",
     "chain_binding_required": true,
     "second_receipt_must_bind_first_receipt_hash": true,
     "secret_plaintext_allowed_in_receipts": false

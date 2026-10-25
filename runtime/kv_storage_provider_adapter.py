@@ -189,7 +189,7 @@ def build_vault_lineage_readback_request(
 # --- vault-lineage provider registry (revised LC-KV-03, StegVerse-Labs/.github#3330 rev 1) ---
 # Revision 1 of the ladder-conformance check withdrew the bare ecosystem git-ref custody adapter
 # (refs/stegverse/kv-custody/<principal>): it reached custody without the two credential layers (KV via InTr from a
-# currently admitted healthy node, then the SKAP Vault via InTr from inside KV). No provider is an access path for
+# currently admitted healthy node, then the SKAP Vault from inside KV through the in-KV gate). No provider is an access path for
 # the vault lineage: a provider may at most carry the sealed lineage below the gates, and every custody result must
 # bind the layer-1 and layer-2 receipts (validate_vault_lineage_custody_result). The registry is default_registry().
 def vault_lineage_registry() -> StorageProviderRegistry:

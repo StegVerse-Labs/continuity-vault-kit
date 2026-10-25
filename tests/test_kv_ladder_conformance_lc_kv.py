@@ -766,7 +766,7 @@ def e0_kv_attestation(which, chain, **override):
 class KvSkapLedgerLocation(unittest.TestCase):
     """KV-SKAP-LEDGER-LOCATION-001: STEGVERSE_KV's two recorded receipt chains (_StegVerse/Receipts,
     _Vault/SKAP/Receipts) on the documented storage endpoint v2 of the KV #2 lineage, never on an Org ledger ref; the
-    SKAP chain only via KV's InTr; genesis null until pinned (two-event crossing model)."""
+    SKAP chain only from inside KV (in-KV gate, no InTr hop); genesis null until pinned (two-event crossing model)."""
 
     CHAINS = {"kv": ("_StegVerse/Receipts", "KV"), "skap_vault": ("_Vault/SKAP/Receipts", "SKAP_VAULT")}
 
@@ -1022,14 +1022,14 @@ class KvSkapLedgerLocation(unittest.TestCase):
             self.assertEqual(out["store_location"], "storage-endpoint:device-local/_Vault/SKAP/Receipts")
             self.assertEqual(rl.receipt_on_ledger("skap_vault", carried, _read_result=out)["disposition"], "ALLOW")
 
-    def test_the_skap_chain_is_reached_only_via_kv_intr(self):
+    def test_the_skap_chain_is_reached_only_from_inside_kv(self):
         root, chain = e0_kv_root("skap_vault")
         with kv_chain_e0("skap_vault", chain[-1]["receipt_sha256"]):
             good = e0_kv_attestation("skap_vault", chain)
             self.assertSix(rl.read_receipt_ledger("skap_vault", device_local(), root, good),
-                           "SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR", "A")
+                           "SKAP_RECEIPT_CHAIN_NOT_FROM_INSIDE_KV", "A")
             self.assertSix(TwoLayers().gate.receipt_ledger(None, device_local(), root, good),
-                           "SKAP_RECEIPT_CHAIN_NOT_VIA_KV_INTR", "A")
+                           "SKAP_RECEIPT_CHAIN_NOT_FROM_INSIDE_KV", "A")
 
     def test_e0_read_back_through_the_device_local_storage_endpoint(self):
         carried = "sha256:" + "ab" * 32

@@ -1029,6 +1029,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_no_intra_org_intr_hop.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_no_intra_org_intr_hop.py"
+   ],
+   "tests": [
+    "tests.test_no_intra_org_intr_hop"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_organization_security_posture.py",
    "inputs": [],
    "surfaces": [
@@ -2494,6 +2506,11 @@
    "fixtures/multimodal/**",
    "multimodal_storage/adapter.py",
    "tests/fixtures/**"
+  ],
+  "tests/test_no_intra_org_intr_hop.py": [
+   "runtime/kv_skap_layer2.py",
+   "runtime/kv_skap_vault.py",
+   "specs/skap-vault-double-interlock.v1.json"
   ],
   "tests/test_organization_security_posture.py": [
    "runtime/organization_security_posture.py"

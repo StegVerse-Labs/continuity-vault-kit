@@ -4,7 +4,7 @@ One ecosystem-only run, end to end. It uses no model, network, clock or credenti
   1. Every vault operation enters through both credential layers:
      * layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV), for a node that the E0 stand-in of the pinned
        InTr healthy-node evaluator (LC-KV-13/14) admits;
-     * layer 2 is SkapLayer2Gate (INTR_KV_SKAP), fed by that layer-1 receipt.
+     * layer 2 is SkapLayer2Gate (KV_INTERNAL_SKAP_GATE), fed by that layer-1 receipt.
      The lineage binds a TV/TVC-shaped issuance receipt, then records a write, an exact read and a revoke.
   2. The sealed lineage goes to durable custody below the gates. That is a #259 vault-lineage custody binding on a
      non-device provider. The git-ref adapter is withdrawn, and no provider is an access path.

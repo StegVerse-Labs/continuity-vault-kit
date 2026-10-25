@@ -10,7 +10,12 @@ from typing import Any
 
 SCHEMA = "stegverse.kv.skap-vault-double-interlock/v1"
 RECEIPT_SCHEMA = "stegverse.intr.boundary_transition_receipt/v1"
-EXPECTED_TOPOLOGY = ["DEVICE", "INTR_DEVICE_KV", "KV", "INTR_KV_SKAP", "SKAP_VAULT"]
+SKAP_RECEIPT_SCHEMA = "stegverse.skap-access-receipt/v1"
+#: One InTr boundary only. InTr runs only between distinct orgs and never inside one org; the SKAP Vault sits inside
+#: KV, so KV reaching it is the in-KV gate KV_INTERNAL_SKAP_GATE, never an InTr hop.
+EXPECTED_TOPOLOGY = ["DEVICE", "INTR_DEVICE_KV", "KV", "SKAP_VAULT"]
+INTR_SCOPE = "INTR_RUNS_ONLY_BETWEEN_DISTINCT_ORGS_NEVER_INSIDE_ONE_ORG"
+KV_SKAP_GATE = "KV_INTERNAL_SKAP_GATE"
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -33,14 +38,20 @@ def validate_contract(contract: dict[str, Any]) -> list[str]:
         errors.append("credential authority must remain TV/TVC")
     if contract.get("canonical_topology") != EXPECTED_TOPOLOGY:
         errors.append("canonical double-interlock topology mismatch")
+    if contract.get("intr_scope") != INTR_SCOPE:
+        errors.append("InTr scope must be distinct orgs only, never inside one org")
 
     boundaries = contract.get("boundaries") or {}
     device_kv = boundaries.get("device_kv") or {}
     kv_skap = boundaries.get("kv_skap") or {}
     if device_kv.get("connector") != "InTr" or device_kv.get("required") is not True:
         errors.append("Device/KV InTr connector is mandatory")
-    if kv_skap.get("connector") != "InTr" or kv_skap.get("required") is not True:
-        errors.append("KV/SKAP InTr connector is mandatory")
+    if kv_skap.get("connector") == "InTr" or kv_skap.get("intr_hop") is not False:
+        errors.append("KV/SKAP must not be an InTr hop: the SKAP Vault sits inside KV and InTr runs only between distinct orgs")
+    if kv_skap.get("connector") != KV_SKAP_GATE or kv_skap.get("required") is not True:
+        errors.append("KV/SKAP in-KV gate is mandatory")
+    if kv_skap.get("skap_vault_inside_kv") is not True:
+        errors.append("SKAP Vault must sit inside KV")
     if device_kv.get("device_plaintext_persistence") is not False:
         errors.append("Device plaintext persistence forbidden")
     if device_kv.get("device_durable_secret_custody") is not False:
@@ -54,7 +65,7 @@ def validate_contract(contract: dict[str, Any]) -> list[str]:
     if kv_skap.get("skap_vault_only_secret_custody") is not True:
         errors.append("SKAP Vault must be sole secret custody boundary")
     if device_kv.get("receipt_required") is not True or kv_skap.get("receipt_required") is not True:
-        errors.append("both interlocks require transition receipts")
+        errors.append("both interlocks require receipts")
 
     storage = contract.get("storage") or {}
     if storage.get("credential_objects") != "_Vault/SKAP/Credentials":
@@ -79,7 +90,7 @@ def validate_contract(contract: dict[str, Any]) -> list[str]:
             errors.append(f"forbidden access/authority path enabled: {field}")
 
     receipts = contract.get("transition_receipts") or {}
-    if receipts.get("device_kv_receipt_schema") != RECEIPT_SCHEMA or receipts.get("kv_skap_receipt_schema") != RECEIPT_SCHEMA:
+    if receipts.get("device_kv_receipt_schema") != RECEIPT_SCHEMA or receipts.get("kv_skap_receipt_schema") != SKAP_RECEIPT_SCHEMA:
         errors.append("boundary receipt schema mismatch")
     if receipts.get("chain_binding_required") is not True or receipts.get("second_receipt_must_bind_first_receipt_hash") is not True:
         errors.append("double-interlock receipt chain binding is mandatory")
@@ -90,11 +101,12 @@ def validate_contract(contract: dict[str, Any]) -> list[str]:
 
 def validate_receipt_chain(device_kv: dict[str, Any], kv_skap: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    for name, receipt in (("device_kv", device_kv), ("kv_skap", kv_skap)):
-        if receipt.get("schema") != RECEIPT_SCHEMA:
+    for name, receipt, schema, connector in (("device_kv", device_kv, RECEIPT_SCHEMA, "InTr"),
+                                             ("kv_skap", kv_skap, SKAP_RECEIPT_SCHEMA, KV_SKAP_GATE)):
+        if receipt.get("schema") != schema:
             errors.append(f"{name} receipt schema invalid")
-        if receipt.get("connector") != "InTr":
-            errors.append(f"{name} connector must be InTr")
+        if receipt.get("connector") != connector:
+            errors.append(f"{name} connector must be {connector}")
         if receipt.get("secret_plaintext_present") is not False:
             errors.append(f"{name} receipt contains secret plaintext")
         if receipt.get("authority_transfer") is not False:
@@ -120,9 +132,10 @@ def validate_receipt_chain(device_kv: dict[str, Any], kv_skap: dict[str, Any]) -
 
 
 def _receipt(*, boundary_from: str, boundary_to: str, credential_ref: str, operation_id: str, prior: str | None) -> dict[str, Any]:
+    in_kv = boundary_from == "KV"
     body = {
-        "schema": RECEIPT_SCHEMA,
-        "connector": "InTr",
+        "schema": SKAP_RECEIPT_SCHEMA if in_kv else RECEIPT_SCHEMA,
+        "connector": KV_SKAP_GATE if in_kv else "InTr",
         "from_boundary": boundary_from,
         "to_boundary": boundary_to,
         "credential_ref": credential_ref,
@@ -143,6 +156,9 @@ def self_test(contract: dict[str, Any]) -> None:
     cases: list[tuple[list[str], str]] = []
     bad = copy.deepcopy(contract); bad["boundaries"]["device_kv"]["required"] = False; cases.append((validate_contract(bad), "Device/KV"))
     bad = copy.deepcopy(contract); bad["boundaries"]["kv_skap"]["required"] = False; cases.append((validate_contract(bad), "KV/SKAP"))
+    bad = copy.deepcopy(contract); bad["boundaries"]["kv_skap"]["connector"] = "InTr"; bad["boundaries"]["kv_skap"]["intr_hop"] = True; cases.append((validate_contract(bad), "must not be an InTr hop"))
+    bad = copy.deepcopy(contract); bad["canonical_topology"] = ["DEVICE", "INTR_DEVICE_KV", "KV", "INTR_" + "KV_SKAP", "SKAP_VAULT"]; cases.append((validate_contract(bad), "topology"))
+    bad = copy.deepcopy(contract); bad["intr_scope"] = "INTRA_ORG"; cases.append((validate_contract(bad), "distinct orgs"))
     bad = copy.deepcopy(contract); bad["boundaries"]["kv_skap"]["kv_decryption_authority"] = True; cases.append((validate_contract(bad), "decryption"))
     bad = copy.deepcopy(contract); bad["boundaries"]["device_kv"]["device_durable_secret_custody"] = True; cases.append((validate_contract(bad), "Device durable"))
     bad = copy.deepcopy(contract); bad["access_contract"]["direct_device_to_skap_access"] = True; cases.append((validate_contract(bad), "direct_device"))
