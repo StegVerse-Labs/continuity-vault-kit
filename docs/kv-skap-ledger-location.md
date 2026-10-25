@@ -147,7 +147,15 @@ StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. He
     `rollback_watermark_source.org_crossing_cross_check` (source `ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD`, the
     intr-destination path_ids, role `DIGEST_ONLY_CROSS_CHECK_NEVER_WATERMARK`). The reader obtains the Org's
     digest-only crossing records itself through `ORG_CROSSING_READER` (an injected reader at E0; in production,
-    whatever the existing InTr readback exposes, currently UNKNOWN_NOT_AUTHENTICALLY_OBSERVED, so it is `None`).
+    `runtime/org_crossing_reader.py` (LC-KV-26, the Org end), which reads an anonymously fetched snapshot of the
+    public Org ledger supplied by `STEGVERSE_ORG_LEDGER_SNAPSHOT` and written by the observer
+    `tools/observers/org_ledger_observer.py`. The reader is clock-free and network-free and verifies every seal and
+    the chain from `HEAD.json`. It emits only records whose path_id is `<OrgA>-><OrgB>:intr-destination` between
+    distinct orgs and that already carry `endpoint_head_sha256`; it never fabricates one. With no snapshot, or a
+    snapshot that fails to verify, it returns `None` and records the six-field FAIL_CLOSED
+    `KV_CROSSING_RECORD_NOT_OBSERVED` / `ORG_SIDE_OF_EACH_CROSSING_OBSERVED_BY_THE_READER` in `LAST_READ`).
+    SKAP Vault inside KV is the only PII and credential store for every user, the ecosystem's own included; the
+    ecosystem holds none (HST citation pending P1 #163).
     Caller input is never relied on. Each record carries `path_id`, `receipt_sha256`, `endpoint_head_sha256` and
     `supplied_hb_epoch`.
     - If a record names a head newer than KV's, or a head that is not an ancestor of KV's head, the read is DENY
