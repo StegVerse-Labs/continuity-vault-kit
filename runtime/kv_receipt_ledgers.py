@@ -502,13 +502,18 @@ WATERMARK_MISSING_CODE = "KV_LEDGER_HEAD_ROLLBACK_WATERMARK_MISSING"
 
 
 def watermark_missing(which: str, detail: str = "no recorded_head supplied") -> dict[str, Any]:
-    """Six-field FAIL_CLOSED (class A, LC-KV-23): the rollback watermark is required. Without the newest head KV
-    itself recorded on its own receipt chain, an older signed head cannot be told apart."""
+    """Six-field FAIL_CLOSED (class A, LC-KV-23): KV's own head record could not be relied on (absent, unreadable,
+    not hash-linked, not monotonic or empty), or a caller claim is malformed. KV's own append-only head record is the
+    authority for its newest head (Coordination ruling c6392982821 (A)); a caller ``recorded_head`` watermark is only an
+    optional claim, compared against that record and never relied on. Without KV's own record an older signed head
+    cannot be told apart."""
     return _refuse(which, WATERMARK_MISSING_CODE, "A",
-                   f'recorded_head = {{"source": "{WATERMARK_SOURCE}", "head_receipt_sha256": "sha256:<64 hex>"}}: '
-                   "the newest head KV recorded on its own receipt chain (optionally with a digest-only "
-                   '"org_crossing_cross_check" of the Org\'s side of a crossing, never the watermark)',
-                   "on the corrected call", detail, predicate="ROLLBACK_WATERMARK_SUPPLIED")
+                   f"KV's own append-only head record ({HEAD_RECORD}, hash-linked and monotonic) read back by the reader "
+                   "itself; a caller recorded_head is an optional claim and, when given, must be "
+                   f'{{"source": "{WATERMARK_SOURCE}", "head_receipt_sha256": "sha256:<64 hex>"}} (optionally with a '
+                   'digest-only "org_crossing_cross_check" of the Org\'s side of a crossing, never the watermark)',
+                   "on the next read after KV's head record is repaired, or on a corrected claim", detail,
+                   predicate="ROLLBACK_WATERMARK_SUPPLIED")
 
 
 def _org_sourced(value: Any) -> bool:

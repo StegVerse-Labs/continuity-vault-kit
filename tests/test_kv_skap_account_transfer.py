@@ -111,16 +111,33 @@ ROOT = Path(__file__).resolve().parents[1]
 #: the SKAP Vault sits inside KV, so the envelope is the in-KV SKAP gate envelope. Built by concatenation so this file
 #: does not match itself; evidence/ and reports/ are receipts and are not scanned.
 RETIRED_TRANSFER_TOKENS = ("stegverse.intr." + "boundary-transfer", "build_intr_" + "boundary_envelope",
-                           "build_intr_" + "request(", "intr_" + "boundary_envelope", "Internal InTr " + "Boundary Transfer")
+                           "build_intr_" + "request(", "intr_" + "boundary_envelope", "Internal InTr " + "Boundary Transfer",
+                           # Coordination ruling (2) RENAME on KV_SKAP_TRANSFER_DECLARED_PATH_NAMES_RETAINED: the declared
+                           # schema and protocol-document names (and the schema $id) that called the transfer InTr.
+                           "intr-" + "boundary-transfer", "KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_PROTOCOL")
+RETIRED_DECLARED_PATHS = ("schemas/intr-" + "boundary-transfer.schema.json", "docs/KV_SKAP_INTR_ACCOUNT_" + "TRANSFER_PROTOCOL.md")
+RENAMED_DECLARED_PATHS = ("schemas/kv-skap-gate-account-transfer-envelope.schema.json",
+                          "docs/KV_SKAP_GATE_ACCOUNT_TRANSFER_PROTOCOL.md")
 
 
 class InKvSkapGateEnvelopeTests(unittest.TestCase):
     def test_envelope_schema_is_the_in_kv_gate_envelope(self):
         import runtime.kv_skap_account_transfer as t
-        schema = json.loads((ROOT / "schemas/intr-boundary-transfer.schema.json").read_text(encoding="utf-8"))
+        schema = json.loads((ROOT / "schemas/kv-skap-gate-account-transfer-envelope.schema.json").read_text(encoding="utf-8"))
         self.assertEqual(schema["properties"]["schema"]["const"], "stegverse.kv-skap-gate.account-transfer-envelope/v1")
         self.assertIn("gate_receipt_ref", schema["required"])
         self.assertFalse(hasattr(t, "build_intr_" + "boundary_envelope") or hasattr(t, "build_intr_" + "request"))
+
+    def test_declared_paths_are_renamed_with_no_dual_names(self):
+        for path in RETIRED_DECLARED_PATHS:
+            self.assertFalse((ROOT / path).exists(), path)
+        for path in RENAMED_DECLARED_PATHS:
+            self.assertTrue((ROOT / path).is_file(), path)
+        schema = json.loads((ROOT / RENAMED_DECLARED_PATHS[0]).read_text(encoding="utf-8"))
+        self.assertEqual(schema["$id"], "https://stegverse.org/" + RENAMED_DECLARED_PATHS[0])
+        handoff = (ROOT / "KV_SKAP_INTR_ACCOUNT_TRANSFER_MIRROR_HANDOFF.md").read_text(encoding="utf-8")
+        for path in RENAMED_DECLARED_PATHS:
+            self.assertIn(f"`{path}`", handoff)
 
     def test_no_retired_transfer_token_in_the_tree(self):
         skip = {".git", "evidence", "reports", "__pycache__", "node_modules"}
