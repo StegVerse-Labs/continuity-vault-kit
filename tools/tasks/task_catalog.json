@@ -3037,7 +3037,9 @@
         {
           "name": "Run deterministic tests",
           "run_file": "tools/tasks/steps/validate-kv-email-ingress-policy.validate/03-run-deterministic-tests.sh",
-          "run_sha256": "185dd45524d499d8a1330722c16115f8025501be4efd29ec5aa20f271ca7e6aa"
+          "run_sha256": "01cd9af03bfedd67f0b0d80298e5c1aa1b54521a7bdb2370b863e167a3570a03",
+          "replaces_run_sha256": "185dd45524d499d8a1330722c16115f8025501be4efd29ec5aa20f271ca7e6aa",
+          "adaptation": "Site#1509 lane A (Goal StegVerse-org/.github#164): adds tests.test_email_family_projection, the ADMIT-receipt email-family projection producer; the folded body is otherwise unchanged"
         }
       ],
       "artifacts": [],

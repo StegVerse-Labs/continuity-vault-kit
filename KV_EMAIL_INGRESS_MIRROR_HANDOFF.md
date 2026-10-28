@@ -393,3 +393,7 @@ Observed connected-KV state on 2026-08-28:
 Repository evidence: `evidence/kv/2026-08-28-personal-contact-profile-connected-installation.json`.
 
 This proves that the multi-email personal-information data surface exists in the connected KnowledgeVault. It still does not prove that any mailbox is mapped, any SKAP credential is installed, or governed mail ingress is active.
+
+## Workspace email-family projection (source only, 2026-10-28)
+
+Activation predicate 11 now has a source-side producer: `runtime/email_family_projection.py` turns ADMIT receipts into a `stegverse.kv.email-family-projection/v1` Workspace family projection. The projection is payload-free and carries `skap://` references only. Every refusal fails closed with the six actionable fields. The contract and its gaps are in `WORKSPACE_PROJECTION_MIRROR_HANDOFF.md`. This is SOURCE + LOCAL_TEST evidence: no mailbox is connected and no runtime state changes.

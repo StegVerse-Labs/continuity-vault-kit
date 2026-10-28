@@ -353,6 +353,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_email_family_projection.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_email_family_projection.py"
+   ],
+   "tests": [
+    "tests.test_email_family_projection"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_email_ingress_pipeline.py",
    "inputs": [],
    "surfaces": [
@@ -1996,6 +2008,11 @@
    "runtime/email_provider_adapter.py",
    "specs/kv-email-provider-registry.v1.json"
   ],
+  "runtime/email_family_projection.py": [
+   "runtime/email_continuity.py",
+   "runtime/workspace_projection.py",
+   "tests/test_email_family_projection.py"
+  ],
   "runtime/email_interlock.py": [
    "runtime/email_continuity.py"
   ],
@@ -2277,6 +2294,12 @@
   ],
   "tests/test_email_continuity_runtime.py": [
    "runtime/email_continuity.py"
+  ],
+  "tests/test_email_family_projection.py": [
+   "runtime/email_continuity.py",
+   "runtime/email_family_projection.py",
+   "runtime/email_ingress_pipeline.py",
+   "runtime/workspace_family_projections.py"
   ],
   "tests/test_email_ingress_pipeline.py": [
    "runtime/email_ingress_pipeline.py"

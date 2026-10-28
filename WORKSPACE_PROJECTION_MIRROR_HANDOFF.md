@@ -115,6 +115,28 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
 - Site mirrors the same text (`reasons` on `StegVerseWorkspaceSessionAuthentication` and `StegVerseWorkspaceAssistantBinding`) and uses it for the DR2 and DR4 device-continuity "Why?".
 - Tests: `tests/test_workspace_decision_reasons.py` (every reachable predicate has a reason and every reason a reachable predicate; reasons are plain language; every session decision path carries a matching record; with a .github checkout, each record builds a conformant explanation whose "Why" is the reason; with a Site checkout, the Site text is identical).
 
+## Email-family projection from ADMIT receipts — Site#1509 lane A / Goal StegVerse-org/.github#164 (2026-10-28)
+- **Schema decision:** the existing family-projection contract carries email. `runtime/email_family_projection.py` emits one `stegverse.kv.email-family-projection/v1` document that `get_personal_family_projections` accepts verbatim under `_System/Workspace/projections/`. No new query class, record class or DEVICE_KV extension is added. One file covers every mapped mailbox, because the reader refuses duplicate schemas.
+- **Input:** `project_email_family(receipts, mappings, provider_positions, prior, accepted_head_digest, clock)`. It reads only payload-free `stegverse.kv.email-ingress-receipt/v1` receipts and `stegverse.kv.email-account-mapping/v1` mappings. Rows carry ids, the receipt id, the staged content hash and `payload_present: false`. They never carry the message body or the email address. Each account carries `skap_ref` (`skap://` only) and a cursor of sequence, head receipt, receipt chain digest and provider position.
+- **Refused cases** (DENY or FAIL_CLOSED, each with the six fields `failure_code`, `failed_predicate`, `required_evidence_or_repair`, `retry_entrypoint`, `owning_existing_goal`, `next_attempt`):
+  - an unadmitted message (QUARANTINE, REVIEW, REJECT or FAIL_CLOSED);
+  - a revoked mapping, or a session that is not verified;
+  - a replayed or duplicate ADMIT;
+  - content drift under the same message id;
+  - a provider-cursor rollback, a cursor that did not advance, or an absent or opaque cursor;
+  - a projection rollback against the accepted head;
+  - cross-account provenance;
+  - an absent or stale receipt;
+  - any secret field, a credential reference that is not `skap://`, or `credential_secret_present_in_kv`;
+  - receipt, mapping or prior digest drift, or a chain that does not recompute;
+  - malformed input, or a naive clock.
+- **Evidence class:** SOURCE + LOCAL_TEST. No mailbox, provider, SKAP resolution or KV write is involved. ALLOW carries `runtime_evidence: false` and `action_eligible: false`.
+- **Open gaps (owner work):**
+  - the authorized KV writer (BLK3), which persists `projections/email-family.json` and the accepted head digest;
+  - opaque provider cursors such as Graph delta links. Only integer positions are accepted; anything else fails closed as `EMAIL_PROVIDER_CURSOR_INVALID`;
+  - live ADMIT receipts, which depend on email activation predicates 8 and 11.
+- **Test:** `tests/test_email_family_projection.py` (unittest), run by the existing `validate-kv-email-ingress-policy.validate` step 03. No new workflow is added.
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 
