@@ -1614,6 +1614,12 @@
         "workflow-surface-registry.validate"
       ],
       "reason": "G17: enforces the registry and the folded records (replaces EXPECTED_WORKFLOW_COUNT)"
+    },
+    {
+      "catalog_groups": [
+        "kv-crossing-records.validate"
+      ],
+      "reason": "StegVerse-org/.github#162 (LC-KV-29): runs the KV-side crossing record tests with 0 skipped as a catalog entry, not a workflow file"
     }
   ]
 }

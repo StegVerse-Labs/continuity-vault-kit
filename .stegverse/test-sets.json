@@ -763,6 +763,18 @@
   {
    "always": false,
    "exclude": [],
+   "id": "tests/test_kv_crossing_records.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_crossing_records.py"
+   ],
+   "tests": [
+    "tests.test_kv_crossing_records"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
    "id": "tests/test_kv_email_ingress_policy.py",
    "inputs": [],
    "surfaces": [
@@ -878,6 +890,18 @@
    ],
    "tests": [
     "tests.test_kv_provider_operation_store"
+   ]
+  },
+  {
+   "always": false,
+   "exclude": [],
+   "id": "tests/test_kv_receipt_ledgers_no_431_and_crossing_wording.py",
+   "inputs": [],
+   "surfaces": [
+    "tests/test_kv_receipt_ledgers_no_431_and_crossing_wording.py"
+   ],
+   "tests": [
+    "tests.test_kv_receipt_ledgers_no_431_and_crossing_wording"
    ]
   },
   {
@@ -2031,6 +2055,9 @@
   "runtime/intr_lifecycle_closure.py": [
    "runtime/secret_field_policy.py"
   ],
+  "runtime/kv_crossing_records.py": [
+   "runtime/kv_receipt_ledgers.py"
+  ],
   "runtime/kv_interlock_endpoint.py": [
    ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
    "runtime/intr_pinned/**",
@@ -2435,6 +2462,12 @@
    "scripts/validate_kv_cross_class_intr_fixtures.py",
    "specs/kv-cross-class-intr-transition-fixtures.v1.json"
   ],
+  "tests/test_kv_crossing_records.py": [
+   "runtime/kv_crossing_records.py",
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/kv_storage_provider_adapter.py",
+   "tests/kv_two_layer_e0.py"
+  ],
   "tests/test_kv_email_ingress_policy.py": [
    "tools/check_kv_email_ingress_policy.py"
   ],
@@ -2484,6 +2517,13 @@
   "tests/test_kv_provider_operation_store.py": [
    "runtime/kv_provider_operation_store.py",
    "runtime/kv_storage_provider_adapter.py"
+  ],
+  "tests/test_kv_receipt_ledgers_no_431_and_crossing_wording.py": [
+   ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+   ".stegverse/receipt-chains/skap-receipts.contract.json",
+   ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
+   "docs/kv-skap-ledger-location.md",
+   "runtime/kv_receipt_ledgers.py"
   ],
   "tests/test_kv_relationship_state_store.py": [
    "runtime/kv_instance_relationships.py",
