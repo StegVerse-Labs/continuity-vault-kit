@@ -13,7 +13,9 @@ StegVerse-org/.github#162 c6508050206: "This shouldn't be possible without being
 (path_id, communication_id) gets one KV-side receipt; a second record for the same crossing is refused as a duplicate,
 six-field FAIL_CLOSED ``INTR_PATH_DESTINATION_CROSSING_ALREADY_RECORDED`` (the code Lane B's Org side uses,
 StegVerse-org/.github#261), whether or not it would be byte-identical. There is no newest-wins and no replacement or
-successor policy, and the check is made again under the append lock, so two writers cannot both record it.
+successor policy, and the check is made again under the append lock, so two writers cannot both record it. An unchained receipt file for the crossing (a crash between the receipt write and
+the HEAD.json update) is found too: adopted only if byte-identical to the receipt this call would write on the current
+head, otherwise refused fail-closed, so a crossing never has two receipt files (P4's note on cvk#284).
 
 What this does not do (each is a refusal or simply absent):
 * It never touches an Org ledger or an Org's organization-ledger ref (KV's ledger is its own); the Org's side is read
@@ -46,6 +48,7 @@ EVIDENCE_SCHEMA = "stegverse.intr-path-ingress-evidence/v1"
 OPERATION = "KV_INTR_DESTINATION_INGRESS"
 CROSSING_KEYS = ("path_id", "communication_id", "source_repository_receipt_sha256")
 ALREADY_RECORDED_CODE = "INTR_PATH_DESTINATION_CROSSING_ALREADY_RECORDED"
+ORPHAN_CODE = "INTR_PATH_DESTINATION_CROSSING_ORPHAN_RECEIPT_NOT_ADOPTABLE"
 RIGEL_RULE = ('Rigel, 2026-10-29 3:08 PM CDT (Lane B\'s chat, relayed at StegVerse-org/.github#162 c6508050206): '
               '"This shouldn\'t be possible without being a literal duplicate."')
 GOAL = ("StegVerse-org/.github#162 (KV-side crossing records, LC-KV-29 c6394603737; Lane B owns the Org side, "
@@ -136,6 +139,50 @@ def _already_recorded(which: str, d: Mapping[str, Any], crossing: Mapping[str, A
                    existing_receipt_sha256=hits[0]["receipt_sha256"], appended=False)
 
 
+def _orphans(which: str, d: Mapping[str, Any], root: Path, chain: list[dict[str, Any]], hne: Any,
+             crossing: Mapping[str, Any]) -> tuple[list[tuple[Path, dict[str, Any]]], dict[str, Any] | None]:
+    """Receipt files under receipts/ that are not on the chain and are for this crossing (a crash between the receipt
+    write and the HEAD.json update leaves one). A file that cannot be read as a receipt of its own name is refused:
+    it might be this crossing's, and a retry could not show otherwise."""
+    chained = {r["receipt_sha256"] for r in chain}
+    found = []
+    for path in sorted((root / "receipts").glob("*.json")):
+        if "sha256:" + path.stem in chained:
+            continue
+        try:
+            raw = path.read_bytes()
+            receipt = json.loads(raw.decode("utf-8"))
+            ok = isinstance(receipt, dict) and receipt.get("receipt_sha256") == "sha256:" + path.stem \
+                and receipt["receipt_sha256"] == hne.sha({k: v for k, v in receipt.items() if k != "receipt_sha256"})
+        except (OSError, ValueError, TypeError):
+            ok = False
+        if not ok:
+            return [], _refuse(which, "KV_CROSSING_RECEIPT_FILE_UNREADABLE", "C", "EACH_CROSSING_HAS_EXACTLY_ONE_KV_SIDE_RECEIPT",
+                               "a receipts/ file that is a receipt of its own name, or its removal by the owner of the "
+                               "chain: an unreadable file could be this crossing's orphan, and recording again could "
+                               "give the crossing a second receipt file",
+                               "on the owner's repair of the stray file; nothing is written or deleted here",
+                               f"{d['location']}/receipts/{path.name} is not a receipt whose hash is its name",
+                               appended=False)
+        if _recorded_for([receipt], crossing):
+            found.append((path, receipt))
+    return found, None
+
+
+def _orphan_refusal(which: str, d: Mapping[str, Any], crossing: Mapping[str, Any],
+                    found: list[tuple[Path, dict[str, Any]]], why: str) -> dict[str, Any]:
+    names = [p.name for p, _ in found]
+    return _refuse(which, ORPHAN_CODE, "C", "EACH_CROSSING_HAS_EXACTLY_ONE_KV_SIDE_RECEIPT",
+                   f"none: crossing {crossing['path_id']}@{crossing['communication_id']} already has an unchained "
+                   f"receipt file {names} (a write that stopped before HEAD.json); it is adopted only when it is "
+                   "byte-identical to the receipt this call would write and sits on the current head, otherwise a "
+                   "second receipt file would exist for one crossing. " + RIGEL_RULE,
+                   "the same call with the same supplied epoch and the same crossing (adopts the orphan), or the "
+                   "owner's repair of the orphan file; nothing is written or deleted here",
+                   f"{d['location']}: {why}", orphan_receipt_sha256=[r["receipt_sha256"] for _, r in found],
+                   appended=False)
+
+
 def _supplied(which: str, modules: Mapping[str, Any], hb_epoch: Any) -> dict[str, Any] | None:
     failure = modules["supplied_epoch"].supplied_epoch_failure(hb_epoch)
     if failure:
@@ -221,6 +268,20 @@ def plan_crossing_record(which: str, storage_endpoint: Any = None, readback_root
             "hb_reference": hb, "observed_at": modules["supplied_epoch"].observed_at_from_hb_reference(hb),
             "observed_at_is_descriptive_not_ordering": True, "previous_receipt_sha256": head["receipt_sha256"]}
     receipt = {**body, "receipt_sha256": hne.sha(body)}
+    orphans, failure = _orphans(which, d, root, chain, hne, crossing)
+    if failure:
+        return failure
+    adopts = False
+    if orphans:
+        path, found = orphans[0]
+        if len(orphans) > 1:
+            return _orphan_refusal(which, d, crossing, orphans, "more than one unchained receipt file for this crossing")
+        if path.read_bytes() != json.dumps(receipt).encode("utf-8"):
+            return _orphan_refusal(which, d, crossing, orphans,
+                                   f"the unchained receipt {found['receipt_sha256']} is not byte-identical to the "
+                                   f"receipt {receipt['receipt_sha256']} this call would write on head "
+                                   f"{head['receipt_sha256']} (a different epoch, predecessor or content)")
+        adopts = True
     previous = None
     for line in (root / rl.HEAD_RECORD).read_text(encoding="utf-8").splitlines():
         previous = json.loads(line)["record_sha256"]
@@ -230,7 +291,8 @@ def plan_crossing_record(which: str, storage_endpoint: Any = None, readback_root
     return {"disposition": ALLOW, "receipt_ledger": which, "crossing": dict(crossing), "receipt": receipt,
             "receipt_sha256": receipt["receipt_sha256"], "previous_receipt_sha256": head["receipt_sha256"],
             "head_record_entry": entry, "location": d["location"], "store_location": d["store_location"],
-            "signed_by_this_module": False, "ledger_written": False, "appended": False, "authority_effect": "NONE"}
+            "signed_by_this_module": False, "ledger_written": False, "appended": False, "authority_effect": "NONE",
+            "adopts_orphan_receipt": adopts}
 
 
 def _put(path: Path, text: str, tmp_dir: Path) -> None:
@@ -242,13 +304,29 @@ def _put(path: Path, text: str, tmp_dir: Path) -> None:
     os.replace(tmp, path)
 
 
+def _put_new(path: Path, text: str, tmp_dir: Path) -> None:
+    """Create ``path`` whole or not at all: written and synced beside it, then linked into place. A name that already
+    exists is an error (never an overwrite), and a stop part-way leaves no half-written receipt file."""
+    fd, tmp = tempfile.mkstemp(dir=tmp_dir, prefix=".kv-crossing-")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.link(tmp, path)
+    finally:
+        os.unlink(tmp)
+
+
 def append_crossing_record(which: str, storage_endpoint: Any = None, readback_root: Any = None, crossing: Any = None,
                            hb_epoch: Any = None) -> dict[str, Any]:
     """Append the one KV-side record for ``crossing`` to KV's own chain, or return the plan's six-field refusal.
 
     The plan is made twice: once outside, and again under an exclusive lock held across the write, so a concurrent
     writer for the same crossing is refused as a duplicate after the first one lands. A first record is written as
-    receipts/<hex>.json (created exclusively), then HEAD.json, then KV's head record. Nothing else is written. Nothing
+    receipts/<hex>.json (whole or not at all, never over a name), then HEAD.json, then KV's head record. A crash after
+    the receipt and before HEAD.json leaves an orphan; a retry adopts it only if it is byte-identical to the receipt it
+    would write (same epoch, on the current head), otherwise it is refused: a crossing never has two receipt files. Nothing else is written. Nothing
     here signs the head. Where the designated endpoint is KV #2 (PENDING_INTERLOCK_INTR) this is refused before any read
     or write."""
     first = plan_crossing_record(which, storage_endpoint, readback_root, crossing, hb_epoch)
@@ -265,8 +343,8 @@ def append_crossing_record(which: str, storage_endpoint: Any = None, readback_ro
                 return plan
             receipt, entry = plan["receipt"], plan["head_record_entry"]
             target = root / "receipts" / (receipt["receipt_sha256"][7:] + ".json")
-            with open(target, "x", encoding="utf-8") as out:       # exclusive: a collision is an error, never an overwrite
-                out.write(json.dumps(receipt))
+            if not plan["adopts_orphan_receipt"]:
+                _put_new(target, json.dumps(receipt), Path(readback_root))
             _put(root / "HEAD.json", json.dumps({"receipt_sha256": receipt["receipt_sha256"]}), Path(readback_root))
             records = (root / rl.HEAD_RECORD).read_text(encoding="utf-8")
             _put(root / rl.HEAD_RECORD, records + json.dumps(entry) + "\n", Path(readback_root))
@@ -275,5 +353,5 @@ def append_crossing_record(which: str, storage_endpoint: Any = None, readback_ro
     return {**plan, "ledger_written": True, "appended": True, "head_receipt_sha256": receipt["receipt_sha256"]}
 
 
-__all__ = ["ALREADY_RECORDED_CODE", "CROSSING_CLASS", "CROSSING_KEYS", "OPERATION", "append_crossing_record",
+__all__ = ["ALREADY_RECORDED_CODE", "ORPHAN_CODE", "CROSSING_CLASS", "CROSSING_KEYS", "OPERATION", "append_crossing_record",
            "crossing_key", "plan_crossing_record"]
