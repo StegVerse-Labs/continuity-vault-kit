@@ -1,9 +1,14 @@
-# KV-SKAP-VAULT-FUNCTIONAL-001: ladder conformance (LC-KV) and the Org InTr endpoint model
+# KV-SKAP-VAULT-FUNCTIONAL-001: ladder conformance (LC-KV) and the node's own ledger chain
 
 Goal: KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324). Lowest supported mode: E0. This note answers P1's
 DENYs on continuity-vault-kit#258 (StegVerse-Labs/.github#3330 @578583be and rev 4 @c8b8d156; StegVerse-org/.github#163)
-and binds layer 1 to Lane B's evaluate_anchored (StegVerse-org/LLM-adapter#432 @eecf4843, re-vendored from @c4cfc145: PERMANENT is designated on the node's own storage endpoint and, with no documented NODE_STORAGE_ENDPOINT reader, is FAIL_CLOSED NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED (class B) in production; carrier v2 retains nothing on the org ledger; @c4cfc145 was re-vendored from @74509fec: rule (1) KV/SKAP_VAULT designations, per-kind failure_code; @74509fec was code identical to @a2ee67e6 except the GENESIS_NOT_PINNED next_attempt, which names REPOSITORY_LEDGER_GENESIS_PIN, vendored byte-identical in
-`runtime/intr_pinned/`, see `runtime/intr_pinned/PINNED.md`).
+and binds layer 1 to the pinned healthy-node evaluator `llm_adapter.healthy_node_evaluator.evaluate`
+(StegVerse-org/LLM-adapter#430 @919851cb, which carries #429 and #428), vendored byte-identical in
+`runtime/intr_pinned/`, see `runtime/intr_pinned/PINNED.md`. The chain it reads is the requesting node's OWN transition
+ledger, bound by the deployment with its pinned genesis. There is no org ledger, no org-to-adapter crossing and no
+endpoint-kind model: the Org-to-adapter InTr path and the adapter ledger designation (#432, closed unmerged) were retired
+by Coordination's ruling (StegVerse-org/.github#162, ruling (b)), and the six vendored copies of that design were removed.
+KV keeps its own ledger (LC-KV-29), `INTR_DEVICE_KV` and `KV_INTERNAL_SKAP_GATE`.
 
 ## Admission order (LC-KV-03, tracked by P1 as LC-KV-05)
 
@@ -14,19 +19,19 @@ admitted together (ADMITTED_TOGETHER), never one without the other.
 
 | Finding | Enforced in | Negative tests |
 |---|---|---|
-| LC-KV-10 (rev 4, class A): the decider is pinned by identity, never by name | `load_pinned_intr` compiles the vendored modules from the digest-checked bytes; `pinned_decider_identity` requires `decider is` the loaded `evaluate_anchored` and the sha256 of a deterministic view of its code object (bytecode, constants, names; not marshal, whose output depends on reference counts) equal to the one recorded at load. Layer 1 refuses any other decider (`LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED`); `layer1_receipt_conformance` (layer 2 and the finish point) re-checks ids, source and code digests; layer 2 also refuses a runtime whose decider is no longer the pinned object, and accepts only an exact `KVInterlockRuntime` | spoofed `__module__`/`__qualname__`/`co_filename`, bare `evaluate`, a re-wrapped copy of the pinned code, injected callables, edited pin and code-digest fields, decider swapped after minting, subclassed runtime, receipt minted under other trust anchors |
-| Layer 1 goes through evaluate_anchored | `KVInterlockRuntime._evaluate_health` calls the pinned `evaluate_anchored` with the deployment's endpoint, the org-ledger root at the observed head and its HEAD pin, the observed transport state and `require_admission=True` | a foreign-producer ledger that bare `evaluate` ALLOWs is refused `EPHEMERAL_NODE_LEDGER_NOT_ANCHORED`; spy on `verify_anchor`; unanchored root; key mismatch |
-| LC-KV-15 (rev 4 and rev 6, class B): anchors from receipts, not constants; the only ALLOW path | `bind_healthy_node_ledger` reads `refs/stegverse/organization-ledger` at the observed head and materializes `repository-ledger/StegVerse-org/LLM-adapter`; evaluate_anchored (#432 @a2ee67e6) accepts the store only at the org-ledger contract's pinned genesis with a published append-route head attestation (KV's own genesis derivation was dropped as a duplicate); `TRUST_ANCHORS` holds only the label and the observed transport | scratch root / bare dir / unbound dict; an unlabelled (rev 6) or labelled caller-created store inside E0 (`ORG_LEDGER_GENESIS_MISMATCH`); the org-ledger contract without a pinned genesis (`ORG_LEDGER_GENESIS_NOT_PINNED`); `LcKv15OnlyAllowPath`: the ALLOW reads the contract-located, genesis-pinned, route-attested store, and removing any one leg leaves no ALLOW; transport absent or not INSTALLED, unenrolled and mis-claimed identity |
-| LC-KV-16 class: a caller-named store or a caller-appended ingress record never reaches ALLOW through KV's wrapper | inside evaluate_anchored (#432 @a2ee67e6); KV passes only the deployment's store and attestation, and a requester can cite only a report receipt | `LcKv16CallerStoreAndIngressNeverAllow`: unattested head, caller-key attestation, replayed route attestation, attestation for another location (`ORG_LEDGER_HEAD_NOT_AUTHENTICATED`); no admitted route (`MERGE_APPEND_PATH_NOT_ADMITTED`); ingress record without its InTr carrier (`INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED` / `INTR_CARRIER_NOT_ON_AUTHENTICATED_ORG_LEDGER`); requester-supplied attestation |
-| LC-KV-18 (class B, owner TV/TVC + Lane C): `org-ledger-head-signers.v1.json` is empty and gates every PERMANENT anchor | `org_ledger_prerequisites()`, recorded on every finish-point verdict as `org_ledger_prerequisites` (six fields per unmet leg, with the org-ledger location and genesis legs) | `LcKv18OrgLedgerPrerequisites` |
-| LC-KV-13: the finish point expects a PERMANENT node | `_check_layer1` (`LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS`) | an EPHEMERAL node binds at layer 1 but does not complete the finish point |
+| LC-KV-10 (rev 4, class A): the decider is pinned by identity, never by name | `load_pinned_intr` compiles the vendored modules from the digest-checked bytes; `pinned_decider_identity` requires `decider is` the loaded `evaluate` and the sha256 of a deterministic view of its code object (bytecode, constants, names; not marshal, whose output depends on reference counts) equal to the one recorded at load. Layer 1 refuses any other decider (`LAYER1_NOT_EVALUATED_THROUGH_THE_PINNED_EVALUATE`); `layer1_receipt_conformance` (layer 2 and the finish point) re-checks ids, source and code digests; layer 2 also refuses a runtime whose decider is no longer the pinned object, and accepts only an exact `KVInterlockRuntime` | spoofed `__module__`/`__qualname__`/`co_filename`, a re-wrapped copy of the pinned code, injected callables, edited pin and code-digest fields, decider swapped after minting, subclassed runtime, receipt minted under other trust anchors |
+| Layer 1 goes through the pinned `evaluate` over the node's own chain | `KVInterlockRuntime._evaluate_health` calls the bare pinned `evaluate(node_id, ledger_root=, transport_state=, report_receipt_sha256=, require_admission=True)` over the node's own transition ledger. After the ALLOW, KV checks the exact receipt shape, node id and cite, the chain head against the head read at bind, the genesis against the deployment's pin, that every chain receipt was written by the pinned producers (`NODE_CHAIN_RECEIPT_NOT_WRITTEN_BY_THE_PINNED_PRODUCERS`), and that the transport-authenticated key is the key the chain binds (`REQUESTER_KEY_NOT_THE_BOUND_NODE_IDENTITY_KEY`) | a foreign-producer chain that bare `evaluate` ALLOWs is refused; spy on the evaluate call; key mismatch |
+| LC-KV-15 (class B): the chain is bound by the deployment, not by the requester; the only ALLOW path | `bind_healthy_node_ledger` accepts only `{kind: NODE_OWN_LEDGER_CHAIN, ledger_root, genesis_receipt_sha256}` from the deployment and reads the head once; `TRUST_ANCHORS` holds only the label and the observed transport | scratch root / bare dir / unbound dict; a wrong genesis pin (`NODE_LEDGER_GENESIS_MISMATCH`); `LcKv15OwnChainIdentityTransport`; transport absent or not INSTALLED, unenrolled and mis-claimed identity |
+| LC-KV-16 class: a foreign chain, a wrong key or a moved head never reaches ALLOW through KV's wrapper | KV's post-ALLOW checks above; a requester can cite only a report receipt | `LcKv16ForeignChainAndKeyNeverAllow`: foreign producers, a key other than the bound one, requester-supplied chain, each leg removed. This is weaker than the retired org-ledger anchoring and the wrapper-internal identity proof, which are not re-created (accepted under Coordination's ruling (b)) |
+| LC-KV-18 (class B, owner Lane B): the evaluator stack is not on LLM-adapter main, and no InTr transport is installed | `layer1_prerequisites()`, recorded on every finish-point verdict as `layer1_prerequisites` (six fields per unmet leg) | `LcKv18Layer1Prerequisites` |
+| LC-KV-13: the finish point expects a node admitted through its own ledger chain | `_check_layer1` (`LAYER1_NODE_NOT_BOUND_THROUGH_ITS_OWN_LEDGER_CHAIN`) | a receipt carrying any other binding kind does not complete the finish point |
 | LC-KV-07: gated `read_stream` and `append_extension` (now owned by TV/TVC; unchanged here) | `execution/vault_store.py` | as before |
 | LC-KV-03: custody verifier is the real layer-2 gate | `validate_vault_lineage_custody_result` → `_require_access_layers` → `pinned_layer2_gate` | arbitrary callables, lenient gate subclasses and their bound methods |
 | LC-KV-08 | not changed here (TV/TVC and Lane C) | reported as six-field FAIL_CLOSED |
 
 Tests: `tests/test_kv_ladder_conformance_lc_kv.py` plus the updated suites; 0 skipped. Stdlib only: no test or runtime
 file #258 adds or changes imports `cryptography` (the SKAP persistence tests use a static synthetic sealed fixture,
-`tests/fixtures/skap_sealed_material.synthetic.json`; the stdlib Ed25519 verify is vendored from #430/#432).
+`tests/fixtures/skap_sealed_material.synthetic.json`; the stdlib Ed25519 verify is vendored from #430).
 
 ### Reproduce without `cryptography` (P1)
 
@@ -52,37 +57,23 @@ python3 -m venv /tmp/cvk-clean
 ## Trust anchors and E0
 
 `runtime.kv_interlock_endpoint.TRUST_ANCHORS` is the only seam: label `PRODUCTION` and no installed InTr transport. No
-genesis or issuer constant exists. The real path therefore FAILS_CLOSED (`HEALTHY_NODE_LEDGER_NOT_ONBOARDED` /
-`ORG_LEDGER_LOCATION_NOT_DESIGNATED` / `ORG_LEDGER_GENESIS_NOT_PINNED` / `MERGE_APPEND_PATH_NOT_ADMITTED` /
-`INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED`) until StegVerse-Labs/.github#3255 and the org-ledger location designation are
-admitted (with the observed genesis pinned), TV/TVC publishes the org-ledger head attester and Lane C admits the append
-route, and Lane B's transport exists. The E0 stand-ins (`tests/kv_two_layer_e0.py`,
+genesis or issuer constant exists. The real path therefore FAILS_CLOSED (`HEALTHY_NODE_LEDGER_NOT_BOUND` / `HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN` /
+`INTR_TRANSPORT_NOT_INSTALLED`, class B) until the deployment binds the node's own chain with its pinned genesis, the
+evaluator stack is admitted on LLM-adapter main in the order StegVerse-Labs/StegOS#426, then StegVerse-org/LLM-adapter#430, then
+#429, then #428 (#430's head carries #429 and #428), and an InTr transport is installed. The E0 stand-ins (`tests/kv_two_layer_e0.py`,
 label `E0_STANDIN_TEST_ONLY_NOT_EVIDENCE`) are in force only inside setUpModule/tearDownModule or a context manager.
 Receipts carry `trust_anchors_label`; layer 2 and the finish point refuse receipts minted under other anchors.
 
-## Org InTr endpoint model (#432 v1)
+## Node's own ledger chain (layer 1)
 
-`endpoint_kind` is taken from Lane B's published `schemas/endpoint-kind.v1.json` (`$defs.endpoint_kind.enum`, read
-from the digest-checked vendored bytes; never a hand-written list): EPHEMERAL, PERMANENT, GATEWAY, KV, SKAP_VAULT, ORG
-(`ENDPOINT_KINDS`, equal to #432's). Schemas (vendored at 1cbad77e; endpoint-kind re-vendored at c4cfc145 and eecf4843): `stegverse.endpoint-kind/v1`,
-`stegverse.endpoint-ledger-genesis/v1`, `stegverse.endpoint-ledger-anchor/v1` (PERMANENT, KV, SKAP_VAULT anchor body),
-`stegverse.node-ledger-opened/v1` (the issued anchor; only it carries `issuer` and `issuer_receipt_ref`),
-`stegverse.node-ledger-opened-signed/v1` (the signed envelope) and `stegverse.node-ledger-opened-generation/v1` (StegOS's
-generation record for an EPHEMERAL node: a temporary StegApp/StegBrowser/StegNode). `node_identity_key` is the 5-field
-object (algorithm, custody, key_id, node_id, public_key_b64). GATEWAY roots derive from the org root; ORG is never a node
-root. The endpoint-kind schema is no longer pending (closed with #432 @1cbad77e).
-
-* EPHEMERAL anchors must be signed envelopes whose key is published in
-  `.stegverse/node-ledger/node-ledger-opened-signers.v1.json`. That file is empty (TV/TVC custody publishes it), so an
-  EPHEMERAL node is a six-field FAIL_CLOSED `EPHEMERAL_NODE_LEDGER_NOT_ANCHORED` / `NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED`,
-  class B, owner TV/TVC. This does not block the finish point, which completes with a PERMANENT node (LC-KV-13).
-* Pins: health receipts carry no per-receipt `evidence.pinned_digests` (adding them would change producer 21249f25). The
-  pins are bound in the genesis; KV checks the `anchor.pinned_digests` evaluate_anchored returns on ALLOW against
-  `PINNED_DIGESTS_FROM_GENESIS` (evaluator fdaa2005, producer 21249f25).
-* KV-access receipts carry `endpoint_kind: KV`; SKAP-access receipts carry `endpoint_kind: SKAP_VAULT` and
-  `layer1_endpoint_kind: KV`.
-* The ledger binding is `ANCHORED_ENDPOINT_LEDGER`: the org ledger by contract location plus the node endpoint, its
-  anchored genesis and key, and the anchor evaluate_anchored returned.
+* Retired: the endpoint-kind enum and schemas, the anchored evaluate, the org-ledger anchor, the designation and the carrier
+  (#432, closed unmerged). KV-access receipts carry `endpoint_kind: KV` and SKAP-access receipts `endpoint_kind: SKAP_VAULT`
+  with `layer1_endpoint_kind: KV` as plain role labels only; no schema is read for them.
+* `node_identity_key` is the key the node's own `NODE_IDENTITY_BINDING` receipt binds; the transport-authenticated key
+  must equal it.
+* The ledger binding in a layer-1 receipt is `{kind: NODE_OWN_LEDGER_CHAIN, genesis_pinned_by: DEPLOYMENT_BINDING,
+  chain_head_receipt_sha256, node_identity_key}`. It has no ledger root.
+* The six retired copies stay in git history and on the closed #432 branch; a guard test fails if any returns.
 
 ## Naming (documentation only; nothing is renamed)
 
@@ -93,8 +84,8 @@ root. The endpoint-kind schema is no longer pending (closed with #432 @1cbad77e)
 ## Residual risk
 
 Ledger receipts are unsigned (TVC#537) and TVC `build_chain` self-asserts its hops (LC-KV-08). A forged local copy of
-the org-ledger repository that keeps the real genesis and appends forged receipts is not detectable by KV until signed
-receipts exist. Gate payload bindings (`bind_payload`) are in-memory, so gated reads do not verify across a process
+a node's own chain that keeps the pinned genesis and is written with the pinned producers' shape is not detectable by KV
+until signed receipts exist. Gate payload bindings (`bind_payload`) are in-memory, so gated reads do not verify across a process
 restart until durable custody exists (TASK-REGISTRY-SOVEREIGN-KV-EVENT-CUSTODY-001). A store-local hash chain of those
 bindings was considered and not added: whoever can write the vault directory can rewrite such a chain end to end, so
 restoring gate provenance from it on load would turn a local file into authority. `KV_DURABLE_CUSTODY_LOCATION_NOT_BOUND`

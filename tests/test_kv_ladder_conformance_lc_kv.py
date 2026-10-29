@@ -1,12 +1,13 @@
 """Negative tests for P1's ladder-conformance DENYs on cvk#258 (StegVerse-Labs/.github#3330 @578583be and rev 4
-@c8b8d156).
+@c8b8d156), re-founded on the node's OWN ledger chain and the pinned healthy-node evaluator (LLM-adapter#430
+@919851cb, with #429 and #428).
 
 Each test closes one bypass P1 named: LC-KV-10 (layer 1 and layer 2 pin the decider by identity and load-time code
-digest, never by its self-reported name), LC-KV-15 (org ledger bound by contract location at an observed head with its
-genesis derived from its own receipt; node roots admitted only by #432's evaluate_anchored; identity from the installed
-InTr transport; real transport state), LC-KV-07 (gated read_stream / append_extension with provenance) and LC-KV-03
-(only the real layer-2 gate may attest the access layers). E0 stand-ins are labelled E0_STANDIN_TEST_ONLY_NOT_EVIDENCE.
-Stdlib only: no cryptography import (Coordination class D ruling).
+digest, never by its self-reported name), LC-KV-15 (the node's own chain bound by the deployment with its pinned
+genesis; identity from the installed InTr transport; real transport state), LC-KV-07 (gated read_stream /
+append_extension with provenance) and LC-KV-03 (only the real layer-2 gate may attest the access layers). There is no
+org ledger, no org-to-adapter crossing and no endpoint-kind model. E0 stand-ins are labelled
+E0_STANDIN_TEST_ONLY_NOT_EVIDENCE. Stdlib only: no cryptography import (Coordination class D ruling).
 """
 from __future__ import annotations
 
@@ -28,9 +29,9 @@ for p in (ROOT, ROOT / "tests"):
 from execution.adapter import canonical_sha256  # noqa: E402
 from execution.vault_store import KnowledgeVaultExecutionStore, SkapAccessRefused  # noqa: E402
 from kv_two_layer_e0 import (  # noqa: E402
-    E0_CONTRACT_431, E0_CONTRACT_PINNED, E0_GENESIS, E0_LABEL, E0_ROUTE_KEY_ID, E0_TRANSPORT, NEVER_ENROLLED_NODE, NODE,
-    TwoLayers, e0_attest, e0_contract, e0_health_ledger, e0_node_identity_key, e0_without_append_route,
-    PRODUCTION_TRUST_ANCHORS, e0_scratch_ledger_root, e0_trust_anchors, pinned, production_trust_anchors,
+    E0_LABEL, E0_ROUTE_KEY_ID, E0_TRANSPORT, NEVER_ENROLLED_NODE, NODE,
+    TwoLayers, e0_health_ledger, e0_node_identity_key,
+    PRODUCTION_TRUST_ANCHORS, e0_trust_anchors, pinned, production_trust_anchors,
 )
 from kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401
 from runtime import kv_interlock_endpoint as ep  # noqa: E402
@@ -40,29 +41,25 @@ from test_skap_kv_persistence import SkapKvPersistenceTests  # noqa: E402
 
 SIX = ("failure_code", "failed_predicate", "required_evidence_or_repair", "retry_entrypoint",
        "owning_existing_goal", "next_attempt")
-VENDORED_ANCHOR = str(ROOT / "runtime" / "intr_pinned" / "llm_adapter" / "endpoint_ledger_anchor.py")
+VENDORED_EVALUATOR = str(ROOT / "runtime" / "intr_pinned" / "llm_adapter" / "healthy_node_evaluator.py")
 
 
-def spoofed_evaluate_anchored():
-    """A callable that claims to be the pinned evaluate_anchored by every self-reported attribute (__module__,
-    __qualname__, __name__ and its code object's source filename) and delegates to the real one."""
-    real = pinned()["endpoint_ledger_anchor"].evaluate_anchored
+def spoofed_evaluate():
+    """A callable that claims to be the pinned evaluate by every self-reported attribute (__module__, __qualname__,
+    __name__ and its code object's source filename) and delegates to the real one."""
+    real = pinned()["healthy_node_evaluator"].evaluate
 
-    def evaluate_anchored(node_id, **kw):
+    def evaluate(node_id, **kw):
         return real(node_id, **kw)
-    evaluate_anchored.__module__ = "llm_adapter.endpoint_ledger_anchor"
-    evaluate_anchored.__qualname__ = "evaluate_anchored"
-    evaluate_anchored.__code__ = evaluate_anchored.__code__.replace(co_filename=VENDORED_ANCHOR)
-    return evaluate_anchored
+    evaluate.__module__ = "llm_adapter.healthy_node_evaluator"
+    evaluate.__qualname__ = "evaluate"
+    evaluate.__code__ = evaluate.__code__.replace(co_filename=VENDORED_EVALUATOR)
+    return evaluate
 
 
 def refused(case, out, cause, klass=None, code="KV_ACCESS_LAYER1_REFUSED"):
     case.assertEqual(out["decision"], "FAIL_CLOSED", out)
-    if code is None:  # evaluate_anchored's own failure_code is carried (anchor refusals)
-        case.assertEqual(out["refusal_cause"], cause, out)
-        case.assertEqual(out["failure_code"], out["health_evaluation"]["failure_code"], out)
-    else:
-        case.assertEqual((out["failure_code"], out["refusal_cause"]), (code, cause), out)
+    case.assertEqual((out["failure_code"], out["refusal_cause"]), (code, cause), out)
     if klass:
         case.assertEqual(out["failure_class"], klass, out)
     for field in SIX:
@@ -76,38 +73,33 @@ class LcKv10PinnedByIdentity(unittest.TestCase):
                                                     subject_ref="s", prior_receipt_hash=kv_hash))
 
     def test_a_spoofed_module_qualname_and_filename_is_refused_at_both_layers(self):
-        spoof = spoofed_evaluate_anchored()
+        spoof = spoofed_evaluate()
         self.assertEqual((spoof.__module__, spoof.__qualname__, spoof.__code__.co_filename),
-                         ("llm_adapter.endpoint_ledger_anchor", "evaluate_anchored", VENDORED_ANCHOR))
+                         ("llm_adapter.healthy_node_evaluator", "evaluate", VENDORED_EVALUATOR))
         self.assertIsNone(ep.pinned_decider_identity(spoof))
         self.assertEqual(ep.evaluator_identity(spoof), ep.NOT_PINNED_DECIDER)
-        record = ep._layer1_decider_record(spoof)
-        self.assertEqual((record["healthy_node_anchor_check"], record["healthy_node_anchor_check_source_sha256"]),
-                         (ep.NOT_PINNED_DECIDER, None))
         layers = TwoLayers(evaluator=spoof)
-        refused(self, layers.kv_access(), "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED", "C")
+        refused(self, layers.kv_access(), "LAYER1_NOT_EVALUATED_THROUGH_THE_PINNED_EVALUATE", "C")
         # even a receipt minted by the genuine runtime is refused at layer 2 once its decider is swapped for the spoof
         genuine = TwoLayers()
         kv_hash = genuine.kv_hash()
         genuine.layer1.healthy_node_evaluator = spoof
         answer = self.admit(genuine, kv_hash)
         self.assertEqual((answer["disposition"], answer["refusal_cause"]),
-                         ("FAIL_CLOSED", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED"))
+                         ("FAIL_CLOSED", "LAYER1_NOT_EVALUATED_THROUGH_THE_PINNED_EVALUATE"))
         for field in SIX:
             self.assertTrue(answer[field], field)
 
-    def test_bare_evaluate_and_a_rewrapped_pin_are_not_the_decider(self):
-        m = pinned()
-        anchor = m["endpoint_ledger_anchor"]
-        self.assertIs(ep.pinned_decider_identity(anchor.evaluate_anchored), ep.PINNED_ANCHORED_EVALUATOR_ID)
-        rewrapped = types.FunctionType(anchor.evaluate_anchored.__code__, anchor.evaluate_anchored.__globals__,
-                                       "evaluate_anchored", anchor.evaluate_anchored.__defaults__,
-                                       anchor.evaluate_anchored.__closure__)
-        rewrapped.__kwdefaults__ = anchor.evaluate_anchored.__kwdefaults__
-        for decider in (m["healthy_node_evaluator"].evaluate, rewrapped, lambda *a, **k: {}, "llm_adapter.x", None):
+    def test_the_bare_pinned_evaluate_is_the_decider_and_a_rewrapped_copy_is_not(self):
+        evaluator = pinned()["healthy_node_evaluator"]
+        self.assertIs(ep.pinned_decider_identity(evaluator.evaluate), ep.PINNED_HEALTHY_NODE_EVALUATOR_ID)
+        rewrapped = types.FunctionType(evaluator.evaluate.__code__, evaluator.evaluate.__globals__,
+                                       "evaluate", evaluator.evaluate.__defaults__, evaluator.evaluate.__closure__)
+        rewrapped.__kwdefaults__ = evaluator.evaluate.__kwdefaults__
+        for decider in (rewrapped, lambda *a, **k: {}, "llm_adapter.x", None):
             self.assertIsNone(ep.pinned_decider_identity(decider), decider)
-        refused(self, TwoLayers(evaluator=m["healthy_node_evaluator"].evaluate).kv_access(),
-                "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED", "C")
+        refused(self, TwoLayers(evaluator=rewrapped).kv_access(),
+                "LAYER1_NOT_EVALUATED_THROUGH_THE_PINNED_EVALUATE", "C")
 
     def test_edited_pin_fields_are_refused(self):
         layers = TwoLayers()
@@ -115,9 +107,7 @@ class LcKv10PinnedByIdentity(unittest.TestCase):
         for field, value, cause in (
                 ("healthy_node_evaluator", "x.y", "LAYER1_HEALTH_EVALUATOR_NOT_PINNED"),
                 ("healthy_node_evaluator_source_sha256", "sha256:" + "0" * 64, "LAYER1_HEALTH_EVALUATOR_NOT_PINNED"),
-                ("healthy_node_anchor_check", "x.y", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED"),
-                ("healthy_node_anchor_check_code_sha256", "sha256:" + "0" * 64,
-                 "LAYER1_DECIDER_CODE_NOT_THE_PINNED_CODE"),
+                ("healthy_node_evaluator_code_sha256", "sha256:" + "0" * 64, "LAYER1_DECIDER_CODE_NOT_THE_PINNED_CODE"),
                 ("healthy_node_evaluator_code_sha256", None, "LAYER1_DECIDER_CODE_NOT_THE_PINNED_CODE")):
             self.assertEqual(ep.layer1_receipt_conformance({**receipt, field: value}), cause, field)
         self.assertIsNone(ep.layer1_receipt_conformance(receipt))
@@ -140,55 +130,42 @@ class LcKv10PinnedByIdentity(unittest.TestCase):
         self.assertEqual(answer["refusal_cause"], "LAYER1_RECEIPT_MINTED_UNDER_OTHER_TRUST_ANCHORS")
 
 
-class LcKv15LedgerIdentityTransport(unittest.TestCase):
-    def test_receipt_binds_contract_location_head_identity_and_transport(self):
+class LcKv15OwnChainIdentityTransport(unittest.TestCase):
+    """LC-KV-15, re-founded: the requester's own ledger chain, bound by the deployment with its pinned genesis, read
+    through the bare pinned evaluate; identity from the installed InTr transport; real transport state."""
+
+    def test_receipt_binds_the_own_chain_head_identity_and_transport(self):
         out = TwoLayers().kv_access()
         receipt = out["kv_access_receipt"]
         binding = receipt["healthy_node_ledger_binding"]
-        self.assertEqual((binding["kind"], binding["endpoint_kind"], binding["repository"], binding["ref"],
-                          binding["namespace"], binding["genesis_derived_from"], binding["genesis_receipt_sha256"]),
-                         (ep.LEDGER_SOURCE_ANCHORED, "PERMANENT", "StegVerse-org/.github",
-                          "refs/stegverse/organization-ledger", "repository-ledger/StegVerse-org/LLM-adapter",
-                          ep.GENESIS_DERIVATION, E0_GENESIS))
-        self.assertRegex(binding["observed_head"], r"^[0-9a-f]{40}$")
-        self.assertEqual(binding["anchored_by"], ep.PINNED_ANCHORED_EVALUATOR_ID)
-        self.assertEqual(binding["node_identity_key"], e0_node_identity_key(NODE))
+        self.assertEqual((binding["kind"], binding["genesis_pinned_by"]), (ep.NODE_CHAIN_SOURCE, "DEPLOYMENT_BINDING"))
+        self.assertRegex(binding["chain_head_receipt_sha256"], r"^sha256:[0-9a-f]{64}$")
+        self.assertEqual(binding["node_identity_key"],
+                         {k: e0_node_identity_key(NODE)[k] for k in ("key_id", "public_key_b64")})
+        for retired in ("ledger_root", "endpoint_kind_schema", "repository", "ref", "namespace", "anchored_by",
+                        "observed_head", "genesis_derived_from"):
+            self.assertNotIn(retired, binding)
+            self.assertNotIn(retired, receipt)
         self.assertEqual((receipt["intr_transport_state"], receipt["requester_node_ref"], receipt["endpoint_kind"],
                           receipt["trust_anchors_label"]), ("INSTALLED", NODE, "KV", E0_LABEL))
         self.assertEqual(receipt["requester_identity"]["authenticated_by"], "e0-standin-intr-transport")
 
-    def test_scratch_ledger_root_is_refused_on_every_path(self):
-        root = e0_scratch_ledger_root(NODE)
-        for source in (root, root + "/repository-ledger/StegVerse-org/LLM-adapter",
-                       {"ledger_root": root}, {"kind": "SCRATCH", "ledger_root": root}):
-            out = TwoLayers(ledger_checkout=source).kv_access()
+    def test_a_chain_that_is_not_the_deployment_bound_own_chain_is_refused_on_every_path(self):
+        good = e0_health_ledger(NODE)[0]
+        for source in (None, good["ledger_root"], {"ledger_root": good["ledger_root"]},
+                       {**good, "kind": "SCRATCH"}, {**good, "kind": "ORG_LEDGER"}, {**good, "genesis_receipt_sha256": None}):
+            out = TwoLayers(chain=source).kv_access()
             self.assertEqual(out["decision"], "FAIL_CLOSED", source)
             self.assertIsNone(out["kv_access_receipt"])
+            for field in SIX:
+                self.assertTrue(out[field], field)
         with production_trust_anchors():
-            out = TwoLayers(ledger_checkout=root).kv_access()
+            out = TwoLayers(chain=good).kv_access()
         self.assertEqual(out["decision"], "FAIL_CLOSED")
 
-    def test_genesis_is_pinned_by_the_431_contract_not_by_kv(self):
-        # #432 @a2ee67e6: evaluate_anchored checks the store's genesis against the contract's
-        # expected_genesis_receipt_sha256; KV's own derivation from the receipt was dropped as a duplicate.
-        self.assertNotIn("healthy_node_ledger_genesis_receipt_sha256", ep.TRUST_ANCHORS)
-        self.assertFalse(hasattr(ep, "_org_genesis_failure"))
-        refused(self, TwoLayers(ledger_checkout=e0_health_ledger(NODE, own_genesis=True)[0]).kv_access(),
-                "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_MISMATCH", "C", None)
-        with e0_contract(E0_CONTRACT_431):  # the org-ledger location without the pinned genesis
-            out = TwoLayers().kv_access()
-            refused(self, out, "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_NOT_PINNED", "B", None)
-            # #432 @74509fec: the next attempt is the REPOSITORY_LEDGER_GENESIS_PIN transition, not a person
-            self.assertIn("REPOSITORY_LEDGER_GENESIS_PIN", out["health_evaluation"]["next_attempt"])
-            pin_row = [r for r in ep.org_ledger_prerequisites() if r.get("failure_code") ==
-                       "ORG_LEDGER_GENESIS_NOT_PINNED"]
-            self.assertEqual(len(pin_row), 1)
-            self.assertIn("REPOSITORY_LEDGER_GENESIS_PIN", pin_row[0]["next_attempt"])
-        source = e0_health_ledger(NODE)[0]
-        with production_trust_anchors():
-            ep.TRUST_ANCHORS["intr_transport"] = E0_TRANSPORT
-            out = TwoLayers(ledger_checkout=source).kv_access()
-        refused(self, out, "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_LOCATION_NOT_DESIGNATED", "B", None)
+    def test_genesis_is_pinned_by_the_deployment_not_taken_from_the_chain(self):
+        refused(self, TwoLayers(chain=e0_health_ledger(NODE, pin_genesis="sha256:" + "1" * 64)[0]).kv_access(),
+                "NODE_LEDGER_GENESIS_MISMATCH", "C")
 
     def test_transport_not_observed_or_not_installed_is_refused(self):
         class NotInstalled:
@@ -206,8 +183,8 @@ class LcKv15LedgerIdentityTransport(unittest.TestCase):
             refused(self, out, "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", "B")
 
     def test_production_transport_is_observed_state_and_refuses_with_six_fields(self):
-        """LC-KV-15 (rev 5): production has no installed InTr transport (intr_transport None). It is read as observed
-        state, UNKNOWN_NOT_AUTHENTICALLY_OBSERVED, never assumed, and layer 1 refuses with six fields."""
+        """Production has no installed InTr transport (intr_transport None). It is read as observed state,
+        UNKNOWN_NOT_AUTHENTICALLY_OBSERVED, never assumed, and layer 1 refuses with six fields."""
         self.assertIsNone(PRODUCTION_TRUST_ANCHORS["intr_transport"])
         with production_trust_anchors():
             self.assertEqual(ep.observe_intr_transport(), (None, "UNKNOWN_NOT_AUTHENTICALLY_OBSERVED", None))
@@ -215,7 +192,6 @@ class LcKv15LedgerIdentityTransport(unittest.TestCase):
         self.assertEqual((production["decision"], production["kv_access_receipt"]), ("FAIL_CLOSED", None))
         for field in SIX:
             self.assertTrue(production[field], field)
-        # with the ledger bound, the unobserved production transport itself is the six-field refusal (class B)
         saved = ep.TRUST_ANCHORS["intr_transport"]
         ep.TRUST_ANCHORS["intr_transport"] = PRODUCTION_TRUST_ANCHORS["intr_transport"]
         try:
@@ -226,7 +202,7 @@ class LcKv15LedgerIdentityTransport(unittest.TestCase):
         self.assertIn("UNKNOWN_NOT_AUTHENTICALLY_OBSERVED", out["required_evidence_or_repair"])
 
     def test_caller_asserted_identity_is_refused(self):
-        stranger = TwoLayers(node=NEVER_ENROLLED_NODE, ledger_checkout=e0_health_ledger(NODE)[0])
+        stranger = TwoLayers(node=NEVER_ENROLLED_NODE, chain=e0_health_ledger(NODE)[0])
         E0_TRANSPORT.enrolled.pop(NEVER_ENROLLED_NODE, None)  # the envelope claims it; the transport never saw it
         refused(self, stranger.kv_access(), "REQUESTER_IDENTITY_NOT_TRANSPORT_AUTHENTICATED", "C")
         claimed = TwoLayers().kv_access(verification_state="CLAIMED")
@@ -236,257 +212,55 @@ class LcKv15LedgerIdentityTransport(unittest.TestCase):
         self.assertEqual(out["decision"], "FAIL_CLOSED")
 
 
-class AnchoredEndpointThroughEvaluateAnchored(unittest.TestCase):
-    """Layer 1 binds to #432's evaluate_anchored; Lane B's anchored-root check is authoritative (no duplicate here)."""
+class LcKv16ForeignChainAndKeyNeverAllow(unittest.TestCase):
+    """LC-KV-16, re-founded: the pinned evaluate ALLOWs any chain whose receipts hash and link. KV's own checks refuse a
+    chain no pinned producer wrote, a key other than the bound one, and any head that moved after bind."""
 
-    def kv(self, **ledger):
-        return TwoLayers(ledger_checkout=e0_health_ledger(NODE, **ledger)[0]).kv_access()
+    def test_a_foreign_producer_chain_is_refused_though_bare_evaluate_allows_it(self):
+        source = e0_health_ledger(NODE, foreign=True)[0]
+        out = TwoLayers(chain=source).kv_access()
+        refused(self, out, ep.PROVENANCE_REFUSAL_CODE, "C")
 
-    def anchor_refused(self, out, reason, code="ENDPOINT_LEDGER_NOT_ANCHORED"):
-        # #432 @c4cfc145 (Lane D finding 3): per-kind code; a PERMANENT root's non-org-ledger refusal is
-        # ENDPOINT_LEDGER_NOT_ANCHORED, an EPHEMERAL one is EPHEMERAL_NODE_LEDGER_NOT_ANCHORED
-        refused(self, out, "NODE_ROOT_NOT_ANCHORED_" + reason, code=code)
-        self.assertEqual(out["failure_code"], code)
-        self.assertEqual(out["health_evaluation"]["schema"], ep.PINNED_ANCHORED_EVALUATOR["result_schema"])
-        self.assertEqual(out["health_evaluation"]["reason"], reason)
+    def test_the_transport_key_must_be_the_key_the_chain_binds(self):
+        source = e0_health_ledger(NODE, transport_key=e0_node_identity_key(NODE, "another-key:"))[0]
+        refused(self, TwoLayers(chain=source).kv_access(), ep.NODE_KEY_REFUSAL_CODE, "C")
+        source = e0_health_ledger(NODE, bound_key=e0_node_identity_key(NODE, "another-key:"))[0]
+        refused(self, TwoLayers(chain=source).kv_access(), ep.NODE_KEY_REFUSAL_CODE, "C")
 
-    def test_layer_1_goes_through_evaluate_anchored(self):
-        anchor = pinned()["endpoint_ledger_anchor"]
-        layers = TwoLayers()
-        self.assertIs(layers.layer1.healthy_node_evaluator, anchor.evaluate_anchored)
-        calls = []
-        real_verify = anchor.verify_anchor
-
-        def spy(*a, **k):
-            calls.append(k.get("endpoint"))
-            return real_verify(*a, **k)
-        anchor.verify_anchor = spy
-        try:
-            out = layers.kv_access()
-        finally:
-            anchor.verify_anchor = real_verify
-        self.assertEqual(out["decision"], "ALLOW_BOUNDED_CONTEXT", out)
-        self.assertEqual([c["endpoint_kind"] for c in calls], ["PERMANENT"])
-        receipt = out["kv_access_receipt"]
-        self.assertEqual((receipt["healthy_node_anchor_check"], receipt["healthy_node_anchor_check_source_sha256"]),
-                         (ep.PINNED_ANCHORED_EVALUATOR_ID, ep.PINNED_ANCHORED_EVALUATOR["source_sha256"]))
-        self.assertEqual(receipt["healthy_node_receipt"]["anchor"]["anchor"], "INTR_PATH_RECEIPT_PAIR")
-
-    def test_a_foreign_producer_bare_evaluate_allows_is_refused(self):
-        source, _ = e0_health_ledger(NODE, foreign=True)
-        bare = pinned()["healthy_node_evaluator"].evaluate(NODE, ledger_root=source["endpoint"]["ledger_root"],
-                                                          require_admission=True)
-        self.assertEqual(bare["disposition"], "ALLOW")  # why layer 1 must not call bare evaluate()
-        self.anchor_refused(TwoLayers(ledger_checkout=source).kv_access(), "FOREIGN_PRODUCER_RECEIPT")
-
-    def test_an_unanchored_node_root_is_refused(self):
-        out = self.kv(anchored=False)
-        self.assertEqual(out["failure_code"], ep.ENDPOINT_ANCHOR_REFUSAL_CODE)
-        self.assertTrue(out["refusal_cause"].startswith("NODE_ROOT_NOT_ANCHORED_"), out)
-
-    def test_the_transport_key_must_be_the_anchored_genesis_key(self):
-        refused(self, self.kv(transport_key=e0_node_identity_key(NODE, salt="other")),
-                "REQUESTER_KEY_NOT_THE_ANCHORED_NODE_IDENTITY_KEY", "C")
-
-    def test_an_ephemeral_node_fails_closed_until_tv_tvc_publishes_a_signer(self):
-        """EPHEMERAL anchors are signed envelopes (#432 @1cbad77e). The vendored signers file is empty, so the E0
-        envelope's key is not published: six-field FAIL_CLOSED, class B, owner TV/TVC. The file is never patched."""
-        self.assertEqual(json.loads((Path(ep._INTR_PINNED_ROOT) / ".stegverse/node-ledger/node-ledger-opened-signers.v1.json")
-                                    .read_text(encoding="utf-8"))["signers"], [])
-        out = self.kv(kind="EPHEMERAL")
-        self.anchor_refused(out, "NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED", code=ep.ANCHOR_REFUSAL_CODE)
-        self.assertEqual(out["failure_class"], "B")
-        self.assertTrue(out["owning_existing_goal"].startswith("TV/TVC"), out["owning_existing_goal"])
-        self.assertEqual(out["failed_predicate"], "NODE_LEDGER_OPENED_SIGNED_BY_PUBLISHED_KEY")
-        self.assertEqual(ep.FINISH_POINT_NODE_ENDPOINT_KIND, "PERMANENT")
-
-    def test_the_pins_are_checked_on_evaluate_anchoreds_allow(self):
-        """No per-receipt pinned_digests (#432 @1cbad77e): the pins are bound in the genesis and returned on the ALLOW's
-        anchor under KV's key names; KV checks them there."""
-        receipt = TwoLayers().kv_access()["kv_access_receipt"]
-        self.assertEqual(receipt["healthy_node_receipt"]["anchor"]["pinned_digests"], ep.PINNED_DIGESTS_FROM_GENESIS)
-        self.assertEqual(pinned()["endpoint_ledger_anchor"].pinned_digests(), ep.PINNED_DIGESTS_FROM_GENESIS)
-
-    def test_transport_is_read_from_the_nodes_ingress_receipt(self):
-        out = self.kv(transport_installed=False)
-        self.assertEqual((out["decision"], out["failure_code"], out["failure_class"]),
-                         ("FAIL_CLOSED", "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", "B"))
-        for field in SIX:
-            self.assertTrue(out[field], field)
-        self.assertIsNone(out["kv_access_receipt"])
-
-    def test_identity_must_be_proven_by_the_anchored_key(self):
-        for proof, reason, failure_class in ((None, "NODE_IDENTITY_PROOF_ABSENT", "B"),
-                                             ("other_key", "NODE_IDENTITY_PROOF_INVALID", "C"),
-                                             ("stale", "NODE_IDENTITY_PROOF_INVALID", "C")):
-            out = self.kv(proof=proof)
-            self.assertEqual((out["decision"], out["failure_code"], out["refusal_cause"], out["failure_class"]),
-                             ("FAIL_CLOSED", "NODE_IDENTITY_NOT_PROVEN", reason, failure_class), proof)
-            for field in SIX:
-                self.assertTrue(out[field], field)
-        identity = TwoLayers().kv_access()["kv_access_receipt"]["healthy_node_receipt"]["identity"]
-        self.assertEqual((identity["node_id"], identity["established_by"]), (NODE, "NODE_IDENTITY_KEY_ED25519_PROOF"))
-
-    def test_no_temp_code_alias_remains(self):
-        self.assertFalse([name for name in vars(ep) if "TEMP_" in name])
-        self.assertNotIn("TEMP_NODE_LEDGER_NOT_ANCHORED", Path(ep.__file__).read_text(encoding="utf-8"))
-
-
-class LcKv16CallerStoreAndIngressNeverAllow(unittest.TestCase):
-    """LC-KV-16 class and P1 rev 6 (LC-KV-15), through KV's wrapper inside the E0 test anchors: a caller-named object
-    store or a caller-appended ingress record never reaches ALLOW. #432 @74509fec refuses each case; KV maps it."""
-
-    def assert_no_allow(self, source, cause, klass, evidence=None):
-        out = TwoLayers(ledger_checkout=source).kv_access(evidence=evidence)
-        self.assertEqual(out["decision"], "FAIL_CLOSED", out)
-        self.assertIsNone(out["kv_access_receipt"])
-        refused(self, out, cause, klass, None if cause.startswith("NODE_ROOT_NOT_ANCHORED_") else
-                ("INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED" if cause.startswith("INTR_") else "KV_ACCESS_LAYER1_REFUSED"))
-        return out
-
-    def test_unlabelled_caller_created_store_is_refused_inside_e0(self):
-        # P1 rev 6: at b93b06a4 KV ALLOWed a PERMANENT node on an unlabelled org store the caller created (its genesis
-        # derived and carried no label to refuse). Now its genesis is not the contract-pinned one, even if attested.
-        for own in (True, "labelled"):
-            source = e0_health_ledger(NODE, own_genesis=own)[0]
-            out = self.assert_no_allow(source, "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_MISMATCH", "C")
-            self.assertEqual(out["health_evaluation"]["reason"], "ORG_LEDGER_GENESIS_MISMATCH")
-
-    def test_caller_store_with_the_pinned_genesis_but_no_route_attestation_is_refused(self):
-        # the pinned genesis is public: a caller can copy it, but cannot get its own head attested by the append route
-        deployment = e0_health_ledger(NODE)[0]
-        cases = {
-            "unattested": e0_health_ledger(NODE, attest=None)[0],
-            "callers-own-key": e0_health_ledger(NODE, attest="own_key")[0],
-            # the deployment store's genuine attestation replayed onto a caller's store with another head (the
-            # caller appended its own ingress record)
-            "replayed-route-attestation": {**e0_health_ledger(NODE, carried=False)[0],
-                                           "org_ledger_head_attestation": deployment["org_ledger_head_attestation"]},
-            "attestation-names-another-location": {**deployment, "org_ledger_head_attestation": e0_attest(
-                deployment["org_ledger_git_dir"], org_ledger_location="git+x#refs/heads/main:elsewhere")},
-        }
-        for name, source in cases.items():
-            with self.subTest(name):
-                out = self.assert_no_allow(source, "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_HEAD_NOT_AUTHENTICATED", "C")
-                self.assertEqual(out["health_evaluation"]["failed_predicate"],
-                                 "ORG_LEDGER_HEAD_AUTHENTICATED_BY_APPEND_ROUTE")
-
-    def test_no_admitted_append_route_refuses_every_store(self):
-        with e0_without_append_route():  # the vendored org-ledger-head-signers.v1.json is empty
-            self.assert_no_allow(e0_health_ledger(NODE)[0], "NODE_ROOT_NOT_ANCHORED_MERGE_APPEND_PATH_NOT_ADMITTED", "B")
-
-    def test_caller_appended_ingress_record_without_its_intr_carrier_is_refused(self):
-        out = self.assert_no_allow(e0_health_ledger(NODE, carried=False)[0],
-                                   "INTR_TRANSPORT_NOT_AUTHENTICALLY_OBSERVED", "B")
-        evaluation = out["health_evaluation"]
-        self.assertEqual((evaluation["failed_stage"], evaluation["intr_carrier_refusal"]),
-                         ("TRANSPORT_INTR_CARRIER", "INTR_CARRIER_NOT_ON_AUTHENTICATED_ORG_LEDGER"))
-
-    def test_a_requester_can_supply_neither_the_store_nor_the_attestation(self):
+    def test_a_requester_can_supply_neither_the_chain_nor_the_health_report(self):
         source = e0_health_ledger(NODE)[0]
-        out = TwoLayers(ledger_checkout=source).kv_access(
-            evidence={"org_ledger_head_attestation": source["org_ledger_head_attestation"]})
+        out = TwoLayers(chain=source).kv_access(evidence={"ledger_root": "/tmp/x", "chain": source})
         refused(self, out, "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY", "C")
-        out = TwoLayers(ledger_checkout={**source, "org_ledger_git_dir_override": "/tmp/x"}).kv_access()
+        out = TwoLayers(chain={**source, "ledger_root_override": "/tmp/x"}).kv_access()
         self.assertEqual(out["decision"], "FAIL_CLOSED")
         self.assertIsNone(out["kv_access_receipt"])
 
-
-class LcKv15OnlyAllowPath(unittest.TestCase):
-    """P1 rev 6: the only ALLOW goes through the contract-located, genesis-pinned, receipt-authenticated org ledger
-    (proved in the harness, not only by production refusing)."""
-
-    def test_the_allow_reads_the_contract_located_genesis_pinned_route_attested_store(self):
-        modules = pinned()
-        anchor, location = modules["endpoint_ledger_anchor"], modules["org_ledger_location"]
-        real, seen = anchor.designated_org_ledger, []
-
-        @contextlib.contextmanager
-        def spy(git_dir, attestation=None):
-            with real(git_dir, attestation) as (root, failed):
-                seen.append({"git_dir": git_dir, "attestation": attestation, "failed": failed,
-                             "contract": location.CONTRACT_PATH, "location": location.org_ledger_location()})
-                yield root, failed
-        source = e0_health_ledger(NODE)[0]
-        anchor.designated_org_ledger = spy
-        try:
-            out = TwoLayers(ledger_checkout=source).kv_access()
-        finally:
-            anchor.designated_org_ledger = real
-        self.assertEqual(out["decision"], "ALLOW_BOUNDED_CONTEXT", out)
-        self.assertGreaterEqual(len(seen), 1)  # verify_anchor and evaluate_anchored both read the designated store
-        for call in seen:
-            self.assertIsNone(call["failed"])
-            self.assertEqual(call["contract"], E0_CONTRACT_PINNED)
-            self.assertEqual((call["location"]["ref"], call["location"]["namespace"],
-                              call["location"]["expected_genesis_receipt_sha256"]),
-                             ("refs/stegverse/organization-ledger", "repository-ledger/StegVerse-org/LLM-adapter",
-                              E0_GENESIS))
-            self.assertEqual(call["attestation"], source["org_ledger_head_attestation"])
-            self.assertEqual(call["attestation"]["key_id"], E0_ROUTE_KEY_ID)
-            self.assertTrue(str(call["git_dir"]).startswith(str(source["org_ledger_git_dir"])) or
-                            os.path.samefile(call["git_dir"], source["org_ledger_git_dir"]), call["git_dir"])
-        receipt = out["kv_access_receipt"]
-        binding, evaluation = receipt["healthy_node_ledger_binding"], receipt["healthy_node_receipt"]
-        self.assertEqual(binding["genesis_receipt_sha256"], E0_GENESIS)
-        attested = source["org_ledger_head_attestation"]
-        self.assertEqual((attested["genesis_receipt_sha256"], attested["head_receipt_sha256"]),
-                         (E0_GENESIS, evaluation["anchor"]["org_ledger_head_receipt_sha256"]))
-        self.assertEqual(evaluation["observed_transport"]["intr_carrier"]["org_ledger_head_receipt_sha256"],
-                         attested["head_receipt_sha256"])
-        self.assertEqual(binding["chain_head_receipt_sha256"], attested["head_receipt_sha256"])
-        self.assertEqual(evaluation["observed_transport"]["signal_sha256"],
-                         modules["intr_transport_carrier"].sha({"mode": "ESTABLISH_GENESIS", "node_ref": NODE,
-                                                                "predecessor": None, "node_class": "LLM_ADAPTER"}))
-
     def test_removing_any_one_leg_leaves_no_allow(self):
-        legs = {
-            "no org-ledger location (vendored contract)": (lambda: e0_contract(ep_contract_path()), {}),
-            "no pinned genesis": (lambda: e0_contract(E0_CONTRACT_431), {}),
-            "no admitted append route": (e0_without_append_route, {}),
-            "unattested head": (contextlib.nullcontext, {"attest": None}),
-            "caller genesis": (contextlib.nullcontext, {"own_genesis": True}),
-            "no InTr carrier": (contextlib.nullcontext, {"carried": False}),
-        }
-        for name, (context, ledger) in legs.items():
-            with self.subTest(name):
-                source = e0_health_ledger(NODE, **ledger)[0]
-                with context():
-                    out = TwoLayers(ledger_checkout=source).kv_access()
-                self.assertEqual(out["decision"], "FAIL_CLOSED", out)
-                self.assertIsNone(out["kv_access_receipt"])
+        for name, ledger in {"unhealthy": {"status": "DEGRADED"}, "not admitted": {"admitted": False},
+                             "no report": {"report": False}, "superseded": {"superseded_by": "DEGRADED"},
+                             "foreign producer": {"foreign": True}}.items():
+            out = TwoLayers(chain=e0_health_ledger(NODE, **ledger)[0]).kv_access()
+            self.assertEqual(out["decision"], "FAIL_CLOSED", name)
+            self.assertIsNone(out["kv_access_receipt"], name)
 
 
-class LcKv18OrgLedgerPrerequisites(unittest.TestCase):
-    """LC-KV-18: org-ledger-head-signers.v1.json is empty and gates every PERMANENT anchor, so the finish point records
-    it (with the org-ledger location and genesis legs) as six-field FAIL_CLOSED class B rows; owner TV/TVC + Lane C."""
-
+class LcKv18Layer1Prerequisites(unittest.TestCase):
     def test_production_records_each_unmet_leg_with_six_fields(self):
-        from runtime import kv_skap_vault as kv
         with production_trust_anchors():
-            rows = {r["failure_code"]: r for r in kv.finish_point()["org_ledger_prerequisites"]}
-            self.assertEqual(pinned()["org_ledger_location"].load_head_signers.__module__,
-                             "llm_adapter.org_ledger_location")  # the vendored, empty signers file
-        self.assertEqual(set(rows), {"ORG_LEDGER_LOCATION_NOT_DESIGNATED", "ORG_LEDGER_GENESIS_NOT_PINNED",
-                                     "MERGE_APPEND_PATH_NOT_ADMITTED"})
-        for row in rows.values():
-            self.assertEqual((row["disposition"], row["failure_class"]), ("FAIL_CLOSED", "B"))
+            rows = ep.layer1_prerequisites()
+        unmet = {r["failure_code"]: r for r in rows if r["disposition"] != "ALLOW"}
+        self.assertEqual(set(unmet), {"HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN",
+                                      "INTR_TRANSPORT_NOT_INSTALLED"})
+        for row in unmet.values():
+            self.assertEqual(row["failure_class"], "B")
             for field in SIX:
-                self.assertTrue(isinstance(row[field], str) and row[field].strip(), field)
-        lc18 = rows["MERGE_APPEND_PATH_NOT_ADMITTED"]
-        self.assertEqual(lc18["tracked_by"], "LC-KV-18")
-        self.assertIn("TV/TVC", lc18["dependency_owner"])
-        self.assertIn("Lane C", lc18["dependency_owner"])
+                self.assertTrue(row[field], field)
+        self.assertIn("#430", unmet["HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN"]["owning_existing_goal"])
+        self.assertFalse([k for k in vars(ep) if "org_ledger" in k.lower() or "ORG_LEDGER" in k])
 
-    def test_inside_the_e0_anchors_every_leg_is_met(self):
-        self.assertEqual({r["disposition"] for r in ep.org_ledger_prerequisites()}, {"ALLOW"})
-        with e0_without_append_route():
-            rows = [r for r in ep.org_ledger_prerequisites() if r["disposition"] != "ALLOW"]
-        self.assertEqual([r["failure_code"] for r in rows], ["MERGE_APPEND_PATH_NOT_ADMITTED"])
-
-
-def ep_contract_path():
-    return Path(ep.__file__).resolve().parent / "intr_pinned" / ".stegverse" / "transition-ledger" / "contract.json"
+    def test_inside_the_e0_anchors_the_transport_leg_is_met_and_the_stack_stays_unmerged(self):
+        rows = {r["failure_code"] if "failure_code" in r else "OK": r for r in ep.layer1_prerequisites()}
+        self.assertEqual(set(rows), {"HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN", "OK"})
 
 
 class LcKv07GatedStreams(unittest.TestCase):
@@ -565,27 +339,6 @@ class LcKv03OnlyTheRealGateAttests(unittest.TestCase):
         self.assertIs(binding_module.pinned_layer2_gate(layers.gate.verify_access_chain), layers.gate)
 
 
-class EndpointKindDeclaration(unittest.TestCase):
-    def test_kinds_and_schemas_are_432s_v1(self):
-        anchor = pinned()["endpoint_ledger_anchor"]
-        schema = json.loads((Path(ep._INTR_PINNED_ROOT) / ep.ENDPOINT_KIND_SCHEMA_PATH).read_text(encoding="utf-8"))
-        self.assertEqual(ep.ENDPOINT_KINDS, tuple(schema["$defs"]["endpoint_kind"]["enum"]))  # taken from the schema
-        self.assertEqual(ep.ENDPOINT_KINDS, tuple(anchor.ENDPOINT_KINDS))
-        self.assertTrue({"PERMANENT", "GATEWAY"} <= set(ep.ENDPOINT_KINDS))
-        self.assertEqual((ep.ENDPOINT_KIND_SCHEMA, ep.ENDPOINT_GENESIS_SCHEMA, ep.ENDPOINT_ANCHOR_SCHEMA,
-                          ep.EPHEMERAL_NODE_LEDGER_OPENED_SCHEMA, ep.EPHEMERAL_NODE_LEDGER_OPENED_SIGNED_SCHEMA,
-                          ep.EPHEMERAL_NODE_LEDGER_OPENED_GENERATION_SCHEMA),
-                         (anchor.ENDPOINT_KIND_SCHEMA, anchor.GENESIS_SCHEMA, anchor.ANCHOR_BODY_SCHEMA,
-                          anchor.OPENED_ANCHOR_SCHEMA, anchor.SIGNED_OPENED_SCHEMA, anchor.GENERATION_SCHEMA))
-        self.assertEqual(ep.ENDPOINT_KIND_SCHEMA, "stegverse.endpoint-kind/v1")
-        self.assertFalse([n for n in vars(ep) if "SCHEMA_PENDING" in n])
-        self.assertNotIn("ENDPOINT_KIND_SCHEMA_PENDING", Path(ep.__file__).read_text(encoding="utf-8"))
-        layers = TwoLayers()
-        skap = layers.gate.verify_skap_access_receipt(layers.skap_hash("SKAP_READ", "s"))
-        self.assertEqual((skap["endpoint_kind"], skap["layer1_endpoint_kind"], skap["endpoint_kind_schema"]),
-                         ("SKAP_VAULT", "KV", "stegverse.endpoint-kind/v1"))
-
-
 class AdmissionOrder(unittest.TestCase):
     def test_258_and_259_are_admitted_together_on_every_verdict(self):
         from runtime import kv_skap_vault as kv
@@ -631,8 +384,14 @@ TVC542_CARRIES = {
                    "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
                    "stegverse.tvc.skap-custody-operation-result/v1"],
 }
-#: org-ledger contract fixture d97cd4dc (vendored E0_CONTRACT_431): the key shape every designation copies
-CONTRACT_431 = json.loads(Path(E0_CONTRACT_431).read_text(encoding="utf-8"))
+#: the key shape of KV's own receipt-chain contracts (a literal; no vendored fixture is read)
+CONTRACT_KEY_SHAPE = {
+    "schema": None, "repository": None, "ledger_level": None, "receipt_schema": None, "append_only_receipts": None,
+    "required_fields": None, "replay_rule": None,
+    "repository_ledger_location": {k: None for k in (
+        "repository", "ref", "namespace", "locator_form", "new_ledger_root", "designation_source", "initialization",
+        "rule", "expected_genesis_receipt_sha256", "expected_genesis_note")},
+    "propagation_rule": None, "authority_effect": None}
 #: the superseded cvk#263 @f5f971a5 location (org-hosted), kept only as a refusal fixture
 SUPERSEDED_ORG_LOCATION = {"repository": "StegVerse-org/.github", "ref": "refs/stegverse/organization-ledger",
                            "namespace": "repository-ledger/StegVerse-org/kv-receipts"}
@@ -795,12 +554,12 @@ class KvSkapLedgerLocation(unittest.TestCase):
             raw = (ROOT / spec["contract_path"]).read_bytes()
             self.assertEqual(_sha_file(raw), spec["contract_sha256"])
             contract = json.loads(raw)
-            keys = list(CONTRACT_431)
+            keys = list(CONTRACT_KEY_SHAPE)
             at = keys.index("repository_ledger_location") + 1
             keys[at:at] = ["ledger_designation", "designation_notes"]
             self.assertEqual(list(contract), keys)
             loc = contract["repository_ledger_location"]
-            self.assertEqual(list(loc), list(CONTRACT_431["repository_ledger_location"]))  # org-ledger key shape
+            self.assertEqual(list(loc), list(CONTRACT_KEY_SHAPE["repository_ledger_location"]))  # org-ledger key shape
             self.assertEqual((contract["repository"], loc["repository"], loc["ref"], loc["namespace"]),
                              (f"STEGVERSE_KV:{location}", "STEGVERSE_KV", "KV_INTR_ENDPOINT", location))
             self.assertIs(loc["new_ledger_root"], True)
@@ -1197,7 +956,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 self.assertSix(rl.read_receipt_ledger(which), "KV_RECEIPT_CHAIN_STORE_NOT_STORAGE_ENDPOINT_V2", "C")
 
     def test_cross_check_path_ids_end_in_intr_destination(self):
-        """Lane B's stricter rule (#432 @c4cfc145 endpoint_ledger_designation), adopted: KV reaches the Orgs only
+        """KV's own rule: KV reaches the Orgs only
         through InTr intr-destination paths, so every cross-check path_id ends in ':intr-destination'."""
         self.assertEqual(rl.PATH_ID_SUFFIX, ":intr-destination")
         for which in self.CHAINS:
@@ -1459,7 +1218,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
         self.assertNotIn("import cryptography", source)
         self.assertNotIn("from cryptography", source)
         modules, why = ep.load_pinned_intr()
-        self.assertIsNotNone(modules, why)  # the vendored #432 bytes still match their pins
+        self.assertIsNotNone(modules, why)  # the vendored #430 @919851cb bytes still match their pins
 
 
 def _genesis_root(which, epoch, klass=None, previous=None, derived=False):

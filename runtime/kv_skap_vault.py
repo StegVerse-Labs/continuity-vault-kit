@@ -42,13 +42,12 @@ import subprocess
 import sys
 from typing import Any
 
-from runtime.kv_interlock_endpoint import (FINISH_POINT_NODE_ENDPOINT_KIND, HEALTHY_NODE_PREDICATE,
+from runtime.kv_interlock_endpoint import (FINISH_POINT_NODE_KIND, HEALTHY_NODE_PREDICATE,
                                            HEALTHY_NODE_RECEIPT_SCHEMA, HEALTHY_NODE_REFUSAL_CODE,
-                                           KV_ACCESS_RECEIPT_SCHEMA, PINNED_ANCHORED_EVALUATOR,
-                                           PINNED_ANCHORED_EVALUATOR_ID, PINNED_HEALTHY_NODE_EVALUATOR,
+                                           KV_ACCESS_RECEIPT_SCHEMA, PINNED_HEALTHY_NODE_EVALUATOR,
                                            PINNED_HEALTHY_NODE_EVALUATOR_ID, TRUST_ANCHORS, KVInterlockRuntime,
-                                           _HEALTHY_RECEIPT_EXACT, healthy_node_ledger_root,
-                                           layer1_receipt_conformance, layer1_refusal, org_ledger_prerequisites)
+                                           _HEALTHY_RECEIPT_EXACT, layer1_prerequisites,
+                                           layer1_receipt_conformance, layer1_refusal)
 from runtime.kv_receipt_ledgers import (KV_LEDGER, MEMBERSHIP_CODE, RECEIPT_LEDGERS, SKAP_VAULT_LEDGER, _closed_schema,
                                         _org_designation, _org_membership, designation, receipt_ledger_binding,
                                         receipt_ledger_prerequisites)
@@ -523,8 +522,7 @@ _EVIDENCE_KEYS = {
 LOCAL_EXERCISE_LABEL = "LOCAL_EXERCISE_ONLY_NOT_EVIDENCE"
 
 
-def _exercise_only_healthy_node_evaluator(node_id: Any, *, endpoint: Any = None, org_ledger_root: Any = None,
-                                          org_ledger_head_receipt_sha256: Any = None,
+def _exercise_only_healthy_node_evaluator(node_id: Any, *, ledger_root: Any = None,
                                           transport_state: Any = "INSTALLED", report_receipt_sha256: Any = None,
                                           require_admission: bool = False, **_: Any) -> dict[str, Any]:
     """LOCAL_EXERCISE_ONLY_NOT_EVIDENCE: used only so _exercise can drive both gates locally, with no ledger I/O.
@@ -532,7 +530,7 @@ def _exercise_only_healthy_node_evaluator(node_id: Any, *, endpoint: Any = None,
     This is not the pinned InTr evaluator. Its identity and source digest are not the pin's, so the finish-point
     evidence checks refuse every layer-1 receipt it produced. It asserts the health of nothing outside this process.
     """
-    if org_ledger_root != healthy_node_ledger_root(LOCAL_EXERCISE_LABEL) or transport_state != "INSTALLED" \
+    if ledger_root != LOCAL_EXERCISE_LABEL or transport_state != "INSTALLED" \
             or not require_admission:
         return {"disposition": "FAIL_CLOSED", "failure_code": "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY",
                 "reason": "LOCAL_EXERCISE_LEDGER_ABSENT", "required_evidence_or_repair": "local exercise only"}
@@ -551,25 +549,22 @@ class _LocalExerciseLayer1(KVInterlockRuntime):
     _EXERCISE_ONLY_UNPINNED_DECIDER = True  # its receipts record NOT_THE_PINNED_OBJECT and are refused downstream
 
     def _access_context(self, request: dict[str, Any], envelope: dict[str, Any]):
-        if self.healthy_node_ledger_checkout != LOCAL_EXERCISE_LABEL:
+        if self.healthy_node_chain != LOCAL_EXERCISE_LABEL:
             return super()._access_context(request, envelope)
         node = envelope["boundary_proof"]["source_identity_ref"]
-        return {"org_ledger_root": healthy_node_ledger_root(LOCAL_EXERCISE_LABEL),
-                "org_ledger_head_receipt_sha256": LOCAL_EXERCISE_LABEL, "scratch": None,
-                "endpoint": {"endpoint_kind": LOCAL_EXERCISE_LABEL, "ledger_root": LOCAL_EXERCISE_LABEL},
-                "binding": {"kind": LOCAL_EXERCISE_LABEL}, "transport_state": "INSTALLED",
+        return {"ledger_root": LOCAL_EXERCISE_LABEL, "binding": {"kind": LOCAL_EXERCISE_LABEL},
+                "transport_state": "INSTALLED",
                 "transport_id": LOCAL_EXERCISE_LABEL, "trust_anchors_label": LOCAL_EXERCISE_LABEL,
                 "identity": {"node_id": node, "node_identity_key": LOCAL_EXERCISE_LABEL,
                              "authenticated_by": LOCAL_EXERCISE_LABEL}}, None
 
     def _evaluate_health(self, request: dict[str, Any], ctx: dict[str, Any], cite: Any):
-        """Exercise only: no anchored root exists here, so only the exercise evaluator's ALLOW shape is checked. The
+        """Exercise only: no node ledger chain exists here, so only the exercise evaluator's ALLOW shape is checked. The
         receipts it leads to carry the exercise label and the non-pinned evaluator, and are refused as evidence."""
-        if self.healthy_node_ledger_checkout != LOCAL_EXERCISE_LABEL:
+        if self.healthy_node_chain != LOCAL_EXERCISE_LABEL:
             return super()._evaluate_health(request, ctx, cite)
         out = self.healthy_node_evaluator(
-            ctx["identity"]["node_id"], endpoint=ctx["endpoint"], org_ledger_root=ctx["org_ledger_root"],
-            org_ledger_head_receipt_sha256=ctx["org_ledger_head_receipt_sha256"],
+            ctx["identity"]["node_id"], ledger_root=ctx["ledger_root"],
             transport_state=ctx["transport_state"], report_receipt_sha256=cite, require_admission=True)
         if not isinstance(out, dict) or any(out.get(k) != v for k, v in _HEALTHY_RECEIPT_EXACT.items()):
             return None, None, layer1_refusal(request, HEALTHY_NODE_REFUSAL_CODE, "the local exercise evaluator refused",
@@ -602,7 +597,7 @@ class _ExerciseHarness:
                                               "source_refs": [], "policy_profile": LOCAL_EXERCISE_LABEL},
             receipt_store=lambda receipt: "local-exercise:" + receipt["receipt_id"],
             clock=lambda: fixed, healthy_node_evaluator=_exercise_only_healthy_node_evaluator,
-            healthy_node_ledger_checkout=LOCAL_EXERCISE_LABEL)
+            healthy_node_chain=LOCAL_EXERCISE_LABEL)
         self.gate = _LocalExerciseGate(self.layer1)
         self.count = 0
 
@@ -632,11 +627,11 @@ class _ExerciseHarness:
     def kv_access(self, health: Any = "default", verification_state: str = "VERIFIED") -> dict[str, Any]:
         request, envelope, intr_ref = self.request(verification_state)
         # health=None: no health ledger is bound for this call, so the evaluator cannot ALLOW
-        self.layer1.healthy_node_ledger_checkout = LOCAL_EXERCISE_LABEL if health == "default" else None
+        self.layer1.healthy_node_chain = LOCAL_EXERCISE_LABEL if health == "default" else None
         try:
             return self.layer1.handle(request, intr_envelope=envelope, intr_receipt_ref=intr_ref)
         finally:
-            self.layer1.healthy_node_ledger_checkout = LOCAL_EXERCISE_LABEL
+            self.layer1.healthy_node_chain = LOCAL_EXERCISE_LABEL
 
     def kv_hash(self) -> str:
         return self.kv_access()["kv_access_receipt"]["receipt_hash"]
@@ -893,11 +888,10 @@ def _evidence_intr(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
 # --- access constraints (the two credential layers), each evidence-bound -------------------------------------------
 ACCESS_EVIDENCE_KEYS = ("layer1_kv_access_receipts", "layer2_skap_access_receipts")
 ACCESS_CONSTRAINT_OWNER = {
-    LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter#428 "
-                         "llm_adapter/healthy_node_evaluator.py, producer #429, inputs #430, anchored-root check #432 "
-                         "evaluate_anchored, InTr and Mesh Destinations lane), for a PERMANENT node; the chain at "
-                         "StegVerse-org/.github refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/"
-                         "LLM-adapter is not onboarded yet (its onboarding route was closed unmerged by the owner; edge removed by StegVerse-org/.github#249)"),
+    LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter#430, "
+                         "which carries #429 and #428; admission order StegVerse-Labs/StegOS#426, then #430, then #429, "
+                         "then #428; InTr and Mesh Destinations lane), over the requesting node's own transition "
+                         "ledger; no organization ledger is involved"),
     LAYER_PREDICATE_L2: GOAL_REF,
     LAYER_PREDICATE_PRIOR: GOAL_REF,
 }
@@ -908,11 +902,10 @@ ACCESS_REPAIR = {
         f"the pinned InTr evaluator {PINNED_HEALTHY_NODE_EVALUATOR['repository']}@"
         f"{PINNED_HEALTHY_NODE_EVALUATOR['commit'][:8]}:{PINNED_HEALTHY_NODE_EVALUATOR_ID} "
         f"(source {PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}, require_admission=True, LC-KV-13/14) over a "
-        "receipted HEALTHY NODE_HEALTH_REPORTED report, reached through the pinned anchored-root check "
-        f"{PINNED_ANCHORED_EVALUATOR['pull_request'].split(' ')[0]}@{PINNED_ANCHORED_EVALUATOR['commit'][:8]}:"
-        f"{PINNED_ANCHORED_EVALUATOR_ID} (source {PINNED_ANCHORED_EVALUATOR['source_sha256']}) over a "
-        f"{FINISH_POINT_NODE_ENDPOINT_KIND} node's anchored ledger (LC-KV-13 completes with a PERMANENT node; "
-        "EPHEMERAL generation is a separate task). KV never asserts health, and the local exercise evaluator is not "
+        "receipted HEALTHY NODE_HEALTH_REPORTED report on the requesting node's own ledger chain, bound by the "
+        "deployment with the genesis it pins, the producers' provenance checked and the transport-authenticated "
+        "node_identity_key equal to the key the chain binds (LC-KV-13 completes with a "
+        f"{FINISH_POINT_NODE_KIND} node). KV never asserts health, and the local exercise evaluator is not "
         "evidence."),
     LAYER_PREDICATE_L2: (
         "supply evidence.layer2_skap_access_receipts: one stegverse.skap-access-receipt/v1 minted by "
@@ -991,18 +984,17 @@ def _check_layer1(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
                     f"{where}: health was evaluated by {kv.get('healthy_node_evaluator')!r} "
                     f"(source {kv.get('healthy_node_evaluator_source_sha256')}), not {PINNED_HEALTHY_NODE_EVALUATOR_ID} "
                     f"({PINNED_HEALTHY_NODE_EVALUATOR['source_sha256']}); {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
-        # LC-KV-15: the same conformance layer 2 enforces (evaluate_anchored, installed transport,
-        # transport-authenticated identity, contract-location org ledger with an anchored node root, trust anchors).
+        # LC-KV-15: the same conformance layer 2 enforces (the pinned evaluate, installed transport,
+        # transport-authenticated identity, the node's own chain bound by the deployment, trust anchors).
         why = layer1_receipt_conformance(kv)
         if why is not None:
             return (why, "B", f"{where}: the layer-1 receipt was not minted under the trust anchors in force "
                               f"({TRUST_ANCHORS.get('label')}): {why}; {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
-        kind = (kv.get("healthy_node_ledger_binding") or {}).get("endpoint_kind")
-        if kind != FINISH_POINT_NODE_ENDPOINT_KIND:
-            return ("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS", "C",
-                    f"{where}: the layer-1 receipt is for a {kind!r} node; the finish point expects a "
-                    f"{FINISH_POINT_NODE_ENDPOINT_KIND} node (LC-KV-13 completes with one; EPHEMERAL generation is a "
-                    f"separate task and does not block it); {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
+        kind = (kv.get("healthy_node_ledger_binding") or {}).get("kind")
+        if kind != FINISH_POINT_NODE_KIND:
+            return ("LAYER1_NODE_NOT_BOUND_THROUGH_ITS_OWN_LEDGER_CHAIN", "C",
+                    f"{where}: the layer-1 receipt's ledger binding is {kind!r}; the finish point expects "
+                    f"{FINISH_POINT_NODE_KIND}; {ACCESS_REPAIR[LAYER_PREDICATE_L1]}")
     return None
 
 
@@ -1319,9 +1311,10 @@ def append_organization_ledger_receipt(receipt: dict[str, Any], scratch_ledger_g
 
 def finish_point(evidence: Any = None, scratch_ledger_git_dir: str | None = None) -> dict[str, Any]:
     verdict = evaluate(evidence)
-    # LC-KV-18 and the org-ledger legs: the pinned org-ledger read's prerequisites, recorded with six fields. They gate every
-    # PERMANENT anchor at layer 1, so the finish point cannot reach ALLOW in production while any is FAIL_CLOSED.
-    verdict["org_ledger_prerequisites"] = org_ledger_prerequisites()
+    # LC-KV-18: layer 1's upstream legs (the evaluator stack on LLM-adapter main, the installed InTr transport), recorded
+    # with six fields. They gate every layer-1 ALLOW, so the finish point cannot reach ALLOW in production while any
+    # is FAIL_CLOSED.
+    verdict["layer1_prerequisites"] = layer1_prerequisites()
     # KV-SKAP-LEDGER-LOCATION-001: the KV and SKAP Vault receipt ledgers (FAIL_CLOSED until their genesis pin)
     verdict["receipt_ledger_prerequisites"] = receipt_ledger_prerequisites()
     if verdict["disposition"] == "ALLOW":

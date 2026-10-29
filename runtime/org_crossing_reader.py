@@ -14,8 +14,7 @@ Boundaries (StegVerse-org/.github#162 handoff c6393962100; ruling #167 c63741303
   ``<OrgA>-><OrgB>:intr-destination`` with OrgA and OrgB distinct organization names. Anything else (for example a
   path to a non-org endpoint) is never emitted.
 - Never fabricated: ``endpoint_head_sha256`` is taken only where the Org record itself carries it (in ``evidence``,
-  ``evidence.boundary_evidence`` or ``boundary_evidence``, the same holders as the pinned
-  ``endpoint_ledger_designation._boundary_fields``). A record without it is not emitted.
+  ``evidence.boundary_evidence`` or ``boundary_evidence``). A record without it is not emitted.
 - Refuse-only: the caller (``kv_receipt_ledgers._org_crossing``) uses these records only to refuse; this reader grants
   nothing (authority_effect NONE).
 - Fail closed: an absent, unreadable, unsealed or broken-chain snapshot returns ``None`` (not observable) and leaves
