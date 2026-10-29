@@ -51,7 +51,8 @@ What this does not do (each is a refusal or simply absent):
   attestation is published the reader still refuses (KV_LEDGER_HEAD_SIGNER_NOT_PUBLISHED / _NOT_AUTHENTICATED).
 * No clock (the epoch is supplied: ASCII [0-9]+, >= 32), no network, no dispatch, no new dependency.
 * KV #2 is PENDING_INTERLOCK_INTR and the genesis is not pinned, so production is six-field FAIL_CLOSED before anything
-  is read or written. No Org->KV intr-destination path_id is declared by this module.
+  is read or written. The Org->KV intr-destination path_ids are designated by the contract
+  (``org_crossing_cross_check.path_ids``), not by this module; this module only refuses a path_id the contract does not designate.
 """
 from __future__ import annotations
 

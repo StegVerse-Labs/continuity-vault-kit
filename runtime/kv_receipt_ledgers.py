@@ -69,7 +69,7 @@ WATERMARK_SOURCE = "KV_RECORDED_RECEIPT_CHAIN_HEAD"
 #: it is compared only to refuse and never grants (Coordination ruling, StegVerse-org/.github#167 comment 6374130335).
 ORG_CROSS_CHECK_SOURCE = "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD"
 #: Every cross-check path_id ends with this suffix (Lane B #432 @c4cfc145 endpoint_ledger_designation.
-#: watermark_source_failure, adopted). The path_ids stay inert: KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). No Org→KV intr-destination path_id is declared until the KV-side crossing records are in code with tests.
+#: watermark_source_failure, adopted). The path_ids are the designated Org→KV crossing paths: KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). The Org→KV intr-destination path_ids in org_crossing_cross_check.path_ids designate that crossing, a legitimate InTr crossing between distinct parties (LC-KV-29): the Org's end is read by ORG_CROSSING_READER and KV's end is written by runtime/kv_crossing_records.py.
 PATH_ID_SUFFIX = ":intr-destination"
 #: InTr crossing record classes (endpoint_ledger_designation.CROSSING_CLASSES @c4cfc145). Under the two-event model
 #: (ENVELOPE v2 line 55 @d749bb2) event 2 lives on the Org ledger. A KV chain that holds a crossing record has
@@ -277,7 +277,7 @@ def plan_genesis_pin(which: str, storage_endpoint: Any = None, readback_root: An
 
 MEMBERSHIP_CODE = "ENDPOINT_ORG_MEMBERSHIP_REFUSED"
 #: Rigel's rule (via Coordination, StegVerse-org/.github#160): no endpoint (KV, SKAP Vault, node or gateway) is ever a
-#: GitHub Organization member. KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). No Org→KV intr-destination path_id is declared until the KV-side crossing records are in code with tests.
+#: GitHub Organization member. KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). The Org→KV intr-destination path_ids in org_crossing_cross_check.path_ids designate that crossing, a legitimate InTr crossing between distinct parties (LC-KV-29): the Org's end is read by ORG_CROSSING_READER and KV's end is written by runtime/kv_crossing_records.py.
 UNKNOWN_KEY_CODE = "KV_RECEIPT_CHAIN_DESIGNATION_UNKNOWN_KEY"
 #: Closed key schema (LC-KV-24): the only keys permitted at each level of a KV receipt-chain contract. Any other key
 #: refuses: ENDPOINT_ORG_MEMBERSHIP_REFUSED when the key is membership-like (MEMBERSHIP_TOKENS), otherwise
@@ -358,7 +358,7 @@ def org_membership_refused(which: str, reason: str) -> dict[str, Any]:
     return _refuse(which, MEMBERSHIP_CODE, "C",
                    f"a {STORE_TYPE} designation with no org repository, org-membership, team or app-installation "
                    f"binding and no org ref ({KV_ROUTE} is KV's own route; "
-                   "KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). No Org→KV intr-destination path_id is declared until the KV-side crossing records are in code with tests)",
+                   "KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). The Org→KV intr-destination path_ids in org_crossing_cross_check.path_ids designate that crossing, a legitimate InTr crossing between distinct parties (LC-KV-29): the Org's end is read by ORG_CROSSING_READER and KV's end is written by runtime/kv_crossing_records.py)",
                    "on an admitted change that removes the binding and re-pins the contract digest",
                    f"no endpoint (KV, SKAP Vault, node or gateway) is ever a GitHub Organization member: {reason}",
                    owner="Lane D (StegVerse-Labs/continuity-vault-kit); KV-SKAP-VAULT-FUNCTIONAL-001",

@@ -4,7 +4,8 @@ Retired: references to StegVerse-org/LLM-adapter#431, StegVerse-org#235 and the 
 (an LLM-adapter InTr crossing), "KV reaches the Orgs only through InTr", and any claim that the Org<->KV crossing status is
 "unruled". The ruling (StegVerse-org/.github#162 c6394603737, LC-KV-29) is: KV is its own ledger-holding party, an Org<->KV
 crossing is between distinct parties (never an intra-org InTr hop) and is recorded on both ledgers, KV's end required.
-Wording only: no behavior change, and no Org->KV intr-destination path_id is declared by this change."""
+Wording only: no behavior change. The Org->KV intr-destination path_ids stay designated (Coordination, StegVerse-org/.github#167:
+the :intr-destination designation is valid under LC-KV-29); no contract is changed."""
 from __future__ import annotations
 
 import hashlib
@@ -32,7 +33,17 @@ RETIRED = (
 )
 RULING = ("KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) "
           "and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737)")
-NO_PATH_ID = "No Org→KV intr-destination path_id is declared until the KV-side crossing records are in code with tests"
+#: the sentence still sealed inside the two contracts' designation notes: contract bytes are digest-pinned, so a change is a
+#: separate admitted change that re-pins them (not made here). Runtime, docs and refusal text no longer carry it.
+SEALED_CONTRACT_SENTENCE = "No Org→KV intr-destination path_id is declared until the KV-side crossing records are in code with tests"
+DESIGNATED = ("The Org→KV intr-destination path_ids in org_crossing_cross_check.path_ids designate that crossing, a legitimate InTr "
+              "crossing between distinct parties (LC-KV-29)")
+#: wording that describes the designated Org->KV crossing as absent, inert, or not an InTr crossing
+STALE_CROSSING = (
+    re.compile(r"path_ids\s+stay\s+inert", re.I), re.compile(r"no\s+Org\W{1,3}KV\s+intr-destination\s+path_id\s+is\s+declared", re.I),
+    re.compile(r"declared\s+until\s+the\s+KV-side\s+crossing\s+records", re.I),
+    re.compile(r"Org\W{1,3}KV\s+(?:crossing\s+)?(?:is|as)\s+an?\s+intra-org", re.I),
+)
 
 
 def _flat(text: str) -> str:
@@ -46,22 +57,32 @@ def test_guarded_files_carry_no_retired_reference_or_wording():
             assert not pattern.search(text), f"{rel}: retired wording matching {pattern.pattern}"
 
 
-def test_crossing_is_worded_per_the_lc_kv_29_ruling_and_declares_no_org_kv_path_id():
+def test_crossing_is_worded_per_the_lc_kv_29_ruling_and_the_designated_path_ids_are_a_legitimate_crossing():
     for rel in ("runtime/kv_receipt_ledgers.py", "docs/kv-skap-ledger-location.md"):
         text = _flat((ROOT / rel).read_text(encoding="utf-8"))
-        assert RULING in text and NO_PATH_ID in text, rel
+        assert RULING in text and DESIGNATED in text, rel
+        assert SEALED_CONTRACT_SENTENCE not in text, rel
     for rel in CONTRACTS:
         body = json.loads((ROOT / rel).read_text(encoding="utf-8"))
         text = json.dumps(body, ensure_ascii=False)
-        assert RULING in text and NO_PATH_ID in text, rel
-        # the pre-existing inert cross-check ids are unchanged: this change adds no Org->KV path_id
+        assert RULING in text and SEALED_CONTRACT_SENTENCE in text, rel
+        # the designation is valid and unchanged: one Org->KV intr-destination path_id per contract
         ids = body["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]["path_ids"]
-        assert len(ids) == 1 and ids[0].endswith(":intr-destination"), rel
+        assert len(ids) == 1 and re.fullmatch(r"StegVerse-org->STEGVERSE_KV:[^:]+:intr-destination", ids[0]), rel
+
+
+def test_no_runtime_or_doc_wording_describes_the_designated_crossing_as_absent_inert_or_intra_org():
+    scanned = list((ROOT / "runtime").glob("*.py")) + list((ROOT / "docs").rglob("*.md"))
+    assert scanned
+    for path in scanned:
+        text = _flat(path.read_text(encoding="utf-8"))
+        for pattern in STALE_CROSSING:
+            assert not pattern.search(text), f"{path.relative_to(ROOT)}: {pattern.pattern}"
 
 
 def test_refusal_text_states_the_ruling_not_a_superseded_status():
     refusal = json.dumps(ledgers.org_membership_refused("kv", "guard"), ensure_ascii=False)
-    assert RULING in refusal and NO_PATH_ID in refusal
+    assert RULING in refusal and DESIGNATED in refusal and SEALED_CONTRACT_SENTENCE not in refusal
     for pattern in RETIRED:
         assert not pattern.search(refusal), pattern.pattern
 
