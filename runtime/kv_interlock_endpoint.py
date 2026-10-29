@@ -126,14 +126,14 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; head moved from 1cbad77e: failure precedence location, "
                          "anchor, identity, health/admission, transport, carrier; repository passed through; org genesis "
-                         "pinned by the #431 contract and head authenticated by the append route; ingress counts only "
+                         "pinned by the org-ledger contract and head authenticated by the append route; ingress counts only "
                          "with its InTr carrier; evaluator bytes unchanged)",
          "commit": "a2ee67e65c3d1da83dd2d750d48ea8b282d7604e",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
          "interface_doc_sha256": "sha256:d4a534713ecb5d462f84b83867e30506b81839291102705497d225d4fdc9c6de",
          "pinned_code_digests_file_sha256":
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
-        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; code unchanged since a2ee67e6, only the #431 contract "
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; code unchanged since a2ee67e6, only the org-ledger contract "
                          "fixtures changed)",
          "commit": "733162978292fbc7be3a562a4fa9f5bed4ada91e",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
@@ -149,7 +149,7 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
 
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; evaluator unchanged; re-pinned to "
-                         "continuity-vault-kit#263 @bf684aad via #431 @2494d75a: endpoint_ledger_anchor 2d80e443, "
+                         "continuity-vault-kit#263 @bf684aad via the designation module's source commit 2494d75a: endpoint_ledger_anchor 2d80e443, "
                          "endpoint_ledger_designation 35217d33, intr_transport_carrier 81ad9d3b, supplied_epoch be91daad)",
          "commit": "c4cfc14566786e9da43d7a6d45d569745a582a3d",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
@@ -158,7 +158,7 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
 
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; evaluator unchanged; re-pinned to "
-                         "continuity-vault-kit#263 @9bc54d05 via #431 @64121f4d (StegVerse-org/.github#162 comment "
+                         "continuity-vault-kit#263 @9bc54d05 via the designation module's source commit 64121f4d (StegVerse-org/.github#162 comment "
                          "6374660708): endpoint_ledger_anchor 153cf121, endpoint_ledger_designation d69dbb22, "
                          "intr_transport_carrier 9d3e69c8, endpoint-kind.v1 592bb3e5; PERMANENT is a "
                          "NODE_STORAGE_ENDPOINT designation, NODE_STORAGE_ENDPOINT_READER_NOT_DOCUMENTED)",
@@ -169,7 +169,7 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
              "sha256:9ed1e817f6faa983ffbc4facc9be15409fa23e6bb133dbb8a57fe24dbd3230f8"},
     ],
     "admission_order": "StegVerse-org/LLM-adapter#429 lands with or before #428; #432 builds on #430",
-    "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430, #431 onboarding, #432) settles",
+    "re_vendor": "a final re-vendor follows once Lane B's stack (#429, #430, #432) settles",
 }
 #: Lane B's anchored-root check (StegVerse-org/LLM-adapter#432 @eecf4843, draft; was @c4cfc145, @74509fec). It is authoritative for whether a
 #: caller-supplied node root is anchored on the org ledger; KV does not re-implement it. It needs the pinned producer
@@ -200,7 +200,7 @@ PINNED_ANCHORED_EVALUATOR = {
     "vendored_files": {
         "llm_adapter/endpoint_ledger_anchor.py":
             "sha256:153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09",
-        # #432 @c4cfc145: #431 @2494d75a's designation module (byte copy) and the supplied-epoch helper, both executed
+        # #432 @c4cfc145: the designation module (byte copy of its source @2494d75a) and the supplied-epoch helper, both executed
         "llm_adapter/endpoint_ledger_designation.py":
             "sha256:d69dbb22a1446a22e84b86532f93d9698ac6dc3c82e6aa6ee20882c6764049d8",
         "llm_adapter/supplied_epoch.py": "sha256:be91daad3d5557f810872731c3ea8cc36e1f13af569e1b7634f487fd36f44534",
@@ -269,8 +269,8 @@ HEALTHY_NODE_LEDGER_LOCATION = {
 HEALTHY_NODE_LEDGER_PREDICATE = "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"
 HEALTHY_NODE_LEDGER_REFUSAL_CAUSE = "HEALTHY_NODE_LEDGER_NOT_ONBOARDED"
 HEALTHY_NODE_LEDGER_ONBOARDING = (
-    "StegVerse-org/LLM-adapter#431 (Lane B G-8 draft, the StegVerse-org/LLM-adapter organization-ledger onboarding, "
-    "modelled on StegVerse-org/StegVerse-SDK#558). It binds repository_ledger_location in "
+    "the StegVerse-org/LLM-adapter organization-ledger onboarding route (closed unmerged by the owner; edge removed by "
+    "StegVerse-org/.github#249). It would bind repository_ledger_location in "
     ".stegverse/transition-ledger/contract.json to StegVerse-org/.github refs/stegverse/organization-ledger:"
     "repository-ledger/StegVerse-org/LLM-adapter. It stays FAIL_CLOSED until that chain's genesis and an admitted append "
     "route exist")
@@ -548,7 +548,7 @@ def _layer1_decider_record(decider: Any) -> dict[str, Any]:
 # * the transport state, which is the observed transport's state, else UNKNOWN_NOT_AUTHENTICALLY_OBSERVED.
 # TRUST_ANCHORS holds what KV pins for those. Production code never mutates it. Every value is None today, because none
 # of it is authentically observed yet, so the real path is a six-field FAIL_CLOSED until StegVerse-Labs/.github#3255
-# (org-ledger genesis), StegVerse-org/LLM-adapter#431 (onboarding) and #429 (producer) are admitted and the InTr
+# (org-ledger genesis), the org-ledger location designation and #429 (producer) are admitted and the InTr
 # transport is installed. The tests' E0 harness (tests/kv_two_layer_e0.py) swaps in labelled E0 anchors inside an
 # explicit scope and restores these afterwards. Every receipt records the anchors' label, and layer 2 and the finish
 # point refuse a receipt minted under different anchors than the ones in force.
@@ -571,7 +571,7 @@ PINNED_NODE_HEALTH_REPORT_PRODUCER = {
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft)", "commit": "c2c57505535fb89ee88477eda1378c5fc610e0f7"},
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft)", "commit": "1cbad77eaff3254ea30fb9d3377d40abcf6728df"},
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft)", "commit": "a2ee67e65c3d1da83dd2d750d48ea8b282d7604e"},
-        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; code byte-identical to a2ee67e6, only the #431 "
+        {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; code byte-identical to a2ee67e6, only the org-ledger "
                          "contract fixtures changed)",
          "commit": "733162978292fbc7be3a562a4fa9f5bed4ada91e"},
         {"pull_request": "StegVerse-org/LLM-adapter#432 (draft; vendored head; producer unchanged)",
@@ -649,7 +649,7 @@ ANCHOR_REFUSAL_CODE = "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED"
 ENDPOINT_ANCHOR_REFUSAL_CODE = "ENDPOINT_LEDGER_NOT_ANCHORED"
 ANCHOR_PREDICATE = "NODE_ROOT_ANCHORED_ON_ORG_LEDGER_BY_EVALUATE_ANCHORED"
 #: evaluate_anchored reasons that wait on an upstream event (class B); every other anchor refusal is class C.
-#: #432 @a2ee67e6 adds ORG_LEDGER_GENESIS_NOT_PINNED (waits on #431's expected_genesis_receipt_sha256) and
+#: #432 @a2ee67e6 adds ORG_LEDGER_GENESIS_NOT_PINNED (waits on the contract's expected_genesis_receipt_sha256) and
 #: MERGE_APPEND_PATH_NOT_ADMITTED (waits on the admitted append route and its TV/TVC-published head attester); a store
 #: whose genesis or head does not match (ORG_LEDGER_GENESIS_MISMATCH, ORG_LEDGER_HEAD_NOT_AUTHENTICATED) is class C.
 ANCHOR_CLASS_B_REASONS = ("UNANCHORED", "ENDPOINT_LEDGER_UNREADABLE", "ORG_LEDGER_UNREADABLE",
@@ -661,8 +661,8 @@ ANCHOR_CLASS_B_REASONS = ("UNANCHORED", "ENDPOINT_LEDGER_UNREADABLE", "ORG_LEDGE
 INTR_TRANSPORT_PREDICATE = "REQUESTER_IDENTITY_AUTHENTICATED_BY_INSTALLED_INTR_TRANSPORT"
 INTR_TRANSPORT_RETRY = ("the installed InTr DEVICE->KV transport (Lane B, InTr and Mesh Destinations, "
                         "StegVerse-org/.github#162), then runtime.kv_interlock_endpoint.KVInterlockRuntime.handle")
-GENESIS_RETRY = ("StegVerse-Labs/.github#3255 (organization-ledger genesis) and StegVerse-org/LLM-adapter#431 "
-                 "(onboarding); KV derives the genesis from the receipt it then observes at the contract location")
+GENESIS_RETRY = ("StegVerse-Labs/.github#3255 (organization-ledger genesis) and the org-ledger location designation "
+                 "(the LLM-adapter onboarding route is retired, StegVerse-org/.github#249); KV derives the genesis from the receipt it then observes at the contract location")
 
 
 class LedgerBindingRefused(Exception):
@@ -685,7 +685,7 @@ def _read_chain(ledger_root: str) -> tuple[list[dict[str, Any]], str | None, str
     return modules["healthy_node_evaluator"].read_chain(ledger_root, HEALTHY_NODE_LEDGER_LOCATION["chain_repository"])
 
 
-#: LC-KV-15: no genesis constant is pinned in KV. Since #432 @a2ee67e6 the org genesis is pinned by the #431 contract
+#: LC-KV-15: no genesis constant is pinned in KV. Since #432 @a2ee67e6 the org genesis is pinned by the org-ledger contract
 #: (repository_ledger_location.expected_genesis_receipt_sha256) and checked inside evaluate_anchored's org-ledger read
 #: (ORG_LEDGER_GENESIS_NOT_PINNED / ORG_LEDGER_GENESIS_MISMATCH), so KV's own derivation of the genesis from its receipt
 #: (the former _org_genesis_failure / HEALTHY_NODE_LEDGER_GENESIS_NOT_DERIVABLE) is dropped as a duplicate. KV records
@@ -693,19 +693,20 @@ def _read_chain(ledger_root: str) -> tuple[list[dict[str, Any]], str | None, str
 GENESIS_DERIVATION = "ORG_LEDGER_GENESIS_PINNED_BY_CONTRACT_CHECKED_BY_EVALUATE_ANCHORED"
 
 
-#: LC-KV-18 and the #431 legs: what the vendored #432 org-ledger read needs before any PERMANENT anchor can ALLOW.
+#: LC-KV-18 and the org-ledger legs: what the vendored #432 org-ledger read needs before any PERMANENT anchor can ALLOW.
 #: Read from the pinned org_ledger_location only (contract designation, pinned genesis, published append-route head
 #: attesters); never a ledger read, never a write. Each unmet leg is a six-field FAIL_CLOSED row.
 ORG_LEDGER_PREREQUISITES = (
     ("ORG_LEDGER_LOCATION_NOT_DESIGNATED", "ORG_LEDGER_LOCATION_FROM_CONTRACT",
-     "StegVerse-org/LLM-adapter#431 (repository_ledger_location in .stegverse/transition-ledger/contract.json), Lane B",
-     "the #431 repository_ledger_location (repository, ref, namespace) in the vendored contract.json, then re-vendor",
-     "when StegVerse-org/LLM-adapter#431 lands in the contract; event-driven, never on a timer"),
+     "the repository_ledger_location designation in .stegverse/transition-ledger/contract.json; its onboarding route was closed "
+     "unmerged by the owner and its edge removed by StegVerse-org/.github#249, so Lane B must reconcile it",
+     "the repository_ledger_location (repository, ref, namespace) in the vendored contract.json, then re-vendor",
+     "when Lane B reconciles the designation into the contract; event-driven, never on a timer"),
     ("ORG_LEDGER_GENESIS_NOT_PINNED", "ORG_LEDGER_GENESIS_PINNED_BY_CONTRACT",
-     "StegVerse-org/LLM-adapter#431 (expected_genesis_receipt_sha256, null on purpose until the genesis is observed), "
-     "Lane B",
+     "the contract's expected_genesis_receipt_sha256 (null on purpose until the genesis is observed; its onboarding route is "
+     "retired, StegVerse-org/.github#249), Lane B",
      "repository_ledger_location.expected_genesis_receipt_sha256 written by the REPOSITORY_LEDGER_GENESIS_PIN "
-     "transition (StegVerse-org/LLM-adapter#431) from the observed REPOSITORY_LEDGER_INITIALIZATION genesis "
+     "transition from the observed REPOSITORY_LEDGER_INITIALIZATION genesis "
      "receipt_sha256 on refs/stegverse/organization-ledger, never by hand and never invented, then re-vendor",
      "when the REPOSITORY_LEDGER_GENESIS_PIN transition runs on the receipted genesis record and its contract write "
      "is admitted; event-triggered by that record, no cron, no polling, no person"),
@@ -782,7 +783,7 @@ def _bind_organization_ledger(git_path: Any) -> tuple[dict[str, Any], str, str]:
     archive = _git(git_dir, "archive", "--format=tar", observed_head, loc["namespace"])
     if archive.returncode != 0:
         raise LedgerBindingRefused(HEALTHY_NODE_LEDGER_REFUSAL_CAUSE, (
-            f"{loc['ref']}@{observed_head[:12]} has no {loc['namespace']} (LLM-adapter#431 has not onboarded it)"))
+            f"{loc['ref']}@{observed_head[:12]} has no {loc['namespace']} (the org-ledger route has not onboarded it)"))
     workdir = tempfile.mkdtemp(prefix="kv-org-ledger-")
     try:
         with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:

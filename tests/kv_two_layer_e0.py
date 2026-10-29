@@ -22,7 +22,7 @@ stand-ins here are:
   the node_identity_key it enrolled them with, and hands over the node's identity proof (the node's signature over
   evaluate_anchored's identity_challenge, made with a TEST-ONLY public seed through the vendored stdlib test signer,
   tests/fixtures/intr_pinned_test_only/ed25519_test_signer.py; no cryptography package).
-* the #431 contract designation: org_ledger_location.CONTRACT_PATH points at Lane B's fixture contract with the pinned
+* the org-ledger contract designation: org_ledger_location.CONTRACT_PATH points at Lane B's fixture contract with the pinned
   test genesis (tests/fixtures/intr_pinned_test_only/contract_with_431_location_and_pinned_genesis.json; the org namespace
   starts at Lane B's org_ledger_test_genesis.json) only while the E0 anchors are in force. The vendored production
   contract.json has no repository_ledger_location yet (ORG_LEDGER_LOCATION_NOT_DESIGNATED).
@@ -97,7 +97,7 @@ def pinned() -> dict[str, Any]:
 
 
 TEST_ONLY_DIR = ROOT / "tests" / "fixtures" / "intr_pinned_test_only"
-#: Lane B's TEST-ONLY stdlib signer, #431 fixture contracts, org test genesis and org-ledger harness, vendored
+#: Lane B's TEST-ONLY stdlib signer, org-ledger fixture contracts, org test genesis and org-ledger harness, vendored
 #: byte-identical from LLM-adapter#432 @c4cfc145 and @eecf4843 (org_ledger_harness.py is kept for provenance and never executed: it
 #: imports tests.ed25519_test_signer; e0_attest and the E0 route below follow it with the same seed and key_id).
 TEST_ONLY_PINS = {
@@ -331,7 +331,7 @@ def e0_node_endpoint(kind: str, node_root: Path, node_id: str) -> dict[str, Any]
 
 
 def _set_contract(e0: bool, contract: Any = None) -> None:
-    """The #431 designation and append-route stand-ins: Lane B's pinned-genesis fixture contract and the TEST-ONLY route
+    """The org-ledger designation and append-route stand-ins: Lane B's pinned-genesis fixture contract and the TEST-ONLY route
     attester while E0 anchors are in force, else the vendored contract and the vendored (empty) head-signers file."""
     location = pinned()["org_ledger_location"]
     _set_node_reader(e0)
@@ -359,7 +359,7 @@ def e0_without_append_route():
 
 @contextlib.contextmanager
 def e0_contract(contract: Path):
-    """Inside the E0 anchors: another TEST-ONLY contract fixture (e.g. #431's copy without a genesis pin)."""
+    """Inside the E0 anchors: another TEST-ONLY contract fixture (e.g. the org-ledger copy without a genesis pin)."""
     _set_contract(True, contract)
     try:
         yield
@@ -664,7 +664,7 @@ def e0_empty_ref_checkout() -> str:
 
 
 def e0_ref_without_namespace() -> str:
-    """The org-ledger ref exists but carries no LLM-adapter namespace (#431 not onboarded)."""
+    """The org-ledger ref exists but carries no LLM-adapter namespace (org-ledger route not onboarded)."""
     return _git_repo(with_ref=True)
 
 

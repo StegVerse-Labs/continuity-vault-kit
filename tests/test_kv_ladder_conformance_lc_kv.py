@@ -175,7 +175,7 @@ class LcKv15LedgerIdentityTransport(unittest.TestCase):
         self.assertFalse(hasattr(ep, "_org_genesis_failure"))
         refused(self, TwoLayers(ledger_checkout=e0_health_ledger(NODE, own_genesis=True)[0]).kv_access(),
                 "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_MISMATCH", "C", None)
-        with e0_contract(E0_CONTRACT_431):  # #431's location without the pinned genesis
+        with e0_contract(E0_CONTRACT_431):  # the org-ledger location without the pinned genesis
             out = TwoLayers().kv_access()
             refused(self, out, "NODE_ROOT_NOT_ANCHORED_ORG_LEDGER_GENESIS_NOT_PINNED", "B", None)
             # #432 @74509fec: the next attempt is the REPOSITORY_LEDGER_GENESIS_PIN transition, not a person
@@ -393,7 +393,7 @@ class LcKv16CallerStoreAndIngressNeverAllow(unittest.TestCase):
 
 
 class LcKv15OnlyAllowPath(unittest.TestCase):
-    """P1 rev 6: the only ALLOW goes through the #431-contract-located, genesis-pinned, receipt-authenticated org ledger
+    """P1 rev 6: the only ALLOW goes through the contract-located, genesis-pinned, receipt-authenticated org ledger
     (proved in the harness, not only by production refusing)."""
 
     def test_the_allow_reads_the_contract_located_genesis_pinned_route_attested_store(self):
@@ -441,7 +441,7 @@ class LcKv15OnlyAllowPath(unittest.TestCase):
 
     def test_removing_any_one_leg_leaves_no_allow(self):
         legs = {
-            "no #431 location (vendored contract)": (lambda: e0_contract(ep_contract_path()), {}),
+            "no org-ledger location (vendored contract)": (lambda: e0_contract(ep_contract_path()), {}),
             "no pinned genesis": (lambda: e0_contract(E0_CONTRACT_431), {}),
             "no admitted append route": (e0_without_append_route, {}),
             "unattested head": (contextlib.nullcontext, {"attest": None}),
@@ -459,7 +459,7 @@ class LcKv15OnlyAllowPath(unittest.TestCase):
 
 class LcKv18OrgLedgerPrerequisites(unittest.TestCase):
     """LC-KV-18: org-ledger-head-signers.v1.json is empty and gates every PERMANENT anchor, so the finish point records
-    it (with #431's location and genesis legs) as six-field FAIL_CLOSED class B rows; owner TV/TVC + Lane C."""
+    it (with the org-ledger location and genesis legs) as six-field FAIL_CLOSED class B rows; owner TV/TVC + Lane C."""
 
     def test_production_records_each_unmet_leg_with_six_fields(self):
         from runtime import kv_skap_vault as kv
@@ -631,7 +631,7 @@ TVC542_CARRIES = {
                    "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",
                    "stegverse.tvc.skap-custody-operation-result/v1"],
 }
-#: #431 contract fixture d97cd4dc (vendored E0_CONTRACT_431): the key shape every designation copies
+#: org-ledger contract fixture d97cd4dc (vendored E0_CONTRACT_431): the key shape every designation copies
 CONTRACT_431 = json.loads(Path(E0_CONTRACT_431).read_text(encoding="utf-8"))
 #: the superseded cvk#263 @f5f971a5 location (org-hosted), kept only as a refusal fixture
 SUPERSEDED_ORG_LOCATION = {"repository": "StegVerse-org/.github", "ref": "refs/stegverse/organization-ledger",
@@ -800,7 +800,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
             keys[at:at] = ["ledger_designation", "designation_notes"]
             self.assertEqual(list(contract), keys)
             loc = contract["repository_ledger_location"]
-            self.assertEqual(list(loc), list(CONTRACT_431["repository_ledger_location"]))  # #431 key shape
+            self.assertEqual(list(loc), list(CONTRACT_431["repository_ledger_location"]))  # org-ledger key shape
             self.assertEqual((contract["repository"], loc["repository"], loc["ref"], loc["namespace"]),
                              (f"STEGVERSE_KV:{location}", "STEGVERSE_KV", "KV_INTR_ENDPOINT", location))
             self.assertIs(loc["new_ledger_root"], True)
@@ -809,7 +809,7 @@ class KvSkapLedgerLocation(unittest.TestCase):
             self.assertIn(KV2, loc["designation_source"])
             self.assertIn("6372442705", loc["designation_source"])
             ld = contract["ledger_designation"]
-            self.assertEqual(tuple(ld), rl.DESIGNATION_KEYS)  # LLM-adapter#431 @a2237bc3 field names
+            self.assertEqual(tuple(ld), rl.DESIGNATION_KEYS)  # org-ledger designation field names (upstream @a2237bc3)
             self.assertEqual(len(ld["stores"]), 1)
             store = ld["stores"][0]
             self.assertEqual(tuple(store), rl.STORE_KEYS)

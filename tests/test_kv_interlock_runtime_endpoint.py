@@ -392,7 +392,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
             self.assert_layer1_refusal(response, "repository-ledger/StegVerse-org/LLM-adapter")
             self.assertEqual((response["failure_class"], response["refusal_cause"], response["failed_predicate"]),
                              ("B", "HEALTHY_NODE_LEDGER_NOT_ONBOARDED", "HEALTHY_NODE_LEDGER_CHAIN_ONBOARDED_WITH_GENESIS"))
-            self.assertIn("StegVerse-org/LLM-adapter#431", response["retry_entrypoint"])
+            self.assertIn("StegVerse-org/.github#249", response["retry_entrypoint"])
             self.assertIn("LC-KV-13", response["owning_existing_goal"])
             self.assertIsNone(response["kv_access_receipt"])
         self.assertEqual(self.receipts, [])

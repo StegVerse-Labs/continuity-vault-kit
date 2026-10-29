@@ -70,3 +70,79 @@ def test_contract_digests_are_the_sha256_of_the_checked_in_bytes():
     for which, spec in ledgers.RECEIPT_LEDGERS.items():
         digest = "sha256:" + hashlib.sha256((ROOT / spec["contract_path"]).read_bytes()).hexdigest()
         assert spec["contract_sha256"] == digest, which
+
+
+# ---- the remaining live readers (runtime, docs, KV's own test harness) and the sealed byte copies -----------------------
+RETIRED_431 = tuple(p for p in RETIRED[:4])
+#: the vendored module's own path is a code path KV loads and pins by digest; it is not wording
+VENDORED_PATH = re.compile(r'llm_adapter/endpoint_ledger_designation\.py|"llm_adapter", "endpoint_ledger_designation\.py"')
+#: the one accurate sentence that tells readers not to revive the closed route (README and the handoff mirror)
+ANTI_REVIVAL = re.compile(r"Do not revive LLM-adapter #431.*?\(merge `[0-9a-f]{40}`\)\.", re.S)
+WITHDRAWN_ASSERTION = re.compile(r'^.*for withdrawn in \("#431".*$', re.M)
+LIVE_READERS = (
+    "runtime/kv_interlock_endpoint.py", "runtime/kv_skap_vault.py", "runtime/kv_receipt_ledgers.py",
+    "docs/KV_SKAP_VAULT_LADDER_CONFORMANCE.md", "docs/kv-skap-ledger-location.md", "README.md",
+    "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md", "tests/kv_two_layer_e0.py", "tests/test_kv_ladder_conformance_lc_kv.py",
+    "tests/test_kv_interlock_runtime_endpoint.py",
+)
+#: sealed byte copies of upstream receipts (LLM-adapter#432): path -> sha256. Their bytes are never edited here.
+SEALED = {
+    "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py":
+        "153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09",
+    "runtime/intr_pinned/llm_adapter/endpoint_ledger_designation.py":
+        "d69dbb22a1446a22e84b86532f93d9698ac6dc3c82e6aa6ee20882c6764049d8",
+    "runtime/intr_pinned/llm_adapter/intr_transport_carrier.py":
+        "9d3e69c838d7e20533f0c5a06401b018948cb12a4201889f6b41d4b497df720f",
+    "runtime/intr_pinned/llm_adapter/org_ledger_location.py":
+        "b51e6a8bd39ba6fd83044222a3858a2cb0c437020e3e9abbe97c4494d41f2681",
+    "runtime/intr_pinned/.stegverse/node-ledger/kv-ledger-head-signers.v1.json":
+        "758d798388599171c145e3d19ca4eb155ad3d3762a3721804da65c08ebc1fe72",
+    "tests/fixtures/intr_pinned_test_only/contract_with_431_location_and_pinned_genesis.json":
+        "ea81ca135bfd3b8e86a69251cf63d6f5aaa86fa46777dcec9370971dd0c5208a",
+}
+SIX_FIELD_NOTE = "## Sealed byte copies that still carry retired LLM-adapter#431 wording (six-field note"
+
+
+def _live_text(rel: str) -> str:
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    return WITHDRAWN_ASSERTION.sub("", ANTI_REVIVAL.sub("", VENDORED_PATH.sub("", text)))
+
+
+def test_live_readers_carry_no_retired_431_235_or_designation_module_reference():
+    for rel in LIVE_READERS:
+        text = _live_text(rel)
+        for pattern in RETIRED_431:
+            hit = pattern.search(text)
+            assert not hit, f"{rel}: {text[max(0, hit.start() - 40):hit.end() + 40]!r} matches {pattern.pattern}"
+
+
+def test_every_runtime_and_docs_file_outside_the_sealed_copies_is_clean():
+    scanned = [p for p in (ROOT / "runtime").glob("*.py")] + [p for p in (ROOT / "docs").rglob("*.md")]
+    assert scanned
+    for path in scanned:
+        rel = path.relative_to(ROOT).as_posix()
+        text = _live_text(rel)
+        for pattern in RETIRED_431:
+            assert not pattern.search(text), f"{rel}: {pattern.pattern}"
+
+
+def test_sealed_byte_copies_are_unedited_and_recorded_in_the_six_field_note():
+    pinned = (ROOT / "runtime/intr_pinned/PINNED.md").read_text(encoding="utf-8")
+    assert SIX_FIELD_NOTE in pinned
+    note = pinned[pinned.index(SIX_FIELD_NOTE):pinned.index("## Pin entry 2026-10-23")]
+    for field in ("CODE", "CLASS", "OBSERVED", "EXPECTED", "BLOCKS", "NEXT"):
+        assert f"* {field}: " in note, field
+    for rel, digest in SEALED.items():
+        assert hashlib.sha256((ROOT / rel).read_bytes()).hexdigest() == digest, f"{rel} bytes changed"
+        assert f"`{rel}`" in note and digest in note, rel
+
+
+def test_no_unlisted_file_under_intr_pinned_carries_the_retired_wording():
+    sealed = set(SEALED)
+    for path in (ROOT / "runtime/intr_pinned").rglob("*"):
+        rel = path.relative_to(ROOT).as_posix()
+        if not path.is_file() or rel in sealed or rel.endswith("PINNED.md"):
+            continue
+        text = path.read_text(encoding="utf-8")
+        for pattern in RETIRED_431:
+            assert not pattern.search(text), f"{rel} is not in the sealed list but matches {pattern.pattern}"
