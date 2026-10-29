@@ -289,3 +289,13 @@ Not here: the SKAP chain (reached only from inside KV, no InTr hop, so refused),
 the published `kv_ledger_head_signer`, never by this module), any dispatch or clock, and any Org->KV `intr-destination`
 path_id declaration (that stays a separate admitted change). Production is FAIL_CLOSED on KV #2
 (`KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR`) before anything is read or written.
+
+A crash between the receipt write and the `HEAD.json` update leaves an orphan receipt file (P4's note on
+continuity-vault-kit#284). Before writing, the writer looks at every `receipts/*.json`, chained or not, for the same
+crossing (same `(path_id, communication_id)` or the same Org record digest). A chained one is the duplicate refusal above.
+An unchained one is adopted only if it is byte-identical to the receipt this call would write now (same supplied epoch, on
+the current head), in which case only `HEAD.json` and the head record are written; otherwise it is refused, six-field
+FAIL_CLOSED `INTR_PATH_DESTINATION_CROSSING_ORPHAN_RECEIPT_NOT_ADOPTABLE` (a file that is not a receipt of its own name:
+`KV_CROSSING_RECEIPT_FILE_UNREADABLE`). Nothing is written or deleted in a refusal. The receipt file is created whole or
+not at all (written beside, then linked into place), so a stop never leaves half a receipt. A crossing never has two
+receipt files; the owner repairs an unadoptable orphan.
