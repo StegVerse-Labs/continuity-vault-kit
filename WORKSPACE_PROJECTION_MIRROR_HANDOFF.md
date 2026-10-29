@@ -115,6 +115,78 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
 - Site mirrors the same text (`reasons` on `StegVerseWorkspaceSessionAuthentication` and `StegVerseWorkspaceAssistantBinding`) and uses it for the DR2 and DR4 device-continuity "Why?".
 - Tests: `tests/test_workspace_decision_reasons.py` (every reachable predicate has a reason and every reason a reachable predicate; reasons are plain language; every session decision path carries a matching record; with a .github checkout, each record builds a conformant explanation whose "Why" is the reason; with a Site checkout, the Site text is identical).
 
+## Email-family projection from ADMIT receipts — Site#1509 lane A / Goal StegVerse-org/.github#164 (2026-10-28)
+- **Schema decision:** the existing family-projection contract carries email. `runtime/email_family_projection.py` emits one `stegverse.kv.email-family-projection/v1` document that `get_personal_family_projections` accepts verbatim under `_System/Workspace/projections/`. No new query class, record class or DEVICE_KV extension is added. One file covers every mapped mailbox, because the reader refuses duplicate schemas.
+- **Call:** `project_email_family(receipts, mappings, provider_positions, accepted_head_digest, prior=None, provider_cursor_refs=None, clock)`.
+  - `accepted_head_digest` is required. For the first projection it is `GENESIS_HEAD` (`GENESIS:stegverse.kv.email-family-projection/v1`) with no prior. After that it is the last accepted `projection_digest`, and the prior presented must be that projection.
+- **Inputs** are only:
+  - payload-free `stegverse.kv.email-ingress-receipt/v1` receipts, supplied in admission order. The per-mailbox `sequence`, `head_receipt_id` and `chain_digest` depend on that order;
+  - `stegverse.kv.email-account-mapping/v1` mappings.
+- **Output:**
+  - **Rows** carry ids, the receipt id, `staged_content_hash` and `payload_present: false`. They never carry the message body or the email address.
+  - **Each account** carries `skap_ref`, which must fully match `skap://\S+`.
+  - **Each account's cursor** carries `sequence`, `head_receipt_id`, `chain_digest`, `provider_position` and `provider_cursor_ref`.
+  - **Digest format:** `chain_digest` and `projection_digest` are `sha256:<64 hex>`.
+- **Provider position:**
+  - It is a non-negative integer, never a bool. Pass a StegAgents Gmail `history_id`, which is a decimal string, as `int(history_id)`.
+  - An equal position with new message ids is accepted, because Gmail can deliver several pages at one history id (StegAgents #46). Replays are still refused by message-id dedupe. Only a strictly lower position is `EMAIL_PROVIDER_CURSOR_ROLLBACK`.
+  - The optional `provider_cursor_refs[mapping_id]` is the StegAgents cursor receipt's `cursor_sha256` (`sha256:<64 hex>`). It is validated, then carried forward, and is null when it has never been supplied.
+- **Integrity, not authentication:** receipt ids, `chain_digest` and `projection_digest` are unkeyed SHA-256 digests. They detect alteration, but anyone can recompute them. Authentication stays with the authorized KV writer and TV/TVC.
+- **Account identity:** the source of truth is `mapping_id`. The table below maps fields to the StegAgents and Notifs consumers.
+
+  | Consumer field | Source |
+  |---|---|
+  | StegAgents `account_ref` | `mapping_id` |
+  | Notifs `account_id` | `mapping_id` |
+  | Notifs `receipt_ref` | `receipt_id` |
+  | Notifs `receipt_digest` | `"sha256:"` + hex SHA-256 of `receipt_id` |
+  | Notifs `message_digest` | `staged_content_hash` |
+  | Notifs `provider` | `provider_id` |
+  | Notifs `authenticated` | `mapping_state == "SESSION_VERIFIED"` |
+
+- **Refused cases** (DENY or FAIL_CLOSED, each with the six fields `failure_code`, `failed_predicate`, `required_evidence_or_repair`, `retry_entrypoint`, `owning_existing_goal`, `next_attempt`):
+  - an unadmitted message;
+  - a revoked mapping, or a session that is not verified;
+  - a replayed or duplicate ADMIT;
+  - content drift under the same message id;
+  - a provider-cursor rollback, or a cursor that is absent or not an integer;
+  - a cursor reference in the wrong format;
+  - a projection rollback against the accepted head, including a missing or genesis head presented with a prior;
+  - cross-account provenance;
+  - an absent or stale receipt;
+  - a receipt field in the wrong format: `kv-email-message:<64 hex>` or `sha256:<64 hex>` not fully matched, or a reason that is not text;
+  - a secret key (NFKC-normalised and case-folded), or a token-shaped string value (word-bounded): `gh[pousr]_` with 36 or more characters, `github_pat_` with 20 or more, a Slack `xox[baprs]-<digits>-…` token, `AKIA` plus 16 characters, a three-segment JWT, `bearer` followed by 16 or more token characters, or a PEM `PRIVATE KEY` header. Ordinary text such as `ghp_dev@gmail.com`, `skap://kv/xoxb-slack` or a route named `bearer auth` passes;
+  - a mapping whose `mapping_state` is not one of MAPPED_CREDENTIAL_REQUIRED, CREDENTIAL_BOUND, SESSION_VERIFIED or REVOKED, whose `provider_id` does not match `[a-z0-9][a-z0-9._-]{0,63}`, or whose `provider_route` is not printable, non-blank text of at most 512 characters;
+  - a provider position or cursor reference for a mailbox that has no account and no new receipts. It would otherwise be dropped silently, so it is refused as a cross-account DENY;
+  - a REVOKED mapping whose position or reference changes (DENY `EMAIL_MAPPING_REVOKED`);
+  - a cursor reference that changes without a position advance or new messages (DENY `EMAIL_PROVIDER_CURSOR_REF_UNJUSTIFIED`);
+  - a credential reference that is not `skap://`;
+  - receipt, mapping or prior digest drift;
+  - prior rows or cursors that are not exactly this producer's shape. This covers key sets, integer (not float or bool) sequences, the `kv-email-message:`, `sha256:` and `kv-email-receipt:` formats, duplicate `canonical_message_id` values, and authority flags that are not `false` or an `authority_effect` that is not `NONE`;
+  - a scan depth above 32;
+  - any raised exception from the inputs, the iterable or the clock, which becomes `EMAIL_INPUT_MALFORMED`;
+  - a clock without a UTC offset.
+- **Evidence class:** SOURCE + LOCAL_TEST. No mailbox, provider, SKAP resolution or KV write is involved. ALLOW carries `runtime_evidence: false` and `action_eligible: false`.
+- **Open gaps (owner work):**
+  - the authorized KV writer (BLK3), which persists `projections/email-family.json` and the accepted head digest;
+  - **genesis reset is enforced by the writer, not this module.** `GENESIS_HEAD` with `prior=None` starts a new chain whenever a caller presents it.
+    - `failure_code`: `EMAIL_PROJECTION_GENESIS_RESET_WRITER_ENFORCED`
+    - `failed_predicate`: `WRITER_NEVER_PRESENTS_GENESIS_AFTER_FIRST_ACCEPT`
+    - `required_evidence_or_repair`: the authorized KV writer persists the accepted head, and never passes `GENESIS_HEAD` once any projection has been accepted
+    - `retry_entrypoint`: `runtime.email_family_projection.project_email_family`
+    - `owning_existing_goal`: StegVerse-org/.github#164 (BLK3 writer)
+    - `next_attempt`: when the writer lands;
+  - **unbounded growth.** Every admitted row is kept so that replay dedupe covers the whole history.
+    - `failure_code`: `EMAIL_FAMILY_PROJECTION_UNBOUNDED_GROWTH`
+    - `failed_predicate`: `PROJECTION_SIZE_BOUNDED`
+    - `required_evidence_or_repair`: a compaction or checkpoint that keeps the dedupe set in KV
+    - `retry_entrypoint`: same as above
+    - `owning_existing_goal`: StegVerse-org/.github#164 (BLK3 writer)
+    - `next_attempt`: when compaction is designed;
+  - opaque provider cursors such as Graph delta links. They fail closed as `EMAIL_PROVIDER_CURSOR_INVALID`;
+  - live ADMIT receipts, which depend on email activation predicates 8 and 11.
+- **Test:** `tests/test_email_family_projection.py` (unittest), run by the existing `validate-kv-email-ingress-policy.validate` step 03. No new workflow is added.
+
 ## Organizational boundary
 This lane does not reinterpret Personal KV as Org-KV. Organizational Workspace projection requires a distinct Org-KV / Org-Emp-KV runtime and the conjunctive employee+machine+membership+capability+transition admission contract owned by StegOS.
 
