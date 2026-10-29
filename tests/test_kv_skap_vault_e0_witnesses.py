@@ -10,8 +10,8 @@ One ecosystem-only run, end to end. It uses no model, network, clock or credenti
      non-device provider. The git-ref adapter is withdrawn, and no provider is an access path.
      validate_vault_lineage_custody_result returns ALLOW only with the layer-1 and layer-2 receipts verified by
      the gate's verify_access_chain.
-  3. That receipt, the InTr, TVC and access receipts form the evidence bundle. The finish point reaches ALLOW
-     without a code edit and appends its receipt to a scratch organization ledger.
+  3. That receipt, the InTr, TVC and access receipts form the evidence bundle. The reference-only TVC
+     stand-in cannot authenticate custody issuance: the finish point stays FAIL_CLOSED and never appends.
 
 Every producer receipt is a structural stand-in with the producer's exact shape: InTr, TVC, the provider write, and
 the healthy-node receipt. Real producer receipts on admitted heads are UNKNOWN_NOT_AUTHENTICALLY_OBSERVED. No test
@@ -38,7 +38,9 @@ from runtime.task_registry_event_sovereign_kv_binding import (  # noqa: E402
 )
 from tests.kv_two_layer_e0 import E0_FINISH_POINT_CLI, TwoLayers  # noqa: E402
 from tests.kv_two_layer_e0 import enter_e0 as setUpModule, exit_e0 as tearDownModule  # noqa: E402,F401  (E0 trust anchors, labelled)
-from test_kv_skap_vault_finish_point import scratch_ledger, tvc_issuance  # noqa: E402
+from test_kv_skap_vault_finish_point import (
+    TVC_AUTHORITY_GAP, TVC_AUTHORITY_PREDICATE, failure_codes, scratch_ledger, tvc_issuance,
+)  # noqa: E402
 from test_task_registry_event_sovereign_kv_binding import provider_receipt  # noqa: E402
 
 PRINCIPAL = "principal:test"
@@ -90,30 +92,43 @@ class KvSkapVaultE0Witnesses(unittest.TestCase):
                 "durable_custody_readback_receipt": custody, "tvc_issuance_receipts": [issuance],
                 **self.layers.access_evidence()}
 
-    def test_e0_witness_run_reaches_allow_and_a_scratch_ledger_receipt(self) -> None:
+    def assert_unproven_issuance(self, verdict):
+        self.assertEqual(verdict["disposition"], "FAIL_CLOSED")
+        self.assertEqual(verdict["runtime_disposition"], "FAIL_CLOSED")
+        self.assertEqual(failure_codes(verdict), TVC_AUTHORITY_GAP)
+        self.assertFalse(verdict["ledger_append"]["ledger_append_attempted"])
+        self.assertFalse(verdict["ledger_append"]["real_ledger_written"])
+        self.assertEqual(verdict["ledger_append"]["failure_code"], "FINISH_POINT_VERDICT_NOT_ALLOW")
+
+    def ledger_tip(self):
+        return kv._git(self.ledger_git, "rev-parse", kv.ORGANIZATION_LEDGER_REF).stdout.strip()
+
+    def test_e0_reference_witnesses_refuse_authority_without_a_scratch_append(self) -> None:
         evidence = self.evidence()
         self.assertEqual(evidence["durable_custody_readback_receipt"]["disposition"], "ALLOW")
+        tip = self.ledger_tip()
         verdict = kv.finish_point(evidence, self.ledger_git)
-        self.assertEqual(verdict["disposition"], "ALLOW",
-                         [(r["predicate"], r.get("failure_code")) for r in verdict["predicates"]])
-        self.assertEqual(verdict["runtime_disposition"], "ALLOW", verdict["ledger_append"])
-        self.assertEqual(verdict["ledger_append"]["locus"], "SCRATCH_LEDGER")
-        self.assertFalse(verdict["ledger_append"]["real_ledger_written"])
+        self.assert_unproven_issuance(verdict)
+        self.assertEqual(self.ledger_tip(), tip)
         self.assertFalse(verdict["llm_used"] or verdict["network_used"] or verdict["clock_read"])
 
     def test_the_same_run_through_the_cli(self) -> None:
         path = Path(self._tmp.name) / "evidence.json"
         path.write_text(json.dumps(self.evidence()), encoding="utf-8")
+        tip = self.ledger_tip()
         proc = subprocess.run([*E0_FINISH_POINT_CLI, "finish-point", "--evidence", str(path),
                                "--scratch-ledger-git-dir", self.ledger_git], cwd=ROOT, capture_output=True,
                               text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stdout[-2000:])
+        self.assertEqual(proc.returncode, 2, proc.stdout[-2000:])
+        self.assert_unproven_issuance(json.loads(proc.stdout))
+        self.assertEqual(self.ledger_tip(), tip)
 
     def test_an_unsigned_ephemeral_opened_record_is_refused_then_the_finish_point_runs(self) -> None:
         """LC-KV-17 (P1 rev 5, class A, E0_TERMINAL_DECIDES_AS_REQUIRED): the vendored evaluate_anchored is #432
         @eecf4843 (this check unchanged since 1cbad77e), which refuses an EPHEMERAL node whose NODE_LEDGER_OPENED record is unsigned (c2c57505 admitted it)
         with EPHEMERAL_NODE_LEDGER_NOT_ANCHORED; a signed envelope whose key is not published is refused the same way
-        (owner TV/TVC). Neither mints a receipt, and the finish point still runs to ALLOW with the PERMANENT node."""
+        (owner TV/TVC). Neither mints a receipt. The PERMANENT fixture passes its node checks, while unproven TVC issuance
+        keeps the finish point FAIL_CLOSED."""
         from runtime import kv_interlock_endpoint as ep
         from tests.kv_two_layer_e0 import NODE, e0_health_ledger
         self.assertEqual(ep.PINNED_ANCHORED_EVALUATOR["commit"], "eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e")
@@ -133,8 +148,7 @@ class KvSkapVaultE0Witnesses(unittest.TestCase):
         # the PERMANENT node's own ledger and identity proof (the E0 transport holds the latest proof per node)
         self.layers = TwoLayers(principal=PRINCIPAL)
         verdict = kv.finish_point(self.evidence(), self.ledger_git)
-        self.assertEqual((verdict["disposition"], verdict["runtime_disposition"]), ("ALLOW", "ALLOW"),
-                         [(r["predicate"], r.get("failure_code")) for r in verdict["predicates"]])
+        self.assert_unproven_issuance(verdict)
 
     def test_unbound_custody_receipt_is_a_disposition_and_keeps_the_verdict_closed(self) -> None:
         evidence = self.evidence()
@@ -143,7 +157,8 @@ class KvSkapVaultE0Witnesses(unittest.TestCase):
         self.assertEqual(refused["disposition"], "FAIL_CLOSED")
         evidence["durable_custody_readback_receipt"] = refused
         verdict = kv.finish_point(evidence, self.ledger_git)
-        self.assertEqual(verdict["unmet_predicates"], ["ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED"])
+        self.assertEqual(verdict["unmet_predicates"], [
+            "ANY_DEVICE_CONTINUITY_WITH_NO_CONNECTED_DEVICE_REQUIRED", TVC_AUTHORITY_PREDICATE])
         self.assertEqual(verdict["ledger_append"]["failure_code"], "FINISH_POINT_VERDICT_NOT_ALLOW")
 
     def test_custody_without_verified_access_layers_is_refused(self) -> None:

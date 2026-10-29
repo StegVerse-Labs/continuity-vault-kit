@@ -934,3 +934,9 @@ https://github.com/StegVerse-org/.github/pull/249
 
 Session Prompt Count: 2. Cumulative Goal Prompt Count: UNVERIFIED; add this prompt
 without resetting the previous count.
+
+The hosted CI run for initial repair head 7b55199 executed all 40 finish-point
+tests successfully, then exposed four obsolete ALLOW assertions in the separate
+E0 witness suite. Those assertions now require unproven-issuance FAIL_CLOSED
+and no ledger append; access-layer and custody refusal checks remain. The
+combined finish-point and E0 witness suites are the validation target (45 tests).
