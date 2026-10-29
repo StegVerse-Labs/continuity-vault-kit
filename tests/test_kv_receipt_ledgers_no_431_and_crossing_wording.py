@@ -33,9 +33,18 @@ RETIRED = (
 )
 RULING = ("KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) "
           "and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737)")
-#: the sentence still sealed inside the two contracts' designation notes: contract bytes are digest-pinned, so a change is a
-#: separate admitted change that re-pins them (not made here). Runtime, docs and refusal text no longer carry it.
+#: the retired sentence: it no longer appears in the runtime, the docs, the refusal text or the two contracts.
 SEALED_CONTRACT_SENTENCE = "No Org→KV intr-destination path_id is declared until the KV-side crossing records are in code with tests"
+CONTRACT_DESIGNATED = ("The Org→KV crossing is designated :intr-destination in org_crossing_cross_check.path_ids: an InTr crossing "
+                       "between distinct parties (LC-KV-29), recorded on both ledgers")
+#: the two contract notes that carried the retired sentence; the sentence was the ONLY change to the contract
+SENTENCE_NOTES = ("org_membership", "path_ids_note")
+#: sha256 of each contract (canonical JSON, sorted keys) without those two notes. The same value was computed on the pre-change
+#: contract bytes (contract sha256 62244b5c / af70e4a3), so nothing else in the contract changed.
+CONTRACT_WITHOUT_SENTENCE_NOTES_SHA256 = {
+    ".stegverse/receipt-chains/skap-receipts.contract.json": "5e41dd8f83222814f4972cf5b4a40490ed635211d1ca1000bf0027a0979d65ca",
+    ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json": "d1c259ac5fa06087b6b87faf80274c334385af9aa275d05f944eebafbc632c0c",
+}
 DESIGNATED = ("The Org→KV intr-destination path_ids in org_crossing_cross_check.path_ids designate that crossing, a legitimate InTr "
               "crossing between distinct parties (LC-KV-29)")
 #: wording that describes the designated Org->KV crossing as absent, inert, or not an InTr crossing
@@ -65,7 +74,7 @@ def test_crossing_is_worded_per_the_lc_kv_29_ruling_and_the_designated_path_ids_
     for rel in CONTRACTS:
         body = json.loads((ROOT / rel).read_text(encoding="utf-8"))
         text = json.dumps(body, ensure_ascii=False)
-        assert RULING in text and SEALED_CONTRACT_SENTENCE in text, rel
+        assert RULING in text and CONTRACT_DESIGNATED in text and SEALED_CONTRACT_SENTENCE not in text, rel
         # the designation is valid and unchanged: one Org->KV intr-destination path_id per contract
         ids = body["ledger_designation"]["rollback_watermark_source"]["org_crossing_cross_check"]["path_ids"]
         assert len(ids) == 1 and re.fullmatch(r"StegVerse-org->STEGVERSE_KV:[^:]+:intr-destination", ids[0]), rel
@@ -167,3 +176,14 @@ def test_no_unlisted_file_under_intr_pinned_carries_the_retired_wording():
         text = path.read_text(encoding="utf-8")
         for pattern in RETIRED_431:
             assert not pattern.search(text), f"{rel} is not in the sealed list but matches {pattern.pattern}"
+
+
+def test_contract_change_is_only_the_retired_sentence_and_the_pins_follow_the_bytes():
+    for rel, expected in CONTRACT_WITHOUT_SENTENCE_NOTES_SHA256.items():
+        body = json.loads((ROOT / rel).read_bytes())
+        assert all(CONTRACT_DESIGNATED in body["designation_notes"][k] for k in SENTENCE_NOTES), rel
+        for k in SENTENCE_NOTES:
+            body["designation_notes"].pop(k)
+        assert hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode()).hexdigest() == expected, rel
+    for entry in ledgers.RECEIPT_LEDGERS.values():
+        assert entry["contract_sha256"] == "sha256:" + hashlib.sha256((ROOT / entry["contract_path"]).read_bytes()).hexdigest()
