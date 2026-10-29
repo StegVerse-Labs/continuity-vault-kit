@@ -3198,6 +3198,33 @@
           "run_sha256": "cd1e7237f185bc7d4568091d1347da38c563eff2862c984e5b26549fc9246643"
         }
       ]
+    },
+    {
+      "id": "kv-crossing-records.validate",
+      "source": {
+        "added_by": "StegVerse-org/.github#162 (P1, LC-KV-29)",
+        "name": "KV-side crossing records",
+        "note": "A catalog entry, not a workflow file (G17): runs the KV-side crossing record tests with 0 skipped"
+      },
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "env": {},
+      "artifacts": [],
+      "runner": {
+        "fetch_depth": "1",
+        "persist_credentials": "false",
+        "timeout_minutes": 15,
+        "python_version": "3.12"
+      },
+      "steps": [
+        {
+          "name": "One receipt per crossing, a duplicate refused (0 skipped)",
+          "run_file": "tools/tasks/steps/kv-crossing-records.validate/01-one-receipt-per-crossing-0-skipped.sh",
+          "run_sha256": "19aaed133e18a4002897dbf444a31def8db863ca82092396c5b79902709ac83f"
+        }
+      ]
     }
   ]
 }
