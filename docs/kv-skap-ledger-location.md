@@ -31,9 +31,9 @@ regenerate it, rehash it, or treat it as executed.
 
 Each contract keeps:
 
-- the `repository_ledger_location` keys of StegVerse-org/LLM-adapter#431, with KV-owned values: repository
+- KV's own `repository_ledger_location` keys, with KV-owned values: repository
   `STEGVERSE_KV`, ref `KV_INTR_ENDPOINT`, and the location above as the namespace;
-- a `ledger_designation` that uses the field names of #431 @a2237bc3 `llm_adapter/endpoint_ledger_designation.py`.
+- KV's own `ledger_designation` (schema `stegverse.endpoint-ledger-designation/v1`).
 
 Each designation names exactly one store, under `SINGLE_PROVIDER_V1`. That store is one documented storage endpoint
 v2 descriptor:

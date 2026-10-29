@@ -125,7 +125,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     KV_LEDGER: {
         "storage_location": "_StegVerse/Receipts",
         "contract_path": ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
-        "contract_sha256": "sha256:62eafaaaebcfa8fd20987f9b7c8e1f91ff06a3f053a5023052bfb7b7aa7629a4",
+        "contract_sha256": "sha256:199312839ba6eb250b65847b30f27465bb54f5219adfee44d5604c8735137a68",
         "repository": "STEGVERSE_KV:_StegVerse/Receipts",
         "carries": ["stegverse.kv-access-receipt/v1 (L1)"],
         "read_by": "runtime.kv_interlock_endpoint.KVInterlockRuntime (layer 1)",
@@ -136,7 +136,7 @@ RECEIPT_LEDGERS: dict[str, dict[str, Any]] = {
     SKAP_VAULT_LEDGER: {
         "storage_location": "_Vault/SKAP/Receipts",
         "contract_path": ".stegverse/receipt-chains/skap-receipts.contract.json",
-        "contract_sha256": "sha256:126e52f2925294b2282dc9ad10ffb03ff0b226b2ae2d94d516c2f6f81d659e93",
+        "contract_sha256": "sha256:0cc00034333d3ce82fc773e26db3475d4bad8e834ec1ffd2aad0271bee2df9f3",
         "repository": "STEGVERSE_KV:_Vault/SKAP/Receipts",
         "carries": ["stegverse.skap-access-receipt/v1 (L2)",
                     "stegverse.tvc.skap-custody-reference-issuance/v1 (TVC#537)",

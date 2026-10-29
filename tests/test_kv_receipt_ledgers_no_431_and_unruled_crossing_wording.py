@@ -1,6 +1,7 @@
 """Guard (ruling StegVerse-org/.github#167, LC-KV-29): KV's own ledger module and its two contracts carry no reference to
-StegVerse-org/LLM-adapter#431 or StegVerse-org#235 (the contracts keep one pre-existing #431 mention in their
-skap-receipts `rule` text, outside this wording-only change and pinned by digest), and the Org<->KV crossing is worded as unruled with the Org->KV
+StegVerse-org/LLM-adapter#431 or StegVerse-org#235, nor with the LLM-adapter endpoint_ledger_designation module (Coordination
+follow-up ruling YES: wrong content goes from every source bots read: the two receipt-chain contracts, the head-signers
+reference and docs/kv-skap-ledger-location.md), and the Org<->KV crossing is worded as unruled with the Org->KV
 path_id undeclared. Wording only: no behavior, no Org->KV path declared."""
 import hashlib
 import json
@@ -15,6 +16,11 @@ GUARDED = (
     ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
     ".stegverse/receipt-chains/skap-receipts.contract.json",
 )
+#: every other source of KV's ledger location that bots read (no Org-ledger or LLM-adapter reference either)
+GUARDED_SOURCES = GUARDED + (
+    ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
+    "docs/kv-skap-ledger-location.md",
+)
 RETIRED_REFS = (re.compile(r"LLM-adapter\s*#?\s*431", re.I), re.compile(r"(?<![\w/#])#431\b"),
                 re.compile(r"StegVerse-org\s*#?\s*235", re.I), re.compile(r"endpoint_ledger_designation\.py", re.I))
 UNRULED = ("Org↔KV crossing status is unruled; the Org→KV path_id is undeclared under protocol.json:174 "
@@ -22,7 +28,7 @@ UNRULED = ("Org↔KV crossing status is unruled; the Org→KV path_id is undecla
 
 
 def test_guarded_files_carry_no_431_or_235_reference():
-    for rel in GUARDED[:1]:
+    for rel in GUARDED_SOURCES:
         text = (ROOT / rel).read_text(encoding="utf-8")
         for pattern in RETIRED_REFS:
             assert not pattern.search(text), f"{rel}: new/retained reference matching {pattern.pattern}"
