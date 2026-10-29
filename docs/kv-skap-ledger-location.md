@@ -299,3 +299,27 @@ FAIL_CLOSED `INTR_PATH_DESTINATION_CROSSING_ORPHAN_RECEIPT_NOT_ADOPTABLE` (a fil
 `KV_CROSSING_RECEIPT_FILE_UNREADABLE`). Nothing is written or deleted in a refusal. The receipt file is created whole or
 not at all (written beside, then linked into place), so a stop never leaves half a receipt. A crossing never has two
 receipt files; the owner repairs an unadoptable orphan.
+
+Store errors and stray temp files (P4's non-blocking notes on continuity-vault-kit#284 and #285):
+
+- An `OSError` of the store (the lock, a read under it, a write, a sync, the hard link, a replace) returns a six-field
+  FAIL_CLOSED refusal and never raises: `KV_STORAGE_ENDPOINT_HARDLINK_UNSUPPORTED` (D), `KV_CROSSING_RECORD_STORE_WRITE_FAILED`
+  (D), `KV_CROSSING_RECORD_STORE_LOCK_FAILED` (D), `KV_CROSSING_RECORD_STORE_READ_FAILED` (D),
+  `KV_CROSSING_RECEIPT_FILE_ALREADY_PRESENT` (C, a name that appeared after the plan; never overwritten). `stopped_at` names
+  the exact step (`write_receipt`, `sync_receipt`, `link_receipt`, `write_head_json`, `sync_head_json`, `replace_head_json`,
+  `write_head_record`, `sync_head_record`, `replace_head_record`, `open_lock`, `flock`, `read_plan`, `read_under_lock`,
+  `read_head_record`), and `chain_state` with `receipt_file_written` / `head_json_written` / `head_record_written` /
+  `ledger_written` (true only once HEAD.json names the receipt) state the chain as it really is. The head record is read
+  before anything is written.
+  - `UNCHANGED`: nothing reached the chain; a retry at the same supplied epoch writes the record.
+  - `ORPHAN_RECEIPT_FILE_ONLY` (the receipt file is on disk, HEAD.json and the head record are not): a retry at the same
+    epoch adopts the byte-identical orphan; a retry at any other epoch is refused as a non-adoptable orphan.
+  - `HEAD_JSON_AHEAD_OF_HEAD_RECORD` (HEAD.json names the new receipt, the head record lacks it): no retry at any epoch
+    writes or adopts anything; every call is refused `KV_LEDGER_HEAD_ROLLBACK_DETECTED` until the owner repairs the head
+    record. The refusal says so and offers no same-epoch retry.
+- A `.kv-crossing-*` temp file left by a hard kill is never read as a receipt, and this writer never deletes anything in the
+  store. They are ignored when scanning and listed in `stray_temp_files` of the plan, the append result and every refusal
+  (and in a refusal's `detail`) so an operator can see them. The writer's own lock file is not a stray.
+- A torn or misnamed file in `receipts/` blocks every new crossing, not only its own, until the owner repairs it. This is
+  intentional and fail-closed (its crossing id cannot be read, so no new record can show it leaves that one with a single
+  receipt file). No behaviour change.

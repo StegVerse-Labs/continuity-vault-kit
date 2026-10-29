@@ -605,9 +605,417 @@ class CrashBetweenReceiptAndHead(Base):
             plan = cr.plan_crossing_record("kv", device_local(), root, crossing(), 41)
             where = Path(root) / rl.RECEIPT_LEDGERS["kv"]["storage_location"] / "receipts"
             target = where / (plan["receipt"]["receipt_sha256"][7:] + ".json")
-            with self.assertRaises(FileExistsError):
+            with self.assertRaises(cr.StoreWriteFailed) as caught:
                 cr._put_new(target.parent / sorted(p.name for p in where.glob("*.json"))[0], "x", Path(root))
+            self.assertEqual(caught.exception.stage, "link_receipt")
+            self.assertIsInstance(caught.exception.cause, FileExistsError)
             self.assertFalse([k for k in tree(root) if "kv-crossing-" in k])
+
+
+def _kv_tree_without_lock(root):
+    return {k: v for k, v in tree(root).items() if not k.endswith(cr.LOCK_NAME)}
+
+
+@contextlib.contextmanager
+def store_fault(name, error, after=0):
+    """TEST-ONLY: make os.<name> raise ``error`` (after ``after`` good calls), then restore it."""
+    real, calls = getattr(cr.os, name), {"n": 0}
+
+    def faulty(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] > after:
+            raise error
+        return real(*args, **kwargs)
+
+    setattr(cr.os, name, faulty)
+    try:
+        yield
+    finally:
+        setattr(cr.os, name, real)
+
+
+class StoreErrorsAreSixFieldRefusals(Base):
+    """P4's note on cvk#284/#285: a store that cannot hard-link, or fails a write or sync, is a refusal, not an OSError."""
+
+    def test_a_store_without_hard_links_is_refused_with_the_six_fields_and_nothing_is_written(self):
+        for errno_ in (1, 95, 18):   # EPERM, ENOTSUP, EXDEV
+            with self.subTest(errno=errno_), kv_chain() as (root, _):
+                before = _kv_tree_without_lock(root)
+                with store_fault("link", OSError(errno_, "hard links not supported")):
+                    out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+                self.assertSix(out, cr.HARDLINK_CODE, "D")
+                self.assertEqual((out["appended"], out["stopped_at"], out["receipt_file_written"]), (False, "link_receipt", False))
+                self.assertEqual(_kv_tree_without_lock(root), before)          # no receipt, no HEAD change, no temp left
+                self.assertEqual(out["stray_temp_files"], [])
+
+    def test_a_failed_sync_is_refused_with_the_six_fields_and_nothing_is_written(self):
+        with kv_chain() as (root, _):
+            before = _kv_tree_without_lock(root)
+            with store_fault("fsync", OSError(5, "I/O error")):
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            self.assertSix(out, cr.WRITE_FAILED_CODE, "D")
+            self.assertEqual((out["appended"], out["stopped_at"], out["receipt_file_written"]), (False, "sync_receipt", False))
+            self.assertEqual(_kv_tree_without_lock(root), before)
+
+    def test_a_failure_after_the_receipt_landed_says_so_and_a_retry_at_the_same_epoch_adopts_it(self):
+        with kv_chain() as (root, genesis):
+            with store_fault("replace", OSError(5, "I/O error")):             # HEAD.json cannot be replaced
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            self.assertSix(out, cr.WRITE_FAILED_CODE, "D")
+            self.assertEqual((out["stopped_at"], out["receipt_file_written"], out["head_json_written"]),
+                             ("replace_head_json", True, False))
+            self.assertEqual(out["chain_state"], "ORPHAN_RECEIPT_FILE_ONLY")
+            self.assertIn("unchained orphan", out["detail"])
+            self.assertEqual(chain_of(root)[-1]["receipt_sha256"], genesis["receipt_sha256"])    # chain unchanged
+            self.assertFalse(out["stray_temp_files"])                          # the writer removed its own temp
+            again = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            self.assertEqual((again["disposition"], again["appended"], again["adopts_orphan_receipt"]), ("ALLOW", True, True))
+            self.assertEqual(len(chain_of(root)), 2)
+
+    def test_a_receipt_name_that_appeared_after_the_plan_is_refused_not_raised(self):
+        with kv_chain() as (root, _):
+            plan = cr.plan_crossing_record("kv", device_local(), root, crossing(), 41)
+            target = (Path(root) / rl.RECEIPT_LEDGERS["kv"]["storage_location"] / "receipts"
+                      / (plan["receipt"]["receipt_sha256"][7:] + ".json"))
+            real = cr._put_new
+
+            def racing(path, text, tmp_dir):
+                path.write_text("someone else's bytes", encoding="utf-8")   # a writer outside this lock got there first
+                return real(path, text, tmp_dir)
+
+            cr._put_new = racing
+            try:
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            finally:
+                cr._put_new = real
+            self.assertSix(out, cr.FILE_PRESENT_CODE, "C")
+            self.assertEqual(target.read_text(encoding="utf-8"), "someone else's bytes")    # never overwritten or deleted
+
+    def test_an_unwritable_read_back_root_is_a_refusal_for_the_lock_too(self):
+        with kv_chain() as (root, _):
+            real = open
+
+            def deny(path, *a, **k):
+                if str(path).endswith(cr.LOCK_NAME):
+                    raise PermissionError(13, "denied")
+                return real(path, *a, **k)
+
+            cr.open = deny
+            try:
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            finally:
+                del cr.open
+            self.assertSix(out, cr.LOCK_FAILED_CODE, "D")
+
+
+class StoreFailuresReportTheRealChainState(Base):
+    """P4's FAIL_CLOSED CVK286_STORE_FAILURE_REPORT_MISSTATES_CHAIN_STATE on cvk#286 @ 9e88b9e9: each failure names its exact
+    step, states the chain as it really is, and a retry behaves exactly as the report says. No OSError escapes."""
+
+    def _inject(self, op, error, nth):
+        """Fail the nth call of cr.<op> (os.replace, os.fsync, tempfile.mkstemp, fcntl.flock) with ``error``."""
+        owner = cr.tempfile if op == "mkstemp" else cr.fcntl if op == "flock" else cr.os
+        real, calls = getattr(owner, op), {"n": 0}
+
+        def faulty(*args, **kwargs):
+            if op == "flock" and args[1] != cr.fcntl.LOCK_EX:
+                return real(*args, **kwargs)
+            calls["n"] += 1
+            if calls["n"] == nth:
+                raise error
+            return real(*args, **kwargs)
+
+        setattr(owner, op, faulty)
+        return lambda: setattr(owner, op, real)
+
+    def _fail(self, root, op, nth, epoch=41, comm="comm-1"):
+        restore = self._inject(op, OSError(5, "I/O error"), nth)
+        try:
+            return cr.append_crossing_record("kv", device_local(), root, crossing(comm), epoch)
+        finally:
+            restore()
+
+    def _files(self, root):
+        return sorted(p.name for p in (Path(root) / rl.RECEIPT_LEDGERS["kv"]["storage_location"] / "receipts").glob("*.json"))
+
+    def _head_json(self, root):
+        return json.loads((Path(root) / rl.RECEIPT_LEDGERS["kv"]["storage_location"] / "HEAD.json").read_text())["receipt_sha256"]
+
+    def test_every_write_stage_has_its_own_name(self):
+        seen = {}
+        for op, nth, stage in (("mkstemp", 1, "write_receipt"), ("fsync", 1, "sync_receipt"), ("mkstemp", 2, "write_head_json"),
+                               ("fsync", 2, "sync_head_json"), ("replace", 1, "replace_head_json"),
+                               ("mkstemp", 3, "write_head_record"), ("fsync", 3, "sync_head_record"),
+                               ("replace", 2, "replace_head_record")):
+            with self.subTest(stage=stage), kv_chain() as (root, _):
+                out = self._fail(root, op, nth)
+                self.assertEqual((out["disposition"], out["failure_code"], out["failure_class"]), ("FAIL_CLOSED", cr.WRITE_FAILED_CODE, "D"))
+                for field in SIX:
+                    self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
+                self.assertEqual(out["stopped_at"], stage)
+                seen[stage] = out["chain_state"]
+                self.assertFalse(out["stray_temp_files"], "the writer removes only its own temp")
+        self.assertEqual(len(seen), 8)
+        self.assertEqual(seen["write_receipt"], seen["sync_receipt"], "UNCHANGED")
+        self.assertEqual({seen[k] for k in ("write_head_json", "sync_head_json", "replace_head_json")}, {"ORPHAN_RECEIPT_FILE_ONLY"})
+        self.assertEqual({seen[k] for k in ("write_head_record", "sync_head_record", "replace_head_record")},
+                         {"HEAD_JSON_AHEAD_OF_HEAD_RECORD"})
+
+    def test_before_the_receipt_lands_the_chain_is_unchanged_and_a_same_epoch_retry_records_it(self):
+        for op, nth in (("mkstemp", 1), ("fsync", 1)):
+            with self.subTest(op=op), kv_chain() as (root, genesis):
+                before = _kv_tree_without_lock(root)
+                out = self._fail(root, op, nth)
+                self.assertEqual((out["chain_state"], out["receipt_file_written"], out["head_json_written"],
+                                  out["head_record_written"], out["ledger_written"]), ("UNCHANGED", False, False, False, False))
+                self.assertEqual(_kv_tree_without_lock(root), before)
+                self.assertIn("nothing of this record reached the chain", out["detail"])
+                again = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+                self.assertEqual((again["disposition"], again["appended"]), ("ALLOW", True))
+                self.assertEqual(len(chain_of(root)), 2)
+                self.assertEqual(len(self._files(root)), 2)
+
+    def test_receipt_on_disk_but_head_json_not_says_orphan_and_a_same_epoch_retry_adopts_it_only(self):
+        for op, nth in (("mkstemp", 2), ("fsync", 2), ("replace", 1)):
+            with self.subTest(op=op, nth=nth), kv_chain() as (root, genesis):
+                out = self._fail(root, op, nth)
+                self.assertEqual((out["chain_state"], out["receipt_file_written"], out["head_json_written"],
+                                  out["head_record_written"], out["ledger_written"]),
+                                 ("ORPHAN_RECEIPT_FILE_ONLY", True, False, False, False))
+                self.assertEqual(self._head_json(root), genesis["receipt_sha256"])          # HEAD.json really is unchanged
+                self.assertEqual(len(self._files(root)), 2)
+                self.assertIn("same supplied epoch", out["next_attempt"])
+                self.assertIn("adopted", out["next_attempt"])
+                other = cr.append_crossing_record("kv", device_local(), root, crossing(), 42)   # any other epoch
+                self.assertSix(other, cr.ORPHAN_CODE, "C")
+                self.assertEqual(len(self._files(root)), 2)
+                again = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+                self.assertEqual((again["disposition"], again["appended"], again["adopts_orphan_receipt"]), ("ALLOW", True, True))
+                self.assertEqual((len(chain_of(root)), len(self._files(root))), (2, 2))
+
+    def test_head_json_landed_but_head_record_not_says_so_and_every_retry_is_refused_as_rollback(self):
+        for op, nth, stage in (("mkstemp", 3, "write_head_record"), ("fsync", 3, "sync_head_record"),
+                               ("replace", 2, "replace_head_record")):
+            with self.subTest(stage=stage), kv_chain() as (root, genesis):
+                out = self._fail(root, op, nth)
+                self.assertEqual((out["disposition"], out["failure_code"], out["stopped_at"]), ("FAIL_CLOSED", cr.WRITE_FAILED_CODE, stage))
+                for field in SIX:
+                    self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
+                self.assertEqual((out["chain_state"], out["receipt_file_written"], out["head_json_written"],
+                                  out["head_record_written"], out["ledger_written"], out["appended"]),
+                                 ("HEAD_JSON_AHEAD_OF_HEAD_RECORD", True, True, False, True, False))
+                new = self._head_json(root)
+                self.assertNotEqual(new, genesis["receipt_sha256"])                          # HEAD.json names the new receipt
+                self.assertEqual(len(self._files(root)), 2)
+                self.assertEqual(out["failed_predicate"], "KV_HEAD_RECORD_NAMES_THE_RECEIPT_HEAD_JSON_HOLDS")
+                for must in ("HEAD.json names the new receipt", "head record does not yet hold it"):
+                    self.assertIn(must, out["detail"])
+                for must in ("every call at any epoch is refused KV_LEDGER_HEAD_ROLLBACK_DETECTED", "nothing is adopted"):
+                    self.assertIn(must, out["next_attempt"])
+                self.assertIn("owner's repair of KV's head record", out["required_evidence_or_repair"])
+                for text in (out["detail"], out["next_attempt"], out["required_evidence_or_repair"]):
+                    self.assertNotIn("same supplied epoch", text)       # no same-epoch retry is offered
+                    self.assertNotIn("orphan is adopted", text)
+                    self.assertNotIn("unchained orphan", text)
+                before = _kv_tree_without_lock(root)
+                for epoch, comm in ((41, "comm-1"), (42, "comm-1"), (41, "comm-2")):         # same crossing, other epoch, other crossing
+                    retry = cr.append_crossing_record("kv", device_local(), root, crossing(comm, "sha256:" + "0e" * 32 if comm == "comm-2" else ORG_SOURCE), epoch)
+                    self.assertEqual((retry["disposition"], retry["failure_code"]), ("DENY", "KV_LEDGER_HEAD_ROLLBACK_DETECTED"))
+                    self.assertFalse(retry.get("appended"))
+                self.assertEqual(_kv_tree_without_lock(root), before)                        # no retry wrote or deleted anything
+
+    def test_a_failing_flock_is_a_lock_refusal_and_nothing_is_written(self):
+        with kv_chain() as (root, _):
+            before = _kv_tree_without_lock(root)
+            restore = self._inject("flock", OSError(37, "No locks available"), 1)
+            try:
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            finally:
+                restore()
+            self.assertSix(out, cr.LOCK_FAILED_CODE, "D")
+            self.assertEqual((out["stopped_at"], out["chain_state"], out["appended"], out["receipt_file_written"]),
+                             ("flock", "UNCHANGED", False, False))
+            self.assertIn("errno=37", out["detail"])
+            self.assertEqual(_kv_tree_without_lock(root), before)
+            again = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            self.assertEqual((again["disposition"], again["appended"]), ("ALLOW", True))
+
+    def test_a_failing_read_of_the_head_record_under_the_lock_is_a_read_refusal_and_nothing_is_written(self):
+        with kv_chain() as (root, _):
+            before = _kv_tree_without_lock(root)
+            real, reads = Path.read_text, {"n": 0}
+
+            def faulty(self_, *a, **k):
+                if self_.name == rl.HEAD_RECORD:
+                    reads["n"] += 1
+                    if reads["n"] == 5:                       # the append's own read, after both plans (2 + 2 reads)
+                        raise OSError(5, "I/O error")
+                return real(self_, *a, **k)
+
+            Path.read_text = faulty
+            try:
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            finally:
+                Path.read_text = real
+            self.assertEqual(reads["n"], 5)
+            self.assertSix(out, cr.READ_FAILED_CODE, "D")
+            self.assertEqual((out["stopped_at"], out["chain_state"], out["appended"], out["receipt_file_written"]),
+                             ("read_head_record", "UNCHANGED", False, False))
+            self.assertEqual(_kv_tree_without_lock(root), before)      # read first, so no receipt was written
+            self.assertTrue(cr.append_crossing_record("kv", device_local(), root, crossing(), 41)["appended"])
+
+    def test_a_raising_scan_under_the_lock_and_before_it_is_a_read_refusal_not_an_error(self):
+        for nth, stage in ((1, "read_plan"), (2, "read_under_lock")):
+            with self.subTest(stage=stage), kv_chain() as (root, _):
+                before = _kv_tree_without_lock(root)
+                real, calls = cr.Path.glob, {"n": 0}
+
+                def faulty(self_, pattern):
+                    if self_.name == "receipts":
+                        calls["n"] += 1
+                        if calls["n"] == nth:
+                            raise OSError(5, "I/O error")
+                    return real(self_, pattern)
+
+                cr.Path.glob = faulty
+                try:
+                    out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+                finally:
+                    cr.Path.glob = real
+                self.assertSix(out, cr.READ_FAILED_CODE, "D")
+                self.assertEqual((out["stopped_at"], out["chain_state"], out["appended"]), (stage, "UNCHANGED", False))
+                self.assertEqual(_kv_tree_without_lock(root), before)
+                self.assertTrue(cr.append_crossing_record("kv", device_local(), root, crossing(), 41)["appended"])
+
+    def test_the_pure_plan_also_returns_a_refusal_for_a_failing_read(self):
+        with kv_chain() as (root, _):
+            real = cr.Path.glob
+
+            def faulty(self_, pattern):
+                if self_.name == "receipts":
+                    raise OSError(5, "I/O error")
+                return real(self_, pattern)
+
+            cr.Path.glob = faulty
+            try:
+                out = cr.plan_crossing_record("kv", device_local(), root, crossing(), 41)
+            finally:
+                cr.Path.glob = real
+            self.assertSix(out, cr.READ_FAILED_CODE, "D")
+            self.assertEqual(out["stopped_at"], "read_plan")
+
+    def test_a_lock_file_that_cannot_be_opened_says_unchanged_and_may_leave_an_empty_lock_file(self):
+        with kv_chain() as (root, _):
+            real = open
+
+            def deny(path, *a, **k):
+                if str(path).endswith(cr.LOCK_NAME):
+                    raise PermissionError(13, "denied")
+                return real(path, *a, **k)
+
+            cr.open = deny
+            try:
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            finally:
+                del cr.open
+            self.assertSix(out, cr.LOCK_FAILED_CODE, "D")
+            self.assertEqual((out["stopped_at"], out["chain_state"]), ("open_lock", "UNCHANGED"))
+            self.assertIn("empty lock file may exist", out["detail"])
+
+
+class StrayTempFiles(Base):
+    """P4's note on cvk#284/#285: a hard kill can leave a .kv-crossing-* temp file. It is never read as a receipt, never
+    deleted by this writer, and its presence is reported so an operator can see it."""
+
+    def _stray(self, root, name=".kv-crossing-abc123", where=None, text="x"):
+        folder = Path(root) / where if where else Path(root)
+        path = folder / name
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_a_stray_temp_holding_a_valid_receipt_is_never_a_receipt_or_an_orphan_or_a_duplicate(self):
+        with kv_chain() as (root, _):
+            planned = cr.plan_crossing_record("kv", device_local(), root, crossing(), 41)
+            receipts = Path(root) / rl.RECEIPT_LEDGERS["kv"]["storage_location"] / "receipts"
+            for folder, name in ((None, ".kv-crossing-aaaa"), (rl.RECEIPT_LEDGERS["kv"]["storage_location"], ".kv-crossing-bbbb"),
+                                 (Path(rl.RECEIPT_LEDGERS["kv"]["storage_location"]) / "receipts", ".kv-crossing-cccc.json")):
+                self._stray(root, name, folder, json.dumps(planned["receipt"]))        # the exact receipt, in a temp file
+            before = tree(root)
+            plan = cr.plan_crossing_record("kv", device_local(), root, crossing(), 41)
+            self.assertEqual((plan["disposition"], plan["adopts_orphan_receipt"]), ("ALLOW", False), plan)
+            self.assertEqual(len(plan["stray_temp_files"]), 3)
+            out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            self.assertEqual((out["disposition"], out["appended"], out["adopts_orphan_receipt"]), ("ALLOW", True, False))
+            self.assertEqual(len(chain_of(root)), 2)
+            self.assertTrue(all(k in tree(root) for k in before))                      # not one stray was deleted or changed
+            self.assertTrue(all(tree(root)[k] == v for k, v in before.items() if ".kv-crossing-" in k))
+            self.assertEqual(len(list(receipts.glob("*.json"))), 3)                    # genesis, the new receipt, the .json stray
+
+    def test_the_lock_file_is_not_a_stray_and_a_clean_store_reports_none(self):
+        with kv_chain() as (root, _):
+            self.assertEqual(cr.append_crossing_record("kv", device_local(), root, crossing(), 41)["stray_temp_files"], [])
+            self.assertTrue((Path(root) / cr.LOCK_NAME).exists())
+            self.assertEqual(cr.stray_temp_files("kv", root), [])
+            self.assertEqual(cr.stray_temp_files("kv", None), [])
+
+    def test_every_refusal_names_the_strays_in_its_detail_and_fields_and_deletes_nothing(self):
+        with kv_chain() as (root, _):
+            self.assertEqual(cr.append_crossing_record("kv", device_local(), root, crossing(), 41)["appended"], True)
+            self._stray(root)
+            before = _kv_tree_without_lock(root)
+            for out in (cr.append_crossing_record("kv", device_local(), root, crossing(), 42),            # duplicate
+                        cr.plan_crossing_record("kv", device_local(), root, crossing(digest="sha256:" + "0d" * 32), 41),  # stale epoch
+                        cr.plan_crossing_record("kv", device_local(), root, {"path_id": 1}, 41)):             # malformed
+                self.assertEqual(out["disposition"], "FAIL_CLOSED", out)
+                self.assertEqual(out["stray_temp_files"], [".kv-crossing-abc123"])
+                self.assertIn(".kv-crossing-abc123", out["detail"])
+                self.assertIn("not deleted", out["detail"])
+            self.assertEqual(_kv_tree_without_lock(root), before)
+
+    def test_a_write_refusal_also_reports_the_strays(self):
+        with kv_chain() as (root, _):
+            self._stray(root)
+            with store_fault("link", OSError(1, "no hard links")):
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            self.assertSix(out, cr.HARDLINK_CODE, "D")
+            self.assertEqual(out["stray_temp_files"], [".kv-crossing-abc123"])
+            self.assertIn(".kv-crossing-abc123", out["detail"])
+
+    def test_a_hard_kill_between_mkstemp_and_unlink_leaves_a_stray_that_the_next_call_reports(self):
+        with kv_chain() as (root, _):
+            real = cr.os.unlink
+
+            def kill(*a, **k):
+                raise Crash()           # the process dies before its temp file is removed
+
+            cr.os.unlink = kill
+            try:
+                with self.assertRaises(Crash):
+                    cr.append_crossing_record("kv", device_local(), root, crossing(), 41)
+            finally:
+                cr.os.unlink = real
+            strays = cr.stray_temp_files("kv", root)
+            self.assertTrue(strays and all(s.startswith(".kv-crossing-") for s in strays), strays)
+            after = cr.append_crossing_record("kv", device_local(), root, crossing(), 41)    # same epoch: adopts the orphan
+            self.assertEqual((after["disposition"], after["appended"]), ("ALLOW", True), after)
+            self.assertEqual(after["stray_temp_files"], strays)
+            self.assertEqual(sorted(p for p in strays if (Path(root) / p).exists()), strays)    # still there, never deleted
+
+
+class TornReceiptBlocksEveryCrossingByDesign(Base):
+    """P4's note (c): intentional and fail-closed; documented in the module docstring. No behaviour change."""
+
+    def test_a_torn_receipt_file_blocks_every_new_crossing_and_is_neither_repaired_nor_deleted(self):
+        with kv_chain() as (root, _):
+            torn = (Path(root) / rl.RECEIPT_LEDGERS["kv"]["storage_location"] / "receipts" / ("ab" * 32 + ".json"))
+            torn.write_text('{"schema": "stegverse.repo-transition-rec', encoding="utf-8")
+            before = _kv_tree_without_lock(root)
+            for n in (1, 2):
+                out = cr.append_crossing_record("kv", device_local(), root, crossing(f"comm-{n}", "sha256:" + f"{n:02x}" * 32), 41)
+                self.assertSix(out, cr.UNREADABLE_CODE, "C")
+            self.assertEqual(_kv_tree_without_lock(root), before)
+            self.assertIn("blocks every new crossing", cr.__doc__)
+            self.assertIn("intentional", cr.__doc__)
 
 
 class NoOtherSurface(unittest.TestCase):
