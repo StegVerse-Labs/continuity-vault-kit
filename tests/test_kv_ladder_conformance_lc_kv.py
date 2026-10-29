@@ -921,7 +921,8 @@ class KvSkapLedgerLocation(unittest.TestCase):
                 with self.subTest(which=which, edit=edit.__name__), kv_chain_e0(which, None, edit):
                     out = rl.read_receipt_ledger(which)
                     self.assertSix(out, "ENDPOINT_ORG_MEMBERSHIP_REFUSED", "C")
-                    self.assertIn("InTr", out["required_evidence_or_repair"])
+                    self.assertIn("recorded on both ledgers", out["required_evidence_or_repair"])
+                    self.assertNotIn("UNRULED", out["required_evidence_or_repair"])
                     self.assertEqual(out["failed_predicate"], "ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER")
 
     def test_an_unknown_designation_key_is_refused_by_the_closed_schema(self):
