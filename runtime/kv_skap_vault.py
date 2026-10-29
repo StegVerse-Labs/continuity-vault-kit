@@ -1114,7 +1114,15 @@ def _evidence_tvc(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
             return ("TVC_CUSTODY_KEY_ISSUANCE_RECEIPT_INVALID", "C",
                     f"the issuance receipt for {body.get('custody_key_ref')!r} must re-derive as a TV/TVC "
                     f"{TVC_ISSUANCE_SCHEMA} for this principal and reference, with no material")
-    return None
+    # The v1 reference receipt proves digest consistency only. Every field,
+    # including issuer and live_key_slot_binding, is caller-controlled. Until
+    # the existing TV/TVC authority supplies an independently verified issuance
+    # witness, it cannot satisfy the credential-authority predicate. Do not
+    # replace this refusal with a check of a self-asserted binding flag.
+    return ("TVC_CUSTODY_ISSUANCE_AUTHENTICITY_NOT_PROVEN", "B",
+            "authenticate issuance through existing TV/TVC custody, binding the manifest, principal, "
+            "task, custody-key reference and live slot, and verify current non-revoked authority; "
+            "a correctly hashed reference-only v1 receipt is insufficient")
 
 
 _EVIDENCE_CHECKS = {
@@ -1187,8 +1195,15 @@ def evaluate(evidence: Any = None) -> dict[str, Any]:
         if failure is None:
             results.append({"predicate": predicate, "disposition": "ALLOW", "locus": "LOCAL_EXERCISE+EVIDENCE"})
         else:
-            results.append(_row(predicate, failure[0], failure[1], failure[2],
-                                owner if failure[0] == code else GOAL_REF, relation if failure[0] == code else None))
+            if failure[0] == "TVC_CUSTODY_ISSUANCE_AUTHENTICITY_NOT_PROVEN":
+                results.append(_row(
+                    predicate, failure[0], failure[1], failure[2],
+                    "TV/TVC (TVC#537 authenticated issuance); KV consumer integration", "CONSUMES",
+                    next_attempt="after TV/TVC supplies an authenticated issuance witness and the KV consumer "
+                    "integrates its verifier; an evidence-only retry cannot satisfy this check"))
+            else:
+                results.append(_row(predicate, failure[0], failure[1], failure[2],
+                                    owner if failure[0] == code else GOAL_REF, relation if failure[0] == code else None))
     access = _access_rows(evidence if isinstance(evidence, dict) and evidence.get("schema") == EVIDENCE_SCHEMA
                           and isinstance(evidence.get("lineage"), dict) else None, lineage_failure)
     for index, row in enumerate(results):
