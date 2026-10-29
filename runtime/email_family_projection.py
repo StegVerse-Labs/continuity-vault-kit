@@ -8,15 +8,32 @@ carries any PERSONAL, non-authorizing ``stegverse.kv.<family>-projection/vN`` fi
 
 Inputs are payload-free ``stegverse.kv.email-ingress-receipt/v1`` receipts (``runtime/email_ingress_pipeline``),
 ``stegverse.kv.email-account-mapping/v1`` mappings (``runtime/email_continuity``), the prior email-family
-projection, and a caller-supplied integer provider position per mailbox. Nothing here reads mail, contacts a
-provider, resolves a SKAP reference, writes a file or grants authority. Every refusal is DENY or FAIL_CLOSED and
+projection with the accepted head digest (``GENESIS_HEAD`` for the first projection), a caller-supplied integer
+provider position per mailbox, and optional provider cursor receipt references. Nothing here reads mail, contacts
+a provider, resolves a SKAP reference, writes a file or grants authority. Every refusal is DENY or FAIL_CLOSED and
 carries the six actionable fields (failure_code, failed_predicate, required_evidence_or_repair, retry_entrypoint,
 owning_existing_goal, next_attempt). A produced projection is SOURCE/LOCAL evidence only, never runtime activation.
+
+Integrity, not authentication: receipt ids, ``chain_digest`` and ``projection_digest`` are unkeyed SHA-256 digests.
+They detect accidental or partial alteration; anyone can recompute them, so they do not authenticate who produced a
+receipt or projection. Authentication remains the job of the authorized KV writer and TV/TVC.
+
+Ordering: receipts are projected in the order supplied, which must be admission order. Per-mailbox ``sequence``,
+``head_receipt_id`` and ``chain_digest`` depend on that order.
+
+Provider position: a non-negative integer that never decreases per mailbox. Several receipt batches may share one
+position (Gmail can deliver several pages at one history id); message-id dedupe still refuses replays. A
+StegAgents Gmail ``history_id`` (a decimal string) is passed as ``int(history_id)``. ``provider_cursor_refs`` may
+carry the StegAgents cursor receipt's ``cursor_sha256`` (``sha256:<64 hex>``) per mapping; it is carried forward.
+
+Account identity: ``mapping_id`` is the account key (StegAgents ``account_ref`` and Notifs ``account_id`` use it).
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import re
+import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Callable, Iterable
 
@@ -26,9 +43,11 @@ from runtime.workspace_projection import FORBIDDEN, METADATA_SCHEMA
 SCHEMA = "stegverse.kv.email-family-projection/v1"
 RECEIPT_SCHEMA = "stegverse.kv.email-ingress-receipt/v1"
 MAPPING_SCHEMA = "stegverse.kv.email-account-mapping/v1"
+GENESIS_HEAD = "GENESIS:" + SCHEMA
 OWNING_GOAL = "StegVerse-org/.github#164 (P2-workspace-cryptobot); coordination StegVerse-Labs/Site#1509"
 RETRY_ENTRYPOINT = "runtime.email_family_projection.project_email_family"
 RETRY_ENTRYPOINTS_TEXT = RETRY_ENTRYPOINT + " (local test: tests/test_email_family_projection.py)"
+MAX_SCAN_DEPTH = 32
 
 RECEIPT_KEYS = frozenset({
     "schema", "receipt_id", "mapping_id", "canonical_message_id", "staged_content_hash", "decision", "reason",
@@ -38,13 +57,24 @@ MAPPING_KEYS = frozenset({
     "schema", "mapping_id", "email_address", "provider_id", "provider_route", "mapping_state",
     "skap_credential_ref", "credential_secret_present_in_kv", "authority_effect",
 })
+ROW_KEYS = frozenset({"mapping_id", "canonical_message_id", "receipt_id", "staged_content_hash", "trust_state", "payload_present", "sequence"})
+ACCOUNT_KEYS = frozenset({"mapping_id", "provider_id", "mapping_state", "skap_ref", "cursor"})
+CURSOR_KEYS = frozenset({"sequence", "head_receipt_id", "chain_digest", "provider_position", "provider_cursor_ref"})
 # Contract keys whose names contain a forbidden word but whose values are references or booleans, never secrets.
 _CONTRACT_KEYS = frozenset({"skap_credential_ref", "credential_secret_present_in_kv"})
 FLAG_KEYS = ("credential_material_present", "provider_operation_authorized", "workspace_grants_authority")
 
+_SHA256 = re.compile(r"sha256:[0-9a-f]{64}")
+_MESSAGE_ID = re.compile(r"kv-email-message:[0-9a-f]{64}")
+_SKAP_REF = re.compile(r"skap://\S+")
+_CREDENTIAL_VALUE = re.compile(
+    r"(?i:bearer\s+\S)|\bgh[pousr]_[A-Za-z0-9]|github_pat_|-----BEGIN|AKIA[0-9A-Z]{16}|xox[baprs]-"
+    r"|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.")
+
 REPAIRS = {
     "EMAIL_ADMIT_RECEIPT_ABSENT": "a complete stegverse.kv.email-ingress-receipt/v1 receipt for the message, as decide() emits it",
     "EMAIL_ADMIT_RECEIPT_STALE": "a receipt issued by the current ingress pipeline (stegverse.kv.email-ingress-receipt/v1, payload-free, authority NONE)",
+    "EMAIL_RECEIPT_FORMAT_INVALID": "receipt fields in the pipeline's formats (kv-email-message:<64 hex>, sha256:<64 hex>, text reason)",
     "EMAIL_ADMIT_RECEIPT_DIGEST_DRIFT": "the receipt exactly as decide() emitted it; its receipt_id must recompute from its own material",
     "EMAIL_MESSAGE_UNADMITTED": "an ADMIT decision from governed ingress; QUARANTINE, REVIEW, REJECT and FAIL_CLOSED messages are never projected",
     "EMAIL_SECRET_FIELD_PRESENT": "inputs without credential material; mailbox credentials stay in SKAP Vault and only a skap:// reference may appear",
@@ -57,14 +87,15 @@ REPAIRS = {
     "EMAIL_ADMIT_REPLAYED": "a receipt not already projected; a replayed ADMIT is reconciled as ALREADY_EVALUATED, not re-admitted",
     "EMAIL_CONTENT_DRIFT": "the original staged content; a changed message under the same provider identity is never re-admitted silently",
     "EMAIL_PROVIDER_CURSOR_ABSENT": "an integer provider position for every mailbox receiving new receipts",
-    "EMAIL_PROVIDER_CURSOR_INVALID": "a non-negative integer provider position (opaque provider cursors are not supported by this producer)",
-    "EMAIL_PROVIDER_CURSOR_ROLLBACK": "a provider position at or after the last accepted one (strictly after it when new receipts are projected)",
-    "EMAIL_PROJECTION_ROLLBACK": "the last accepted email-family projection as prior; an older or absent prior never replaces the accepted head",
+    "EMAIL_PROVIDER_CURSOR_INVALID": "a non-negative integer provider position (pass a Gmail history_id as int(history_id); opaque cursors are not supported)",
+    "EMAIL_PROVIDER_CURSOR_REF_INVALID": "a provider cursor receipt reference of the form sha256:<64 hex> (the StegAgents cursor_sha256)",
+    "EMAIL_PROVIDER_CURSOR_ROLLBACK": "a provider position at or after the last accepted one",
+    "EMAIL_PROJECTION_ROLLBACK": "the last accepted email-family projection as prior with its projection_digest as accepted_head_digest (GENESIS_HEAD and no prior for the first)",
     "EMAIL_PRIOR_PROJECTION_INVALID": "the prior email-family projection exactly as this producer emitted it",
     "EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT": "the prior projection unaltered; its projection_digest and cursor chains must recompute",
     "EMAIL_PRIOR_ACCOUNT_UNMAPPED": "the mapping for every mailbox already present in the prior projection",
     "EMAIL_PROJECTION_CLOCK_INVALID": "a timezone-aware UTC clock",
-    "EMAIL_INPUT_MALFORMED": "inputs in the shapes this producer documents (lists of receipt and mapping objects, a position map, a prior projection)",
+    "EMAIL_INPUT_MALFORMED": "inputs in the shapes this producer documents (lists of receipt and mapping objects, a position map, a prior projection, a clock)",
 }
 
 
@@ -86,8 +117,12 @@ def _canonical(value: Any) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
 
 
-def _sha(value: Any) -> str:
+def _hex(value: Any) -> str:
     return hashlib.sha256(_canonical(value)).hexdigest()
+
+
+def _digest(value: Any) -> str:
+    return "sha256:" + _hex(value)
 
 
 def _utc_now() -> datetime:
@@ -95,15 +130,27 @@ def _utc_now() -> datetime:
 
 
 def _scan_secrets(value: Any, path: str, allowed: frozenset[str] = frozenset()) -> None:
-    if isinstance(value, list):
-        for i, item in enumerate(value):
-            _scan_secrets(item, f"{path}[{i}]", allowed)
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            low = str(key).lower()
-            if key not in allowed and any(word in low for word in FORBIDDEN):
-                raise _fail("EMAIL_SECRET_FIELD_PRESENT", "NO_SECRET_FIELDS", f"{path}.{key}")
-            _scan_secrets(item, f"{path}.{key}", allowed)
+    """Iterative scan: forbidden key words (NFKC-normalised, case-folded) and credential-shaped string values."""
+    stack: list[tuple[Any, str, int]] = [(value, path, 0)]
+    while stack:
+        item, where, depth = stack.pop()
+        if depth > MAX_SCAN_DEPTH:
+            raise _fail("EMAIL_INPUT_MALFORMED", "INPUT_SHAPE_RECOGNISED", where)
+        if isinstance(item, str):
+            if _CREDENTIAL_VALUE.search(unicodedata.normalize("NFKC", item)):
+                raise _fail("EMAIL_SECRET_FIELD_PRESENT", "NO_SECRET_FIELDS", where)
+        elif isinstance(item, list):
+            stack.extend((child, f"{where}[{i}]", depth + 1) for i, child in enumerate(item))
+        elif isinstance(item, dict):
+            for key, child in item.items():
+                low = unicodedata.normalize("NFKC", str(key)).casefold()
+                if key not in allowed and any(word in low for word in FORBIDDEN):
+                    raise _fail("EMAIL_SECRET_FIELD_PRESENT", "NO_SECRET_FIELDS", f"{where}.{key}")
+                stack.append((child, f"{where}.{key}", depth + 1))
+
+
+def _is_count(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
 def _validate_mapping(mapping: Any) -> dict[str, Any]:
@@ -121,7 +168,7 @@ def _validate_mapping(mapping: Any) -> dict[str, Any]:
     if mapping["mapping_id"] != expected:
         raise _fail("EMAIL_MAPPING_DIGEST_DRIFT", "MAPPING_ID_RECOMPUTES", str(mapping["mapping_id"]))
     ref = mapping["skap_credential_ref"]
-    if ref is not None and (not isinstance(ref, str) or not ref.startswith("skap://") or len(ref) <= len("skap://")):
+    if ref is not None and (not isinstance(ref, str) or _SKAP_REF.fullmatch(ref) is None):
         raise _fail("EMAIL_SKAP_REFERENCE_INVALID", "CREDENTIAL_IS_SKAP_REFERENCE_ONLY", str(mapping["mapping_id"]))
     if mapping["mapping_state"] == "SESSION_VERIFIED" and ref is None:
         raise _fail("EMAIL_SKAP_REFERENCE_INVALID", "CREDENTIAL_IS_SKAP_REFERENCE_ONLY", str(mapping["mapping_id"]))
@@ -138,8 +185,12 @@ def _validate_receipt(receipt: Any) -> dict[str, Any]:
     if (set(receipt) != RECEIPT_KEYS or receipt["schema"] != RECEIPT_SCHEMA
             or receipt["payload_retained_in_receipt"] is not False or receipt["authority_effect"] != "NONE"):
         raise _fail("EMAIL_ADMIT_RECEIPT_STALE", "ADMIT_RECEIPT_CURRENT", str(receipt.get("receipt_id")))
+    if (not isinstance(receipt["canonical_message_id"], str) or _MESSAGE_ID.fullmatch(receipt["canonical_message_id"]) is None
+            or not isinstance(receipt["staged_content_hash"], str) or _SHA256.fullmatch(receipt["staged_content_hash"]) is None
+            or not isinstance(receipt["reason"], str)):
+        raise _fail("EMAIL_RECEIPT_FORMAT_INVALID", "RECEIPT_FIELDS_WELL_FORMED", str(receipt["receipt_id"]))
     material = {k: receipt[k] for k in ("mapping_id", "canonical_message_id", "staged_content_hash", "decision", "reason")}
-    if receipt["receipt_id"] != "kv-email-receipt:" + _sha(material):
+    if receipt["receipt_id"] != "kv-email-receipt:" + _hex(material):
         raise _fail("EMAIL_ADMIT_RECEIPT_DIGEST_DRIFT", "RECEIPT_ID_RECOMPUTES", str(receipt["receipt_id"]))
     if receipt["decision"] != "ADMIT" or receipt["trusted_projection_created"] is not True:
         raise _deny("EMAIL_MESSAGE_UNADMITTED", "MESSAGE_ADMITTED", f"{receipt['decision']}:{receipt['receipt_id']}")
@@ -151,7 +202,7 @@ def _body(accounts: list[dict[str, Any]], messages: list[dict[str, Any]]) -> dic
 
 
 def _chain(previous: str | None, receipt_id: str) -> str:
-    return _sha({"previous": previous, "receipt_id": receipt_id})
+    return _digest({"previous": previous, "receipt_id": receipt_id})
 
 
 def _validate_prior(prior: Any, mappings: dict[str, dict[str, Any]]) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
@@ -163,35 +214,45 @@ def _validate_prior(prior: Any, mappings: dict[str, dict[str, Any]]) -> tuple[di
     accounts, messages = prior.get("accounts"), prior.get("messages")
     if not isinstance(accounts, list) or not isinstance(messages, list):
         raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION")
-    if prior.get("projection_digest") != _sha(_body(accounts, messages)):
+    if prior.get("projection_digest") != _digest(_body(accounts, messages)):
         raise _fail("EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT", "PRIOR_DIGEST_RECOMPUTES")
     by_mapping: dict[str, dict[str, Any]] = {}
     for account in accounts:
-        mid = account.get("mapping_id") if isinstance(account, dict) else None
+        if not isinstance(account, dict) or set(account) != ACCOUNT_KEYS or not isinstance(account["cursor"], dict) or set(account["cursor"]) != CURSOR_KEYS:
+            raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION")
+        mid = account["mapping_id"]
         if mid in by_mapping:
             raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION", str(mid))
         if mid not in mappings:
             raise _fail("EMAIL_PRIOR_ACCOUNT_UNMAPPED", "PRIOR_ACCOUNTS_MAPPED", str(mid))
         by_mapping[mid] = account
-    heads: dict[str, tuple[int, str | None]] = {mid: (0, None) for mid in by_mapping}
+    heads: dict[str, tuple[int, str | None, str | None]] = {mid: (0, None, None) for mid in by_mapping}
     for message in messages:
-        mid = message.get("mapping_id") if isinstance(message, dict) else None
+        if (not isinstance(message, dict) or set(message) != ROW_KEYS or message["payload_present"] is not False
+                or message["trust_state"] != "TRUSTED_ADMITTED"):
+            raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION")
+        mid = message["mapping_id"]
         if mid not in heads:
             raise _fail("EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT", "PRIOR_DIGEST_RECOMPUTES", str(mid))
-        seq, head = heads[mid]
-        if message.get("sequence") != seq + 1:
+        seq, head, _ = heads[mid]
+        if message["sequence"] != seq + 1 or isinstance(message["sequence"], bool):
             raise _fail("EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT", "PRIOR_DIGEST_RECOMPUTES", str(mid))
-        heads[mid] = (seq + 1, _chain(head, str(message.get("receipt_id"))))
+        heads[mid] = (seq + 1, _chain(head, str(message["receipt_id"])), message["receipt_id"])
     for mid, account in by_mapping.items():
-        cursor = account.get("cursor") or {}
-        seq, head = heads[mid]
-        if cursor.get("sequence") != seq or cursor.get("chain_digest") != head:
+        cursor = account["cursor"]
+        seq, head, last = heads[mid]
+        if not _is_count(cursor["sequence"]) or cursor["sequence"] != seq or cursor["chain_digest"] != head or cursor["head_receipt_id"] != last:
             raise _fail("EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT", "PRIOR_DIGEST_RECOMPUTES", str(mid))
+        if cursor["provider_position"] is not None and not _is_count(cursor["provider_position"]):
+            raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION", str(mid))
+        ref = cursor["provider_cursor_ref"]
+        if ref is not None and (not isinstance(ref, str) or _SHA256.fullmatch(ref) is None):
+            raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION", str(mid))
     return by_mapping, [dict(m) for m in messages]
 
 
 def _position(value: Any, mid: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+    if not _is_count(value):
         raise _fail("EMAIL_PROVIDER_CURSOR_INVALID", "PROVIDER_CURSOR_IS_ORDERED_POSITION", mid)
     return value
 
@@ -213,27 +274,30 @@ def _refusal_record(refusal: _Refusal) -> dict[str, Any]:
     }
 
 
-
 def project_email_family(
     *,
     receipts: Iterable[Any],
     mappings: Iterable[Any],
     provider_positions: dict[str, Any],
+    accepted_head_digest: str,
     prior: dict[str, Any] | None = None,
-    accepted_head_digest: str | None = None,
+    provider_cursor_refs: dict[str, Any] | None = None,
     clock: Callable[[], datetime] = _utc_now,
 ) -> dict[str, Any]:
-    """Return ``{disposition: ALLOW, projection}`` or a six-field DENY / FAIL_CLOSED record. Pure; writes nothing."""
+    """Return ``{disposition: ALLOW, projection}`` or a six-field DENY / FAIL_CLOSED record. Pure; writes nothing.
+
+    ``accepted_head_digest`` is required: ``GENESIS_HEAD`` with no prior for the first projection, otherwise the
+    ``projection_digest`` of the last accepted projection, which must be the prior presented."""
     try:
-        return _project(list(receipts), list(mappings), provider_positions, prior, accepted_head_digest, clock)
+        return _project(list(receipts), list(mappings), provider_positions, prior, accepted_head_digest,
+                        {} if provider_cursor_refs is None else provider_cursor_refs, clock)
     except _Refusal as refusal:
         return _refusal_record(refusal)
-    except (TypeError, KeyError, AttributeError, ValueError) as exc:
-        # Any input shape this producer does not recognise is refused, never projected and never raised past the caller.
+    except Exception as exc:  # noqa: BLE001 - every unrecognised input (or raising clock/iterable) fails closed
         return _refusal_record(_fail("EMAIL_INPUT_MALFORMED", "INPUT_SHAPE_RECOGNISED", type(exc).__name__))
 
 
-def _project(receipts, mappings_in, provider_positions, prior, accepted_head_digest, clock) -> dict[str, Any]:
+def _project(receipts, mappings_in, provider_positions, prior, accepted_head_digest, cursor_refs, clock) -> dict[str, Any]:
     mappings: dict[str, dict[str, Any]] = {}
     for mapping in mappings_in:
         m = _validate_mapping(mapping)
@@ -241,21 +305,25 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
             raise _fail("EMAIL_MAPPING_INVALID", "MAPPING_IS_CONTRACT_OBJECT", m["mapping_id"])
         mappings[m["mapping_id"]] = m
 
-    if accepted_head_digest is not None:
-        presented = prior.get("projection_digest") if isinstance(prior, dict) else None
-        if presented != accepted_head_digest:
-            raise _deny("EMAIL_PROJECTION_ROLLBACK", "PRIOR_IS_ACCEPTED_HEAD", str(presented))
+    presented = prior.get("projection_digest") if isinstance(prior, dict) else (GENESIS_HEAD if prior is None else None)
+    if presented != accepted_head_digest:
+        raise _deny("EMAIL_PROJECTION_ROLLBACK", "PRIOR_IS_ACCEPTED_HEAD", str(presented))
     prior_accounts, messages = _validate_prior(prior, mappings)
     by_message = {m["canonical_message_id"]: m for m in messages}
 
     if not isinstance(provider_positions, dict):
         raise _fail("EMAIL_PROVIDER_CURSOR_INVALID", "PROVIDER_CURSOR_IS_ORDERED_POSITION")
-    for mid in provider_positions:
+    if not isinstance(cursor_refs, dict):
+        raise _fail("EMAIL_PROVIDER_CURSOR_REF_INVALID", "PROVIDER_CURSOR_REF_IS_SHA256")
+    for mid in list(provider_positions) + list(cursor_refs):
         if mid not in mappings:
             raise _deny("EMAIL_CROSS_ACCOUNT_PROVENANCE_MISMATCH", "PROVENANCE_BOUND_TO_SUPPLIED_MAPPING", str(mid))
+    for mid, ref in cursor_refs.items():
+        if not isinstance(ref, str) or _SHA256.fullmatch(ref) is None:
+            raise _fail("EMAIL_PROVIDER_CURSOR_REF_INVALID", "PROVIDER_CURSOR_REF_IS_SHA256", mid)
 
     new_by_mapping: dict[str, list[dict[str, Any]]] = {}
-    for raw in receipts:
+    for raw in receipts:  # supplied order is admission order
         receipt = _validate_receipt(raw)
         mid = receipt["mapping_id"]
         if mid not in mappings:
@@ -286,8 +354,9 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
     accounts: list[dict[str, Any]] = []
     for mid in sorted(set(prior_accounts) | set(new_by_mapping)):
         mapping = mappings[mid]
-        old = (prior_accounts.get(mid) or {}).get("cursor") or {"sequence": 0, "head_receipt_id": None, "chain_digest": None, "provider_position": None}
-        old_pos = old.get("provider_position")
+        old = (prior_accounts.get(mid) or {}).get("cursor") or {
+            "sequence": 0, "head_receipt_id": None, "chain_digest": None, "provider_position": None, "provider_cursor_ref": None}
+        old_pos = old["provider_position"]
         fresh = new_by_mapping.get(mid, [])
         if mid in provider_positions:
             pos = _position(provider_positions[mid], mid)
@@ -295,8 +364,10 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
             raise _fail("EMAIL_PROVIDER_CURSOR_ABSENT", "PROVIDER_CURSOR_PRESENT", mid)
         else:
             pos = old_pos
-        if old_pos is not None and pos is not None and (pos < old_pos or (fresh and pos == old_pos)):
-            raise _deny("EMAIL_PROVIDER_CURSOR_ROLLBACK", "PROVIDER_CURSOR_ADVANCES", mid)
+        # Equal positions are legitimate (several pages at one provider position); every new message id is
+        # already proven new for this mapping above, so only a strictly lower position is a rollback.
+        if old_pos is not None and pos is not None and pos < old_pos:
+            raise _deny("EMAIL_PROVIDER_CURSOR_ROLLBACK", "PROVIDER_CURSOR_NOT_BEHIND_ACCEPTED", mid)
         seq, head, head_id = old["sequence"], old["chain_digest"], old["head_receipt_id"]
         for row in fresh:
             seq += 1
@@ -304,20 +375,20 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
             head_id = row["receipt_id"]
             row["sequence"] = seq
             messages.append(row)
-        ref = mapping["skap_credential_ref"]
         accounts.append({
             "mapping_id": mid,
             "provider_id": mapping["provider_id"],
             "mapping_state": mapping["mapping_state"],
-            "skap_ref": ref,
-            "cursor": {"sequence": seq, "head_receipt_id": head_id, "chain_digest": head, "provider_position": pos},
+            "skap_ref": mapping["skap_credential_ref"],
+            "cursor": {"sequence": seq, "head_receipt_id": head_id, "chain_digest": head, "provider_position": pos,
+                       "provider_cursor_ref": cursor_refs.get(mid, old["provider_cursor_ref"])},
         })
 
     produced = clock()
-    if not isinstance(produced, datetime) or produced.tzinfo is None:
+    if not isinstance(produced, datetime) or produced.utcoffset() is None:
         raise _fail("EMAIL_PROJECTION_CLOCK_INVALID", "PROJECTION_CLOCK_TIMEZONE_AWARE")
     body = _body(accounts, messages)
-    digest = _sha(body)
+    digest = _digest(body)
     projection = {
         **body,
         "projection_digest": digest,
@@ -328,8 +399,8 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
             "schema": METADATA_SCHEMA,
             "observed_at": produced.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
             "observed_at_semantics": "KV_PROJECTION_PRODUCTION_TIME",
-            "source_revision": digest,
-            "provenance_ref": "kv-email-ingress-admit-receipts:sha256:" + digest,
+            "source_revision": digest.removeprefix("sha256:"),
+            "provenance_ref": "kv-email-ingress-admit-receipts:" + digest,
             "workspace_type": "PERSONAL",
             "workspace_id": None,
             "owner_principal_id": None,
