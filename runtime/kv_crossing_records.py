@@ -17,6 +17,19 @@ successor policy, and the check is made again under the append lock, so two writ
 the HEAD.json update) is found too: adopted only if byte-identical to the receipt this call would write on the current
 head, otherwise refused fail-closed, so a crossing never has two receipt files (P4's note on cvk#284).
 
+A torn or misnamed file anywhere in ``receipts/`` blocks every new crossing, not only its own, until the owner of the
+chain repairs it. That is intentional and fail-closed: a file that is not a receipt of its own name has a crossing id this
+writer cannot read, so it cannot show that recording another crossing leaves that one with a single receipt file. The
+refusal is ``KV_CROSSING_RECEIPT_FILE_UNREADABLE``; nothing is repaired, moved or deleted here.
+
+Files named ``.kv-crossing-*`` beside the chain root (the writer's temp files; a hard kill can leave one) are never read
+as receipts. This writer deletes nothing in the store: they are ignored when scanning and listed in ``stray_temp_files``
+of the plan, the append result and every refusal (and in a refusal's ``detail``) so an operator can see them. The writer's
+own lock file (``LOCK_NAME``) is not a stray.
+
+A store that cannot hard-link, or that fails a write or sync, returns a six-field refusal (``KV_STORAGE_ENDPOINT_HARDLINK_UNSUPPORTED``,
+``KV_CROSSING_RECORD_STORE_WRITE_FAILED``, ``KV_CROSSING_RECEIPT_FILE_ALREADY_PRESENT``), never an OSError.
+
 What this does not do (each is a refusal or simply absent):
 * It never touches an Org ledger or an Org's organization-ledger ref (KV's ledger is its own); the Org's side is read
   only by ``kv_receipt_ledgers.ORG_CROSSING_READER``, which stays refuse-only.
@@ -48,6 +61,7 @@ EVIDENCE_SCHEMA = "stegverse.intr-path-ingress-evidence/v1"
 OPERATION = "KV_INTR_DESTINATION_INGRESS"
 CROSSING_KEYS = ("path_id", "communication_id", "source_repository_receipt_sha256")
 ALREADY_RECORDED_CODE = "INTR_PATH_DESTINATION_CROSSING_ALREADY_RECORDED"
+UNREADABLE_CODE = "KV_CROSSING_RECEIPT_FILE_UNREADABLE"
 ORPHAN_CODE = "INTR_PATH_DESTINATION_CROSSING_ORPHAN_RECEIPT_NOT_ADOPTABLE"
 RIGEL_RULE = ('Rigel, 2026-10-29 3:08 PM CDT (Lane B\'s chat, relayed at StegVerse-org/.github#162 c6508050206): '
               '"This shouldn\'t be possible without being a literal duplicate."')
@@ -56,6 +70,10 @@ GOAL = ("StegVerse-org/.github#162 (KV-side crossing records, LC-KV-29 c63946037
 RETRY = ("runtime.kv_crossing_records.plan_crossing_record('kv', <designated storage endpoint adapter>, <readback root>, "
          "{path_id, communication_id, source_repository_receipt_sha256}, hb_epoch=<SUPPLIED_HB_EPOCH>); "
          "append_crossing_record takes the same arguments")
+HARDLINK_CODE = "KV_STORAGE_ENDPOINT_HARDLINK_UNSUPPORTED"
+WRITE_FAILED_CODE = "KV_CROSSING_RECORD_STORE_WRITE_FAILED"
+FILE_PRESENT_CODE = "KV_CROSSING_RECEIPT_FILE_ALREADY_PRESENT"
+TEMP_PREFIX = ".kv-crossing-"
 LOCK_NAME = ".kv-crossing-append.lock"                    # beside the chain's location, never inside it
 
 
@@ -147,6 +165,8 @@ def _orphans(which: str, d: Mapping[str, Any], root: Path, chain: list[dict[str,
     chained = {r["receipt_sha256"] for r in chain}
     found = []
     for path in sorted((root / "receipts").glob("*.json")):
+        if path.name.startswith(TEMP_PREFIX):                       # a temp file of this writer is never read as a receipt
+            continue
         if "sha256:" + path.stem in chained:
             continue
         try:
@@ -157,7 +177,7 @@ def _orphans(which: str, d: Mapping[str, Any], root: Path, chain: list[dict[str,
         except (OSError, ValueError, TypeError):
             ok = False
         if not ok:
-            return [], _refuse(which, "KV_CROSSING_RECEIPT_FILE_UNREADABLE", "C", "EACH_CROSSING_HAS_EXACTLY_ONE_KV_SIDE_RECEIPT",
+            return [], _refuse(which, UNREADABLE_CODE, "C", "EACH_CROSSING_HAS_EXACTLY_ONE_KV_SIDE_RECEIPT",
                                "a receipts/ file that is a receipt of its own name, or its removal by the owner of the "
                                "chain: an unreadable file could be this crossing's orphan, and recording again could "
                                "give the crossing a second receipt file",
@@ -192,8 +212,8 @@ def _supplied(which: str, modules: Mapping[str, Any], hb_epoch: Any) -> dict[str
     return None
 
 
-def plan_crossing_record(which: str, storage_endpoint: Any = None, readback_root: Any = None, crossing: Any = None,
-                         hb_epoch: Any = None) -> dict[str, Any]:
+def _plan(which: str, storage_endpoint: Any = None, readback_root: Any = None, crossing: Any = None,
+          hb_epoch: Any = None) -> dict[str, Any]:
     """The one KV-side record for ``crossing``, or a six-field refusal. Pure: writes nothing, reads no clock, no Org ledger.
 
     ALLOW carries the exact receipt ``append_crossing_record`` would append (hash-linked to KV's own head) and the
@@ -295,27 +315,114 @@ def plan_crossing_record(which: str, storage_endpoint: Any = None, readback_root
             "adopts_orphan_receipt": adopts}
 
 
-def _put(path: Path, text: str, tmp_dir: Path) -> None:
-    fd, tmp = tempfile.mkstemp(dir=tmp_dir, prefix=".kv-crossing-")
-    with os.fdopen(fd, "w", encoding="utf-8") as handle:
-        handle.write(text)
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(tmp, path)
+def stray_temp_files(which: str, readback_root: Any) -> list[str]:
+    """The ``.kv-crossing-*`` temp files (other than the writer's lock) a hard kill may have left beside the chain root, at
+    the chain's location, or in receipts/, as paths relative to the read-back root. Read-only: nothing is opened or deleted."""
+    if readback_root is None or which not in rl.RECEIPT_LEDGERS:
+        return []
+    base = Path(readback_root)
+    where = base / rl.RECEIPT_LEDGERS[which]["storage_location"]
+    try:
+        names = [p for folder in (base, where, where / "receipts") if folder.is_dir()
+                 for p in folder.iterdir() if p.name.startswith(TEMP_PREFIX) and p.name != LOCK_NAME]
+        return sorted(p.relative_to(base).as_posix() for p in names)
+    except OSError:
+        return []
 
 
-def _put_new(path: Path, text: str, tmp_dir: Path) -> None:
-    """Create ``path`` whole or not at all: written and synced beside it, then linked into place. A name that already
-    exists is an error (never an overwrite), and a stop part-way leaves no half-written receipt file."""
-    fd, tmp = tempfile.mkstemp(dir=tmp_dir, prefix=".kv-crossing-")
+def _with_strays(which: str, readback_root: Any, out: dict[str, Any]) -> dict[str, Any]:
+    strays = stray_temp_files(which, readback_root)
+    out = {**out, "stray_temp_files": strays}
+    if strays and out.get("disposition") != ALLOW and isinstance(out.get("detail"), str):
+        out["detail"] += (f"; operator: {len(strays)} stray {TEMP_PREFIX}* temp file(s) present, not read as receipts and "
+                          f"not deleted by this writer: {strays}")
+    return out
+
+
+def plan_crossing_record(which: str, storage_endpoint: Any = None, readback_root: Any = None, crossing: Any = None,
+                         hb_epoch: Any = None) -> dict[str, Any]:
+    """The one KV-side record for ``crossing``, or a six-field refusal; see ``_plan`` for the order of the checks. Pure:
+    writes nothing, reads no clock, no Org ledger. Every result carries ``stray_temp_files`` (a refusal also names them in
+    its ``detail``): ``.kv-crossing-*`` temp files a hard kill left. They are ignored, never read as receipts, never deleted."""
+    return _with_strays(which, readback_root, _plan(which, storage_endpoint, readback_root, crossing, hb_epoch))
+
+
+def _drop(own_temp: str) -> None:
+    """Remove the temp file this call itself just made (never anything else); if that fails it stays and is reported as stray."""
+    try:
+        os.unlink(own_temp)
+    except OSError:
+        pass
+
+
+class StoreWriteFailed(Exception):
+    """A store operation of this writer failed with an OSError. ``stage`` is link, write, sync or replace; the cause is the
+    OSError. append_crossing_record turns it into a six-field refusal; it never reaches the caller."""
+
+    def __init__(self, stage: str, cause: OSError) -> None:
+        super().__init__(f"{stage}: {cause!r}")
+        self.stage, self.cause = stage, cause
+
+
+def _stage_temp(text: str, tmp_dir: Path) -> str:
+    """Write ``text`` to a synced temp file in ``tmp_dir`` and return its path; the temp is removed if a stage fails."""
+    try:
+        fd, tmp = tempfile.mkstemp(dir=tmp_dir, prefix=TEMP_PREFIX)
+    except OSError as error:
+        raise StoreWriteFailed("write", error) from error
+    stage = "write"
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(text)
             handle.flush()
+            stage = "sync"
             os.fsync(handle.fileno())
+    except OSError as error:
+        _drop(tmp)                                         # this call's own temp file, made a moment ago
+        raise StoreWriteFailed(stage, error) from error
+    return tmp
+
+
+def _put(path: Path, text: str, tmp_dir: Path) -> None:
+    tmp = _stage_temp(text, tmp_dir)
+    try:
+        os.replace(tmp, path)
+    except OSError as error:
+        _drop(tmp)
+        raise StoreWriteFailed("replace", error) from error
+
+
+def _put_new(path: Path, text: str, tmp_dir: Path) -> None:
+    """Create ``path`` whole or not at all: written and synced beside it, then linked into place. A name that already
+    exists is an error (never an overwrite), and a stop part-way leaves no half-written receipt file. An OSError of the
+    store is raised as StoreWriteFailed (stage link, write or sync)."""
+    tmp = _stage_temp(text, tmp_dir)
+    try:
         os.link(tmp, path)
+    except OSError as error:
+        raise StoreWriteFailed("link", error) from error
     finally:
-        os.unlink(tmp)
+        _drop(tmp)
+
+
+def _store_failure(which: str, d: Mapping[str, Any], failed: StoreWriteFailed, receipt_landed: bool) -> dict[str, Any]:
+    cause = failed.cause
+    if failed.stage == "link" and isinstance(cause, FileExistsError):
+        code, klass = FILE_PRESENT_CODE, "C"
+        repair = "the owner's check of the receipt file that already holds this name; nothing is overwritten or deleted here"
+    elif failed.stage == "link":
+        code, klass = HARDLINK_CODE, "D"
+        repair = "a designated storage endpoint that supports hard links (the receipt file is linked into place whole or not at all)"
+    else:
+        code, klass = WRITE_FAILED_CODE, "D"
+        repair = "a storage endpoint that accepts the write and the sync; nothing was signed or dispatched"
+    where = ("the receipt file is written and HEAD.json and the head record are not: a retry at the same epoch adopts it, "
+             "any other retry is refused" if receipt_landed else "nothing of this record reached the chain")
+    return _refuse(which, code, klass, "EACH_CROSSING_HAS_EXACTLY_ONE_KV_SIDE_RECEIPT_ON_A_STORE_THAT_TAKES_THE_WRITE", repair,
+                   "on the next call at the same supplied epoch, once the store takes the write",
+                   f"{d['location']}: {failed.stage} failed with {cause.__class__.__name__} errno={getattr(cause, 'errno', None)} "
+                   f"({cause.strerror if getattr(cause, 'strerror', None) else cause}); {where}",
+                   appended=False, stopped_at=failed.stage, receipt_file_written=receipt_landed)
 
 
 def append_crossing_record(which: str, storage_endpoint: Any = None, readback_root: Any = None, crossing: Any = None,
@@ -332,10 +439,16 @@ def append_crossing_record(which: str, storage_endpoint: Any = None, readback_ro
     first = plan_crossing_record(which, storage_endpoint, readback_root, crossing, hb_epoch)
     if first["disposition"] != ALLOW:
         return first
-    store = rl.designation(which)[0]["store"]
+    d = rl.designation(which)[0]
+    store = d["store"]
     root = Path(readback_root) / store["location"]
     lock = Path(readback_root) / LOCK_NAME
-    with open(lock, "a+", encoding="utf-8") as handle:
+    receipt_landed = False
+    try:
+        handle = open(lock, "a+", encoding="utf-8")
+    except OSError as error:
+        return _with_strays(which, readback_root, _store_failure(which, d, StoreWriteFailed("write", error), False))
+    with handle:
         fcntl.flock(handle, fcntl.LOCK_EX)
         try:
             plan = plan_crossing_record(which, storage_endpoint, readback_root, crossing, hb_epoch)
@@ -343,15 +456,23 @@ def append_crossing_record(which: str, storage_endpoint: Any = None, readback_ro
                 return plan
             receipt, entry = plan["receipt"], plan["head_record_entry"]
             target = root / "receipts" / (receipt["receipt_sha256"][7:] + ".json")
-            if not plan["adopts_orphan_receipt"]:
-                _put_new(target, json.dumps(receipt), Path(readback_root))
-            _put(root / "HEAD.json", json.dumps({"receipt_sha256": receipt["receipt_sha256"]}), Path(readback_root))
-            records = (root / rl.HEAD_RECORD).read_text(encoding="utf-8")
-            _put(root / rl.HEAD_RECORD, records + json.dumps(entry) + "\n", Path(readback_root))
+            try:
+                if not plan["adopts_orphan_receipt"]:
+                    _put_new(target, json.dumps(receipt), Path(readback_root))
+                receipt_landed = True
+                _put(root / "HEAD.json", json.dumps({"receipt_sha256": receipt["receipt_sha256"]}), Path(readback_root))
+                records = (root / rl.HEAD_RECORD).read_text(encoding="utf-8")
+                _put(root / rl.HEAD_RECORD, records + json.dumps(entry) + "\n", Path(readback_root))
+            except StoreWriteFailed as failed:
+                return _with_strays(which, readback_root, _store_failure(which, d, failed, receipt_landed))
+            except OSError as error:                       # the head record could not be read back for the append
+                return _with_strays(which, readback_root,
+                                    _store_failure(which, d, StoreWriteFailed("write", error), receipt_landed))
         finally:
             fcntl.flock(handle, fcntl.LOCK_UN)
     return {**plan, "ledger_written": True, "appended": True, "head_receipt_sha256": receipt["receipt_sha256"]}
 
 
-__all__ = ["ALREADY_RECORDED_CODE", "ORPHAN_CODE", "CROSSING_CLASS", "CROSSING_KEYS", "OPERATION", "append_crossing_record",
+__all__ = ["FILE_PRESENT_CODE", "HARDLINK_CODE", "UNREADABLE_CODE", "WRITE_FAILED_CODE", "StoreWriteFailed", "stray_temp_files",
+           "ALREADY_RECORDED_CODE", "ORPHAN_CODE", "CROSSING_CLASS", "CROSSING_KEYS", "OPERATION", "append_crossing_record",
            "crossing_key", "plan_crossing_record"]
