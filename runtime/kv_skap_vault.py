@@ -897,7 +897,7 @@ ACCESS_CONSTRAINT_OWNER = {
                          "llm_adapter/healthy_node_evaluator.py, producer #429, inputs #430, anchored-root check #432 "
                          "evaluate_anchored, InTr and Mesh Destinations lane), for a PERMANENT node; the chain at "
                          "StegVerse-org/.github refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/"
-                         "LLM-adapter is not onboarded yet (onboarding StegVerse-org/LLM-adapter#431, Lane B draft)"),
+                         "LLM-adapter is not onboarded yet (its onboarding route was closed unmerged by the owner; edge removed by StegVerse-org/.github#249)"),
     LAYER_PREDICATE_L2: GOAL_REF,
     LAYER_PREDICATE_PRIOR: GOAL_REF,
 }
@@ -1319,7 +1319,7 @@ def append_organization_ledger_receipt(receipt: dict[str, Any], scratch_ledger_g
 
 def finish_point(evidence: Any = None, scratch_ledger_git_dir: str | None = None) -> dict[str, Any]:
     verdict = evaluate(evidence)
-    # LC-KV-18 and the #431 legs: the pinned org-ledger read's prerequisites, recorded with six fields. They gate every
+    # LC-KV-18 and the org-ledger legs: the pinned org-ledger read's prerequisites, recorded with six fields. They gate every
     # PERMANENT anchor at layer 1, so the finish point cannot reach ALLOW in production while any is FAIL_CLOSED.
     verdict["org_ledger_prerequisites"] = org_ledger_prerequisites()
     # KV-SKAP-LEDGER-LOCATION-001: the KV and SKAP Vault receipt ledgers (FAIL_CLOSED until their genesis pin)

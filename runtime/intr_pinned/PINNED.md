@@ -1,5 +1,36 @@
 # Pinned InTr code (vendored byte-identical, digest-pinned; not a dependency)
 
+## Sealed byte copies that still carry retired LLM-adapter#431 wording (six-field note, 2026-10-29)
+
+Rule: every byte copy below is a receipt of StegVerse-org/LLM-adapter#432 @eecf4843 (or of a TEST-ONLY upstream fixture)
+and is checked by sha256 at load (`PINNED_ANCHORED_EVALUATOR["vendored_files"]`, `PINNED_HEALTHY_NODE_EVALUATOR`) and by the
+E0 harness. The retired wording lives inside those bytes. KV does not edit them: an edited copy would no longer be the
+byte copy of `eecf4843:<path>`, and `endpoint_ledger_anchor.py` itself names the head-signers copy by its digest
+(`758d7983...`). Every live KV reader (runtime, docs, tests, comments) has had its reference replaced and is guarded by
+`tests/test_kv_receipt_ledgers_no_431_and_crossing_wording.py`. The bytes below are the only places the wording remains.
+
+| file | receipt (sha256 of the sealed bytes) |
+| --- | --- |
+| `runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py` | `153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09` (LLM-adapter#432 @eecf4843) |
+| `runtime/intr_pinned/llm_adapter/endpoint_ledger_designation.py` | `d69dbb22a1446a22e84b86532f93d9698ac6dc3c82e6aa6ee20882c6764049d8` (LLM-adapter#432 @eecf4843) |
+| `runtime/intr_pinned/llm_adapter/intr_transport_carrier.py` | `9d3e69c838d7e20533f0c5a06401b018948cb12a4201889f6b41d4b497df720f` (LLM-adapter#432 @eecf4843) |
+| `runtime/intr_pinned/llm_adapter/org_ledger_location.py` | `b51e6a8bd39ba6fd83044222a3858a2cb0c437020e3e9abbe97c4494d41f2681` (LLM-adapter#432 @74509fec, unchanged since) |
+| `runtime/intr_pinned/.stegverse/node-ledger/kv-ledger-head-signers.v1.json` | `758d798388599171c145e3d19ca4eb155ad3d3762a3721804da65c08ebc1fe72` (LLM-adapter#432 @c4cfc145, unchanged since) |
+| `tests/fixtures/intr_pinned_test_only/contract_with_431_location_and_pinned_genesis.json` (TEST-ONLY) | `ea81ca135bfd3b8e86a69251cf63d6f5aaa86fa46777dcec9370971dd0c5208a` (LLM-adapter#432 @74509fec) |
+
+* CODE: `PINNED_BYTE_COPIES_CARRY_RETIRED_431_WORDING`
+* CLASS: B (the repair is an upstream re-vendor owned by Lane B; KV cannot change those bytes and keep its receipts)
+* OBSERVED: the six files above carry references to the retired LLM-adapter#431 organization-to-adapter route
+  (closed unmerged by the owner, edge removed by StegVerse-org/.github#249). Their digests match the pins in
+  `runtime/kv_interlock_endpoint.py`. The anchor module's own refusal fields (`RETRY_431`, `OWNING_431`, `NEXT_431`) can
+  therefore still appear inside `health_evaluation`, which KV carries unchanged from `evaluate_anchored`.
+* EXPECTED: an upstream LLM-adapter commit without the retired wording, re-vendored byte-for-byte, with the pins in
+  `runtime/kv_interlock_endpoint.py` and the tables in this file updated in the same PR.
+* BLOCKS: nothing in KV's own behavior (the production path is already FAIL_CLOSED); it blocks only a claim that no byte
+  under `runtime/intr_pinned/` or its test-only fixture mentions the retired route.
+* NEXT: Lane B publishes the LLM-adapter commit without the wording; KV then re-vendors in one PR and removes the
+  exemption in the guard test. Event-driven by that commit; no cron, no polling.
+
 ## Pin entry 2026-10-23: StegVerse-org/LLM-adapter#432 @eecf4843 (current)
 
 Source PR StegVerse-org/LLM-adapter#432 (draft), head `eecf4843e4ec2ec05ea5dbf6582e7d92080e8f9e`, re-pinned by Lane B to
