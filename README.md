@@ -244,7 +244,7 @@ Release history and integrity remain in [`CHANGELOG.md`](./CHANGELOG.md), `VERSI
 
 See [`LICENSE`](./LICENSE).
 
-## 2026-10-29: pending TVC issuance authenticity guard
+## 2026-10-29: TVC issuance authenticity guard (historical candidate)
 
 Repair tracking: https://github.com/StegVerse-Labs/continuity-vault-kit/issues/279.
 The local candidate at base `b1a66008dccad0d301a7e892e6619f47002ec26d`
@@ -291,3 +291,20 @@ tests successfully, then exposed four obsolete ALLOW assertions in the separate
 E0 witness suite. Those assertions now require unproven-issuance FAIL_CLOSED
 and no ledger append; access-layer and custody refusal checks remain. The
 combined finish-point and E0 witness suites are the validation target (45 tests).
+
+### Independent review follow-up
+
+Claude reviewed PR #280 at d127e2d with no blocking defects (comment 6497486899).
+That source review explicitly is not approval of record or native admission. The
+current follow-up names TV/TVC issuance and KV verifier integration in the refusal
+metadata, and states that retrying with another evidence bundle alone cannot work.
+LC-KV-01 reference-only evidence now intentionally fails closed; its old ALLOW
+docstring is corrected. The earlier 40-test/no-hosted-CI paragraph records the
+pre-integration candidate, superseded by d127e2d's 45 selected passing tests and
+50 successful check runs. Those CI results do not attest this follow-up head.
+
+The finish_point ALLOW-to-append branch remains unexercised until an authentic
+witness/verifier exists; no substituted predicate is presented as end-to-end
+evidence. Scratch writer CAS tests are low-level diagnostic-receipt tests, not
+proof that a failed finish point may append. Runtime refusal and no-append behavior
+are unchanged. Protected custody and other owners' branches remain unchanged.

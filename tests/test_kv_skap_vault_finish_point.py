@@ -2,7 +2,8 @@
 
 The acceptance test is ``KvSkapVaultFinishPoint::test_finish_point_verdict``. It passes when the verdict is
 ALLOW, or when it is an honest six-field FAIL_CLOSED that names exactly the predicates whose evidence is
-absent. ``EvidenceDrivenVerdict`` reaches ALLOW from an evidence bundle without any code edit (LC-KV-01).
+absent. ``EvidenceDrivenVerdict`` refuses reference-only issuance (LC-KV-01); authenticated issuance and
+consumer verifier integration are required before evidence can reach ALLOW.
 ``OrganizationLedgerReceipt`` covers the ledger append (LC-KV-06), in scratch only. No test here is skipped.
 """
 from __future__ import annotations
@@ -430,6 +431,10 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         self.assertEqual(failure_codes(verdict), TVC_AUTHORITY_GAP)
         self.assertEqual(verdict["unmet_predicates"], [TVC_AUTHORITY_PREDICATE])
         row = next(r for r in verdict["predicates"] if r["predicate"] == TVC_AUTHORITY_PREDICATE)
+        self.assertTrue(row["owning_existing_goal"].startswith("TV/TVC"))
+        self.assertEqual(row["dependency_relation"], "CONSUMES")
+        self.assertIn("integrates its verifier", row["next_attempt"])
+        self.assertIn("evidence-only retry cannot", row["next_attempt"])
         for field in SIX:
             self.assertTrue(row[field], field)
 

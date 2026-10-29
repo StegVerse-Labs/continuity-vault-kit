@@ -1195,8 +1195,15 @@ def evaluate(evidence: Any = None) -> dict[str, Any]:
         if failure is None:
             results.append({"predicate": predicate, "disposition": "ALLOW", "locus": "LOCAL_EXERCISE+EVIDENCE"})
         else:
-            results.append(_row(predicate, failure[0], failure[1], failure[2],
-                                owner if failure[0] == code else GOAL_REF, relation if failure[0] == code else None))
+            if failure[0] == "TVC_CUSTODY_ISSUANCE_AUTHENTICITY_NOT_PROVEN":
+                results.append(_row(
+                    predicate, failure[0], failure[1], failure[2],
+                    "TV/TVC (TVC#537 authenticated issuance); KV consumer integration", "CONSUMES",
+                    next_attempt="after TV/TVC supplies an authenticated issuance witness and the KV consumer "
+                    "integrates its verifier; an evidence-only retry cannot satisfy this check"))
+            else:
+                results.append(_row(predicate, failure[0], failure[1], failure[2],
+                                    owner if failure[0] == code else GOAL_REF, relation if failure[0] == code else None))
     access = _access_rows(evidence if isinstance(evidence, dict) and evidence.get("schema") == EVIDENCE_SCHEMA
                           and isinstance(evidence.get("lineage"), dict) else None, lineage_failure)
     for index, row in enumerate(results):

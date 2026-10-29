@@ -940,3 +940,16 @@ tests successfully, then exposed four obsolete ALLOW assertions in the separate
 E0 witness suite. Those assertions now require unproven-issuance FAIL_CLOSED
 and no ledger append; access-layer and custody refusal checks remain. The
 combined finish-point and E0 witness suites are the validation target (45 tests).
+
+## 2026-10-29 independent-review follow-up (session prompt 4)
+
+PR #280 review comment 6497486899 reports no blocking defects at d127e2d, with
+authority effect NONE. Follow-up repairs ownership/retry diagnostics and the
+LC-KV-01 docstring; the refusal consumes TV/TVC authenticated issuance plus KV
+verifier integration and cannot be satisfied by evidence-only retries. Existing
+regression asserts these routing fields. ALLOW-to-append coverage remains deferred
+until an authenticated witness/verifier exists; low-level scratch CAS evidence is
+not a real-node ALLOW. Prior CI belongs to d127e2d, not the follow-up commit.
+Registry main remains 6b13c3a7; other writers (#3380/#3403/StegClaw) mean generation
+323 is not reserved. Native admission, COSV, fencing and sovereign readback remain
+original-owner actions. Cumulative Goal Prompt Count remains UNVERIFIED.
