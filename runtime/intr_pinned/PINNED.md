@@ -46,26 +46,11 @@ an organization or the adapter. Its provenance needs a home upstream (open item 
 
 ## Removed on Coordination's ruling (b)
 
-Removed from the tree, together with every reference, test, pin and digest naming them (a guard test now asserts they
-are gone): the six byte copies below and their orphaned companions. Git history and the closed #432 branch keep the bytes.
-No ledger receipt on any org or KV ledger was touched. None of them was a ledger-receipted record: each was a vendored
-copy, or a TEST-ONLY copy, of upstream #432 files.
-
-| removed file | sha256 of the removed bytes |
-| --- | --- |
-| `runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py` | `153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09` |
-| `runtime/intr_pinned/llm_adapter/endpoint_ledger_designation.py` | `d69dbb22a1446a22e84b86532f93d9698ac6dc3c82e6aa6ee20882c6764049d8` |
-| `runtime/intr_pinned/llm_adapter/intr_transport_carrier.py` | `9d3e69c838d7e20533f0c5a06401b018948cb12a4201889f6b41d4b497df720f` |
-| `runtime/intr_pinned/llm_adapter/org_ledger_location.py` | `b51e6a8bd39ba6fd83044222a3858a2cb0c437020e3e9abbe97c4494d41f2681` |
-| `runtime/intr_pinned/.stegverse/node-ledger/kv-ledger-head-signers.v1.json` (the vendored copy only) | `758d798388599171c145e3d19ca4eb155ad3d3762a3721804da65c08ebc1fe72` |
-| `tests/fixtures/intr_pinned_test_only/contract_with_431_location_and_pinned_genesis.json` (TEST-ONLY) | `ea81ca135bfd3b8e86a69251cf63d6f5aaa86fa46777dcec9370971dd0c5208a` |
-
-Companions removed with them (same upstream, orphaned once the six are gone):
-`runtime/intr_pinned/.stegverse/node-ledger/{node-ledger-opened-signers,org-ledger-head-signers,pinned-code-digests}.v1.json`,
-`runtime/intr_pinned/schemas/{endpoint-kind,node-ledger-opened,node-ledger-opened-signed,node-ledger-opened-generation}.v1.json`, and the TEST-ONLY
-fixtures `contract_with_431_repository_ledger_location.json`, `node.designation.json`, `org_ledger_harness.py` and
-`org_ledger_test_genesis.json`. KV's own root-level `.stegverse/node-ledger/kv-ledger-head-signers.v1.json` is KV's own
-file and stays.
+The vendored copies of the retired org-ledger / endpoint-anchor path, with their orphaned companions and every reference, test,
+pin and digest naming them, are removed from the tree (StegVerse-org/.github#162 c6509636142: there is never an InTr hop inside
+one org). None was a ledger-receipted record, and no ledger receipt on any org or KV ledger was touched. Git history and the
+closed LLM-adapter#432 branch keep the bytes. `tests/test_kv_receipt_ledgers_no_431_and_crossing_wording.py` guards that they stay
+gone. KV's own root-level `.stegverse/node-ledger/kv-ledger-head-signers.v1.json` is KV's own file and stays.
 
 ## Open items (FAIL_CLOSED, class D; owner Lane B, upstream)
 
