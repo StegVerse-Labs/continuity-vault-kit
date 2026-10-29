@@ -65,8 +65,8 @@ and does not depend on SV-011. SV-011 is the governed-AI-Entity package that the
 
 **No endpoint is an Org member.** No endpoint (KV, SKAP Vault, node or gateway) is ever a GitHub Organization
 member. STEGVERSE_KV is the KV class, not a GitHub repository. The contracts carry no org repository, no
-org-membership, team or app-installation binding, and no org ref. KV reaches the Orgs only through InTr
-(`KV_INTR_ENDPOINT`, intr-destination path_ids). A contract that binds any of these is refused with six-field
+org-membership, team or app-installation binding, and no org ref. Org↔KV crossing status is unruled; the Org→KV path_id is undeclared
+under protocol.json:174 (FAIL_CLOSED `ORG_KV_CROSSING_INTR_STATUS_UNRULED`); the intr-destination path_ids stay inert. A contract that binds any of these is refused with six-field
 FAIL_CLOSED `ENDPOINT_ORG_MEMBERSHIP_REFUSED` (class C), right after the org-ledger-ref check.
 
 **Closed key schema (LC-KV-24).** The contract keys are an allow-list at every level, in
@@ -184,9 +184,9 @@ StegVerse-Labs/TVC#542 @4c2504da gives to what `kv_ledger_head_signer` signs. He
          internal head held only at KV's end was never readable, so no reader relied on a head that a rollback
          could drop. Once it is held at both ends, dropping it is DENY `KV_LEDGER_HEAD_ROLLBACK_DETECTED`, with or
          without a caller claim.
-      - The Org record stays digest-only and refuse-only; it never grants and is never the watermark. This adds no
-        InTr hop inside one org: the Org (StegVerse-org) and KV are distinct organizations, and the SKAP Vault is
-        reached only through the in-KV gate. SKAP invariant (Labs `docs/FEDERATION_DIRECTORY.md:3`): "SKAP Vault
+      - The Org record stays digest-only and refuse-only; it never grants and is never the watermark. This declares no
+        Org→KV path: Org↔KV crossing status is unruled; the Org→KV path_id is undeclared under protocol.json:174
+        (FAIL_CLOSED `ORG_KV_CROSSING_INTR_STATUS_UNRULED`). The SKAP Vault is reached only through the in-KV gate. SKAP invariant (Labs `docs/FEDERATION_DIRECTORY.md:3`): "SKAP Vault
         inside KV is the only PII and credential store for every user, the ecosystem's own included; the ecosystem
         holds none (HST citation pending P1 #163)."
       - Witnesses: case 1, `test_lc_kv_23_whole_chain_rollback_is_refused_by_the_org_crossing_record`; case 2,
