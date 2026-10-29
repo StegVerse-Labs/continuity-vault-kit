@@ -231,8 +231,11 @@ class EmailFamilyProjectionTest(unittest.TestCase):
 
     def test_credential_shaped_values_and_unicode_keys_fail_closed(self):
         mid = self.m["mapping_id"]
-        for value in ("Bearer abc.def", "ghp_" + "a" * 36, "github_pat_11AAA", "-----BEGIN PRIVATE KEY-----", "AKIA" + "A" * 16,
-                      "xoxb-123-456", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig"):
+        for value in ("Bearer " + "A1b2C3d4E5f6G7h8I9j0", "bearer   abcdefghijklmnop.qrs~+/==", "ghp_" + "a1B2" * 9, "ghs_" + "Z" * 40,
+                      "github_pat_11ABCDEFG0123456789_abcdefghijklmnop", "-----BEGIN PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----",
+                      "-----BEGIN OPENSSH PRIVATE KEY-----", "AKIA" + "ABCDEFGHIJ234567", "key=AKIA" + "ABCDEFGHIJ234567",
+                      "xoxb-123456789012-1234567890123-AbCdEfGhIjKl", "xoxp-1234567-abcdefgh12",
+                      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"):
             self.refused(run(receipts=[dict(self.r1, reason=value)], mappings=[self.m], provider_positions={mid: 1}),
                          "FAIL_CLOSED", "EMAIL_SECRET_FIELD_PRESENT")
         # Fullwidth "ＴＯＫＥＮ" normalises (NFKC) to "TOKEN".
@@ -241,6 +244,55 @@ class EmailFamilyProjectionTest(unittest.TestCase):
         for ref in ("skap://a b", "skap://x\n"):
             self.refused(run(receipts=[self.r1], mappings=[dict(self.m, skap_credential_ref=ref)], provider_positions={mid: 1}),
                          "FAIL_CLOSED", "EMAIL_SKAP_REFERENCE_INVALID")
+
+    def test_ordinary_text_resembling_credentials_is_not_refused(self):
+        m = verified("ghp_dev@gmail.com", "skap://kv/xoxb-slack")
+        m["provider_route"] = "bearer auth"
+        r = receipt(m, "m-1")
+        d = run(receipts=[r], mappings=[m], provider_positions={m["mapping_id"]: 1})
+        self.assertEqual(d["disposition"], "ALLOW", d)
+        self.assertEqual(d["projection"]["accounts"][0]["skap_ref"], "skap://kv/xoxb-slack")
+        for value in ("ghp_short", "AKIA" + "ABCDEFGHIJ2345678", "xoxb-slack-connector", "eyJhbGci.short.x", "bearer token rotation",
+                      "-----BEGIN CERTIFICATE-----", "github_pat_x",
+                      "sourceghp_" + "a1B2" * 9, "xAKIA" + "ABCDEFGHIJ234567"):
+            d = run(receipts=[dict(self.r1, reason=value) | {"receipt_id": self.r1["receipt_id"]}], mappings=[self.m],
+                    provider_positions={self.m["mapping_id"]: 1})
+            self.assertNotEqual(d.get("failure_code"), "EMAIL_SECRET_FIELD_PRESENT", value)
+
+    def test_mapping_state_and_provider_fields_validated(self):
+        mid = self.m["mapping_id"]
+        for over in ({"mapping_state": "ACTIVE"}, {"mapping_state": None}, {"provider_id": 7}, {"provider_id": "Google Gmail"},
+                     {"provider_id": ""}, {"provider_route": ""}, {"provider_route": "   "}, {"provider_route": 3},
+                     {"provider_route": "x" * 513}, {"provider_route": "gmail\napi"}):
+            self.refused(run(receipts=[self.r1], mappings=[dict(self.m, **over)], provider_positions={mid: 1}), "FAIL_CLOSED", "EMAIL_MAPPING_INVALID")
+
+    def test_cursor_inputs_never_dropped_and_refs_tied_to_positions(self):
+        mid = self.m["mapping_id"]
+        other = verified("other@outlook.com", "skap://kv/email/other")
+        ref, ref2 = "sha256:" + "c" * 64, "sha256:" + "d" * 64
+        # supplied mapping with no account and no receipts: position or ref would vanish -> DENY
+        self.refused(run(receipts=[self.r1], mappings=[self.m, other], provider_positions={mid: 1, other["mapping_id"]: 4}),
+                     "DENY", "EMAIL_CROSS_ACCOUNT_PROVENANCE_MISMATCH")
+        self.refused(run(receipts=[self.r1], mappings=[self.m, other], provider_positions={mid: 1}, provider_cursor_refs={other["mapping_id"]: ref}),
+                     "DENY", "EMAIL_CROSS_ACCOUNT_PROVENANCE_MISMATCH")
+        p = run(receipts=[self.r1], mappings=[self.m], provider_positions={mid: 10}, provider_cursor_refs={mid: ref})["projection"]
+        # ref change without advance or new messages -> DENY; with advance or new messages -> ALLOW; same ref -> ALLOW
+        self.refused(run(receipts=[], mappings=[self.m], provider_positions={mid: 10}, prior=p, provider_cursor_refs={mid: ref2}),
+                     "DENY", "EMAIL_PROVIDER_CURSOR_REF_UNJUSTIFIED")
+        self.refused(run(receipts=[], mappings=[self.m], provider_positions={}, prior=p, provider_cursor_refs={mid: ref2}),
+                     "DENY", "EMAIL_PROVIDER_CURSOR_REF_UNJUSTIFIED")
+        for kw in ({"receipts": [], "provider_positions": {mid: 11}}, {"receipts": [self.r2], "provider_positions": {mid: 10}}):
+            d = run(mappings=[self.m], prior=p, provider_cursor_refs={mid: ref2}, **kw)
+            self.assertEqual(d["disposition"], "ALLOW", d)
+            self.assertEqual(d["projection"]["accounts"][0]["cursor"]["provider_cursor_ref"], ref2)
+        self.assertEqual(run(receipts=[], mappings=[self.m], provider_positions={mid: 10}, prior=p, provider_cursor_refs={mid: ref})["disposition"], "ALLOW")
+        # a revoked mapping keeps its account but may not advance its position or change its ref
+        revoked = revoke_mapping(EmailAccountMapping(**self.m)).to_dict()
+        self.refused(run(receipts=[], mappings=[revoked], provider_positions={mid: 11}, prior=p), "DENY", "EMAIL_MAPPING_REVOKED")
+        self.refused(run(receipts=[], mappings=[revoked], provider_positions={}, prior=p, provider_cursor_refs={mid: ref2}), "DENY", "EMAIL_MAPPING_REVOKED")
+        d = run(receipts=[], mappings=[revoked], provider_positions={mid: 10}, prior=p, provider_cursor_refs={mid: ref})
+        self.assertEqual(d["disposition"], "ALLOW", d)
+        self.assertEqual(d["projection"]["accounts"][0]["cursor"]["provider_position"], 10)
 
     def test_prior_rows_and_cursor_strictly_checked(self):
         mid = self.m["mapping_id"]
@@ -263,6 +315,16 @@ class EmailFamilyProjectionTest(unittest.TestCase):
             (lambda q: q["accounts"][0]["cursor"].update(provider_position=-1), "EMAIL_PRIOR_PROJECTION_INVALID"),
             (lambda q: q["accounts"][0]["cursor"].update(provider_position=10.0), "EMAIL_PRIOR_PROJECTION_INVALID"),
             (lambda q: q["accounts"][0]["cursor"].update(sequence=2.0), "EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT"),
+            (lambda q: q["messages"][1].update(sequence=2.0), "EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT"),
+            (lambda q: q["messages"][0].update(canonical_message_id="msg-1"), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q["messages"][0].update(staged_content_hash="sha256:" + "a" * 63), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q["messages"][0].update(receipt_id="kv-email-receipt:" + "a" * 63), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q["messages"][0].update(receipt_id=7), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q["messages"][1].update(canonical_message_id=q["messages"][0]["canonical_message_id"]), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q.update(credential_material_present=True), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q.update(provider_operation_authorized=None), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q.update(workspace_grants_authority=True), "EMAIL_PRIOR_PROJECTION_INVALID"),
+            (lambda q: q.update(authority_effect="GRANTED"), "EMAIL_PRIOR_PROJECTION_INVALID"),
         ]
         for mutate, code in cases:
             q = copy.deepcopy(p); mutate(q)

@@ -27,6 +27,14 @@ StegAgents Gmail ``history_id`` (a decimal string) is passed as ``int(history_id
 carry the StegAgents cursor receipt's ``cursor_sha256`` (``sha256:<64 hex>``) per mapping; it is carried forward.
 
 Account identity: ``mapping_id`` is the account key (StegAgents ``account_ref`` and Notifs ``account_id`` use it).
+
+Writer-side obligations this pure module cannot enforce (owner: the authorized KV writer, BLK3):
+- Genesis reset: ``GENESIS_HEAD`` with ``prior=None`` starts a new chain whenever a caller presents it. The writer
+  must persist the accepted head and must never pass ``GENESIS_HEAD`` once any projection has been accepted
+  (gap EMAIL_PROJECTION_GENESIS_RESET_WRITER_ENFORCED).
+- Growth: every admitted row is retained so replay dedupe covers the whole history; the projection grows without
+  bound until a compaction/checkpoint with a retained dedupe set exists in KV
+  (gap EMAIL_FAMILY_PROJECTION_UNBOUNDED_GROWTH).
 """
 from __future__ import annotations
 
@@ -67,9 +75,20 @@ FLAG_KEYS = ("credential_material_present", "provider_operation_authorized", "wo
 _SHA256 = re.compile(r"sha256:[0-9a-f]{64}")
 _MESSAGE_ID = re.compile(r"kv-email-message:[0-9a-f]{64}")
 _SKAP_REF = re.compile(r"skap://\S+")
+# Token-shaped credential values only (word-bounded), so ordinary text such as "ghp_dev@gmail.com",
+# "skap://kv/xoxb-slack" or a route named "bearer auth" is not mistaken for a credential.
 _CREDENTIAL_VALUE = re.compile(
-    r"(?i:bearer\s+\S)|\bgh[pousr]_[A-Za-z0-9]|github_pat_|-----BEGIN|AKIA[0-9A-Z]{16}|xox[baprs]-"
-    r"|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.")
+    r"(?<![A-Za-z0-9_])(?:"
+    r"gh[pousr]_[A-Za-z0-9]{36,}"
+    r"|github_pat_[A-Za-z0-9_]{20,}"
+    r"|xox[baprs]-[0-9]{6,}-[A-Za-z0-9-]{8,}"
+    r"|AKIA[0-9A-Z]{16}(?![A-Za-z0-9])"
+    r"|eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"
+    r"|(?i:bearer)\s+[A-Za-z0-9._~+/-]{16,}=*"
+    r")|-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----")
+_RECEIPT_ID = re.compile(r"kv-email-receipt:[0-9a-f]{64}")
+_PROVIDER_ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+MAPPING_STATES = frozenset({"MAPPED_CREDENTIAL_REQUIRED", "CREDENTIAL_BOUND", "SESSION_VERIFIED", "REVOKED"})
 
 REPAIRS = {
     "EMAIL_ADMIT_RECEIPT_ABSENT": "a complete stegverse.kv.email-ingress-receipt/v1 receipt for the message, as decide() emits it",
@@ -89,6 +108,7 @@ REPAIRS = {
     "EMAIL_PROVIDER_CURSOR_ABSENT": "an integer provider position for every mailbox receiving new receipts",
     "EMAIL_PROVIDER_CURSOR_INVALID": "a non-negative integer provider position (pass a Gmail history_id as int(history_id); opaque cursors are not supported)",
     "EMAIL_PROVIDER_CURSOR_REF_INVALID": "a provider cursor receipt reference of the form sha256:<64 hex> (the StegAgents cursor_sha256)",
+    "EMAIL_PROVIDER_CURSOR_REF_UNJUSTIFIED": "a provider cursor reference that changes only with the position advance or new messages it justifies",
     "EMAIL_PROVIDER_CURSOR_ROLLBACK": "a provider position at or after the last accepted one",
     "EMAIL_PROJECTION_ROLLBACK": "the last accepted email-family projection as prior with its projection_digest as accepted_head_digest (GENESIS_HEAD and no prior for the first)",
     "EMAIL_PRIOR_PROJECTION_INVALID": "the prior email-family projection exactly as this producer emitted it",
@@ -167,6 +187,11 @@ def _validate_mapping(mapping: Any) -> dict[str, Any]:
         raise _fail("EMAIL_MAPPING_INVALID", "MAPPING_IS_CONTRACT_OBJECT", str(mapping["mapping_id"]))
     if mapping["mapping_id"] != expected:
         raise _fail("EMAIL_MAPPING_DIGEST_DRIFT", "MAPPING_ID_RECOMPUTES", str(mapping["mapping_id"]))
+    if (mapping["mapping_state"] not in MAPPING_STATES
+            or not isinstance(mapping["provider_id"], str) or _PROVIDER_ID.fullmatch(mapping["provider_id"]) is None
+            or not isinstance(mapping["provider_route"], str) or not mapping["provider_route"].strip()
+            or len(mapping["provider_route"]) > 512 or not mapping["provider_route"].isprintable()):
+        raise _fail("EMAIL_MAPPING_INVALID", "MAPPING_IS_CONTRACT_OBJECT", str(mapping["mapping_id"]))
     ref = mapping["skap_credential_ref"]
     if ref is not None and (not isinstance(ref, str) or _SKAP_REF.fullmatch(ref) is None):
         raise _fail("EMAIL_SKAP_REFERENCE_INVALID", "CREDENTIAL_IS_SKAP_REFERENCE_ONLY", str(mapping["mapping_id"]))
@@ -211,6 +236,8 @@ def _validate_prior(prior: Any, mappings: dict[str, dict[str, Any]]) -> tuple[di
     if not isinstance(prior, dict) or prior.get("schema") != SCHEMA:
         raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION")
     _scan_secrets({k: v for k, v in prior.items() if k not in FLAG_KEYS}, "prior")
+    if any(prior.get(flag) is not False for flag in FLAG_KEYS) or prior.get("authority_effect") != "NONE":
+        raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION", "authority_flags")
     accounts, messages = prior.get("accounts"), prior.get("messages")
     if not isinstance(accounts, list) or not isinstance(messages, list):
         raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION")
@@ -227,17 +254,24 @@ def _validate_prior(prior: Any, mappings: dict[str, dict[str, Any]]) -> tuple[di
             raise _fail("EMAIL_PRIOR_ACCOUNT_UNMAPPED", "PRIOR_ACCOUNTS_MAPPED", str(mid))
         by_mapping[mid] = account
     heads: dict[str, tuple[int, str | None, str | None]] = {mid: (0, None, None) for mid in by_mapping}
+    seen_ids: set[str] = set()
     for message in messages:
         if (not isinstance(message, dict) or set(message) != ROW_KEYS or message["payload_present"] is not False
-                or message["trust_state"] != "TRUSTED_ADMITTED"):
+                or message["trust_state"] != "TRUSTED_ADMITTED"
+                or not isinstance(message["canonical_message_id"], str) or _MESSAGE_ID.fullmatch(message["canonical_message_id"]) is None
+                or not isinstance(message["staged_content_hash"], str) or _SHA256.fullmatch(message["staged_content_hash"]) is None
+                or not isinstance(message["receipt_id"], str) or _RECEIPT_ID.fullmatch(message["receipt_id"]) is None):
             raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION")
+        if message["canonical_message_id"] in seen_ids:
+            raise _fail("EMAIL_PRIOR_PROJECTION_INVALID", "PRIOR_IS_EMAIL_FAMILY_PROJECTION", message["canonical_message_id"])
+        seen_ids.add(message["canonical_message_id"])
         mid = message["mapping_id"]
         if mid not in heads:
             raise _fail("EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT", "PRIOR_DIGEST_RECOMPUTES", str(mid))
         seq, head, _ = heads[mid]
-        if message["sequence"] != seq + 1 or isinstance(message["sequence"], bool):
+        if not _is_count(message["sequence"]) or message["sequence"] != seq + 1:
             raise _fail("EMAIL_PRIOR_PROJECTION_DIGEST_DRIFT", "PRIOR_DIGEST_RECOMPUTES", str(mid))
-        heads[mid] = (seq + 1, _chain(head, str(message["receipt_id"])), message["receipt_id"])
+        heads[mid] = (seq + 1, _chain(head, message["receipt_id"]), message["receipt_id"])
     for mid, account in by_mapping.items():
         cursor = account["cursor"]
         seq, head, last = heads[mid]
@@ -315,9 +349,6 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
         raise _fail("EMAIL_PROVIDER_CURSOR_INVALID", "PROVIDER_CURSOR_IS_ORDERED_POSITION")
     if not isinstance(cursor_refs, dict):
         raise _fail("EMAIL_PROVIDER_CURSOR_REF_INVALID", "PROVIDER_CURSOR_REF_IS_SHA256")
-    for mid in list(provider_positions) + list(cursor_refs):
-        if mid not in mappings:
-            raise _deny("EMAIL_CROSS_ACCOUNT_PROVENANCE_MISMATCH", "PROVENANCE_BOUND_TO_SUPPLIED_MAPPING", str(mid))
     for mid, ref in cursor_refs.items():
         if not isinstance(ref, str) or _SHA256.fullmatch(ref) is None:
             raise _fail("EMAIL_PROVIDER_CURSOR_REF_INVALID", "PROVIDER_CURSOR_REF_IS_SHA256", mid)
@@ -351,8 +382,13 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
         by_message[row["canonical_message_id"]] = row
         new_by_mapping.setdefault(mid, []).append(row)
 
+    emitted = set(prior_accounts) | set(new_by_mapping)
+    for mid in list(provider_positions) + list(cursor_refs):
+        if mid not in emitted:  # a position/ref for a mailbox with no account and no receipts would be dropped silently
+            raise _deny("EMAIL_CROSS_ACCOUNT_PROVENANCE_MISMATCH", "PROVENANCE_BOUND_TO_SUPPLIED_MAPPING", str(mid))
+
     accounts: list[dict[str, Any]] = []
-    for mid in sorted(set(prior_accounts) | set(new_by_mapping)):
+    for mid in sorted(emitted):
         mapping = mappings[mid]
         old = (prior_accounts.get(mid) or {}).get("cursor") or {
             "sequence": 0, "head_receipt_id": None, "chain_digest": None, "provider_position": None, "provider_cursor_ref": None}
@@ -368,6 +404,12 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
         # already proven new for this mapping above, so only a strictly lower position is a rollback.
         if old_pos is not None and pos is not None and pos < old_pos:
             raise _deny("EMAIL_PROVIDER_CURSOR_ROLLBACK", "PROVIDER_CURSOR_NOT_BEHIND_ACCEPTED", mid)
+        ref = cursor_refs.get(mid, old["provider_cursor_ref"])
+        advanced = pos is not None and (old_pos is None or pos > old_pos)
+        if mapping["mapping_state"] == "REVOKED" and (pos != old_pos or ref != old["provider_cursor_ref"]):
+            raise _deny("EMAIL_MAPPING_REVOKED", "MAPPING_NOT_REVOKED", mid)
+        if ref != old["provider_cursor_ref"] and not (advanced or fresh):
+            raise _deny("EMAIL_PROVIDER_CURSOR_REF_UNJUSTIFIED", "PROVIDER_CURSOR_REF_TIED_TO_POSITION", mid)
         seq, head, head_id = old["sequence"], old["chain_digest"], old["head_receipt_id"]
         for row in fresh:
             seq += 1
@@ -381,7 +423,7 @@ def _project(receipts, mappings_in, provider_positions, prior, accepted_head_dig
             "mapping_state": mapping["mapping_state"],
             "skap_ref": mapping["skap_credential_ref"],
             "cursor": {"sequence": seq, "head_receipt_id": head_id, "chain_digest": head, "provider_position": pos,
-                       "provider_cursor_ref": cursor_refs.get(mid, old["provider_cursor_ref"])},
+                       "provider_cursor_ref": ref},
         })
 
     produced = clock()

@@ -155,16 +155,34 @@ Every projection now carries `projection_metadata` (`stegverse.kv.workspace-proj
   - cross-account provenance;
   - an absent or stale receipt;
   - a receipt field in the wrong format: `kv-email-message:<64 hex>` or `sha256:<64 hex>` not fully matched, or a reason that is not text;
-  - a secret key (NFKC-normalised and case-folded), or a credential-shaped string value: bearer, `gh[pousr]_`, `github_pat_`, PEM, AKIA, `xox?-`, or JWT;
+  - a secret key (NFKC-normalised and case-folded), or a token-shaped string value (word-bounded): `gh[pousr]_` with 36 or more characters, `github_pat_` with 20 or more, a Slack `xox[baprs]-<digits>-…` token, `AKIA` plus 16 characters, a three-segment JWT, `bearer` followed by 16 or more token characters, or a PEM `PRIVATE KEY` header. Ordinary text such as `ghp_dev@gmail.com`, `skap://kv/xoxb-slack` or a route named `bearer auth` passes;
+  - a mapping whose `mapping_state` is not one of MAPPED_CREDENTIAL_REQUIRED, CREDENTIAL_BOUND, SESSION_VERIFIED or REVOKED, whose `provider_id` does not match `[a-z0-9][a-z0-9._-]{0,63}`, or whose `provider_route` is not printable, non-blank text of at most 512 characters;
+  - a provider position or cursor reference for a mailbox that has no account and no new receipts. It would otherwise be dropped silently, so it is refused as a cross-account DENY;
+  - a REVOKED mapping whose position or reference changes (DENY `EMAIL_MAPPING_REVOKED`);
+  - a cursor reference that changes without a position advance or new messages (DENY `EMAIL_PROVIDER_CURSOR_REF_UNJUSTIFIED`);
   - a credential reference that is not `skap://`;
   - receipt, mapping or prior digest drift;
-  - prior rows or cursors that are not exactly this producer's shape;
+  - prior rows or cursors that are not exactly this producer's shape. This covers key sets, integer (not float or bool) sequences, the `kv-email-message:`, `sha256:` and `kv-email-receipt:` formats, duplicate `canonical_message_id` values, and authority flags that are not `false` or an `authority_effect` that is not `NONE`;
   - a scan depth above 32;
   - any raised exception from the inputs, the iterable or the clock, which becomes `EMAIL_INPUT_MALFORMED`;
   - a clock without a UTC offset.
 - **Evidence class:** SOURCE + LOCAL_TEST. No mailbox, provider, SKAP resolution or KV write is involved. ALLOW carries `runtime_evidence: false` and `action_eligible: false`.
 - **Open gaps (owner work):**
   - the authorized KV writer (BLK3), which persists `projections/email-family.json` and the accepted head digest;
+  - **genesis reset is enforced by the writer, not this module.** `GENESIS_HEAD` with `prior=None` starts a new chain whenever a caller presents it.
+    - `failure_code`: `EMAIL_PROJECTION_GENESIS_RESET_WRITER_ENFORCED`
+    - `failed_predicate`: `WRITER_NEVER_PRESENTS_GENESIS_AFTER_FIRST_ACCEPT`
+    - `required_evidence_or_repair`: the authorized KV writer persists the accepted head, and never passes `GENESIS_HEAD` once any projection has been accepted
+    - `retry_entrypoint`: `runtime.email_family_projection.project_email_family`
+    - `owning_existing_goal`: StegVerse-org/.github#164 (BLK3 writer)
+    - `next_attempt`: when the writer lands;
+  - **unbounded growth.** Every admitted row is kept so that replay dedupe covers the whole history.
+    - `failure_code`: `EMAIL_FAMILY_PROJECTION_UNBOUNDED_GROWTH`
+    - `failed_predicate`: `PROJECTION_SIZE_BOUNDED`
+    - `required_evidence_or_repair`: a compaction or checkpoint that keeps the dedupe set in KV
+    - `retry_entrypoint`: same as above
+    - `owning_existing_goal`: StegVerse-org/.github#164 (BLK3 writer)
+    - `next_attempt`: when compaction is designed;
   - opaque provider cursors such as Graph delta links. They fail closed as `EMAIL_PROVIDER_CURSOR_INVALID`;
   - live ADMIT receipts, which depend on email activation predicates 8 and 11.
 - **Test:** `tests/test_email_family_projection.py` (unittest), run by the existing `validate-kv-email-ingress-policy.validate` step 03. No new workflow is added.
