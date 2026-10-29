@@ -419,14 +419,19 @@ def failure_codes(verdict):
     return {r["predicate"]: r["failure_code"] for r in verdict["predicates"] if r["disposition"] != "ALLOW"}
 
 
+TVC_AUTHORITY_PREDICATE = "TV_TVC_REMAINS_CREDENTIAL_AUTHORITY_AND_SOLE_SKAP_CIPHERTEXT_WRITER"
+TVC_AUTHORITY_GAP = {TVC_AUTHORITY_PREDICATE: "TVC_CUSTODY_ISSUANCE_AUTHENTICITY_NOT_PROVEN"}
+
+
 class EvidenceDrivenVerdict(unittest.TestCase):
-    def test_evidence_reaches_allow_without_a_code_edit(self) -> None:
+    def test_reference_only_evidence_cannot_reach_allow(self) -> None:
         verdict = kv.evaluate(evidence_bundle())
-        self.assertEqual(verdict["disposition"], "ALLOW", failure_codes(verdict))
-        self.assertEqual(verdict["unmet_predicates"], [])
-        for row in verdict["predicates"]:
-            if row["predicate"] in kv.EVIDENCE_BOUND:
-                self.assertEqual(row["locus"], "LOCAL_EXERCISE+EVIDENCE")
+        self.assertEqual(verdict["disposition"], "FAIL_CLOSED")
+        self.assertEqual(failure_codes(verdict), TVC_AUTHORITY_GAP)
+        self.assertEqual(verdict["unmet_predicates"], [TVC_AUTHORITY_PREDICATE])
+        row = next(r for r in verdict["predicates"] if r["predicate"] == TVC_AUTHORITY_PREDICATE)
+        for field in SIX:
+            self.assertTrue(row[field], field)
 
     def test_each_evidence_gap_is_a_six_field_fail_closed(self) -> None:
         RT, AD, TV = ("KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT",
@@ -475,7 +480,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             evidence = evidence_bundle()
             mutate(evidence)
             verdict = kv.evaluate(evidence)
-            self.assertEqual(failure_codes(verdict), {predicate: code}, code)
+            self.assertEqual(failure_codes(verdict), {**TVC_AUTHORITY_GAP, predicate: code}, code)
             row = next(r for r in verdict["predicates"] if r["predicate"] == predicate)
             for field in SIX:
                 self.assertTrue(row[field], (code, field))
@@ -489,7 +494,8 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         for edit in (denied, bad_manifest):
             verdict = kv.evaluate(evidence_bundle(TwoLayers(intr_edit=edit)))
             self.assertEqual(failure_codes(verdict),
-                             {"KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": "INTR_TRANSITION_RECEIPT_INVALID"})
+                             {**TVC_AUTHORITY_GAP,
+                              "KV_PROJECTION_WRITE_READ_REVOKE_ROUNDTRIP_EXACT": "INTR_TRANSITION_RECEIPT_INVALID"})
 
     def test_every_access_row_failure_fails_its_mapped_sealed_predicate(self) -> None:
         """LC-KV-09 E1 condition (Coordination, Oct 23): for each access row, if the row fails, the sealed predicate
@@ -670,7 +676,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
             verdict = kv.evaluate(evidence_bundle())
         finally:
             kv._closed_schema = original_closed
-        self.assertEqual(failure_codes(verdict).keys(), {P4})
+        self.assertEqual(failure_codes(verdict).keys(), {P4, TVC_AUTHORITY_PREDICATE})
         row = next(r for r in verdict["predicates"] if r["predicate"] == P4)
         for field in SIX:
             self.assertTrue(row[field], field)
@@ -680,7 +686,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         designation (cvk#263), never an opened node ledger: evaluate_anchored refuses to open one, so no SKAP_VAULT node
         receipt exists to complete the finish point. KV's own PERMANENT-only check stays as defense in depth."""
         from tests.kv_two_layer_e0 import NODE, e0_health_ledger
-        self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
+        self.assertEqual(failure_codes(kv.evaluate(evidence_bundle())), TVC_AUTHORITY_GAP)
         with self.assertRaises(AssertionError) as refused_open:
             e0_health_ledger(NODE, kind="SKAP_VAULT")
         self.assertIn("ENDPOINT_INVALID", str(refused_open.exception))
@@ -701,7 +707,7 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         self.assertIn("TV/TVC publishes", out["next_attempt"])
         for field in SIX:
             self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
-        self.assertEqual(set(failure_codes(kv.evaluate(evidence_bundle())).values()), set())
+        self.assertEqual(failure_codes(kv.evaluate(evidence_bundle())), TVC_AUTHORITY_GAP)
 
     def test_a_tampered_or_malformed_bundle_never_raises(self) -> None:
         evidence = evidence_bundle()
@@ -750,39 +756,47 @@ class OrganizationLedgerReceipt(unittest.TestCase):
         verdict = kv.evaluate(evidence_bundle())
         receipt = kv.organization_ledger_receipt(verdict)
         self.assertEqual(receipt["schema"], "stegverse.canonical-state-transition-receipt/v1")
-        self.assertEqual(receipt["transition_outcome"], "ALLOW")
+        self.assertEqual(receipt["transition_outcome"], "FAIL_CLOSED")
         self.assertEqual(receipt["prior_state_ref_or_hash"], verdict["evidence_lineage_head"])
         entry = receipt["required_evidence_manifest"][0]
         self.assertEqual(entry["origin_transition_id"], receipt["transition_id"])
         self.assertEqual(len(entry["sha256"]), 64)
         self.assertEqual(receipt, kv.organization_ledger_receipt(kv.evaluate(evidence_bundle())))  # deterministic
 
-    def test_without_a_ledger_the_append_fails_closed_pending_genesis(self) -> None:
+    def test_unproven_issuance_never_attempts_a_finish_point_append(self) -> None:
         verdict = kv.finish_point(evidence_bundle())
-        self.assertEqual(verdict["disposition"], "ALLOW")
+        self.assertEqual(verdict["disposition"], "FAIL_CLOSED")
         self.assertEqual(verdict["runtime_disposition"], "FAIL_CLOSED")
         append = verdict["ledger_append"]
-        self.assertEqual(append["failure_code"], "ORGANIZATION_LEDGER_GENESIS_NOT_OBSERVED")
+        self.assertEqual(append["failure_code"], "FINISH_POINT_VERDICT_NOT_ALLOW")
+        self.assertFalse(append["ledger_append_attempted"])
         self.assertEqual(append["failure_class"], "B")
         for field in SIX:
             self.assertTrue(append[field], field)
         self.assertFalse(append["real_ledger_written"])
+        # Independently retain the low-level writer's missing-genesis check.
+        direct = kv.append_organization_ledger_receipt(kv.organization_ledger_receipt(verdict), None)
+        self.assertEqual(direct["failure_code"], "ORGANIZATION_LEDGER_GENESIS_NOT_OBSERVED")
 
     def test_scratch_ledger_genesis_absent_is_never_fabricated(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             git_dir = scratch_ledger(tmp, genesis=False)
-            append = kv.finish_point(evidence_bundle(), git_dir)["ledger_append"]
+            receipt = kv.organization_ledger_receipt(kv.evaluate(evidence_bundle()))
+            append = kv.append_organization_ledger_receipt(receipt, git_dir)
             self.assertEqual(append["failure_code"], "ORGANIZATION_LEDGER_GENESIS_ABSENT")
             probe = subprocess.run(["git", "--git-dir", git_dir, "rev-parse", "--verify", "--quiet",
                                     kv.ORGANIZATION_LEDGER_REF], capture_output=True, check=False)
             self.assertNotEqual(probe.returncode, 0)
 
     def test_scratch_ledger_append_and_refusals(self) -> None:
+        # Test the low-level scratch CAS writer with a FAIL_CLOSED diagnostic
+        # receipt. This does not manufacture an ALLOW finish-point verdict.
+        receipt = kv.organization_ledger_receipt(kv.evaluate(evidence_bundle()))
+        self.assertEqual(receipt["transition_outcome"], "FAIL_CLOSED")
         with tempfile.TemporaryDirectory() as tmp:
             git_dir = scratch_ledger(tmp)
-            verdict = kv.finish_point(evidence_bundle(), git_dir)
-            self.assertEqual(verdict["runtime_disposition"], "ALLOW", verdict["ledger_append"])
-            append = verdict["ledger_append"]
+            append = kv.append_organization_ledger_receipt(receipt, git_dir)
+            self.assertEqual(append["disposition"], "ALLOW", append)
             self.assertEqual(append["locus"], "SCRATCH_LEDGER")
             tip = subprocess.run(["git", "--git-dir", git_dir, "rev-parse", kv.ORGANIZATION_LEDGER_REF],
                                  capture_output=True, text=True, check=True).stdout.strip()
@@ -799,21 +813,27 @@ class OrganizationLedgerReceipt(unittest.TestCase):
                                  capture_output=True, text=True, check=False)
             self.assertEqual(cli.returncode, 2)  # missing evidence file fails closed, never raises
         with tempfile.TemporaryDirectory() as tmp:
-            append = kv.finish_point(evidence_bundle(), scratch_ledger(tmp, remote=True))["ledger_append"]
+            append = kv.append_organization_ledger_receipt(receipt, scratch_ledger(tmp, remote=True))
             self.assertEqual(append["failure_code"], "LEDGER_TARGET_NOT_SCRATCH")
-            append = kv.finish_point(evidence_bundle(), str(Path(tmp) / "absent"))["ledger_append"]
+            append = kv.append_organization_ledger_receipt(receipt, str(Path(tmp) / "absent"))
             self.assertEqual(append["failure_code"], "SCRATCH_LEDGER_NOT_A_GIT_DIR")
 
-    def test_cli_round_trip_reaches_runtime_allow_on_a_scratch_ledger(self) -> None:
+    def test_cli_refuses_unproven_issuance_without_moving_scratch_ledger(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "evidence.json"
             path.write_text(json.dumps(evidence_bundle()), encoding="utf-8")
+            git_dir = scratch_ledger(tmp)
+            tip_before = kv._git(git_dir, "rev-parse", kv.ORGANIZATION_LEDGER_REF).stdout.strip()
             cli = subprocess.run([*E0_FINISH_POINT_CLI, "finish-point", "--evidence",
-                                  str(path), "--scratch-ledger-git-dir", scratch_ledger(tmp)], cwd=ROOT,
+                                  str(path), "--scratch-ledger-git-dir", git_dir], cwd=ROOT,
                                  capture_output=True, text=True, check=False)
-            self.assertEqual(cli.returncode, 0, cli.stdout[-2000:])
-            self.assertEqual(json.loads(cli.stdout)["ledger_append"]["disposition"], "ALLOW")
-            self.assertEqual(json.loads(cli.stdout)["trust_anchors_label"], "E0_STANDIN_TEST_ONLY_NOT_EVIDENCE")
+            self.assertEqual(cli.returncode, 2, cli.stdout[-2000:])
+            verdict = json.loads(cli.stdout)
+            self.assertEqual(failure_codes(verdict), TVC_AUTHORITY_GAP)
+            self.assertFalse(verdict["ledger_append"]["ledger_append_attempted"])
+            self.assertEqual(verdict["runtime_disposition"], "FAIL_CLOSED")
+            self.assertEqual(kv._git(git_dir, "rev-parse", kv.ORGANIZATION_LEDGER_REF).stdout.strip(), tip_before)
+            self.assertEqual(verdict["trust_anchors_label"], "E0_STANDIN_TEST_ONLY_NOT_EVIDENCE")
             # LC-KV-15: the production CLI (no E0 anchors) refuses the same E0 evidence, six fields per access row
             plain = subprocess.run([sys.executable, "-m", "runtime.kv_skap_vault", "finish-point", "--evidence",
                                     str(path), "--scratch-ledger-git-dir", scratch_ledger(tmp + "/p")], cwd=ROOT,
@@ -825,6 +845,78 @@ class OrganizationLedgerReceipt(unittest.TestCase):
             self.assertEqual(row["refusal_cause"], "LAYER1_RECEIPT_MINTED_UNDER_OTHER_TRUST_ANCHORS")
             for field in SIX:
                 self.assertTrue(row[field], field)
+
+
+class TvcIssuanceAuthenticityBoundary(unittest.TestCase):
+    def evidence(self):
+        manifest_hash = 'sha256:' + 'a' * 64
+        body = {
+            'schema': kv.TVC_ISSUANCE_SCHEMA,
+            'transition': 'TVC_SKAP_CUSTODY_REFERENCE_ISSUE',
+            'disposition': 'ALLOW', 'issuer': 'TV/TVC',
+            'manifest_sha256': manifest_hash,
+            'principal_ref': 'principal:synthetic-only',
+            'kv_task_id': kv.TASK_ID,
+            'custody_purpose': 'SKAP_VAULT_CIPHERTEXT_CUSTODY',
+            'issuance_sequence': 0,
+            'custody_key_ref': kv.CUSTODY_REF_PREFIX + manifest_hash[7:39],
+            'key_material_location': 'TVC_ONLY',
+            'key_material_present': False, 'credential_material_present': False,
+            'live_key_slot_binding': 'UNKNOWN_NOT_AUTHENTICALLY_OBSERVED',
+            'authority_effect': 'NONE',
+        }
+        receipt = {**body, 'receipt_sha256': kv.sha256_uri(body)}
+        return {
+            'lineage': {
+                'principal_ref': body['principal_ref'],
+                'receipts': [{'kind': 'CUSTODY_KEY_REFERENCE_BOUND', 'body': {
+                    'custody_key_ref': body['custody_key_ref'],
+                    'tvc_issuance_receipt_ref': receipt['receipt_sha256'],
+                }}],
+            },
+            'tvc_issuance_receipts': [receipt],
+        }
+
+    def assertAuthorityUnproven(self, evidence):
+        result = kv._evidence_tvc(evidence)
+        self.assertIsNotNone(result, 'a public digest is not an authenticated TVC issuance witness')
+        self.assertEqual(result[0], 'TVC_CUSTODY_ISSUANCE_AUTHENTICITY_NOT_PROVEN')
+
+    def test_self_constructed_receipt_does_not_prove_tvc_authority(self):
+        self.assertAuthorityUnproven(self.evidence())
+
+    def test_rehashed_changed_principal_does_not_prove_tvc_authority(self):
+        evidence = self.evidence()
+        receipt = evidence['tvc_issuance_receipts'][0]
+        receipt['principal_ref'] = 'principal:synthetic-altered'
+        receipt['receipt_sha256'] = kv.sha256_uri({k: v for k, v in receipt.items() if k != 'receipt_sha256'})
+        evidence['lineage']['principal_ref'] = receipt['principal_ref']
+        evidence['lineage']['receipts'][0]['body']['tvc_issuance_receipt_ref'] = receipt['receipt_sha256']
+        self.assertAuthorityUnproven(evidence)
+
+    def test_self_asserted_live_binding_is_not_an_authenticated_witness(self):
+        evidence = self.evidence()
+        receipt = evidence['tvc_issuance_receipts'][0]
+        receipt['live_key_slot_binding'] = 'BOUND'
+        receipt['receipt_sha256'] = kv.sha256_uri({k: v for k, v in receipt.items() if k != 'receipt_sha256'})
+        evidence['lineage']['receipts'][0]['body']['tvc_issuance_receipt_ref'] = receipt['receipt_sha256']
+        self.assertAuthorityUnproven(evidence)
+
+    def test_tamper_without_rehash_remains_invalid(self):
+        evidence = self.evidence()
+        evidence['tvc_issuance_receipts'][0]['principal_ref'] = 'principal:synthetic-altered'
+        self.assertEqual(kv._evidence_tvc(evidence)[0], 'TVC_CUSTODY_KEY_ISSUANCE_RECEIPT_INVALID')
+
+    def test_missing_issuance_receipt_remains_unobserved(self):
+        evidence = self.evidence()
+        evidence['tvc_issuance_receipts'] = []
+        self.assertEqual(kv._evidence_tvc(evidence)[0], 'TVC_CUSTODY_KEY_ISSUANCE_NOT_OBSERVED')
+
+    def test_receipt_not_bound_to_lineage_remains_refused(self):
+        evidence = self.evidence()
+        evidence['lineage']['receipts'][0]['body']['tvc_issuance_receipt_ref'] = 'sha256:' + 'b' * 64
+        self.assertEqual(kv._evidence_tvc(evidence)[0], 'TVC_CUSTODY_KEY_ISSUANCE_NOT_BOUND')
+
 
 
 if __name__ == "__main__":

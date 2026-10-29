@@ -1114,7 +1114,15 @@ def _evidence_tvc(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
             return ("TVC_CUSTODY_KEY_ISSUANCE_RECEIPT_INVALID", "C",
                     f"the issuance receipt for {body.get('custody_key_ref')!r} must re-derive as a TV/TVC "
                     f"{TVC_ISSUANCE_SCHEMA} for this principal and reference, with no material")
-    return None
+    # The v1 reference receipt proves digest consistency only. Every field,
+    # including issuer and live_key_slot_binding, is caller-controlled. Until
+    # the existing TV/TVC authority supplies an independently verified issuance
+    # witness, it cannot satisfy the credential-authority predicate. Do not
+    # replace this refusal with a check of a self-asserted binding flag.
+    return ("TVC_CUSTODY_ISSUANCE_AUTHENTICITY_NOT_PROVEN", "B",
+            "authenticate issuance through existing TV/TVC custody, binding the manifest, principal, "
+            "task, custody-key reference and live slot, and verify current non-revoked authority; "
+            "a correctly hashed reference-only v1 receipt is insufficient")
 
 
 _EVIDENCE_CHECKS = {

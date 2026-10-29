@@ -891,3 +891,46 @@ Installed source:
 The runtime provides fail-closed sealed-capsule construction and progressive disclosure evaluation. It rejects embedded plaintext/credential fields and requires explicit identity, participation, release-trigger, TVC authorization, and InTr evidence before it can report release admissibility. Capsules default to NOT_ARMED.
 
 Remaining: connected-KV template installation/readback; StegID recipient-resolution binding; TV/TVC and InTr receipt binding; Site UX; owner-authorized private payload ingestion; delivery adapters. No live capsule or token release is activated.
+
+
+## 2026-10-29: pending TVC issuance authenticity guard
+
+Repair tracking: https://github.com/StegVerse-Labs/continuity-vault-kit/issues/279.
+The local candidate at base `b1a66008dccad0d301a7e892e6619f47002ec26d`
+refuses reference-only TVC v1 receipts with
+`TVC_CUSTODY_ISSUANCE_AUTHENTICITY_NOT_PROVEN`. A caller-computable digest,
+literal issuer label and self-asserted live-binding field do not authenticate
+credential authority. Existing malformed, missing and unbound checks remain.
+
+The candidate passes 40 relevant tests locally, including CLI refusal without
+moving the scratch ledger. It is a containment repair: authenticated issuance
+and current non-revoked live-slot authority still require the existing TV/TVC
+custody owner's verifier. The protected storage provider adapter is unchanged.
+No independent review, hosted CI, merge, native registration or real-node ALLOW
+is claimed by this entry. The original owner must integrate and verify the patch
+on the authorized branch; reconcile this pending status when doing so.
+
+Canonical proposal handoff:
+https://github.com/StegVerse-Labs/.github/blob/main/docs/KV_SKAP_VAULT_FUNCTIONAL_MIRROR_HANDOFF.md.
+
+
+### 2026-10-29 continuation: review and runtime routing
+
+The six authenticity regressions are now part of the existing
+`tests.test_kv_skap_vault_finish_point` suite so the current finish-point runner
+executes all 40 tests; no new workflow, catalog entry or dependency is added.
+The repair is prepared as a draft for issue #279, pending exact-head CI and
+independent review. The canonical goal remains proposal-only at Registry
+generation 322; no admission, live custody, fence or real-node ALLOW is claimed.
+
+Do not revive LLM-adapter #431 or initialize its superseded organization-to-adapter
+ledger route. The owner closed #431 unmerged, and StegVerse-org/.github #249
+removed that edge (merge `89558cd333c311924e7f282a1ab97e113adb7a23`).
+Lane B must reconcile #430's stale admission-order/genesis text with the retained
+healthy-node-to-adapter-to-SDK path. Preserve the healthy-node evaluator and
+existing authority boundaries. References:
+https://github.com/StegVerse-org/LLM-adapter/pull/431#issuecomment-6391809461
+https://github.com/StegVerse-org/.github/pull/249
+
+Session Prompt Count: 2. Cumulative Goal Prompt Count: UNVERIFIED; add this prompt
+without resetting the previous count.
