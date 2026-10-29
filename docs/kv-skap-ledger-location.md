@@ -269,3 +269,23 @@ access receipts are observed. `ENDPOINT_NOT_A_GITHUB_ORGANIZATION_MEMBER` is ALL
 
 The E0 tests use the documented `device-local` storage endpoint (LOCAL_ROOT, `resident-device-local`). It points at
 a TEST-ONLY scratch KV root, outside the KV #2 lineage. Production files are never touched.
+
+## KV's end of an Org->KV crossing (`runtime/kv_crossing_records.py`)
+
+KV is its own ledger-holding party, so a crossing between an org and KV is between two distinct parties and is recorded
+on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). `plan_crossing_record` and
+`append_crossing_record` are KV's end: one digest-only `INTR_MESH_PATH_INGRESS` receipt on KV's own `kv` chain
+(`_StegVerse/Receipts`), pointing at the Org's record by digest (`source_repository_receipt_sha256`), at a supplied HB
+epoch (no clock), in the shape `_org_crossing` already checks. The Org's end is never written here; it is read only by
+`ORG_CROSSING_READER`, which stays refuse-only.
+
+Exactly one receipt per crossing, identified by `(path_id, communication_id)`. Rigel's rule (2026-10-29 3:08 PM CDT,
+Lane B's chat, relayed at StegVerse-org/.github#162 c6508050206): "This shouldn't be possible without being a literal
+duplicate." A second record for the same crossing is refused, six-field FAIL_CLOSED
+`INTR_PATH_DESTINATION_CROSSING_ALREADY_RECORDED` (the Org side's code, StegVerse-org/.github#261), literal duplicate or
+not. There is no newest-wins and no replacement policy. The check is made again under the append lock.
+
+Not here: the SKAP chain (reached only from inside KV, no InTr hop, so refused), any key handling (the head is signed by
+the published `kv_ledger_head_signer`, never by this module), any dispatch or clock, and any Org->KV `intr-destination`
+path_id declaration (that stays a separate admitted change). Production is FAIL_CLOSED on KV #2
+(`KV2_STORAGE_ENDPOINT_PENDING_INTERLOCK_INTR`) before anything is read or written.
