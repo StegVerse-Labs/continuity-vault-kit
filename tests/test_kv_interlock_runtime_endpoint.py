@@ -308,8 +308,8 @@ class KVInterlockRuntimeTests(unittest.TestCase):
 
 class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
     """LC-KV-07/10/11 (StegVerse-Labs/.github#3330 rev 1): KV is reachable only via InTr from a healthy node, as
-    decided by the pinned InTr evaluator (StegVerse-org/LLM-adapter#430 @919851cb, which carries #429 and #428; none is
-    merged), over the requesting node's OWN transition ledger. There is no organization ledger in this model."""
+    decided by the pinned InTr evaluator (StegVerse-org/LLM-adapter#430 @919851cb, which carried #429 and #428; merged as
+    649f0775 on LLM-adapter main), over the requesting node's OWN transition ledger. There is no organization ledger in this model."""
 
     NODE = "SV-NODE-E0TEST0001"
 
@@ -393,7 +393,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
             self.assertEqual(response["failure_class"], "C")
 
     def test_the_real_path_today_fails_closed_no_chain_bound(self):
-        """Production binds no node chain and the evaluator stack (#430, #429, #428) is not on main: class B."""
+        """Production binds no node chain and no InTr transport is installed: class B (the evaluator stack is on main)."""
         for chain in (None, {"kind": self.m.NODE_CHAIN_SOURCE, "ledger_root": "/nonexistent-e0",
                              "genesis_receipt_sha256": "sha256:" + "0" * 64}):
             response = self.handle(self.runtime_for(chain))
@@ -403,8 +403,7 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
             self.assertIn("LC-KV-13", response["owning_existing_goal"])
             self.assertIsNone(response["kv_access_receipt"])
         rows = {r.get("failure_code"): r for r in self.m.layer1_prerequisites() if r["disposition"] != "ALLOW"}
-        self.assertEqual(set(rows), {"HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN",
-                                     "INTR_TRANSPORT_NOT_INSTALLED"} - ({"INTR_TRANSPORT_NOT_INSTALLED"}
+        self.assertEqual(set(rows), {"INTR_TRANSPORT_NOT_INSTALLED"} - ({"INTR_TRANSPORT_NOT_INSTALLED"}
                                                                         if self.m.observe_intr_transport()[0] else set()))
         for row in rows.values():
             self.assertEqual(row["failure_class"], "B")
@@ -437,9 +436,11 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         pin = self.m.PINNED_HEALTHY_NODE_EVALUATOR
         self.assertEqual(pin["commit"][:8], "919851cb")
         self.assertEqual([p["commit"][:8] for p in pin["provenance"]][-3:], ["f2ccfc28", "6a51553a", "919851cb"])
-        self.assertFalse(pin["on_upstream_main"])
+        self.assertTrue(pin["on_upstream_main"])
+        self.assertEqual(pin["merge_commit"], "649f0775a1c4a6203bbbca835234453c9b6aee1f")
         self.assertTrue(pin["admission_order"].startswith(
-            "StegVerse-Labs/StegOS#426, then StegVerse-org/LLM-adapter#430, then #429, then #428"))
+            "StegVerse-Labs/StegOS#430 (supersedes #426; merged d7b23eb5), then StegVerse-org/LLM-adapter#430"))
+        self.assertNotIn("open draft", str(pin))
         self.assertEqual({p["source_sha256"] for p in pin["provenance"] if "source_sha256" in p} - {pin["source_sha256"]},
                          set())
 

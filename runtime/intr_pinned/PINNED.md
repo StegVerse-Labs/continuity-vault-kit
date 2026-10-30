@@ -1,22 +1,19 @@
 # Pinned InTr code (vendored byte-identical, digest-pinned; not a dependency)
 
 Everything under `runtime/intr_pinned/` is a byte copy of StegVerse-org/LLM-adapter at
-`919851cb092d353bfe6a4271d3893f129dbc1c91` (draft PR StegVerse-org/LLM-adapter#430, which carries #429 @`6a51553a` and
-#428 @`f2ccfc28`), except `llm_adapter/supplied_epoch.py` (see below). Each file is checked by sha256 before every
+`919851cb092d353bfe6a4271d3893f129dbc1c91` (StegVerse-org/LLM-adapter#430, which carried #429 @`6a51553a` and
+#428 @`f2ccfc28`) and byte-identical at LLM-adapter main `649f0775a1c4a6203bbbca835234453c9b6aee1f` (the merge of #430), except `llm_adapter/supplied_epoch.py` (see below). Each file is checked by sha256 before every
 resolution (`PINNED_INTR_FILES["vendored_files"]`, `PINNED_HEALTHY_NODE_EVALUATOR` in `runtime/kv_interlock_endpoint.py`).
 Stdlib only: `llm_adapter/ed25519_verify.py` is the stdlib Ed25519 verify from #430.
 
 ## Dependency and admission order
 
-None of #428, #429 or #430 is merged: all are open drafts, and LLM-adapter main (`e6af8c18`) has no
-`healthy_node_evaluator.py`. KV layer 1 depends on them in the upstream's admission order:
-
-> StegVerse-Labs/StegOS#426, then StegVerse-org/LLM-adapter#430, then #429, then #428 (#430's head carries #429 and #428,
-> so admitting #430 admits all three as one unit).
-
-#428 says "Never admit this PR alone". The cvk PR that carries this pin is not admitted before them. Until the stack is on
-LLM-adapter main, `layer1_prerequisites()` records `HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN` (class B), and
-the re-vendor that flips `on_upstream_main` is a change to the pin in `runtime/kv_interlock_endpoint.py` and this file.
+The chain is merged, in the upstream's admission order: StegVerse-Labs/StegOS#430 (supersedes #426) as `d7b23eb5`, then
+StegVerse-org/LLM-adapter#430 as `649f0775` (its head carried #429 and #428, so it admitted all three as one unit), then
+this repository's #289 as `3d68fe1e`. The vendored evaluator and producer bytes equal LLM-adapter main, so
+`PINNED_HEALTHY_NODE_EVALUATOR["on_upstream_main"]` is `True` and `layer1_prerequisites()` no longer records
+`HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN`. A change to those bytes upstream is a re-vendor: the pin in
+`runtime/kv_interlock_endpoint.py` and this file change together.
 
 ## What layer 1 reads
 

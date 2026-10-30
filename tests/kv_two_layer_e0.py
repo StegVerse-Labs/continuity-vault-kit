@@ -3,7 +3,7 @@
 Layer 1 is KVInterlockRuntime.handle (INTR_DEVICE_KV) and layer 2 is SkapLayer2Gate (KV_INTERNAL_SKAP_GATE).
 
 Health is decided by the REAL pinned InTr evaluator, vendored byte-identical from StegVerse-org/LLM-adapter#430
-@919851cb (which carries #429 and #428; none is merged yet) under runtime/intr_pinned/: layer 1 calls
+@919851cb (merged as 649f0775 on LLM-adapter main; it carried #429 and #428) under runtime/intr_pinned/: layer 1 calls
 llm_adapter.healthy_node_evaluator.evaluate (fdaa2005...1f58, require_admission=True) over the requesting node's OWN
 transition ledger, which the deployment binds together with the genesis receipt it pins. There is no organization
 ledger in this model and no crossing from an organization to LLM-adapter: a machine that has established itself as a
