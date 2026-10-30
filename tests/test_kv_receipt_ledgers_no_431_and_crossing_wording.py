@@ -165,7 +165,7 @@ def test_the_six_removed_copies_and_their_companions_are_gone():
     assert present == sorted("runtime/intr_pinned/llm_adapter/" + n for n in (
         "ed25519_verify.py", "healthy_node_evaluator.py", "node_existence_readback.py",
         "node_health_check_projection.py", "node_health_report_producer.py", "node_identity_binding_producer.py",
-        "node_ingress_boundary.py", "node_receipt_common.py", "supplied_epoch.py")), present
+        "node_ingress_boundary.py", "node_receipt_common.py")), present
     # KV's own head-signers file is KV's own, not the vendored copy
     assert (ROOT / ".stegverse/node-ledger/kv-ledger-head-signers.v1.json").is_file()
 
@@ -235,3 +235,45 @@ def test_contract_change_is_only_the_retired_sentence_and_the_pins_follow_the_by
         assert hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode()).hexdigest() == expected, rel
     for entry in ledgers.RECEIPT_LEDGERS.values():
         assert entry["contract_sha256"] == "sha256:" + hashlib.sha256((ROOT / entry["contract_path"]).read_bytes()).hexdigest()
+
+
+# --- re-vendor at LLM-adapter main fb5ae1cb (#436) and the native supplied-epoch rule -----------------------------------
+NODE_RECEIPT_COMMON_FB5AE1CB = "sha256:3e1141f0be7b00b88d47bc60d84bbb3e5ba36ad43c38a621d6a0acc8c2ae1c12"
+SUPPLIED_EPOCH_FAILURE_SHA256 = "7f36f0e697cadc91acd27af121eee3fc460b887ec67cfa258727bfccec0ca5f8"
+
+
+def test_node_receipt_common_is_the_revendored_bytes_at_llm_adapter_main_fb5ae1cb_without_the_org_ledger_location():
+    from runtime import kv_interlock_endpoint as endpoint
+    path = ROOT / "runtime/intr_pinned/llm_adapter/node_receipt_common.py"
+    assert "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest() == NODE_RECEIPT_COMMON_FB5AE1CB
+    assert endpoint.PINNED_INTR_FILES["vendored_files"]["llm_adapter/node_receipt_common.py"] == NODE_RECEIPT_COMMON_FB5AE1CB
+    assert endpoint.PINNED_INTR_FILES["upstream_main_commit"] == "fb5ae1cbf7d41de82653394fa09cab7039e7312e"
+    assert "LEDGER_LOCATION" not in path.read_text(encoding="utf-8")
+    assert f"`{NODE_RECEIPT_COMMON_FB5AE1CB[len('sha256:'):]}`" in (ROOT / "runtime/intr_pinned/PINNED.md").read_text(encoding="utf-8")
+
+
+def test_supplied_epoch_is_native_not_a_pinned_adapter_file_and_its_rule_is_unchanged():
+    import ast
+    from runtime import kv_interlock_endpoint as endpoint
+    assert not (ROOT / "runtime/intr_pinned/llm_adapter/supplied_epoch.py").exists()
+    assert not any("supplied_epoch" in rel for rel in endpoint.PINNED_INTR_FILES["vendored_files"])
+    assert "supplied_epoch" not in endpoint._PINNED_LOAD_ORDER
+    source = (ROOT / "runtime/kv_supplied_epoch.py").read_text(encoding="utf-8")
+    fn = [n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == "supplied_epoch_failure"]
+    assert len(fn) == 1
+    assert hashlib.sha256((ast.get_source_segment(source, fn[0]) + "\n").encode("utf-8")).hexdigest() == SUPPLIED_EPOCH_FAILURE_SHA256
+    from runtime import kv_supplied_epoch as rule
+    assert rule.supplied_epoch_failure(None)[0] == "HB_EPOCH_NOT_SUPPLIED"
+    assert rule.supplied_epoch_failure("31")[0] == "HB_EPOCH_INVALID"
+    assert rule.supplied_epoch_failure(40) is None
+    assert rule.observed_at_from_hb_reference({"epoch": 40}) == "SUPPLIED_HB_EPOCH:40"
+
+
+def test_the_layer1_owner_text_names_the_merged_chain_not_the_superseded_426_order():
+    from runtime import kv_skap_vault as vault
+    text = vault.ACCESS_CONSTRAINT_OWNER[vault.LAYER_PREDICATE_L1]
+    assert "StegOS#426" not in text and "admission order" not in text
+    for needle in ("StegVerse-Labs/StegOS#430 d7b23eb5", "LLM-adapter#430 649f0775", "continuity-vault-kit#289 3d68fe1e",
+                   "continuity-vault-kit#290 44e7ae56", "StegVerse-Labs/.github#3425 fd6462db",
+                   "StegVerse-Labs/.github#3428 a630f155"):
+        assert needle in text, needle

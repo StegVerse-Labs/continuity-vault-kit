@@ -40,6 +40,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from runtime import kv_storage_provider_adapter as spa
+from runtime import kv_supplied_epoch as _supplied_epoch
 
 ALLOW, FAIL_CLOSED, DENY = "ALLOW", "FAIL_CLOSED", "DENY"
 CORRECTION = "StegVerse-org/.github#167 comment 6372442705"
@@ -237,7 +238,7 @@ def plan_genesis_pin(which: str, storage_endpoint: Any = None, readback_root: An
     modules, why = _pinned()
     if modules is None:
         return fail("PINNED_INTR_CODE_UNAVAILABLE", "C", "the digest-pinned modules", "on re-vendor", why)
-    epoch_failure = modules["supplied_epoch"].supplied_epoch_failure(hb_epoch)
+    epoch_failure = _supplied_epoch.supplied_epoch_failure(hb_epoch)
     if epoch_failure:
         return fail(epoch_failure[0], "C", "the SUPPLIED_HB_EPOCH the genesis was computed with (ASCII [0-9]+, >= 32)",
                     "on the corrected call with the supplied epoch; no clock is read", epoch_failure[1])
@@ -260,7 +261,7 @@ def plan_genesis_pin(which: str, storage_endpoint: Any = None, readback_root: An
                     "(an empty location is never a genesis)", "on an intact chain", f"{failure or 'no genesis'} {detail}")
     hb = genesis.get("hb_reference")
     epoch = hb.get("epoch") if isinstance(hb, dict) else None
-    epoch_failure = modules["supplied_epoch"].supplied_epoch_failure(epoch, hb)
+    epoch_failure = _supplied_epoch.supplied_epoch_failure(epoch, hb)
     if epoch_failure or str(epoch) != str(hb_epoch):
         return fail("KV_RECEIPT_CHAIN_GENESIS_NOT_AT_SUPPLIED_HB_EPOCH", "C",
                     "a genesis receipt whose hb_reference carries the supplied HB epoch",

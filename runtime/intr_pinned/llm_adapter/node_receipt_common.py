@@ -42,11 +42,6 @@ HEALTH_CHECK_SCHEMA = "stegverse.node-health-check/v1"
 CREDENTIAL_FIELD_NAMES = frozenset({"private_key", "private_key_b64", "secret_key", "signing_key", "seed",
                                     "secret", "key_seed", "private_key_pem"})
 
-#: The ledger location these producers would write in production. Its onboarding
-#: is a separate draft; until it is admitted the producers are exercised on
-#: temporary ledgers only.
-LEDGER_LOCATION = "refs/stegverse/organization-ledger:repository-ledger/StegVerse-org/LLM-adapter"
-
 LEDGER_REASONS: dict[str, tuple[str, str]] = {
     "LEDGER_HEAD_UNREADABLE": ("CHAIN_READ_BACK", "a readable HEAD.json on this repository's ledger"),
     "RECEIPT_MISSING_ON_CHAIN": ("CHAIN_READ_BACK", "every receipt named by the chain must be present"),

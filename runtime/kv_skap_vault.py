@@ -889,9 +889,11 @@ def _evidence_intr(evidence: dict[str, Any]) -> tuple[str, str, str] | None:
 ACCESS_EVIDENCE_KEYS = ("layer1_kv_access_receipts", "layer2_skap_access_receipts")
 ACCESS_CONSTRAINT_OWNER = {
     LAYER_PREDICATE_L1: ("Interlock/InTr healthy-node evaluator, LC-KV-13/LC-KV-14 (StegVerse-org/LLM-adapter#430, "
-                         "which carries #429 and #428; admission order StegVerse-Labs/StegOS#426, then #430, then #429, "
-                         "then #428; InTr and Mesh Destinations lane), over the requesting node's own transition "
-                         "ledger; no organization ledger is involved"),
+                         "merged as 649f0775, which carried #429 and #428; merged chain StegVerse-Labs/StegOS#430 "
+                         "d7b23eb5, then LLM-adapter#430 649f0775, then continuity-vault-kit#289 3d68fe1e, then "
+                         "continuity-vault-kit#290 44e7ae56, then StegVerse-Labs/.github#3425 fd6462db, then "
+                         "StegVerse-Labs/.github#3428 a630f155; InTr and Mesh Destinations lane), over the requesting "
+                         "node's own transition ledger; no organization ledger is involved"),
     LAYER_PREDICATE_L2: GOAL_REF,
     LAYER_PREDICATE_PRIOR: GOAL_REF,
 }

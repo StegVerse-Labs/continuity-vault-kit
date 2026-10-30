@@ -64,6 +64,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from runtime import kv_receipt_ledgers as rl
+from runtime import kv_supplied_epoch as _supplied_epoch
 
 ALLOW, FAIL_CLOSED = rl.ALLOW, rl.FAIL_CLOSED
 CROSSING_CLASS = rl.INGRESS_CLASS                       # INTR_MESH_PATH_INGRESS: the existing InTr class, none minted
@@ -218,7 +219,7 @@ def _orphan_refusal(which: str, d: Mapping[str, Any], crossing: Mapping[str, Any
 
 
 def _supplied(which: str, modules: Mapping[str, Any], hb_epoch: Any) -> dict[str, Any] | None:
-    failure = modules["supplied_epoch"].supplied_epoch_failure(hb_epoch)
+    failure = _supplied_epoch.supplied_epoch_failure(hb_epoch)
     if failure:
         return _refuse(which, failure[0], "C", "SUBMISSION_CARRIES_THE_SUPPLIED_HB_EPOCH",
                        "the SUPPLIED_HB_EPOCH the record is computed with (ASCII [0-9]+, >= 32)",
@@ -299,7 +300,7 @@ def _plan(which: str, storage_endpoint: Any = None, readback_root: Any = None, c
             "transition_id": f"{CROSSING_CLASS}:{crossing['path_id']}@{crossing['communication_id']}",
             "transition_class": CROSSING_CLASS, "predecessor_state_sha256": head["receipt_sha256"],
             "successor_state_sha256": hne.sha(evidence), "evidence": evidence, "authority_effect": "NONE",
-            "hb_reference": hb, "observed_at": modules["supplied_epoch"].observed_at_from_hb_reference(hb),
+            "hb_reference": hb, "observed_at": _supplied_epoch.observed_at_from_hb_reference(hb),
             "observed_at_is_descriptive_not_ordering": True, "previous_receipt_sha256": head["receipt_sha256"]}
     receipt = {**body, "receipt_sha256": hne.sha(body)}
     orphans, failure = _orphans(which, d, root, chain, hne, crossing)

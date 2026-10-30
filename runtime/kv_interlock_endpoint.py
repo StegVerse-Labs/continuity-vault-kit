@@ -107,13 +107,16 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
     #: (its head carried #429 and #428, so it admitted all three as one unit), then this repository's #289 @3d68fe1e.
     "admission_order": ("StegVerse-Labs/StegOS#430 (supersedes #426; merged d7b23eb5), then StegVerse-org/LLM-adapter#430 "
                         "(merged 649f0775; carried #429 and #428), then continuity-vault-kit#289 (merged 3d68fe1e)"),
-    #: True: the vendored bytes equal LLM-adapter main @649f0775 (supplied_epoch.py excepted, see PINNED_INTR_FILES).
+    #: True: every vendored byte equals LLM-adapter main @fb5ae1cb (the merge of #436; the evaluator and producers are
+    #: unchanged since @649f0775, the merge of #430). See PINNED_INTR_FILES.
     "on_upstream_main": True,
 }
 #: Every file vendored byte-identical under runtime/intr_pinned/, hashed before every resolution. All are
-#: byte-identical to #430 @919851cb (and LLM-adapter main @649f0775) except supplied_epoch.py, which #430 does not carry (it exists only on the
-#: closed, unmerged #432 branch @eecf4843; it is the shared supplied-epoch rule that KV's own receipt ledgers and
-#: crossing records call, and nothing in it names an organization-ledger or adapter ledger placement).
+#: byte-identical to LLM-adapter main @fb5ae1cb (the merge of LLM-adapter#436, which dropped the org-ledger LEDGER_LOCATION
+#: constant from node_receipt_common.py and changed nothing else vendored here). Every file except node_receipt_common.py is
+#: also byte-identical to #430 @919851cb and to LLM-adapter main @649f0775; node_receipt_common.py differs from those only by
+#: that dropped constant. The shared supplied-epoch rule is no longer vendored: it was never on LLM-adapter main and is
+#: native to this repository (runtime/kv_supplied_epoch.py, not a pinned byte copy of an adapter file).
 #: node_ingress_boundary.py is hashed but never executed: it imports the StegVerse SDK, which is not a cvk dependency.
 #: KV reads its four string constants from the pinned bytes by AST (constants_only).
 PINNED_INTR_FILES = {
@@ -121,6 +124,8 @@ PINNED_INTR_FILES = {
     "pull_request": PINNED_HEALTHY_NODE_EVALUATOR["pull_request"],
     "commit": PINNED_HEALTHY_NODE_EVALUATOR["commit"],
     "vendored_root": "runtime/intr_pinned",
+    #: The LLM-adapter main commit every vendored byte equals (the merge of LLM-adapter#436, parents 649f0775 and 33506b99).
+    "upstream_main_commit": "fb5ae1cbf7d41de82653394fa09cab7039e7312e",
     "vendored_files": {
         "llm_adapter/healthy_node_evaluator.py":
             "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58",
@@ -136,8 +141,7 @@ PINNED_INTR_FILES = {
         "llm_adapter/node_ingress_boundary.py":
             "sha256:86bae0426956581b862dd085c4ac64bf0a4f7dc37b0309ca9d223a3306754339",
         "llm_adapter/node_receipt_common.py":
-            "sha256:7e73b65b649c7238aa6ae47409282b2fb729157de083c093fe595611966e43c7",
-        "llm_adapter/supplied_epoch.py": "sha256:be91daad3d5557f810872731c3ea8cc36e1f13af569e1b7634f487fd36f44534",
+            "sha256:3e1141f0be7b00b88d47bc60d84bbb3e5ba36ad43c38a621d6a0acc8c2ae1c12",
         ".stegverse/transition-ledger/emit.py": "sha256:9579726de7ef915ac8cd61be1ba1c5ef6e34de4ca996504374b0dce7f7c2c9c3",
         # supporting data read by the pinned modules
         ".stegverse/transition-ledger/contract.json":
@@ -216,7 +220,7 @@ def _code_shape(value: Any) -> Any:
 _INTR_PINNED_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "intr_pinned")
 _PINNED_PACKAGE = "llm_adapter"
 #: Load order of the executed pinned modules (each imports only earlier ones, the stdlib and, lazily, emit.py).
-_PINNED_LOAD_ORDER = ("healthy_node_evaluator", "ed25519_verify", "supplied_epoch", "node_receipt_common",
+_PINNED_LOAD_ORDER = ("healthy_node_evaluator", "ed25519_verify", "node_receipt_common",
                       "node_existence_readback", "node_health_check_projection", "node_health_report_producer",
                       "node_identity_binding_producer")
 #: A literal tuple, not a generator over _PINNED_LOAD_ORDER: the adjacency ruling's closure analysis (Labs scripts/adjacency_ruling.py)
@@ -224,7 +228,6 @@ _PINNED_LOAD_ORDER = ("healthy_node_evaluator", "ed25519_verify", "supplied_epoc
 _PINNED_EXEC_SOURCES = (
     os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "healthy_node_evaluator.py"),
     os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "ed25519_verify.py"),
-    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "supplied_epoch.py"),
     os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_receipt_common.py"),
     os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_existence_readback.py"),
     os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_health_check_projection.py"),
