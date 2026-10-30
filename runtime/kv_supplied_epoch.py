@@ -1,9 +1,15 @@
-"""The shared supplied-epoch rule and the observed_at rule, for receipts that must be byte-deterministic.
+"""KV's own supplied-epoch rule and observed_at rule, for receipts that must be byte-deterministic.
 
-``supplied_epoch_failure`` is a byte copy of StegVerse-org/.github resident-runtime/organization_egress_boundary.py's
-(pinned there by intr_hop.py as SUPPLIED_EPOCH_FAILURE_SHA256: sha256 of ast.get_source_segment + "\\n"), the rule
-StegVerse-Labs/.github#3290 refuses with. ``observed_at_from_hb_reference`` is StegVerse-Labs/.github#3263's
-(resident-runtime/aggregate_repo_transition.py), the same strings emit.py now writes. Pure: no clock is read.
+This file is native to continuity-vault-kit. It is NOT a pinned byte copy of an LLM-adapter file: it was never on
+StegVerse-org/LLM-adapter main (it came from the closed, unmerged LLM-adapter#432 branch), the adapter does not use it,
+and KV's own receipt ledgers and crossing records call it. It lives here, outside runtime/intr_pinned/, so that
+runtime/intr_pinned/ holds only digest-pinned bytes of LLM-adapter main.
+
+Provenance of the rule (provenance only, not a pin on this file): ``supplied_epoch_failure`` is byte-identical to
+StegVerse-org/.github resident-runtime/organization_egress_boundary.py's ``supplied_epoch_failure`` (the rule
+StegVerse-Labs/.github#3290 refuses with; pinned there by intr_hop.py as SUPPLIED_EPOCH_FAILURE_SHA256, the sha256 of
+ast.get_source_segment + "\\n"). ``observed_at_from_hb_reference`` is StegVerse-Labs/.github#3263's
+(resident-runtime/aggregate_repo_transition.py), the same strings emit.py writes. Pure: no clock is read.
 """
 from __future__ import annotations
 

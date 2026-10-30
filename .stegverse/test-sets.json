@@ -2056,7 +2056,8 @@
    "runtime/secret_field_policy.py"
   ],
   "runtime/kv_crossing_records.py": [
-   "runtime/kv_receipt_ledgers.py"
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/kv_supplied_epoch.py"
   ],
   "runtime/kv_interlock_endpoint.py": [
    "runtime/intr_pinned/**",
@@ -2078,6 +2079,7 @@
    "KV_STORAGE_ENDPOINT_V2_MIRROR_HANDOFF.md",
    "runtime/kv_interlock_endpoint.py",
    "runtime/kv_storage_provider_adapter.py",
+   "runtime/kv_supplied_epoch.py",
    "runtime/org_crossing_reader.py"
   ],
   "runtime/kv_relationship_state_store.py": [
@@ -2528,9 +2530,11 @@
    "runtime/intr_pinned/**",
    "runtime/intr_pinned/PINNED.md",
    "runtime/intr_pinned/llm_adapter/**",
+   "runtime/intr_pinned/llm_adapter/node_receipt_common.py",
    "runtime/kv_interlock_endpoint.py",
    "runtime/kv_receipt_ledgers.py",
    "runtime/kv_skap_vault.py",
+   "runtime/kv_supplied_epoch.py",
    "tests/kv_two_layer_e0.py",
    "tests/test_kv_interlock_runtime_endpoint.py",
    "tests/test_kv_ladder_conformance_lc_kv.py"
