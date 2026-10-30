@@ -219,8 +219,18 @@ _PINNED_PACKAGE = "llm_adapter"
 _PINNED_LOAD_ORDER = ("healthy_node_evaluator", "ed25519_verify", "supplied_epoch", "node_receipt_common",
                       "node_existence_readback", "node_health_check_projection", "node_health_report_producer",
                       "node_identity_binding_producer")
-_PINNED_EXEC_SOURCES = tuple(os.path.join(_INTR_PINNED_ROOT, "llm_adapter", name + ".py")
-                             for name in _PINNED_LOAD_ORDER)
+#: A literal tuple, not a generator over _PINNED_LOAD_ORDER: the adjacency ruling's closure analysis (Labs scripts/adjacency_ruling.py)
+#: resolves the exec of these files only from literals and static constants, and fails closed on a computed target.
+_PINNED_EXEC_SOURCES = (
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "healthy_node_evaluator.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "ed25519_verify.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "supplied_epoch.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_receipt_common.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_existence_readback.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_health_check_projection.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_health_report_producer.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_identity_binding_producer.py"),
+)
 _PINNED_LOCK = threading.Lock()
 _PINNED_MODULES: dict[str, Any] = {}
 #: LC-KV-10 (P1 rev 4, class A): what the pinned callable IS, recorded at load time. Each executed module is compiled

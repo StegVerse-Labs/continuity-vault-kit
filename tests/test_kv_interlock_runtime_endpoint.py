@@ -357,6 +357,17 @@ class Layer1HealthyNodeTests(KVInterlockRuntimeTests):
         self.assertEqual(pin["source_sha256"],
                          "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58")
 
+    def test_the_exec_targets_of_the_pinned_code_are_a_literal_tuple(self):
+        # The adjacency ruling's finish-point closure analysis resolves an exec target only from literals and static
+        # constants; a computed tuple (a generator over the load order) fails closed ADJACENCY_RULING_FINISH_POINT_CLOSURE_UNRESOLVED.
+        import ast
+        tree = ast.parse(MODULE_PATH.read_text(encoding="utf-8"))
+        values = [n.value for n in tree.body if isinstance(n, ast.Assign)
+                  and any(isinstance(t, ast.Name) and t.id == "_PINNED_EXEC_SOURCES" for t in n.targets)]
+        self.assertEqual(len(values), 1)
+        self.assertIsInstance(values[0], ast.Tuple)
+        self.assertEqual([e.args[2].value[:-len(".py")] for e in values[0].elts], list(self.m._PINNED_LOAD_ORDER))
+
     def test_layer_1_calls_the_bare_pinned_evaluate_over_the_bound_node_chain(self):
         real = self.m.resolve_pinned_healthy_node_evaluator()[0]
         source = e0_health_ledger(self.NODE)[0]
