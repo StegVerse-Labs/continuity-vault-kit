@@ -3,7 +3,7 @@
 Goal: KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324). Lowest supported mode: E0. This note answers P1's
 DENYs on continuity-vault-kit#258 (StegVerse-Labs/.github#3330 @578583be and rev 4 @c8b8d156; StegVerse-org/.github#163)
 and binds layer 1 to the pinned healthy-node evaluator `llm_adapter.healthy_node_evaluator.evaluate`
-(StegVerse-org/LLM-adapter#430 @919851cb, which carries #429 and #428), vendored byte-identical in
+(StegVerse-org/LLM-adapter#430, merged as 649f0775 on LLM-adapter main; it carried #429 and #428), vendored byte-identical in
 `runtime/intr_pinned/`, see `runtime/intr_pinned/PINNED.md`. The chain it reads is the requesting node's OWN transition
 ledger, bound by the deployment with its pinned genesis. There is no org ledger, no org-to-adapter crossing and no
 endpoint-kind model: the Org-to-adapter InTr path and the adapter ledger designation (#432, closed unmerged) were retired
@@ -23,7 +23,7 @@ admitted together (ADMITTED_TOGETHER), never one without the other.
 | Layer 1 goes through the pinned `evaluate` over the node's own chain | `KVInterlockRuntime._evaluate_health` calls the bare pinned `evaluate(node_id, ledger_root=, transport_state=, report_receipt_sha256=, require_admission=True)` over the node's own transition ledger. After the ALLOW, KV checks the exact receipt shape, node id and cite, the chain head against the head read at bind, the genesis against the deployment's pin, that every chain receipt was written by the pinned producers (`NODE_CHAIN_RECEIPT_NOT_WRITTEN_BY_THE_PINNED_PRODUCERS`), and that the transport-authenticated key is the key the chain binds (`REQUESTER_KEY_NOT_THE_BOUND_NODE_IDENTITY_KEY`) | a foreign-producer chain that bare `evaluate` ALLOWs is refused; spy on the evaluate call; key mismatch |
 | LC-KV-15 (class B): the chain is bound by the deployment, not by the requester; the only ALLOW path | `bind_healthy_node_ledger` accepts only `{kind: NODE_OWN_LEDGER_CHAIN, ledger_root, genesis_receipt_sha256}` from the deployment and reads the head once; `TRUST_ANCHORS` holds only the label and the observed transport | scratch root / bare dir / unbound dict; a wrong genesis pin (`NODE_LEDGER_GENESIS_MISMATCH`); `LcKv15OwnChainIdentityTransport`; transport absent or not INSTALLED, unenrolled and mis-claimed identity |
 | LC-KV-16 class: a foreign chain, a wrong key or a moved head never reaches ALLOW through KV's wrapper | KV's post-ALLOW checks above; a requester can cite only a report receipt | `LcKv16ForeignChainAndKeyNeverAllow`: foreign producers, a key other than the bound one, requester-supplied chain, each leg removed. This is weaker than the retired org-ledger anchoring and the wrapper-internal identity proof, which are not re-created (accepted under Coordination's ruling (b)) |
-| LC-KV-18 (class B, owner Lane B): the evaluator stack is not on LLM-adapter main, and no InTr transport is installed | `layer1_prerequisites()`, recorded on every finish-point verdict as `layer1_prerequisites` (six fields per unmet leg) | `LcKv18Layer1Prerequisites` |
+| LC-KV-18 (class B, owner Lane B): no InTr transport is installed (the evaluator stack is on LLM-adapter main, merged as 649f0775) | `layer1_prerequisites()`, recorded on every finish-point verdict as `layer1_prerequisites` (six fields per unmet leg) | `LcKv18Layer1Prerequisites` |
 | LC-KV-13: the finish point expects a node admitted through its own ledger chain | `_check_layer1` (`LAYER1_NODE_NOT_BOUND_THROUGH_ITS_OWN_LEDGER_CHAIN`) | a receipt carrying any other binding kind does not complete the finish point |
 | LC-KV-07: gated `read_stream` and `append_extension` (now owned by TV/TVC; unchanged here) | `execution/vault_store.py` | as before |
 | LC-KV-03: custody verifier is the real layer-2 gate | `validate_vault_lineage_custody_result` → `_require_access_layers` → `pinned_layer2_gate` | arbitrary callables, lenient gate subclasses and their bound methods |
@@ -57,10 +57,10 @@ python3 -m venv /tmp/cvk-clean
 ## Trust anchors and E0
 
 `runtime.kv_interlock_endpoint.TRUST_ANCHORS` is the only seam: label `PRODUCTION` and no installed InTr transport. No
-genesis or issuer constant exists. The real path therefore FAILS_CLOSED (`HEALTHY_NODE_LEDGER_NOT_BOUND` / `HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN` /
-`INTR_TRANSPORT_NOT_INSTALLED`, class B) until the deployment binds the node's own chain with its pinned genesis, the
-evaluator stack is admitted on LLM-adapter main in the order StegVerse-Labs/StegOS#426, then StegVerse-org/LLM-adapter#430, then
-#429, then #428 (#430's head carries #429 and #428), and an InTr transport is installed. The E0 stand-ins (`tests/kv_two_layer_e0.py`,
+genesis or issuer constant exists. The real path therefore FAILS_CLOSED (`HEALTHY_NODE_LEDGER_NOT_BOUND` /
+`INTR_TRANSPORT_NOT_INSTALLED`, class B) until the deployment binds the node's own chain with its pinned genesis and an InTr
+transport is installed. The evaluator stack is merged on LLM-adapter main in the order StegVerse-Labs/StegOS#430 (supersedes #426),
+then StegVerse-org/LLM-adapter#430 (which carried #429 and #428). The E0 stand-ins (`tests/kv_two_layer_e0.py`,
 label `E0_STANDIN_TEST_ONLY_NOT_EVIDENCE`) are in force only inside setUpModule/tearDownModule or a context manager.
 Receipts carry `trust_anchors_label`; layer 2 and the finish point refuse receipts minted under other anchors.
 

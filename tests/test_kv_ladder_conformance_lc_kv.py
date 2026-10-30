@@ -249,18 +249,17 @@ class LcKv18Layer1Prerequisites(unittest.TestCase):
         with production_trust_anchors():
             rows = ep.layer1_prerequisites()
         unmet = {r["failure_code"]: r for r in rows if r["disposition"] != "ALLOW"}
-        self.assertEqual(set(unmet), {"HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN",
-                                      "INTR_TRANSPORT_NOT_INSTALLED"})
+        self.assertEqual(set(unmet), {"INTR_TRANSPORT_NOT_INSTALLED"})
         for row in unmet.values():
             self.assertEqual(row["failure_class"], "B")
             for field in SIX:
                 self.assertTrue(row[field], field)
-        self.assertIn("#430", unmet["HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN"]["owning_existing_goal"])
+        self.assertTrue(ep.PINNED_HEALTHY_NODE_EVALUATOR["on_upstream_main"])
         self.assertFalse([k for k in vars(ep) if "org_ledger" in k.lower() or "ORG_LEDGER" in k])
 
-    def test_inside_the_e0_anchors_the_transport_leg_is_met_and_the_stack_stays_unmerged(self):
+    def test_inside_the_e0_anchors_the_transport_leg_is_met_and_the_stack_is_on_main(self):
         rows = {r["failure_code"] if "failure_code" in r else "OK": r for r in ep.layer1_prerequisites()}
-        self.assertEqual(set(rows), {"HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN", "OK"})
+        self.assertEqual(set(rows), {"OK"})
 
 
 class LcKv07GatedStreams(unittest.TestCase):

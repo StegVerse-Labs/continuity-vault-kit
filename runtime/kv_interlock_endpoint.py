@@ -75,13 +75,14 @@ HEALTHY_NODE_REFUSAL_CODE = "NODE_NOT_CURRENTLY_ADMITTED_HEALTHY"
 HEALTHY_NODE_RECEIPT_SCHEMA = "stegverse.healthy-node-evaluation/v1"  # the pinned evaluator's RESULT_SCHEMA
 HEALTHY_NODE_GATE = "CURRENT_NODE_HEALTH"
 #: The pinned InTr-owned evaluator (LC-KV-13/14). The interface is documented in docs/HEALTHY_NODE_EVALUATOR_INTERFACE.md.
-#: The evaluator bytes (fdaa2005...1f58) are byte-identical at #428 @f2ccfc28, #429 @6a51553a and #430 @919851cb. None
-#: of the three is merged: all are open drafts, and LLM-adapter main (e6af8c18) has no healthy_node_evaluator.py.
+#: The evaluator bytes (fdaa2005...1f58) are byte-identical at #428 @f2ccfc28, #429 @6a51553a and #430 @919851cb, and at
+#: LLM-adapter main @649f0775 (the merge of #430, which carried #429 and #428).
 #:   evaluate(node_id, *, ledger_root, transport_state, report_receipt_sha256, require_admission, repository) -> dict
 PINNED_HEALTHY_NODE_EVALUATOR = {
     "repository": "StegVerse-org/LLM-adapter",
     "commit": "919851cb092d353bfe6a4271d3893f129dbc1c91",
-    "pull_request": "StegVerse-org/LLM-adapter#430 (open draft; carries #429 and #428)",
+    "pull_request": "StegVerse-org/LLM-adapter#430 (merged as 649f0775 on LLM-adapter main; carried #429 and #428)",
+    "merge_commit": "649f0775a1c4a6203bbbca835234453c9b6aee1f",
     "module": "llm_adapter.healthy_node_evaluator",
     "callable": "evaluate",
     "source_path": "llm_adapter/healthy_node_evaluator.py",
@@ -91,25 +92,26 @@ PINNED_HEALTHY_NODE_EVALUATOR = {
     "vendored_path": "runtime/intr_pinned/llm_adapter/healthy_node_evaluator.py",
     "owning_task": "LC-KV-13/LC-KV-14 (InTr and Mesh Destinations lane, StegVerse-org/.github#162)",
     "provenance": [
-        {"pull_request": "StegVerse-org/LLM-adapter#428 (open draft, the evaluator)",
+        {"pull_request": "StegVerse-org/LLM-adapter#428 (the evaluator; merged through #430)",
          "commit": "f2ccfc28e1a2116d90f6a6b1f5b0baee31613036",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58"},
-        {"pull_request": "StegVerse-org/LLM-adapter#429 (open draft, NODE_HEALTH_REPORTED producer; carries #428)",
+        {"pull_request": "StegVerse-org/LLM-adapter#429 (NODE_HEALTH_REPORTED producer; carried #428; merged through #430)",
          "commit": "6a51553aa5747e0e5b24e8a735022e3dc00bea5e",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58"},
-        {"pull_request": "StegVerse-org/LLM-adapter#430 (open draft, existence read-back, NODE_IDENTITY_BINDING and "
-                         "NODE_HEALTH_CHECK_OBSERVED producers; carries #429 and #428)",
+        {"pull_request": "StegVerse-org/LLM-adapter#430 (existence read-back, NODE_IDENTITY_BINDING and "
+                         "NODE_HEALTH_CHECK_OBSERVED producers; carried #429 and #428; merged as 649f0775)",
          "commit": "919851cb092d353bfe6a4271d3893f129dbc1c91",
          "source_sha256": "sha256:fdaa20053c527927067d16b011889ca84089b9750e95e291021310c669451f58"},
     ],
-    #: #430's ADMISSION_ORDER. KV depends on these in this order and never lands before them.
-    "admission_order": ("StegVerse-Labs/StegOS#426, then StegVerse-org/LLM-adapter#430, then #429, then #428 "
-                        "(#430's head carries #429 and #428, so admitting #430 admits all three as one unit)"),
-    #: False until #428-#430 are on LLM-adapter main; the re-vendor that flips it is a pin change in this file.
-    "on_upstream_main": False,
+    #: The admission order, now merged in this order: StegOS#430 (supersedes #426) @d7b23eb5, then LLM-adapter#430 @649f0775
+    #: (its head carried #429 and #428, so it admitted all three as one unit), then this repository's #289 @3d68fe1e.
+    "admission_order": ("StegVerse-Labs/StegOS#430 (supersedes #426; merged d7b23eb5), then StegVerse-org/LLM-adapter#430 "
+                        "(merged 649f0775; carried #429 and #428), then continuity-vault-kit#289 (merged 3d68fe1e)"),
+    #: True: the vendored bytes equal LLM-adapter main @649f0775 (supplied_epoch.py excepted, see PINNED_INTR_FILES).
+    "on_upstream_main": True,
 }
 #: Every file vendored byte-identical under runtime/intr_pinned/, hashed before every resolution. All are
-#: byte-identical to #430 @919851cb except supplied_epoch.py, which #430 does not carry (it exists only on the
+#: byte-identical to #430 @919851cb (and LLM-adapter main @649f0775) except supplied_epoch.py, which #430 does not carry (it exists only on the
 #: closed, unmerged #432 branch @eecf4843; it is the shared supplied-epoch rule that KV's own receipt ledgers and
 #: crossing records call, and nothing in it names an organization-ledger or adapter ledger placement).
 #: node_ingress_boundary.py is hashed but never executed: it imports the StegVerse SDK, which is not a cvk dependency.
@@ -157,8 +159,8 @@ HEALTHY_NODE_LEDGER_REFUSAL_CAUSE = "HEALTHY_NODE_LEDGER_NOT_BOUND"
 HEALTHY_NODE_LEDGER_ONBOARDING = (
     "the deployment's binding of the requesting node's own transition ledger ({kind: NODE_OWN_LEDGER_CHAIN, "
     "ledger_root, genesis_receipt_sha256}); the healthy-node evaluator and producers it reads are StegVerse-org/"
-    "LLM-adapter#428, #429 and #430, open drafts that are not on LLM-adapter main. It stays FAIL_CLOSED until they are "
-    "admitted and the deployment binds a node ledger with its pinned genesis")
+    "LLM-adapter#428, #429 and #430, merged on LLM-adapter main @649f0775. It stays FAIL_CLOSED until the deployment "
+    "binds a node ledger with its pinned genesis")
 HEALTHY_NODE_LEDGER_OWNER = ("KV-SKAP-VAULT-FUNCTIONAL-001 (StegVerse-Labs/.github#3324) via LC-KV-13 "
                              "(Lane B, InTr and Mesh Destinations, StegVerse-org/.github#162)")
 PINNED_HEALTHY_NODE_EVALUATOR_ID = (PINNED_HEALTHY_NODE_EVALUATOR["module"] + "."
@@ -217,8 +219,18 @@ _PINNED_PACKAGE = "llm_adapter"
 _PINNED_LOAD_ORDER = ("healthy_node_evaluator", "ed25519_verify", "supplied_epoch", "node_receipt_common",
                       "node_existence_readback", "node_health_check_projection", "node_health_report_producer",
                       "node_identity_binding_producer")
-_PINNED_EXEC_SOURCES = tuple(os.path.join(_INTR_PINNED_ROOT, "llm_adapter", name + ".py")
-                             for name in _PINNED_LOAD_ORDER)
+#: A literal tuple, not a generator over _PINNED_LOAD_ORDER: the adjacency ruling's closure analysis (Labs scripts/adjacency_ruling.py)
+#: resolves the exec of these files only from literals and static constants, and fails closed on a computed target.
+_PINNED_EXEC_SOURCES = (
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "healthy_node_evaluator.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "ed25519_verify.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "supplied_epoch.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_receipt_common.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_existence_readback.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_health_check_projection.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_health_report_producer.py"),
+    os.path.join(_INTR_PINNED_ROOT, "llm_adapter", "node_identity_binding_producer.py"),
+)
 _PINNED_LOCK = threading.Lock()
 _PINNED_MODULES: dict[str, Any] = {}
 #: LC-KV-10 (P1 rev 4, class A): what the pinned callable IS, recorded at load time. Each executed module is compiled
@@ -397,14 +409,14 @@ TRUST_ANCHORS: dict[str, Any] = {
     "intr_transport": None,
 }
 #: The NODE_HEALTH_REPORTED producer (LC-KV-13/#429): the one producer whose reports the KV-owned provenance check
-#: below accepts. Byte-identical at #429 @6a51553a and #430 @919851cb.
+#: below accepts. Byte-identical at #429 @6a51553a, #430 @919851cb and LLM-adapter main @649f0775.
 PINNED_NODE_HEALTH_REPORT_PRODUCER = {
     "repository": "StegVerse-org/LLM-adapter",
     "source_path": "llm_adapter/node_health_report_producer.py",
     "source_sha256": "sha256:21249f2505505afd60eb14188ea638202f2926b207d64cfcf8c3bc5db2d9f361",
     "observed_at": [
-        {"pull_request": "StegVerse-org/LLM-adapter#429 (open draft)", "commit": "6a51553aa5747e0e5b24e8a735022e3dc00bea5e"},
-        {"pull_request": "StegVerse-org/LLM-adapter#430 (open draft)", "commit": "919851cb092d353bfe6a4271d3893f129dbc1c91"},
+        {"pull_request": "StegVerse-org/LLM-adapter#429 (merged through #430)", "commit": "6a51553aa5747e0e5b24e8a735022e3dc00bea5e"},
+        {"pull_request": "StegVerse-org/LLM-adapter#430 (merged as 649f0775)", "commit": "919851cb092d353bfe6a4271d3893f129dbc1c91"},
     ],
 }
 FINISH_POINT_NODE_KIND = NODE_CHAIN_SOURCE
@@ -555,10 +567,9 @@ def layer1_prerequisites() -> list[dict[str, Any]]:
     legs = (
         ("HEALTHY_NODE_EVALUATOR_STACK_NOT_ON_LLM_ADAPTER_MAIN", "HEALTHY_NODE_EVALUATOR_STACK_ADMITTED",
          bool(PINNED_HEALTHY_NODE_EVALUATOR["on_upstream_main"]),
-         "Lane B (StegVerse-org/LLM-adapter#430, #429 and #428, open drafts; "
-         f"ADMISSION_ORDER {PINNED_HEALTHY_NODE_EVALUATOR['admission_order']})",
-         "the evaluator and producers admitted on LLM-adapter main, then a re-vendor that flips on_upstream_main in the pin",
-         "when #430, #429 and #428 are admitted, in that order; event-driven, never on a timer"),
+         "Lane B (StegVerse-org/LLM-adapter#430, #429 and #428)",
+         "the evaluator and producers on LLM-adapter main (merged as 649f0775), vendored byte-identical",
+         "when the pinned bytes stop matching LLM-adapter main; event-driven, never on a timer"),
         ("INTR_TRANSPORT_NOT_INSTALLED", "INTR_TRANSPORT_INSTALLED_AND_OBSERVED",
          transport is not None and state == "INSTALLED",
          "Lane B (InTr and Mesh Destinations, StegVerse-org/.github#162)",
