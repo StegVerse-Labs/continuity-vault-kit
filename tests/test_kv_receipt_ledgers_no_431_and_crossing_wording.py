@@ -115,8 +115,12 @@ LIVE_READERS = (
     "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md", "tests/kv_two_layer_e0.py", "tests/test_kv_ladder_conformance_lc_kv.py",
     "tests/test_kv_interlock_runtime_endpoint.py",
 )
-#: sealed byte copies of upstream receipts (LLM-adapter#432): path -> sha256. Their bytes are never edited here.
-SEALED = {
+#: The six byte copies of the retired LLM-adapter#432 org-ledger / endpoint-anchor path that runtime/intr_pinned and the tests
+#: once carried (sha256 of each, for the record). Coordination ruled (b) on StegVerse-org/.github#162 c6509636142: there is never an
+#: InTr hop inside one org, and these modules functionally encoded the retired Org->adapter path and an adapter ledger designation
+#: (their upstream, #432, was closed unmerged). They are removed from every source bots read; git history and the #432 branch keep
+#: the bytes.
+REMOVED_COPIES = {
     "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py":
         "153cf121a51199da8432735d4b2fb34b396f7eaa24da80f1bf9c77040013ac09",
     "runtime/intr_pinned/llm_adapter/endpoint_ledger_designation.py":
@@ -130,7 +134,63 @@ SEALED = {
     "tests/fixtures/intr_pinned_test_only/contract_with_431_location_and_pinned_genesis.json":
         "ea81ca135bfd3b8e86a69251cf63d6f5aaa86fa46777dcec9370971dd0c5208a",
 }
-SIX_FIELD_NOTE = "## Sealed byte copies that still carry retired LLM-adapter#431 wording (six-field note"
+#: Other files that existed only to serve those six (same upstream, same removal).
+REMOVED_COMPANIONS = (
+    "runtime/intr_pinned/.stegverse/node-ledger/node-ledger-opened-signers.v1.json",
+    "runtime/intr_pinned/.stegverse/node-ledger/org-ledger-head-signers.v1.json",
+    "runtime/intr_pinned/.stegverse/node-ledger/pinned-code-digests.v1.json",
+    "runtime/intr_pinned/schemas/endpoint-kind.v1.json",
+    "runtime/intr_pinned/schemas/node-ledger-opened.v1.json",
+    "runtime/intr_pinned/schemas/node-ledger-opened-signed.v1.json",
+    "runtime/intr_pinned/schemas/node-ledger-opened-generation.v1.json",
+    "tests/fixtures/intr_pinned_test_only/contract_with_431_repository_ledger_location.json",
+    "tests/fixtures/intr_pinned_test_only/org_ledger_harness.py",
+    "tests/fixtures/intr_pinned_test_only/org_ledger_test_genesis.json",
+    "tests/fixtures/intr_pinned_test_only/node.designation.json",
+)
+#: Names that identify the removed content. No tracked source may name them (PINNED.md and this guard record the removal).
+RETIRED_NAMES = tuple(re.compile(x) for x in (
+    r"endpoint_ledger_anchor", r"endpoint_ledger_designation", r"intr_transport_carrier", r"org_ledger_location",
+    r"org_ledger_harness", r"evaluate_anchored", r"node-ledger-opened", r"org-ledger-head-signers",
+    r"endpoint-kind\.v1", r"pinned-code-digests", r"contract_with_431", r"org_ledger_test_genesis",
+    r"node\.designation\.json", r"intr_pinned/\.stegverse/node-ledger"))
+RETIRED_DIGESTS = tuple(d[:12] for rel, d in REMOVED_COPIES.items() if not rel.endswith("kv-ledger-head-signers.v1.json"))
+
+
+def test_the_six_removed_copies_and_their_companions_are_gone():
+    for rel in list(REMOVED_COPIES) + list(REMOVED_COMPANIONS):
+        assert not (ROOT / rel).exists(), f"{rel} must stay removed (ruling StegVerse-org/.github#162 c6509636142)"
+    assert not (ROOT / "runtime/intr_pinned/.stegverse/node-ledger").exists()
+    present = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "runtime/intr_pinned/llm_adapter").glob("*.py"))
+    assert present == sorted("runtime/intr_pinned/llm_adapter/" + n for n in (
+        "ed25519_verify.py", "healthy_node_evaluator.py", "node_existence_readback.py",
+        "node_health_check_projection.py", "node_health_report_producer.py", "node_identity_binding_producer.py",
+        "node_ingress_boundary.py", "node_receipt_common.py", "supplied_epoch.py")), present
+    # KV's own head-signers file is KV's own, not the vendored copy
+    assert (ROOT / ".stegverse/node-ledger/kv-ledger-head-signers.v1.json").is_file()
+
+
+def _tracked_sources():
+    import subprocess
+    out = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, check=True, capture_output=True).stdout.decode()
+    for rel in filter(None, out.split("\0")):
+        if rel in ("runtime/intr_pinned/PINNED.md", "tests/test_kv_receipt_ledgers_no_431_and_crossing_wording.py"):
+            continue
+        path = ROOT / rel
+        if path.is_file() and path.suffix in {".py", ".md", ".json", ".yml", ".yaml", ".txt", ".toml", ""}:
+            yield rel, path.read_text(encoding="utf-8", errors="replace")
+
+
+def test_no_source_references_a_removed_copy_by_name_or_digest():
+    checked = 0
+    for rel, text in _tracked_sources():
+        checked += 1
+        for pattern in RETIRED_NAMES:
+            hit = pattern.search(text)
+            assert not hit, f"{rel}: {text[max(0, hit.start() - 40):hit.end() + 40]!r} names a removed copy"
+        for digest in RETIRED_DIGESTS:
+            assert digest not in text, f"{rel} pins the removed digest {digest}"
+    assert checked > 20
 
 
 def _live_text(rel: str) -> str:
@@ -156,26 +216,14 @@ def test_every_runtime_and_docs_file_outside_the_sealed_copies_is_clean():
             assert not pattern.search(text), f"{rel}: {pattern.pattern}"
 
 
-def test_sealed_byte_copies_are_unedited_and_recorded_in_the_six_field_note():
-    pinned = (ROOT / "runtime/intr_pinned/PINNED.md").read_text(encoding="utf-8")
-    assert SIX_FIELD_NOTE in pinned
-    note = pinned[pinned.index(SIX_FIELD_NOTE):pinned.index("## Pin entry 2026-10-23")]
-    for field in ("CODE", "CLASS", "OBSERVED", "EXPECTED", "BLOCKS", "NEXT"):
-        assert f"* {field}: " in note, field
-    for rel, digest in SEALED.items():
-        assert hashlib.sha256((ROOT / rel).read_bytes()).hexdigest() == digest, f"{rel} bytes changed"
-        assert f"`{rel}`" in note and digest in note, rel
-
-
-def test_no_unlisted_file_under_intr_pinned_carries_the_retired_wording():
-    sealed = set(SEALED)
+def test_no_file_under_intr_pinned_carries_the_retired_wording():
     for path in (ROOT / "runtime/intr_pinned").rglob("*"):
         rel = path.relative_to(ROOT).as_posix()
-        if not path.is_file() or rel in sealed or rel.endswith("PINNED.md"):
+        if not path.is_file() or rel.endswith("PINNED.md"):
             continue
         text = path.read_text(encoding="utf-8")
         for pattern in RETIRED_431:
-            assert not pattern.search(text), f"{rel} is not in the sealed list but matches {pattern.pattern}"
+            assert not pattern.search(text), f"{rel} matches {pattern.pattern}"
 
 
 def test_contract_change_is_only_the_retired_sentence_and_the_pins_follow_the_bytes():

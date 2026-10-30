@@ -2059,7 +2059,6 @@
    "runtime/kv_receipt_ledgers.py"
   ],
   "runtime/kv_interlock_endpoint.py": [
-   ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
    "runtime/intr_pinned/**",
    "runtime/intr_pinned/llm_adapter/healthy_node_evaluator.py",
    "runtime/kv_receipt_ledgers.py",
@@ -2491,7 +2490,7 @@
    "execution/vault_store.py",
    "runtime/intr_pinned/**",
    "runtime/intr_pinned/llm_adapter/**",
-   "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
+   "runtime/intr_pinned/llm_adapter/healthy_node_evaluator.py",
    "runtime/kv_interlock_endpoint.py",
    "runtime/kv_receipt_ledgers.py",
    "runtime/kv_skap_layer2.py",
@@ -2522,8 +2521,19 @@
    ".stegverse/node-ledger/kv-ledger-head-signers.v1.json",
    ".stegverse/receipt-chains/skap-receipts.contract.json",
    ".stegverse/receipt-chains/stegverse-kv-receipts.contract.json",
+   "CONTINUITY_VAULT_KIT_MIRROR_HANDOFF.md",
+   "README.md",
+   "docs/KV_SKAP_VAULT_LADDER_CONFORMANCE.md",
    "docs/kv-skap-ledger-location.md",
-   "runtime/kv_receipt_ledgers.py"
+   "runtime/intr_pinned/**",
+   "runtime/intr_pinned/PINNED.md",
+   "runtime/intr_pinned/llm_adapter/**",
+   "runtime/kv_interlock_endpoint.py",
+   "runtime/kv_receipt_ledgers.py",
+   "runtime/kv_skap_vault.py",
+   "tests/kv_two_layer_e0.py",
+   "tests/test_kv_interlock_runtime_endpoint.py",
+   "tests/test_kv_ladder_conformance_lc_kv.py"
   ],
   "tests/test_kv_relationship_state_store.py": [
    "runtime/kv_instance_relationships.py",
@@ -2538,7 +2548,6 @@
    "tests/fixtures/kv_skap_account_metadata_conformance_v1.json"
   ],
   "tests/test_kv_skap_vault_e0_witnesses.py": [
-   "runtime/intr_pinned/llm_adapter/endpoint_ledger_anchor.py",
    "runtime/kv_interlock_endpoint.py",
    "runtime/kv_skap_vault.py",
    "runtime/task_registry_event_sovereign_kv_binding.py",

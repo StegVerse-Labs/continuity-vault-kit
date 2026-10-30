@@ -68,10 +68,9 @@ WATERMARK_SOURCE = "KV_RECORDED_RECEIPT_CHAIN_HEAD"
 #: The Org's side of a crossing is a digest-only cross-check that the reader reads itself, never the watermark source:
 #: it is compared only to refuse and never grants (Coordination ruling, StegVerse-org/.github#167 comment 6374130335).
 ORG_CROSS_CHECK_SOURCE = "ORG_LEDGER_LINKED_RECEIPTS_ENDPOINT_HEAD"
-#: Every cross-check path_id ends with this suffix (Lane B #432 @c4cfc145 endpoint_ledger_designation.
-#: watermark_source_failure, adopted). The path_ids are the designated Org→KV crossing paths: KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). The Org→KV intr-destination path_ids in org_crossing_cross_check.path_ids designate that crossing, a legitimate InTr crossing between distinct parties (LC-KV-29): the Org's end is read by ORG_CROSSING_READER and KV's end is written by runtime/kv_crossing_records.py.
+#: Every cross-check path_id ends with this suffix (KV's own rule). The path_ids are the designated Org→KV crossing paths: KV is its own ledger-holding party; an Org↔KV crossing is between distinct parties (never an intra-org hop) and is recorded on both ledgers, KV's end required (StegVerse-org/.github#162 c6394603737). The Org→KV intr-destination path_ids in org_crossing_cross_check.path_ids designate that crossing, a legitimate InTr crossing between distinct parties (LC-KV-29): the Org's end is read by ORG_CROSSING_READER and KV's end is written by runtime/kv_crossing_records.py.
 PATH_ID_SUFFIX = ":intr-destination"
-#: InTr crossing record classes (endpoint_ledger_designation.CROSSING_CLASSES @c4cfc145). Under the two-event model
+#: InTr crossing record classes (KV's own copy of the crossing record class names; no vendored module carries them). Under the two-event model
 #: (ENVELOPE v2 line 55 @d749bb2) event 2 lives on the Org ledger. A KV chain that holds a crossing record has
 #: crossed: its Org side must be observed by the reader (else KV_CROSSING_RECORD_NOT_OBSERVED, B) and every ingress
 #: record must point at an observed Org record (else INTR_CROSSING_NOT_RECORDED_BY_BOTH_SIDES, B; Lane B's rule).

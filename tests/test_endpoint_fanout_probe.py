@@ -14,7 +14,7 @@ from tools.run_endpoint_fanout_probe import (
 
 
 def e0_probe():
-    return run_probe("alpha-probe-value", probe_id="probe-alpha", healthy_node_ledger_checkout=e0_standin_healthy_node(),
+    return run_probe("alpha-probe-value", probe_id="probe-alpha", healthy_node_chain=e0_standin_healthy_node(),
                      healthy_node_locus=E0_STANDIN_LABEL)
 
 class EndpointFanoutProbeTests(unittest.TestCase):
@@ -103,7 +103,7 @@ class EndpointFanoutProbeLayer1Tests(unittest.TestCase):
         self.assertFalse(result["pass"])
         refusal = result["layer1_refusal"]
         self.assertEqual((refusal["decision"], refusal["failure_code"]), ("FAIL_CLOSED", "KV_ACCESS_LAYER1_REFUSED"))
-        self.assertEqual(refusal["refusal_cause"], "HEALTHY_NODE_LEDGER_NOT_ONBOARDED")
+        self.assertEqual(refusal["refusal_cause"], "HEALTHY_NODE_LEDGER_NOT_BOUND")
         self.assertNotIn("reports", result)
 
     def test_e0_standin_run_is_labelled_not_evidence(self) -> None:

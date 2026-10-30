@@ -621,21 +621,21 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         from kv_two_layer_e0 import pinned
 
         def injected(node_id, **kw):
-            return pinned()["endpoint_ledger_anchor"].evaluate_anchored(node_id, **kw)
+            return pinned()["healthy_node_evaluator"].evaluate(node_id, **kw)
         out = TwoLayers(evaluator=injected).kv_access()  # refused at layer 1 by identity: no receipt to carry
         self.assertEqual((out["decision"], out["refusal_cause"], out["kv_access_receipt"]),
-                         ("FAIL_CLOSED", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED", None))
+                         ("FAIL_CLOSED", "LAYER1_NOT_EVALUATED_THROUGH_THE_PINNED_EVALUATE", None))
         exercise = TwoLayers()
         out = exercise.kv_access()
         self.assertEqual(out["decision"], "ALLOW_BOUNDED_CONTEXT")
-        edited = {**out["kv_access_receipt"], "healthy_node_anchor_check": "someone.else"}
-        self.assertEqual(kv.layer1_receipt_conformance(edited), "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED")
+        edited = {**out["kv_access_receipt"], "healthy_node_evaluator_code_sha256": "sha256:" + "0" * 64}
+        self.assertEqual(kv.layer1_receipt_conformance(edited), "LAYER1_DECIDER_CODE_NOT_THE_PINNED_CODE")
         exercise.layer1.healthy_node_evaluator = injected  # swapped after minting
         refused = exercise.gate.admit(kv.kv_skap_transition(
             principal_ref=exercise.principal, operation="SKAP_READ", subject_ref="p",
             prior_receipt_hash=out["kv_access_receipt"]["receipt_hash"]))
         self.assertEqual((refused["disposition"], refused["failure_code"], refused["refusal_cause"]),
-                         ("FAIL_CLOSED", "SKAP_ACCESS_LAYER2_REFUSED", "LAYER1_NOT_EVALUATED_THROUGH_EVALUATE_ANCHORED"))
+                         ("FAIL_CLOSED", "SKAP_ACCESS_LAYER2_REFUSED", "LAYER1_NOT_EVALUATED_THROUGH_THE_PINNED_EVALUATE"))
         for field in SIX:
             self.assertTrue(refused[field], field)
 
@@ -686,30 +686,32 @@ class EvidenceDrivenVerdict(unittest.TestCase):
         for field in SIX:
             self.assertTrue(row[field], field)
 
-    def test_the_finish_point_expects_a_permanent_node(self) -> None:
-        """LC-KV-13 completes with a PERMANENT node. Since #432 @c4cfc145 (rule 1) a SKAP_VAULT is a STEGVERSE_KV:<location>
-        designation (cvk#263), never an opened node ledger: evaluate_anchored refuses to open one, so no SKAP_VAULT node
-        receipt exists to complete the finish point. KV's own PERMANENT-only check stays as defense in depth."""
+    def test_the_finish_point_expects_the_nodes_own_ledger_chain(self) -> None:
+        """LC-KV-13 completes with a node admitted through its OWN ledger chain, bound by the deployment with its
+        pinned genesis. There is no org ledger and no endpoint-kind model: any other binding kind is refused."""
         from tests.kv_two_layer_e0 import NODE, e0_health_ledger
         self.assertEqual(failure_codes(kv.evaluate(evidence_bundle())), TVC_AUTHORITY_GAP)
-        with self.assertRaises(AssertionError) as refused_open:
-            e0_health_ledger(NODE, kind="SKAP_VAULT")
-        self.assertIn("ENDPOINT_INVALID", str(refused_open.exception))
-        self.assertIn("STEGVERSE_KV:_Vault/SKAP/Receipts", str(refused_open.exception))
-        self.assertIn("LAYER1_NODE_NOT_THE_PERMANENT_ENDPOINT_THE_FINISH_POINT_EXPECTS",
-                      (ROOT / "runtime/kv_skap_vault.py").read_text(encoding="utf-8"))
+        self.assertEqual(kv.FINISH_POINT_NODE_KIND, "NODE_OWN_LEDGER_CHAIN")
+        # a binding that is not the node's own chain is refused at layer 1 itself, so no receipt can carry it
+        source = {**e0_health_ledger(NODE)[0], "kind": "SKAP_VAULT"}
+        out = TwoLayers(chain=source).kv_access()
+        self.assertEqual((out["decision"], out["refusal_cause"], out["kv_access_receipt"]),
+                         ("FAIL_CLOSED", "LEDGER_SOURCE_NOT_BOUND_BY_DEPLOYMENT", None))
+        # and a receipt that did carry another kind would be refused by the finish point's own check
+        evidence = evidence_bundle()
+        evidence["layer1_kv_access_receipts"][0]["healthy_node_ledger_binding"]["kind"] = "SKAP_VAULT"
+        verdict = kv.evaluate(evidence)
+        row = next(r for r in verdict["access_constraints"] if r["constraint"] == kv.LAYER_PREDICATE_L1)
+        self.assertEqual(row["disposition"], "FAIL_CLOSED")
 
-    def test_an_ephemeral_node_fails_closed_until_tv_tvc_publishes_a_signer(self) -> None:
-        """EPHEMERAL anchors are signed envelopes (#432 @1cbad77e); the signers file is empty, so layer 1 is a six-field
-        FAIL_CLOSED owned by TV/TVC. It does not block the finish point, which completes with a PERMANENT node."""
-        from tests.kv_two_layer_e0 import NODE, e0_health_ledger
-        ephemeral = TwoLayers(ledger_checkout=e0_health_ledger(NODE, kind="EPHEMERAL")[0])
-        out = ephemeral.kv_access()
+    def test_an_unknown_node_chain_is_refused_and_does_not_block_the_finish_point(self) -> None:
+        """A chain whose transport-authenticated key is not the key it binds is a six-field FAIL_CLOSED (class C). It
+        does not block the finish point, which completes with the honest node."""
+        from tests.kv_two_layer_e0 import NODE, e0_health_ledger, e0_node_identity_key
+        out = TwoLayers(chain=e0_health_ledger(NODE, transport_key=e0_node_identity_key(NODE, "another-key:"))[0]
+                        ).kv_access()
         self.assertEqual((out["decision"], out["failure_code"], out["failure_class"], out["refusal_cause"]),
-                         ("FAIL_CLOSED", "EPHEMERAL_NODE_LEDGER_NOT_ANCHORED", "B",
-                          "NODE_ROOT_NOT_ANCHORED_NODE_LEDGER_OPENED_SIGNER_NOT_PUBLISHED"))
-        self.assertTrue(out["owning_existing_goal"].startswith("TV/TVC"), out["owning_existing_goal"])
-        self.assertIn("TV/TVC publishes", out["next_attempt"])
+                         ("FAIL_CLOSED", "KV_ACCESS_LAYER1_REFUSED", "C", "REQUESTER_KEY_NOT_THE_BOUND_NODE_IDENTITY_KEY"))
         for field in SIX:
             self.assertTrue(isinstance(out[field], str) and out[field].strip(), field)
         self.assertEqual(failure_codes(kv.evaluate(evidence_bundle())), TVC_AUTHORITY_GAP)
